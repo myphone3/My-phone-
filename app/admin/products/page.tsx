@@ -55,7 +55,6 @@ export default function AdminProductsFullManager() {
     }
   };
 
-  // העלאת מספר תמונות לתיקיית product-images
   const handleMultipleImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
       setUploading(true);
@@ -225,13 +224,11 @@ export default function AdminProductsFullManager() {
         </div>
       )}
 
-      {/* טופס הוספה / עריכה */}
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border space-y-5">
         <h2 className="text-lg font-bold text-gray-800 border-b pb-3">
           {editingId ? 'עריכת פרטי המוצר' : 'הוספת מוצר חדש עם בחירת מותג, קטגוריה וכשרות'}
         </h2>
 
-        {/* שם ומחיר */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">שם המוצר</label>
@@ -257,7 +254,6 @@ export default function AdminProductsFullManager() {
           </div>
         </div>
 
-        {/* קטגוריה, מותג, כשרות ומלאי */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">קטגוריה</label>
@@ -315,7 +311,6 @@ export default function AdminProductsFullManager() {
           </div>
         </div>
 
-        {/* העלאת תמונות מרובות */}
         <div className="border-2 border-dashed border-gray-200 p-4 rounded-2xl bg-gray-50 space-y-3">
           <label className="block text-sm font-semibold text-gray-700">תמונות המוצר (ניתן לבחור כמה תמונות יחד)</label>
           <input 
@@ -361,7 +356,6 @@ export default function AdminProductsFullManager() {
           )}
         </div>
 
-        {/* תיאורים */}
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">תיאור קצר (מופיע בכרטיס המוצר)</label>
@@ -397,7 +391,6 @@ export default function AdminProductsFullManager() {
           </div>
         </div>
 
-        {/* SEO - ניהול חיפוש בגוגל */}
         <div className="border-t pt-4 space-y-4 bg-gray-50 p-4 rounded-xl">
           <h3 className="font-bold text-gray-800 text-sm">🔍 הגדרות SEO (קידום בגוגל)</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -433,7 +426,6 @@ export default function AdminProductsFullManager() {
         </button>
       </form>
 
-      {/* רשימת כל המוצרים וניהולם */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
         <h2 className="text-lg font-bold text-gray-800">כל המוצרים במערכת ({products.length})</h2>
         {products.length === 0 ? (
