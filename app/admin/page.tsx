@@ -280,4 +280,51 @@ export default function AdminPage() {
                     <p className="spec-num text-xs text-muted">₪{p.price} · מלאי: {p.stock}</p>
                   </div>
                   <div className="flex gap-3 shrink-0 text-sm">
-                    
+                    <button onClick={() => openEditProduct(p)} className="text-accent hover:underline">ערוך</button>
+                    <button onClick={() => handleDeleteProduct(p.id)} className="text-signal hover:underline">מחק</button>
+                  </div>
+                </div>
+              ))}
+              {products.length === 0 && <p className="text-muted text-sm">אין עדיין מוצרים</p>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === 'settings' && (
+        <form onSubmit={handleSaveSettings} className="bg-panel border border-line rounded-card p-4 space-y-4 max-w-lg">
+          <div>
+            <label className="text-sm text-muted block mb-1">כותרת ראשית - שורה 1</label>
+            <input
+              value={settings.hero_title_line1 ?? ''}
+              onChange={(e) => setSettings({ ...settings, hero_title_line1: e.target.value })}
+              className="w-full border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent"
+            />
+          </div>
+          <div>
+            <label className="text-sm text-muted block mb-1">כותרת ראשית - שורה מודגשת (בצבע)</label>
+            <input
+              value={settings.hero_title_accent ?? ''}
+              onChange={(e) => setSettings({ ...settings, hero_title_accent: e.target.value })}
+              className="w-full border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent"
+            />
+          </div>
+          <div>
+            <label className="text-sm text-muted block mb-1">תת-כותרת</label>
+            <textarea
+              value={settings.hero_subtitle ?? ''}
+              onChange={(e) => setSettings({ ...settings, hero_subtitle: e.target.value })}
+              rows={3}
+              className="w-full border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={savingSettings}
+            className="bg-ink text-white text-sm font-medium px-4 py-2 rounded-card hover:bg-accent transition-colors disabled:opacity-50"
+          >
+            {settingsSaved ? 'נשמר ✓' : savingSettings ? 'שומר...' : 'שמור שינויים'}
+          </button>
+        </form>
+      )}
+    
