@@ -13,6 +13,7 @@ export default function AdminProductsPage() {
     description: '',
     image_url: ''
   });
+  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -27,6 +28,36 @@ export default function AdminProductsPage() {
       if (data) setProducts(data);
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  // העלאת תמונה ישירות למאחסן של Supabase
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setUploading(true);
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('products')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('products')
+        .getPublicUrl(filePath);
+
+      setProduct({ ...product, image_url: data.publicUrl });
+      setMessage('התמונה הועלתה בהצלחה! 🖼️');
+    } catch (err: any) {
+      alert('שגיאה בהעלאת תמונה: ' + err.message);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -49,7 +80,7 @@ export default function AdminProductsPage() {
 
       if (error) throw error;
 
-      setMessage('המוצר נוסף בהצלחה למערכת! 🎉');
+      setMessage('המוצר נוסף בהצלחה לחנות! 🎉');
       setProduct({
         name: '',
         price: '',
@@ -71,9 +102,9 @@ export default function AdminProductsPage() {
     <div className="space-y-6" dir="rtl">
       <h1 className="text-2xl font-bold text-gray-900">ניהול מוצרים</h1>
 
-      {/* טופס הוספת מוצר */}
+      {/* טופס הוספה עם העלאת קובץ תמונה */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border">
-        <h2 className="text-lg font-bold text-gray-800 mb-4">הוספת מוצר חדש לחנות</h2>
+        <h2 className="text-lg font-bold text-gray-800 mb-4">הוספת מוצר חדש עם תמונה</h2>
 
         {message && (
           <div className={`p-3 mb-4 rounded-xl text-sm font-medium ${message.includes('שגיאה') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
@@ -118,15 +149,22 @@ export default function AdminProductsPage() {
             </div>
           </div>
 
+          {/* העלאת קובץ תמונה מהמכשיר */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">קישור לתמונה (URL)</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">תמונת מוצר (העלאה מהמכשיר)</label>
             <input 
-              type="text" 
-              value={product.image_url}
-              onChange={(e) => setProduct({...product, image_url: e.target.value})}
-              className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black"
-              placeholder="https://..."
+              type="file" 
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="w-full border rounded-xl p-2.5 bg-gray-50 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"
             />
+            {uploading && <p className="text-xs text-blue-600 mt-1">מעלה תמונה לענן...</p>}
+            {product.image_url && (
+              <div className="mt-2 flex items-center gap-2">
+                <img src={product.image_url} alt="תצוגה מקדימה" className="w-16 h-16 object-cover rounded-lg border" />
+                <span className="text-xs text-green-600 font-medium">התמונה נקלטה בהצלחה!</span>
+              </div>
+            )}
           </div>
 
           <div>
@@ -142,34 +180,12 @@ export default function AdminProductsPage() {
 
           <button 
             type="submit" 
-            disabled={loading}
-            className="w-full bg-black text-white py-3 rounded-xl font-bold hover:bg-gray-800 transition shadow-sm"
+            disabled={loading || uploading}
+            className="w-full bg-black text-white py-3.5 rounded-xl font-bold hover:bg-gray-800 transition shadow-md"
           >
-            {loading ? 'שומר...' : 'הוסף מוצר 🚀'}
+            {loading ? 'שומר...' : 'הוסף מוצר לחנות 🚀'}
           </button>
         </form>
-      </div>
-
-      {/* רשימת המוצרים הקיימים */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border">
-        <h2 className="text-lg font-bold text-gray-800 mb-4">המוצרים במערכת ({products.length})</h2>
-        {products.length === 0 ? (
-          <p className="text-gray-400 text-sm">אין עדיין מוצרים.</p>
-        ) : (
-          <div className="space-y-3">
-            {products.map((p) => (
-              <div key={p.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border">
-                <div className="flex items-center gap-3">
-                  {p.image_url && <img src={p.image_url} alt={p.name} className="w-10 h-10 object-cover rounded-lg" />}
-                  <div>
-                    <p className="font-medium text-gray-900 text-sm">{p.name}</p>
-                    <p className="text-xs text-gray-500">₪{p.price} | מלאי: {p.stock ?? 0}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );
