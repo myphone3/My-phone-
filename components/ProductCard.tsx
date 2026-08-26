@@ -1,23 +1,29 @@
 import React from 'react';
 
 export default function ProductCard(props: any) {
+  // בדיקה מקיפה שתופסת כל דרך שבה הנתונים מגיעים
+  const item = props.product || props;
+  const productName = item.name || item.title || "מוצר";
+  const productPrice = item.price;
+  const productImage = item.image_url || item.image;
+
   return (
     <div className="border rounded-xl p-4 shadow-md bg-white flex flex-col gap-2">
-      {/* תצוגת תמונה אם קיימת */}
-      {props.image_url && (
+      {/* תצוגת תמונה */}
+      {productImage && (
         <img 
-          src={props.image_url} 
-          alt={props.name || "מוצר"} 
+          src={productImage} 
+          alt={productName} 
           className="w-full h-40 object-cover rounded-md"
         />
       )}
       
-      {/* שם המוצר (משתמש ב-name שמגיע מ-Supabase עם גיבוי) */}
-      <h3 className="text-lg font-bold">{props.name || props.title || "מוצר"}</h3>
+      {/* שם המוצר האמיתי */}
+      <h3 className="text-lg font-bold">{productName}</h3>
       
       {/* מחיר המוצר */}
       <p className="text-gray-600 font-semibold">
-        {props.price ? `₪${props.price}` : ""}
+        {productPrice ? `₪${productPrice}` : ""}
       </p>
     </div>
   );
