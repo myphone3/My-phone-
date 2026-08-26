@@ -1,362 +1,152 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { supabase, Product } from '@/lib/supabase';
-import type { Session } from '@supabase/supabase-js';
-
-type ProductForm = {
-  id?: string;
-  name: string;
-  brand: string;
-  category: string;
-  price: string;
-  stock: string;
-  description: string;
-  image_url: string;
-  spec_storage: string;
-  spec_ram: string;
-  spec_battery: string;
-};
-
-const emptyForm: ProductForm = {
-  name: '',
-  brand: '',
-  category: '',
-  price: '',
-  stock: '',
-  description: '',
-  image_url: '',
-  spec_storage: '',
-  spec_ram: '',
-  spec_battery: '',
-};
+import React, { useState } from 'react';
+import { supabase } from '@/lib/supabase';
 
 export default function AdminPage() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [checkingSession, setCheckingSession] = useState(true);
+  const [product, setProduct] = useState({
+    name: '',
+    price: '',
+    category: 'כשר',
+    stock: '',
+    description: '',
+    image_url: ''
+  });
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loginError, setLoginError] = useState('');
-  const [loggingIn, setLoggingIn] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
 
-  const [tab, setTab] = useState<'products' | 'settings'>('products');
-
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loadingProducts, setLoadingProducts] = useState(false);
-  const [form, setForm] = useState<ProductForm | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-
-  const [settings, setSettings] = useState<Record<string, string>>({});
-  const [savingSettings, setSavingSettings] = useState(false);
-  const [settingsSaved, setSettingsSaved] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setCheckingSession(false);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-    });
-    return () => listener.subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (session) {
-      fetchProducts();
-      fetchSettings();
-    }
-  }, [session]);
-
-  async function fetchProducts() {
-    setLoadingProducts(true);
-    const { data } = await supabase.from('products').select('*').order('name');
-    setProducts(data ?? []);
-    setLoadingProducts(false);
-  }
-
-  async function fetchSettings() {
-    const { data } = await supabase.from('site_settings').select('key, value');
-    const map: Record<string, string> = {};
-    (data ?? []).forEach((row) => {
-      map[row.key] = row.value ?? '';
-    });
-    setSettings(map);
-  }
-
-  async function handleLogin(e: React.FormEvent) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoginError('');
-    setLoggingIn(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) setLoginError('שגיאה: ' + error.message);
-    setLoggingIn(false);
-  }
+    setLoading(true);
+    setMessage('');
 
-  async function handleLogout() {
-    await supabase.auth.signOut();
-  }
+    try {
+      const { error } = await supabase.from('products').insert([
+        {
+          name: product.name,
+          price: Number(product.price),
+          category: product.category,
+          stock: Number(product.stock),
+          description: product.description,
+          image_url: product.image_url
+        }
+      ]);
 
-  function openNewProduct() {
-    setForm({ ...emptyForm });
-  }
+      if (error) throw error;
 
-  function openEditProduct(p: Product) {
-    setForm({
-      id: p.id,
-      name: p.name ?? '',
-      brand: p.brand ?? '',
-      category: p.category ?? '',
-      price: String(p.price ?? ''),
-      stock: String(p.stock ?? ''),
-      description: p.description ?? '',
-      image_url: p.image_url ?? '',
-      spec_storage: p.spec_storage ?? '',
-      spec_ram: p.spec_ram ?? '',
-      spec_battery: p.spec_battery ?? '',
-    });
-  }
-
-  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !form) return;
-    setUploading(true);
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
-    const { error: uploadError } = await supabase.storage.from('product-images').upload(fileName, file);
-    if (uploadError) {
-      alert('שגיאה בהעלאת התמונה: ' + uploadError.message);
-      setUploading(false);
-      return;
+      setMessage('המוצר נוסף בהצלחה למערכת! 🎉');
+      setProduct({
+        name: '',
+        price: '',
+        category: 'כשר',
+        stock: '',
+        description: '',
+        image_url: ''
+      });
+    } catch (err: any) {
+      console.error(err);
+      setMessage('שגיאה בשמירת המוצר: ' + err.message);
+    } finally {
+      setLoading(false);
     }
-    const { data } = supabase.storage.from('product-images').getPublicUrl(fileName);
-    setForm({ ...form, image_url: data.publicUrl });
-    setUploading(false);
-  }
-
-  async function handleSaveProduct(e: React.FormEvent) {
-    e.preventDefault();
-    if (!form) return;
-    setSaving(true);
-
-    const payload = {
-      name: form.name,
-      brand: form.brand,
-      category: form.category,
-      price: Number(form.price) || 0,
-      stock: Number(form.stock) || 0,
-      description: form.description,
-      image_url: form.image_url,
-      spec_storage: form.spec_storage,
-      spec_ram: form.spec_ram,
-      spec_battery: form.spec_battery,
-    };
-
-    if (form.id) {
-      const { error } = await supabase.from('products').update(payload).eq('id', form.id);
-      if (error) { alert('שגיאה בשמירה: ' + error.message); setSaving(false); return; }
-    } else {
-      const { error } = await supabase.from('products').insert(payload);
-      if (error) { alert('שגיאה בשמירה: ' + error.message); setSaving(false); return; }
-    }
-
-    setSaving(false);
-    setForm(null);
-    fetchProducts();
-  }
-
-  async function handleDeleteProduct(id: string) {
-    if (!confirm('למחוק את המוצר הזה?')) return;
-    await supabase.from('products').delete().eq('id', id);
-    fetchProducts();
-  }
-
-  async function handleSaveSettings(e: React.FormEvent) {
-    e.preventDefault();
-    setSavingSettings(true);
-    setSettingsSaved(false);
-    const entries = Object.entries(settings);
-    for (const [key, value] of entries) {
-      await supabase.from('site_settings').upsert({ key, value });
-    }
-    setSavingSettings(false);
-    setSettingsSaved(true);
-    setTimeout(() => setSettingsSaved(false), 2000);
-  }
-
-  if (checkingSession) {
-    return <div className="max-w-md mx-auto px-4 py-16 text-center text-muted">טוען...</div>;
-  }
-
-  if (!session) {
-    return (
-      <div className="max-w-sm mx-auto px-4 py-16">
-        <h1 className="font-display font-bold text-2xl mb-6 text-center">כניסת מנהל</h1>
-        <form onSubmit={handleLogin} className="bg-panel border border-line rounded-card p-5 space-y-3">
-          <input
-            type="email"
-            placeholder="אימייל"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent"
-          />
-          <input
-            type="password"
-            placeholder="סיסמה"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="w-full border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent"
-          />
-          {loginError && <p className="text-signal text-sm">{loginError}</p>}
-          <button
-            type="submit"
-            disabled={loggingIn}
-            className="w-full bg-ink text-white font-medium py-2.5 rounded-card hover:bg-accent transition-colors disabled:opacity-50"
-          >
-            {loggingIn ? 'מתחבר...' : 'התחבר'}
-          </button>
-        </form>
-      </div>
-    );
-  }
+  };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="font-display font-bold text-2xl">ניהול החנות</h1>
-        <button onClick={handleLogout} className="text-sm text-muted hover:text-signal">
-          התנתק
-        </button>
-      </div>
+    <div className="min-h-screen bg-gray-50 p-6" dir="rtl">
+      <div className="max-w-xl mx-auto bg-white rounded-2xl shadow-sm p-6 md:p-8">
+        <h1 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">
+          מערכת ניהול - הוספת מוצר חדש
+        </h1>
 
-      <div className="flex gap-2 mb-6 border-b border-line">
-        <button
-          onClick={() => setTab('products')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-            tab === 'products' ? 'border-accent text-accent' : 'border-transparent text-muted'
-          }`}
-        >
-          מוצרים
-        </button>
-        <button
-          onClick={() => setTab('settings')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-            tab === 'settings' ? 'border-accent text-accent' : 'border-transparent text-muted'
-          }`}
-        >
-          עיצוב האתר
-        </button>
-      </div>
+        {message && (
+          <div className={`p-4 mb-4 rounded-lg text-sm font-medium ${message.includes('שגיאה') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+            {message}
+          </div>
+        )}
 
-      {tab === 'products' && (
-        <div>
-          {!form && (
-            <button
-              onClick={openNewProduct}
-              className="mb-4 bg-ink text-white text-sm font-medium px-4 py-2 rounded-card hover:bg-accent transition-colors"
-            >
-              + מוצר חדש
-            </button>
-          )}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">שם המוצר</label>
+            <input 
+              type="text" 
+              value={product.name}
+              onChange={(e) => setProduct({...product, name: e.target.value})}
+              className="w-full border rounded-xl p-3 focus:ring-2 focus:ring-black outline-none"
+              placeholder="לדוגמה: מכשיר כשר טאצ'"
+              required 
+            />
+          </div>
 
-          {form && (
-            <form onSubmit={handleSaveProduct} className="bg-panel border border-line rounded-card p-4 mb-6 space-y-3">
-              <h2 className="font-display font-bold">{form.id ? 'עריכת מוצר' : 'מוצר חדש'}</h2>
-              <div className="grid grid-cols-2 gap-3">
-                <input placeholder="שם המוצר" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="col-span-2 border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent" />
-                <input placeholder="מותג" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} className="border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent" />
-                <input placeholder="קטגוריה" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent" />
-                <input type="number" placeholder="מחיר" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required className="border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent" />
-                <input type="number" placeholder="מלאי" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} required className="border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent" />
-                <input placeholder="קישור לתמונה (או העלה למטה)" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="col-span-2 border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent" />
-                <div className="col-span-2 flex items-center gap-3">
-                  <label className="shrink-0 text-sm font-medium bg-paper border border-line rounded-card px-3 py-2 cursor-pointer hover:border-accent transition-colors">
-                    {uploading ? 'מעלה...' : 'העלה תמונה מהטלפון'}
-                    <input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} className="hidden" />
-                  </label>
-                  {form.image_url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={form.image_url} alt="תצוגה מקדימה" className="w-14 h-14 object-contain border border-line rounded-card bg-paper" />
-                  )}
-                </div>
-                <textarea placeholder="תיאור" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="col-span-2 border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent" rows={2} />
-                <input placeholder="אחסון (למשל 128GB)" value={form.spec_storage} onChange={(e) => setForm({ ...form, spec_storage: e.target.value })} className="border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent" />
-                <input placeholder="זיכרון RAM" value={form.spec_ram} onChange={(e) => setForm({ ...form, spec_ram: e.target.value })} className="border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent" />
-                <input placeholder="סוללה" value={form.spec_battery} onChange={(e) => setForm({ ...form, spec_battery: e.target.value })} className="border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent" />
-              </div>
-              <div className="flex gap-2 pt-2">
-                <button type="submit" disabled={saving} className="bg-ink text-white text-sm font-medium px-4 py-2 rounded-card hover:bg-accent transition-colors disabled:opacity-50">
-                  {saving ? 'שומר...' : 'שמור'}
-                </button>
-                <button type="button" onClick={() => setForm(null)} className="text-sm text-muted px-4 py-2">
-                  ביטול
-                </button>
-              </div>
-            </form>
-          )}
-
-          {loadingProducts ? (
-            <p className="text-muted text-sm">טוען מוצרים...</p>
-          ) : (
-            <div className="space-y-2">
-              {products.map((p) => (
-                <div key={p.id} className="flex items-center justify-between bg-panel border border-line rounded-card p-3">
-                  <div className="min-w-0">
-                    <p className="font-medium text-sm truncate">{p.name}</p>
-                    <p className="spec-num text-xs text-muted">₪{p.price} · מלאי: {p.stock}</p>
-                  </div>
-                  <div className="flex gap-3 shrink-0 text-sm">
-                    <button onClick={() => openEditProduct(p)} className="text-accent hover:underline">ערוך</button>
-                    <button onClick={() => handleDeleteProduct(p.id)} className="text-signal hover:underline">מחק</button>
-                  </div>
-                </div>
-              ))}
-              {products.length === 0 && <p className="text-muted text-sm">אין עדיין מוצרים</p>}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">מחיר (₪)</label>
+              <input 
+                type="number" 
+                value={product.price}
+                onChange={(e) => setProduct({...product, price: e.target.value})}
+                className="w-full border rounded-xl p-3 focus:ring-2 focus:ring-black outline-none"
+                placeholder="450"
+                required 
+              />
             </div>
-          )}
-        </div>
-      )}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">קטגוריה</label>
+              <select 
+                value={product.category}
+                onChange={(e) => setProduct({...product, category: e.target.value})}
+                className="w-full border rounded-xl p-3 focus:ring-2 focus:ring-black outline-none bg-white"
+              >
+                <option value="כשר">תומך כשר</option>
+                <option value="סמארטפונים">סמארטפונים</option>
+                <option value="אביזרים">אביזרים</option>
+              </select>
+            </div>
+          </div>
 
-      {tab === 'settings' && (
-        <form onSubmit={handleSaveSettings} className="bg-panel border border-line rounded-card p-4 space-y-4 max-w-lg">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">כמות במלאי</label>
+              <input 
+                type="number" 
+                value={product.stock}
+                onChange={(e) => setProduct({...product, stock: e.target.value})}
+                className="w-full border rounded-xl p-3 focus:ring-2 focus:ring-black outline-none"
+                placeholder="10"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">קישור לתמונה (URL)</label>
+              <input 
+                type="text" 
+                value={product.image_url}
+                onChange={(e) => setProduct({...product, image_url: e.target.value})}
+                className="w-full border rounded-xl p-3 focus:ring-2 focus:ring-black outline-none"
+                placeholder="https://..."
+              />
+            </div>
+          </div>
+
           <div>
-            <label className="text-sm text-muted block mb-1">כותרת ראשית - שורה 1</label>
-            <input
-              value={settings.hero_title_line1 ?? ''}
-              onChange={(e) => setSettings({ ...settings, hero_title_line1: e.target.value })}
-              className="w-full border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent"
+            <label className="block text-sm font-semibold text-gray-700 mb-1">תיאור מלא של המוצר (מלל ומפרט)</label>
+            <textarea 
+              rows={4}
+              value={product.description}
+              onChange={(e) => setProduct({...product, description: e.target.value})}
+              className="w-full border rounded-xl p-3 focus:ring-2 focus:ring-black outline-none"
+              placeholder="הכנס כאן את כל המפרט הטכני והמידע על המוצר..."
             />
           </div>
-          <div>
-            <label className="text-sm text-muted block mb-1">כותרת ראשית - שורה מודגשת (בצבע)</label>
-            <input
-              value={settings.hero_title_accent ?? ''}
-              onChange={(e) => setSettings({ ...settings, hero_title_accent: e.target.value })}
-              className="w-full border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent"
-            />
-          </div>
-          <div>
-            <label className="text-sm text-muted block mb-1">תת-כותרת</label>
-            <textarea
-              value={settings.hero_subtitle ?? ''}
-              onChange={(e) => setSettings({ ...settings, hero_subtitle: e.target.value })}
-              rows={3}
-              className="w-full border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={savingSettings}
-            className="bg-ink text-white text-sm font-medium px-4 py-2 rounded-card hover:bg-accent transition-colors disabled:opacity-50"
+
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full bg-black text-white py-3.5 rounded-xl font-bold hover:bg-gray-800 transition shadow-md"
           >
-            {settingsSaved ? 'נשמר ✓' : savingSettings ? 'שומר...' : 'שמור שינויים'}
+            {loading ? 'שומר במערכת...' : 'הוסף מוצר לחנות 🚀'}
           </button>
         </form>
-      )}
+      </div>
     </div>
   );
 }
