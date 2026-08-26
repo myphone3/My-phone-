@@ -5,13 +5,16 @@ import { supabase } from '@/lib/supabase';
 
 export default function AdminProductsFullManager() {
   const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [product, setProduct] = useState({
     name: '',
     price: '',
-    category: 'כשר',
-    brand: 'הדרן',
+    category: '',
+    brand: '',
+    kosher: 'ועדת הרבנים המאושרת',
     stock: '',
     short_description: '',
     description: '',
@@ -27,6 +30,7 @@ export default function AdminProductsFullManager() {
 
   useEffect(() => {
     fetchProducts();
+    fetchCategoriesAndBrands();
   }, []);
 
   const fetchProducts = async () => {
@@ -39,7 +43,19 @@ export default function AdminProductsFullManager() {
     }
   };
 
-  // העלאת מספר תמונות לתיקיית product-images שלך
+  const fetchCategoriesAndBrands = async () => {
+    try {
+      const catRes = await supabase.from('categories').select('*');
+      if (catRes.data) setCategories(catRes.data);
+
+      const brandRes = await supabase.from('brands').select('*');
+      if (brandRes.data) setBrands(brandRes.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // העלאת מספר תמונות לתיקיית product-images
   const handleMultipleImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
       setUploading(true);
@@ -101,8 +117,9 @@ export default function AdminProductsFullManager() {
       const productData = {
         name: product.name,
         price: Number(product.price),
-        category: product.category,
-        brand: product.brand,
+        category: product.category || categories[0]?.name || 'כללי',
+        brand: product.brand || brands[0]?.name || 'כללי',
+        kosher: product.kosher,
         stock: Number(product.stock),
         short_description: product.short_description,
         description: product.description,
@@ -142,8 +159,9 @@ export default function AdminProductsFullManager() {
     setProduct({
       name: p.name || '',
       price: p.price || '',
-      category: p.category || 'כשר',
-      brand: p.brand || 'הדרן',
+      category: p.category || '',
+      brand: p.brand || '',
+      kosher: p.kosher || 'ועדת הרבנים המאושרת',
       stock: p.stock || '',
       short_description: p.short_description || '',
       description: p.description || '',
@@ -171,8 +189,9 @@ export default function AdminProductsFullManager() {
     setProduct({
       name: '',
       price: '',
-      category: 'כשר',
-      brand: 'הדרן',
+      category: categories[0]?.name || '',
+      brand: brands[0]?.name || '',
+      kosher: 'ועדת הרבנים המאושרת',
       stock: '',
       short_description: '',
       description: '',
@@ -209,7 +228,7 @@ export default function AdminProductsFullManager() {
       {/* טופס הוספה / עריכה */}
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border space-y-5">
         <h2 className="text-lg font-bold text-gray-800 border-b pb-3">
-          {editingId ? 'עריכת פרטי המוצר' : 'הוספת מוצר חדש עם תמונות מרובות'}
+          {editingId ? 'עריכת פרטי המוצר' : 'הוספת מוצר חדש עם בחירת מותג, קטגוריה וכשרות'}
         </h2>
 
         {/* שם ומחיר */}
@@ -238,28 +257,52 @@ export default function AdminProductsFullManager() {
           </div>
         </div>
 
-        {/* קטגוריה, מותג ומלאי */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* קטגוריה, מותג, כשרות ומלאי */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">קטגוריה</label>
-            <input 
-              type="text"
+            <select
               value={product.category}
               onChange={(e) => setProduct({...product, category: e.target.value})}
-              className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black"
-              placeholder="כשר / סמארטפונים / אביזרים"
-            />
+              className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black bg-white"
+            >
+              <option value="">בחר קטגוריה...</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.name}>{c.name}</option>
+              ))}
+            </select>
           </div>
+
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">מותג</label>
-            <input 
-              type="text"
+            <select
               value={product.brand}
               onChange={(e) => setProduct({...product, brand: e.target.value})}
-              className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black"
-              placeholder="הדרן / קובין / סמסונג"
-            />
+              className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black bg-white"
+            >
+              <option value="">בחר מותג...</option>
+              {brands.map((b) => (
+                <option key={b.id} value={b.name}>{b.name}</option>
+              ))}
+            </select>
           </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">רמת כשרות</label>
+            <select
+              value={product.kosher}
+              onChange={(e) => setProduct({...product, kosher: e.target.value})}
+              className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black bg-white font-medium text-blue-900"
+            >
+              <option value="ועדת הרבנים המאושרת">ועדת הרבנים המאושרת</option>
+              <option value="הדרן">הדרן</option>
+              <option value="מהודר">מהודר</option>
+              <option value="אוצר בי\"ד">אוצר בי"ד</option>
+              <option value="נטו כשר">נטו כשר</option>
+              <option value="אחר">אחר</option>
+            </select>
+          </div>
+
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">כמות במלאי</label>
             <input 
@@ -272,7 +315,7 @@ export default function AdminProductsFullManager() {
           </div>
         </div>
 
-        {/* העלאת תמונות מרובות עם בחירת ראשית */}
+        {/* העלאת תמונות מרובות */}
         <div className="border-2 border-dashed border-gray-200 p-4 rounded-2xl bg-gray-50 space-y-3">
           <label className="block text-sm font-semibold text-gray-700">תמונות המוצר (ניתן לבחור כמה תמונות יחד)</label>
           <input 
@@ -286,7 +329,7 @@ export default function AdminProductsFullManager() {
 
           {product.image_urls.length > 0 && (
             <div className="space-y-2">
-              <p className="text-xs font-semibold text-gray-600">לחץ על "הגדר כראשית" כדי לבחור איזו תמונה תופיע ראשונה בחנות:</p>
+              <p className="text-xs font-semibold text-gray-600">לחץ על "הגדר כראשית" כדי לבחור איזו תמונה תופיע ראשונה:</p>
               <div className="flex flex-wrap gap-4">
                 {product.image_urls.map((url, index) => (
                   <div key={index} className="relative group bg-white p-2 rounded-xl border shadow-sm flex flex-col items-center gap-2">
@@ -408,7 +451,7 @@ export default function AdminProductsFullManager() {
                   <div>
                     <p className="font-bold text-gray-900">{p.name}</p>
                     <p className="text-xs text-gray-500">
-                      קטגוריה: {p.category || 'כללי'} | מותג: {p.brand || 'ללא'} | מחיר: ₪{p.price} | מלאי: {p.stock ?? 0}
+                      קטגוריה: {p.category || 'כללי'} | מותג: {p.brand || 'ללא'} | כשרות: {p.kosher || 'ועדת הרבנים'} | מחיר: ₪{p.price}
                     </p>
                   </div>
                 </div>
