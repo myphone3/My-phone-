@@ -136,11 +136,14 @@ export default function AdminPage() {
       spec_battery: form.spec_battery,
     };
 
-    if (form.id) {
-      await supabase.from('products').update(payload).eq('id', form.id);
+        if (form.id) {
+      const { error } = await supabase.from('products').update(payload).eq('id', form.id);
+      if (error) { alert('שגיאה בשמירה: ' + error.message); setSaving(false); return; }
     } else {
-      await supabase.from('products').insert(payload);
+      const { error } = await supabase.from('products').insert(payload);
+      if (error) { alert('שגיאה בשמירה: ' + error.message); setSaving(false); return; }
     }
+
 
     setSaving(false);
     setForm(null);
