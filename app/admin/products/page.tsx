@@ -39,7 +39,7 @@ export default function AdminProductsFullManager() {
     }
   };
 
-  // העלאת מספר תמונות במקביל
+  // העלאת מספר תמונות לתיקיית product-images שלך
   const handleMultipleImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
       setUploading(true);
@@ -55,13 +55,13 @@ export default function AdminProductsFullManager() {
         const filePath = `${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('products')
+          .from('product-images')
           .upload(filePath, file);
 
         if (uploadError) throw uploadError;
 
         const { data } = supabase.storage
-          .from('products')
+          .from('product-images')
           .getPublicUrl(filePath);
 
         if (data?.publicUrl) {
@@ -78,7 +78,6 @@ export default function AdminProductsFullManager() {
     }
   };
 
-  // מחיקת תמונה מהרשימה
   const removeImage = (indexToRemove: number) => {
     setProduct({
       ...product,
@@ -86,7 +85,6 @@ export default function AdminProductsFullManager() {
     });
   };
 
-  // הגדרת תמונה ספציפית כתמונה הראשית
   const setAsPrimaryImage = (indexToSet: number) => {
     const urls = [...product.image_urls];
     const [selectedUrl] = urls.splice(indexToSet, 1);
@@ -109,8 +107,8 @@ export default function AdminProductsFullManager() {
         short_description: product.short_description,
         description: product.description,
         specs: product.specs,
-        image_url: product.image_urls[0] || '', // התמונה הראשית לתצוגה קלה
-        image_urls: product.image_urls,         // כל התמונות
+        image_url: product.image_urls[0] || '',
+        image_urls: product.image_urls,
         seo_title: product.seo_title,
         seo_description: product.seo_description
       };
