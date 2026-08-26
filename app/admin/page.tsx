@@ -46,6 +46,7 @@ export default function AdminPage() {
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [form, setForm] = useState<ProductForm | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [savingSettings, setSavingSettings] = useState(false);
@@ -118,6 +119,23 @@ export default function AdminPage() {
     });
   }
 
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !form) return;
+    setUploading(true);
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+    const { error: uploadError } = await supabase.storage.from('product-images').upload(fileName, file);
+    if (uploadError) {
+      alert('שגיאה בהעלאת התמונה: ' + uploadError.message);
+      setUploading(false);
+      return;
+    }
+    const { data } = supabase.storage.from('product-images').getPublicUrl(fileName);
+    setForm({ ...form, image_url: data.publicUrl });
+    setUploading(false);
+  }
+
   async function handleSaveProduct(e: React.FormEvent) {
     e.preventDefault();
     if (!form) return;
@@ -136,14 +154,13 @@ export default function AdminPage() {
       spec_battery: form.spec_battery,
     };
 
-        if (form.id) {
+    if (form.id) {
       const { error } = await supabase.from('products').update(payload).eq('id', form.id);
       if (error) { alert('שגיאה בשמירה: ' + error.message); setSaving(false); return; }
     } else {
       const { error } = await supabase.from('products').insert(payload);
       if (error) { alert('שגיאה בשמירה: ' + error.message); setSaving(false); return; }
     }
-
 
     setSaving(false);
     setForm(null);
@@ -255,7 +272,17 @@ export default function AdminPage() {
                 <input placeholder="קטגוריה" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent" />
                 <input type="number" placeholder="מחיר" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required className="border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent" />
                 <input type="number" placeholder="מלאי" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} required className="border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent" />
-                <input placeholder="קישור לתמונה" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="col-span-2 border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent" />
+                <input placeholder="קישור לתמונה (או העלה למטה)" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="col-span-2 border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent" />
+                <div className="col-span-2 flex items-center gap-3">
+                  <label className="shrink-0 text-sm font-medium bg-paper border border-line rounded-card px-3 py-2 cursor-pointer hover:border-accent transition-colors">
+                    {uploading ? 'מעלה...' : 'העלה תמונה מהטלפון'}
+                    <input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} className="hidden" />
+                  </label>
+                  {form.image_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={form.image_url} alt="תצוגה מקדימה" className="w-14 h-14 object-contain border border-line rounded-card bg-paper" />
+                  )}
+                </div>
                 <textarea placeholder="תיאור" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="col-span-2 border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent" rows={2} />
                 <input placeholder="אחסון (למשל 128GB)" value={form.spec_storage} onChange={(e) => setForm({ ...form, spec_storage: e.target.value })} className="border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent" />
                 <input placeholder="זיכרון RAM" value={form.spec_ram} onChange={(e) => setForm({ ...form, spec_ram: e.target.value })} className="border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent" />
@@ -284,52 +311,4 @@ export default function AdminPage() {
                   </div>
                   <div className="flex gap-3 shrink-0 text-sm">
                     <button onClick={() => openEditProduct(p)} className="text-accent hover:underline">ערוך</button>
-                    <button onClick={() => handleDeleteProduct(p.id)} className="text-signal hover:underline">מחק</button>
-                  </div>
-                </div>
-              ))}
-              {products.length === 0 && <p className="text-muted text-sm">אין עדיין מוצרים</p>}
-            </div>
-          )}
-        </div>
-      )}
-
-      {tab === 'settings' && (
-        <form onSubmit={handleSaveSettings} className="bg-panel border border-line rounded-card p-4 space-y-4 max-w-lg">
-          <div>
-            <label className="text-sm text-muted block mb-1">כותרת ראשית - שורה 1</label>
-            <input
-              value={settings.hero_title_line1 ?? ''}
-              onChange={(e) => setSettings({ ...settings, hero_title_line1: e.target.value })}
-              className="w-full border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent"
-            />
-          </div>
-          <div>
-            <label className="text-sm text-muted block mb-1">כותרת ראשית - שורה מודגשת (בצבע)</label>
-            <input
-              value={settings.hero_title_accent ?? ''}
-              onChange={(e) => setSettings({ ...settings, hero_title_accent: e.target.value })}
-              className="w-full border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent"
-            />
-          </div>
-          <div>
-            <label className="text-sm text-muted block mb-1">תת-כותרת</label>
-            <textarea
-              value={settings.hero_subtitle ?? ''}
-              onChange={(e) => setSettings({ ...settings, hero_subtitle: e.target.value })}
-              rows={3}
-              className="w-full border border-line rounded-card px-3 py-2 text-sm outline-none focus:border-accent"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={savingSettings}
-            className="bg-ink text-white text-sm font-medium px-4 py-2 rounded-card hover:bg-accent transition-colors disabled:opacity-50"
-          >
-            {settingsSaved ? 'נשמר ✓' : savingSettings ? 'שומר...' : 'שמור שינויים'}
-          </button>
-        </form>
-      )}
-        </div>
-  );
-}
+                    
