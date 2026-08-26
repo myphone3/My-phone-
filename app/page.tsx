@@ -1,87 +1,76 @@
-import Link from 'next/link';
-import { supabase, Product } from '@/lib/supabase';
-import { getSettings } from '@/lib/settings';
+'use client';
+
+import { useEffect, useState } from 'react';
 import ProductCard from '@/components/ProductCard';
+import { createClient } from '@supabase/supabase-js';
 
-export const revalidate = 30;
+// הגדרת חיבור ל-Supabase
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-async function getFeatured(): Promise<Product[]> {
-  const { data, error } = await supabase
-    .from('products')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(8);
+export default function CatalogPage() {
+  const [products, setProducts] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  if (error) {
-    console.error(error);
-    return [];
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  async function fetchProducts() {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.from('products').select('*');
+      if (error) {
+        console.error('שגיאה בטעינת המוצרים:', error);
+      } else if (data) {
+        setProducts(data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   }
-  return data ?? [];
-}
 
-export default async function Home() {
-  const [featured, settings] = await Promise.all([getFeatured(), getSettings()]);
-
-  const titleLine1 = settings.hero_title_line1 || 'המכשיר הבא שלך,';
-  const titleAccent = settings.hero_title_accent || 'במחיר שכתוב בשחור-לבן';
-  const subtitle =
-    settings.hero_subtitle ||
-    'מאות מכשירים ואביזרים, מלאי מתעדכן בזמן אמת, בלי הפתעות בקופה.';
+  // סינון מוצרים לפי חיפוש
+  const filteredProducts = products.filter((p) =>
+    (p.name || p.title || '').toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <div>
-      <section className="border-b border-line bg-panel">
-        <div className="max-w-6xl mx-auto px-4 py-14 md:py-20 grid md:grid-cols-2 gap-8 items-center">
-          <div>
-            <span className="spec-num text-accent text-sm tracking-widest">STOCK.LIVE // ISRAEL</span>
-            <h1 className="font-display font-extrabold text-4xl md:text-5xl leading-[1.1] mt-3">
-              {titleLine1}
-              <br />
-              <span className="text-accent">{titleAccent}</span>
-            </h1>
-            <p className="text-muted mt-4 max-w-md">{subtitle}</p>
-            <Link
-              href="/catalog"
-              className="inline-block mt-6 bg-ink text-white font-medium px-6 py-3 rounded-card hover:bg-accent transition-colors"
-            >
-              לקטלוג המלא
-            </Link>
-          </div>
-
-          <div className="bg-ink text-white rounded-card p-6 font-mono text-sm sim-corner">
-            <div className="flex justify-between border-b border-white/10 pb-2 mb-2">
-              <span className="text-white/50">SPEC_SHEET</span>
-              <span className="text-accent">●LIVE</span>
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex justify-between"><span className="text-white/50">מכשירים בקטלוג</span><span>300+</span></div>
-              <div className="flex justify-between"><span className="text-white/50">עדכון מלאי</span><span>זמן אמת</span></div>
-              <div className="flex justify-between"><span className="text-white/50">משלוח</span><span>עד הבית</span></div>
-              <div className="flex justify-between"><span className="text-white/50">תמיכה</span><span>WhatsApp</span></div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="max-w-6xl mx-auto px-4 py-12">
-        <div className="flex items-baseline justify-between mb-5">
-          <h2 className="font-display font-bold text-2xl">חדש בחנות</h2>
-          <Link href="/catalog" className="text-sm text-accent hover:underline">לכל המוצרים ←</Link>
+    <main className="min-h-screen bg-gray-50 p-4 md:p-8" dir="rtl">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-2xl font-bold mb-4">קטלוג מוצרים</h1>
+        
+        {/* תיבת חיפוש */}
+        <div className="flex gap-2 mb-6">
+          <input
+            type="text"
+            placeholder="חיפוש..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="border rounded-lg px-4 py-2 flex-1 bg-white text-black"
+          />
         </div>
 
-        {featured.length === 0 ? (
-          <div className="border border-dashed border-line rounded-card p-10 text-center text-muted">
-            <p className="font-medium">עוד לא הוספת מוצרים</p>
-            <p className="text-sm mt-1">מוצרים שתוסיף בעמוד הניהול (/admin) יופיעו כאן אוטומטית.</p>
-          </div>
+        {/* מונה מוצרים */}
+        <p className="text-sm text-gray-500 mb-4">{filteredProducts.length} מוצרים</p>
+
+        {/* רשת המוצרים */}
+        {loading ? (
+          <p className="text-center py-10">טוען מוצרים...</p>
+        ) : filteredProducts.length === 0 ? (
+          <p className="text-center py-10 text-gray-500">אין מוצרים להצגה</p>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {featured.map((p) => (
-              <ProductCard key={p.id} product={p} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {filteredProducts.map((product) => (
+              <ProductCard key={product.id || Math.random()} {...product} product={product} />
             ))}
           </div>
         )}
-      </section>
-    </div>
+      </div>
+    </main>
   );
 }
