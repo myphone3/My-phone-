@@ -106,12 +106,12 @@ export default function AdminBrandsPage() {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {brands.map((b) => (
-              <div key={b.id} className="p-4 bg-gray-50 rounded-xl border flex flex-col items-center justify-between gap-2">
+              <div key={b.id} className="p-4 bg-gray-50/50 rounded-xl border flex flex-col items-center justify-between gap-2">
                 {b.logo_url && <img src={b.logo_url} alt={b.name} className="w-12 h-12 object-contain" />}
                 <span className="font-bold text-sm text-gray-800">{b.name}</span>
                 <button 
                   onClick={() => handleDelete(b.id)}
-                  className="text-xs text-red-600 bg-red-50 hover:bg-red-100 px-2 py-1 rounded-lg w-full"
+                  className="text-xs text-red-600 bg-red-50 hover:bg-red-100 px-2 py-1 rounded-lg w-full transition"
                 >
                   מחק 🗑️
                 </button>
