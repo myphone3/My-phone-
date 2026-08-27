@@ -21,10 +21,10 @@ export default async function ProductPage({ params }: { params: { id: string } }
   const { data: brands } = await supabase.from('brands').select('*');
   const { data: kosherOptions } = await supabase.from('kosher_options').select('*');
 
-  // שליפת מוצרים קשורים (מוצרים אחרים בחנות)
-  const { data: allProducts } = await supabase.from('products').select('*').neq('id', id).limit(4);
+  // שליפת מוצרים קשורים (מתוקן לשימוש ב-params.id)
+  const { data: allProducts } = await supabase.from('products').select('*').neq('id', params.id).limit(4);
 
-  // בחירת מוצר מבצע להצגה בעגלה (למשל המוצר הראשון או השני ברשימה)
+  // בחירת מוצר מבצע להצגה בעגלה
   const promoProduct = allProducts && allProducts.length > 0 ? allProducts[0] : null;
 
   const matchedCategory = categories?.find(c => c.name?.trim().toLowerCase() === product.category?.trim().toLowerCase());
