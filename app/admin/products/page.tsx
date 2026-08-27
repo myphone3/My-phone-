@@ -204,7 +204,7 @@ export default function AdminProductsFullManager() {
     <div className="space-y-6" dir="rtl">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">
-          {editingId ? 'עריכת מוצר קיים' : 'ניהול והוספת מוצרים מתקדם'}
+        {editingId ? "עריכת מוצר קיים" : "ניהול והוספת מוצרים מתקדם"}
         </h1>
         {editingId && (
           <button 
