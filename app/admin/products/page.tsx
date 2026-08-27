@@ -199,12 +199,13 @@ export default function AdminProductsFullManager() {
       seo_title: '',
       seo_description: ''
     });
+  };
 
   return (
     <div className="space-y-6" dir="rtl">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">
-        {editingId ? "עריכת מוצר קיים" : "ניהול והוספת מוצרים מתקדם"}
+          {editingId ? "עריכת מוצר קיים" : "ניהול והוספת מוצרים מתקדם"}
         </h1>
         {editingId && (
           <button 
@@ -225,7 +226,7 @@ export default function AdminProductsFullManager() {
 
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border space-y-5">
         <h2 className="text-lg font-bold text-gray-800 border-b pb-3">
-          {editingId ? 'עריכת פרטי המוצר' : 'הוספת מוצר חדש עם בחירת מותג, קטגוריה וכשרות'}
+          {editingId ? "עריכת פרטי המוצר" : "הוספת מוצר חדש עם בחירת מותג, קטגוריה וכשרות"}
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -421,7 +422,7 @@ export default function AdminProductsFullManager() {
           disabled={loading || uploading}
           className="w-full bg-black text-white py-4 rounded-xl font-bold hover:bg-gray-800 transition shadow-md text-base"
         >
-          {loading ? 'שומר במערכת...' : (editingId ? 'עדכן מוצר 💾' : 'הוסף מוצר חדש לחנות 🚀')}
+          {loading ? "שומר במערכת..." : (editingId ? "עדכן מוצר 💾" : "הוסף מוצר חדש לחנות 🚀")}
         </button>
       </form>
 
