@@ -469,3 +469,4 @@ export default function AdminProductsFullManager() {
     </div>
   );
 }
+
