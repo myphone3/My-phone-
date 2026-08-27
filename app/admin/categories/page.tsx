@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import Link from 'next/link';
 
 export default function AdminCategories() {
   const [categories, setCategories] = useState<any[]>([]);
   const [name, setName] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -17,6 +17,27 @@ export default function AdminCategories() {
   const fetchCategories = async () => {
     const { data } = await supabase.from('categories').select('*').order('created_at', { ascending: false });
     if (data) setCategories(data);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `cat_${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from('product-images').upload(fileName, file);
+      if (uploadError) throw uploadError;
+
+      const { data: pubData } = supabase.storage.from('product-images').getPublicUrl(fileName);
+      if (pubData) {
+        setImageUrl(pubData.publicUrl);
+      }
+    } catch (err: any) {
+      alert('שגיאה בהעלאת התמונה: ' + err.message);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleAdd = async (e: React.FormEvent) => {
@@ -44,12 +65,7 @@ export default function AdminCategories() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">ניהול קטגוריות</h1>
-        <Link href="/admin/media" className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-xl text-sm font-bold transition">
-          🖼️ ספריית מדיה להעתקת קישורים
-        </Link>
-      </div>
+      <h1 className="text-2xl font-bold text-gray-900">ניהול קטגוריות</h1>
 
       <form onSubmit={handleAdd} className="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
         <h2 className="text-lg font-bold text-gray-800 border-b pb-2">הוספת קטגוריה חדשה ➕</h2>
@@ -66,19 +82,25 @@ export default function AdminCategories() {
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">קישור תמונה / אייקון</label>
+            <label className="block text-xs font-bold text-gray-700 mb-1">העלאת תמונה / אייקון 📁</label>
             <input 
-              type="text" 
-              value={imageUrl} 
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://..." 
-              className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black"
+              type="file" 
+              accept="image/*"
+              onChange={handleFileUpload} 
+              className="w-full border rounded-xl p-2.5 text-sm bg-gray-50 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800 cursor-pointer"
             />
+            {uploading && <p className="text-xs text-blue-600 mt-1">מעלה תמונה לענן...</p>}
+            {imageUrl && (
+              <div className="mt-2 flex items-center gap-3">
+                <img src={imageUrl} alt="תצוגה מקדימה" className="w-12 h-12 object-cover rounded-lg border" />
+                <span className="text-xs text-green-600 font-semibold">התמונה הועלתה בהצלחה! ✓</span>
+              </div>
+            )}
           </div>
         </div>
         <button 
           type="submit" 
-          disabled={loading}
+          disabled={loading || uploading}
           className="bg-black text-white px-6 py-3 rounded-xl font-bold hover:bg-gray-800 transition shadow-md"
         >
           {loading ? 'מוסיף...' : 'הוסף קטגוריה 🚀'}
