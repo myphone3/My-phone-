@@ -3,10 +3,7 @@ import ProductClientView from './ProductClientView';
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
   const { data: product } = await supabase.from('products').select('*').eq('id', params.id).single();
-  
-  if (!product) {
-    return { title: 'מוצר לא נמצא' };
-  }
+  if (!product) return { title: 'מוצר לא נמצא' };
 
   return {
     title: product.seo_title || product.name,
@@ -19,12 +16,17 @@ export default async function ProductPage({ params }: { params: { id: string } }
   const { data: product } = await supabase.from('products').select('*').eq('id', params.id).single();
   if (!product) return <div className="text-center py-20">המוצר אינו נמצא.</div>;
 
-  // שליפת כל הקטגוריות, המותגים והכשרויות כדי למצוא התאמה גמישה
+  // שליפת קטגוריות, מותגים וכשרויות לתצוגת תמונות
   const { data: categories } = await supabase.from('categories').select('*');
   const { data: brands } = await supabase.from('brands').select('*');
   const { data: kosherOptions } = await supabase.from('kosher_options').select('*');
 
-  // חיפוש גמיש שמתעלם מרווחים מיותרים או הבדלי כתיב
+  // שליפת מוצרים קשורים (מוצרים אחרים בחנות)
+  const { data: allProducts } = await supabase.from('products').select('*').neq('id', id).limit(4);
+
+  // בחירת מוצר מבצע להצגה בעגלה (למשל המוצר הראשון או השני ברשימה)
+  const promoProduct = allProducts && allProducts.length > 0 ? allProducts[0] : null;
+
   const matchedCategory = categories?.find(c => c.name?.trim().toLowerCase() === product.category?.trim().toLowerCase());
   const matchedBrand = brands?.find(b => b.name?.trim().toLowerCase() === product.brand?.trim().toLowerCase());
   const matchedKosher = kosherOptions?.find(k => k.name?.trim().toLowerCase() === product.kosher?.trim().toLowerCase());
@@ -36,31 +38,11 @@ export default async function ProductPage({ params }: { params: { id: string } }
     kosherImage: matchedKosher?.image_url || null,
   };
 
-  const jsonLd = {
-    '@context': 'https://schema.org/',
-    '@type': 'Product',
-    name: product.name,
-    image: product.image_urls || [product.image_url],
-    description: product.description || product.short_description,
-    offers: {
-      '@type': 'Offer',
-      priceCurrency: 'ILS',
-      price: product.price,
-      availability: 'https://schema.org/InStock',
-    },
-    brand: {
-      '@type': 'Brand',
-      name: product.brand || 'General',
-    },
-  };
-
   return (
-    <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-      <ProductClientView product={enrichedProduct} />
-    </>
+    <ProductClientView 
+      product={enrichedProduct} 
+      relatedProducts={allProducts || []} 
+      promoProduct={promoProduct} 
+    />
   );
 }
