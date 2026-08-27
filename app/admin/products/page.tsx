@@ -7,6 +7,8 @@ export default function AdminProducts() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
+  const [kosherOptions, setKosherOptions] = useState<any[]>([]);
+  
   const [loading, setLoading] = useState(false);
   const [uploadingMain, setUploadingMain] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
@@ -21,17 +23,13 @@ export default function AdminProducts() {
   const [shortDesc, setShortDesc] = useState('');
   const [description, setDescription] = useState('');
   const [specs, setSpecs] = useState('');
-  const [editingId, setEditingId] = useState<string | null>(null);
+  
+  // שדות SEO
+  const [seoTitle, setSeoTitle] = useState('');
+  const [seoDescription, setSeoDescription] = useState('');
+  const [seoKeywords, setSeoKeywords] = useState('');
 
-  const kosherOptions = [
-    'בד"ץ העדה החרדית',
-    'הרב לנדא',
-    'קהילות',
-    'מחזיקי דת',
-    'בד"ץ בית יוסף',
-    'כשר רגיל / אישור רבנות',
-    'ללא כשרות'
-  ];
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -42,10 +40,12 @@ export default function AdminProducts() {
     const { data: prodData } = await supabase.from('products').select('*').order('id', { ascending: false });
     const { data: catData } = await supabase.from('categories').select('*');
     const { data: brandData } = await supabase.from('brands').select('*');
+    const { data: kosherData } = await supabase.from('kosher_options').select('*');
 
     if (prodData) setProducts(prodData);
     if (catData) setCategories(catData);
     if (brandData) setBrands(brandData);
+    if (kosherData) setKosherOptions(kosherData);
     setLoading(false);
   };
 
@@ -60,11 +60,9 @@ export default function AdminProducts() {
       if (uploadError) throw uploadError;
 
       const { data: pubData } = supabase.storage.from('product-images').getPublicUrl(fileName);
-      if (pubData) {
-        setImageUrl(pubData.publicUrl);
-      }
+      if (pubData) setImageUrl(pubData.publicUrl);
     } catch (err: any) {
-      alert('שגיאה בהעלאת התמונה: ' + err.message);
+      alert('שגיאה: ' + err.message);
     } finally {
       setUploadingMain(false);
     }
@@ -85,13 +83,11 @@ export default function AdminProducts() {
         if (uploadError) throw uploadError;
 
         const { data: pubData } = supabase.storage.from('product-images').getPublicUrl(fileName);
-        if (pubData) {
-          newUrls.push(pubData.publicUrl);
-        }
+        if (pubData) newUrls.push(pubData.publicUrl);
       }
       setImageUrls(newUrls);
     } catch (err: any) {
-      alert('שגיאה בהעלאת תמונות הגלריה: ' + err.message);
+      alert('שגיאה: ' + err.message);
     } finally {
       setUploadingGallery(false);
     }
@@ -115,11 +111,14 @@ export default function AdminProducts() {
       short_description: shortDesc,
       description,
       specs,
+      seo_title: seoTitle,
+      seo_description: seoDescription,
+      seo_keywords: seoKeywords,
     };
 
     if (editingId) {
       const { error } = await supabase.from('products').update(productData).eq('id', editingId);
-      if (error) alert('שגיאה בעדכון: ' + error.message);
+      if (error) alert('שגיאה: ' + error.message);
       else {
         alert('המוצר עודכן בהצלחה! 🎉');
         resetForm();
@@ -127,7 +126,7 @@ export default function AdminProducts() {
       }
     } else {
       const { error } = await supabase.from('products').insert([productData]);
-      if (error) alert('שגיאה בהוספה: ' + error.message);
+      if (error) alert('שגיאה: ' + error.message);
       else {
         alert('המוצר נוסף בהצלחה! 📦');
         resetForm();
@@ -148,13 +147,16 @@ export default function AdminProducts() {
     setShortDesc(p.short_description || '');
     setDescription(p.description || '');
     setSpecs(p.specs || '');
+    setSeoTitle(p.seo_title || '');
+    setSeoDescription(p.seo_description || '');
+    setSeoKeywords(p.seo_keywords || '');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('האם למחוק מוצר זה?')) return;
     const { error } = await supabase.from('products').delete().eq('id', id);
-    if (error) alert('שגיאה במחיקה: ' + error.message);
+    if (error) alert('שגיאה: ' + error.message);
     else fetchData();
   };
 
@@ -170,13 +172,16 @@ export default function AdminProducts() {
     setShortDesc('');
     setDescription('');
     setSpecs('');
+    setSeoTitle('');
+    setSeoDescription('');
+    setSeoKeywords('');
   };
 
   return (
     <div className="space-y-8 pb-12" dir="rtl">
       <h1 className="text-2xl font-black text-gray-900">ניהול מוצרים</h1>
 
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
+      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border space-y-6">
         <h2 className="text-lg font-bold text-gray-800 border-b pb-2">
           {editingId ? 'עריכת מוצר קיים ✏️' : 'הוספת מוצר חדש ➕'}
         </h2>
@@ -184,7 +189,7 @@ export default function AdminProducts() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">שם המוצר</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="למשל: טלפון כשר" className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" required />
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="שם המוצר..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" required />
           </div>
 
           <div>
@@ -196,9 +201,7 @@ export default function AdminProducts() {
             <label className="block text-xs font-bold text-gray-700 mb-1">קטגוריה</label>
             <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black bg-white">
               <option value="">בחר קטגוריה...</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.name}>{c.name}</option>
-              ))}
+              {categories.map((c) => (<option key={c.id} value={c.name}>{c.name}</option>))}
             </select>
           </div>
 
@@ -206,9 +209,7 @@ export default function AdminProducts() {
             <label className="block text-xs font-bold text-gray-700 mb-1">מותג</label>
             <select value={brand} onChange={(e) => setBrand(e.target.value)} className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black bg-white">
               <option value="">בחר מותג...</option>
-              {brands.map((b) => (
-                <option key={b.id} value={b.name}>{b.name}</option>
-              ))}
+              {brands.map((b) => (<option key={b.id} value={b.name}>{b.name}</option>))}
             </select>
           </div>
 
@@ -216,36 +217,33 @@ export default function AdminProducts() {
             <label className="block text-xs font-bold text-gray-700 mb-1">כשרות</label>
             <select value={kosher} onChange={(e) => setKosher(e.target.value)} className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black bg-white">
               <option value="">בחר כשרות...</option>
-              {kosherOptions.map((k, i) => (
-                <option key={i} value={k}>{k}</option>
-              ))}
+              {kosherOptions.map((k) => (<option key={k.id} value={k.name}>{k.name}</option>))}
             </select>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">תמונה ראשית (העלאה מהמכשיר)</label>
-            <input type="file" accept="image/*" onChange={handleMainImageUpload} className="w-full border rounded-xl p-2 text-sm bg-gray-50 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-black file:text-white cursor-pointer" />
-            {uploadingMain && <p className="text-xs text-blue-600 mt-1">מעלה תמונה ראשית...</p>}
+            <label className="block text-xs font-bold text-gray-700 mb-1">תמונה ראשית</label>
+            <input type="file" accept="image/*" onChange={handleMainImageUpload} className="w-full border rounded-xl p-2 text-sm bg-gray-50 cursor-pointer" />
+            {uploadingMain && <p className="text-xs text-blue-600 mt-1">מעלה...</p>}
             {imageUrl && (
               <div className="mt-2 flex items-center gap-2">
                 <img src={imageUrl} alt="" className="w-10 h-10 object-cover rounded border" />
-                <span className="text-xs text-green-600 font-bold">הועלה בהצלחה ✓</span>
+                <span className="text-xs text-green-600 font-bold">הועלה ✓</span>
               </div>
             )}
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-gray-700 mb-1">תמונות נוספות לגלריה (ניתן לבחור כמה יחד)</label>
-          <input type="file" accept="image/*" multiple onChange={handleGalleryUpload} className="w-full border rounded-xl p-2 text-sm bg-gray-50 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-black file:text-white cursor-pointer" />
-          {uploadingGallery && <p className="text-xs text-blue-600 mt-1">מעלה תמונות לגלריה...</p>}
-          
+          <label className="block text-xs font-bold text-gray-700 mb-1">תמונות נוספות לגלריה</label>
+          <input type="file" accept="image/*" multiple onChange={handleGalleryUpload} className="w-full border rounded-xl p-2 text-sm bg-gray-50 cursor-pointer" />
+          {uploadingGallery && <p className="text-xs text-blue-600 mt-1">מעלה תמונות...</p>}
           {imageUrls.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-3">
               {imageUrls.map((url, index) => (
-                <div key={index} className="relative w-16 h-16 rounded-lg border overflow-hidden bg-gray-100 group">
+                <div key={index} className="relative w-16 h-16 rounded-lg border overflow-hidden bg-gray-100">
                   <img src={url} alt="" className="w-full h-full object-cover" />
-                  <button type="button" onClick={() => removeGalleryImage(index)} className="absolute top-0 right-0 bg-red-600 text-white w-5 h-5 flex items-center justify-center text-xs font-bold">×</button>
+                  <button type="button" onClick={() => removeGalleryImage(index)} className="absolute top-0 right-0 bg-red-600 text-white w-5 h-5 flex items-center justify-center text-xs">×</button>
                 </div>
               ))}
             </div>
@@ -254,7 +252,7 @@ export default function AdminProducts() {
 
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1">תיאור קצר</label>
-          <input type="text" value={shortDesc} onChange={(e) => setShortDesc(e.target.value)} placeholder="תיאור קצר שיוצג בראש העמוד..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" />
+          <input type="text" value={shortDesc} onChange={(e) => setShortDesc(e.target.value)} placeholder="תיאור קצר..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -262,10 +260,26 @@ export default function AdminProducts() {
             <label className="block text-xs font-bold text-gray-700 mb-1">תיאור מלא</label>
             <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="תיאור מורחב..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" />
           </div>
-
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">מפרט טכני</label>
             <textarea rows={4} value={specs} onChange={(e) => setSpecs(e.target.value)} placeholder="נתונים טכניים..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black font-mono text-sm" />
+          </div>
+        </div>
+
+        {/* שדות קידום אתרים SEO בגוגל */}
+        <div className="bg-gray-50 p-4 rounded-2xl border space-y-4">
+          <h3 className="text-sm font-bold text-gray-900 border-b pb-2">🔍 הגדרות קידום בגוגל (SEO)</h3>
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">כותרת SEO (Meta Title)</label>
+            <input type="text" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} placeholder="כותרת שתוצג בגוגל..." className="w-full border rounded-xl p-2.5 bg-white outline-none focus:ring-2 focus:ring-black" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">תיאור SEO (Meta Description)</label>
+            <textarea rows={2} value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} placeholder="תיאור קצר שמופיע בתוצאות החיפוש של גוגל..." className="w-full border rounded-xl p-2.5 bg-white outline-none focus:ring-2 focus:ring-black" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">מילות מפתח (Keywords)</label>
+            <input type="text" value={seoKeywords} onChange={(e) => setSeoKeywords(e.target.value)} placeholder="טלפון כשר, שיומי, מכשירים כשרים..." className="w-full border rounded-xl p-2.5 bg-white outline-none focus:ring-2 focus:ring-black" />
           </div>
         </div>
 
@@ -274,48 +288,30 @@ export default function AdminProducts() {
             {editingId ? 'עדכן מוצר 💾' : 'הוסף מוצר לחנות 🚀'}
           </button>
           {editingId && (
-            <button type="button" onClick={resetForm} className="bg-gray-200 text-gray-800 px-6 py-3 rounded-xl font-bold hover:bg-gray-300 transition">
-              ביטול עריכה ❌
-            </button>
+            <button type="button" onClick={resetForm} className="bg-gray-200 text-gray-800 px-6 py-3 rounded-xl font-bold">ביטול ❌</button>
           )}
         </div>
       </form>
 
       <div className="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
-        <h2 className="text-lg font-bold text-gray-800">מוצרים קיימים במערכת ({products.length})</h2>
-        {products.length === 0 ? (
-          <p className="text-gray-400 text-sm">אין עדיין מוצרים.</p>
-        ) : (
-          <div className="space-y-3">
-            {products.map((p) => (
-              <div key={p.id} className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 bg-gray-50 rounded-xl border gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-white rounded-lg border overflow-hidden flex-shrink-0">
-                    <img src={p.image_url || p.image_urls?.[0]} alt="" className="w-full h-full object-contain" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900">{p.name}</h3>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      <span className="text-xs bg-gray-200 px-2 py-0.5 rounded font-medium">₪{p.price}</span>
-                      {p.category && <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">📁 {p.category}</span>}
-                      {p.brand && <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded">🏷️ {p.brand}</span>}
-                      {p.kosher && <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">⭐ {p.kosher}</span>}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-2 w-full md:w-auto justify-end">
-                  <button onClick={() => handleEdit(p)} className="bg-blue-50 hover:bg-blue-100 text-blue-600 px-4 py-2 rounded-xl text-xs font-bold transition">
-                    ערוך ✏️
-                  </button>
-                  <button onClick={() => handleDelete(p.id)} className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-xl text-xs font-bold transition">
-                    מחק 🗑️
-                  </button>
+        <h2 className="text-lg font-bold text-gray-800">מוצרים קיימים ({products.length})</h2>
+        <div className="space-y-3">
+          {products.map((p) => (
+            <div key={p.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-xl border">
+              <div className="flex items-center gap-4">
+                <img src={p.image_url || p.image_urls?.[0]} alt="" className="w-14 h-14 object-contain bg-white rounded border p-1" />
+                <div>
+                  <h3 className="font-bold text-gray-900">{p.name}</h3>
+                  <span className="text-xs bg-gray-200 px-2 py-0.5 rounded">₪{p.price}</span>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+              <div className="flex gap-2">
+                <button onClick={() => handleEdit(p)} className="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold">ערוך ✏️</button>
+                <button onClick={() => handleDelete(p.id)} className="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold">מחק 🗑️</button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
