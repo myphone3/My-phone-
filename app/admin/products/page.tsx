@@ -85,7 +85,7 @@ export default function AdminProductsFullManager() {
       }
 
       setProduct({ ...product, image_urls: newUrls });
-      setMessage('התמונות הועלו בהצלחה! 🖼️');
+      setMessage('התמונות הועלו בהצלחה!');
     } catch (err: any) {
       alert('שגיאה בהעלאת תמונות: ' + err.message);
     } finally {
@@ -136,11 +136,11 @@ export default function AdminProductsFullManager() {
           .eq('id', editingId);
 
         if (error) throw error;
-        setMessage('המוצר עודכן בהצלחה! ✅');
+        setMessage('המוצר עודכן בהצלחה!');
       } else {
         const { error } = await supabase.from('products').insert([productData]);
         if (error) throw error;
-        setMessage('המוצר נוסף בהצלחה לחנות! 🎉');
+        setMessage('המוצר נוסף בהצלחה לחנות!');
       }
 
       resetForm();
@@ -293,7 +293,7 @@ export default function AdminProductsFullManager() {
               <option value="ועדת הרבנים המאושרת">ועדת הרבנים המאושרת</option>
               <option value="הדרן">הדרן</option>
               <option value="מהודר">מהודר</option>
-              <option value="אוצר בי\"ד">אוצר בי"ד</option>
+              <option value="אוצר ביד">אוצר ביד</option>
               <option value="נטו כשר">נטו כשר</option>
               <option value="אחר">אחר</option>
             </select>
@@ -324,14 +324,14 @@ export default function AdminProductsFullManager() {
 
           {product.image_urls.length > 0 && (
             <div className="space-y-2">
-              <p className="text-xs font-semibold text-gray-600">לחץ על "הגדר כראשית" כדי לבחור איזו תמונה תופיע ראשונה:</p>
+              <p className="text-xs font-semibold text-gray-600">לחץ על הגדר כראשית כדי לבחור איזו תמונה תופיע ראשונה:</p>
               <div className="flex flex-wrap gap-4">
                 {product.image_urls.map((url, index) => (
                   <div key={index} className="relative group bg-white p-2 rounded-xl border shadow-sm flex flex-col items-center gap-2">
                     <img src={url} alt={`תמונה ${index + 1}`} className="w-20 h-20 object-cover rounded-lg" />
                     
                     {index === 0 ? (
-                      <span className="bg-black text-white text-[10px] px-2 py-0.5 rounded-full font-bold">תמונה ראשית 🌟</span>
+                      <span className="bg-black text-white text-[10px] px-2 py-0.5 rounded-full font-bold">תמונה ראשית</span>
                     ) : (
                       <button 
                         type="button"
@@ -392,7 +392,7 @@ export default function AdminProductsFullManager() {
         </div>
 
         <div className="border-t pt-4 space-y-4 bg-gray-50 p-4 rounded-xl">
-          <h3 className="font-bold text-gray-800 text-sm">🔍 הגדרות SEO (קידום בגוגל)</h3>
+          <h3 className="font-bold text-gray-800 text-sm">הגדרות SEO (קידום בגוגל)</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">כותרת SEO (Meta Title)</label>
