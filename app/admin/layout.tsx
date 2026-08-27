@@ -11,12 +11,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'ניהול מוצרים 📦', href: '/admin/products' },
     { name: 'ניהול קטגוריות 📁', href: '/admin/categories' },
     { name: 'ניהול מותגים 🏷️', href: '/admin/brands' },
+    { name: 'ניהול כשרויות ⭐', href: '/admin/kosher' },
     { name: 'ספריית מדיה 🖼️', href: '/admin/media' },
   ];
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row" dir="rtl">
-      {/* תפריט צד */}
       <aside className="w-full md:w-64 bg-white border-l p-6 space-y-6">
         <h2 className="text-xl font-black text-gray-900 border-b pb-4">פאנל ניהול 🛠️</h2>
         <nav className="space-y-2">
@@ -42,7 +42,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      {/* תוכן עמוד הניהול */}
       <main className="flex-1 p-6 md:p-8 overflow-y-auto">
         {children}
       </main>
