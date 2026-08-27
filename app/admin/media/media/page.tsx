@@ -21,7 +21,6 @@ export default function AdminMediaLibrary() {
       if (error) throw error;
 
       if (data) {
-        // יצירת קישורים ציבוריים לכל קובץ
         const filesWithUrls = data.map((file) => {
           const { data: pubData } = supabase.storage
             .from('product-images')
@@ -54,16 +53,16 @@ export default function AdminMediaLibrary() {
       ) : files.length === 0 ? (
         <p className="text-gray-400">אין עדיין קבצים בספרייה.</p>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {files.map((file, index) => (
-            <div key={index} className="bg-white p-3 rounded-2xl border shadow-sm flex flex-col gap-2 group">
-              <div className="w-full h-32 bg-gray-50 rounded-xl overflow-hidden relative">
+            <div key={index} className="bg-white p-3 rounded-2xl border shadow-sm flex flex-col gap-2">
+              <div className="w-full h-32 bg-gray-50 rounded-xl overflow-hidden relative border">
                 <img src={file.publicUrl} alt={file.name} className="w-full h-full object-cover" />
               </div>
               <p className="text-xs text-gray-500 truncate" title={file.name}>{file.name}</p>
               <button
                 onClick={() => copyToClipboard(file.publicUrl)}
-                className="w-full bg-gray-100 hover:bg-black hover:text-white text-gray-800 text-xs py-1.5 rounded-lg transition font-medium"
+                className="w-full bg-gray-100 hover:bg-black hover:text-white text-gray-800 text-xs py-2 rounded-lg transition font-medium"
               >
                 העתק קישור 🔗
               </button>
