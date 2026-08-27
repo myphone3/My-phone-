@@ -200,7 +200,6 @@ export default function AdminProductsFullManager() {
       seo_description: ''
     });
   };
-
   return (
     <div className="space-y-6" dir="rtl">
       <div className="flex justify-between items-center">
