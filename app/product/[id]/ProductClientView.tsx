@@ -1,13 +1,21 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 
-export default function ProductClientView({ product }: { product: any }) {
+export default function ProductClientView({ product, relatedProducts, promoProduct }: { product: any; relatedProducts: any[]; promoProduct: any }) {
   const images = product.image_urls?.length > 0 ? product.image_urls : (product.image_url ? [product.image_url] : []);
   const [selectedImage, setSelectedImage] = useState<string>(images[0] || '');
+  const [showPromoModal, setShowPromoModal] = useState(false);
+
+  const handleAddToCart = () => {
+    // כאן תוכל להוסיף את הלוגיקה האמיתית של הוספה לסל (למשל ל-LocalStorage)
+    // ברגע שלוחצים - קופץ פופ-אפ המבצע!
+    setShowPromoModal(true);
+  };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8" dir="rtl">
+    <div className="max-w-7xl mx-auto px-4 py-8 relative" dir="rtl">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white p-6 rounded-2xl shadow-sm border">
         
         {/* גלריית תמונות */}
@@ -40,31 +48,19 @@ export default function ProductClientView({ product }: { product: any }) {
           <div className="flex flex-wrap gap-3">
             {product.category && (
               <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-full border">
-                {product.categoryImage ? (
-                  <img src={product.categoryImage} alt="" className="w-5 h-5 rounded-full object-cover" />
-                ) : (
-                  <span>📁</span>
-                )}
+                {product.categoryImage ? <img src={product.categoryImage} alt="" className="w-5 h-5 rounded-full object-cover" /> : <span>📁</span>}
                 <span className="text-xs font-semibold text-gray-800">{product.category}</span>
               </div>
             )}
             {product.brand && (
               <div className="flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-200">
-                {product.brandImage ? (
-                  <img src={product.brandImage} alt="" className="w-5 h-5 rounded-full object-cover" />
-                ) : (
-                  <span>🏷️</span>
-                )}
+                {product.brandImage ? <img src={product.brandImage} alt="" className="w-5 h-5 rounded-full object-cover" /> : <span>🏷️</span>}
                 <span className="text-xs font-semibold text-blue-800">{product.brand}</span>
               </div>
             )}
             {product.kosher && (
               <div className="flex items-center gap-2 bg-green-50 px-3 py-1.5 rounded-full border border-green-200">
-                {product.kosherImage ? (
-                  <img src={product.kosherImage} alt="" className="w-5 h-5 rounded-full object-cover" />
-                ) : (
-                  <span>⭐</span>
-                )}
+                {product.kosherImage ? <img src={product.kosherImage} alt="" className="w-5 h-5 rounded-full object-cover" /> : <span>⭐</span>}
                 <span className="text-xs font-semibold text-green-800">כשרות: {product.kosher}</span>
               </div>
             )}
@@ -78,7 +74,10 @@ export default function ProductClientView({ product }: { product: any }) {
           )}
 
           <div className="pt-4 border-t">
-            <button className="w-full bg-black text-white py-4 rounded-xl font-bold hover:bg-gray-800 transition shadow-md">
+            <button 
+              onClick={handleAddToCart}
+              className="w-full bg-black text-white py-4 rounded-xl font-bold hover:bg-gray-800 transition shadow-md"
+            >
               הוסף לסל 🛒
             </button>
           </div>
@@ -100,6 +99,75 @@ export default function ProductClientView({ product }: { product: any }) {
           </div>
         )}
       </div>
+
+      {/* פריטים שאולי יעניינו אותך (Related Products) */}
+      {relatedProducts.length > 0 && (
+        <div className="mt-16 space-y-6">
+          <h2 className="text-2xl font-black text-gray-900 text-center">מוצרים נוספים שאולי יעניינו אותך ⭐</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {relatedProducts.map((item) => (
+              <Link key={item.id} href={`/product/${item.id}`} className="bg-white p-4 rounded-2xl border shadow-sm hover:shadow-md transition flex flex-col justify-between">
+                <div>
+                  <div className="w-full h-40 bg-gray-50 rounded-xl overflow-hidden mb-3 flex items-center justify-center">
+                    <img src={item.image_url || item.image_urls?.[0]} alt={item.name} className="w-full h-full object-contain p-2" />
+                  </div>
+                  <h3 className="font-bold text-gray-900 text-sm line-clamp-1">{item.name}</h3>
+                </div>
+                <div className="mt-4 flex justify-between items-center">
+                  <span className="font-black text-black">₪{item.price}</span>
+                  <span className="text-xs bg-black text-white px-3 py-1.5 rounded-lg font-medium">צפה במוצר</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* פופ-אפ מבצע בעת הוספה לסל (Cross-sell Modal) */}
+      {showPromoModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-6 text-center animate-in fade-in zoom-in duration-200">
+            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">
+              ✓
+            </div>
+            <div>
+              <h3 className="text-2xl font-black text-gray-900">המוצר נוסף לסל בהצלחה!</h3>
+              <p className="text-gray-500 text-sm mt-1">מבצע מיוחד שמומלץ עבורך:</p>
+            </div>
+
+            {promoProduct ? (
+              <div className="bg-gray-50 p-4 rounded-2xl border flex items-center gap-4 text-right">
+                <img src={promoProduct.image_url || promoProduct.image_urls?.[0]} alt="" className="w-20 h-20 object-contain bg-white rounded-xl border p-1" />
+                <div>
+                  <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded font-bold">מבצע בלעדי 🎁</span>
+                  <h4 className="font-bold text-gray-900 text-sm mt-1 line-clamp-1">{promoProduct.name}</h4>
+                  <div className="text-sm font-black text-black mt-1">₪{promoProduct.price} בלבד!</div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-600">הנחה של 10% על מגן זכוכית ואביזרים!</p>
+            )}
+
+            <div className="space-y-2">
+              <button 
+                onClick={() => {
+                  alert('המוצר הנוסף נוסף לסל בהצלחה!');
+                  setShowPromoModal(false);
+                }}
+                className="w-full bg-black text-white py-3.5 rounded-xl font-bold hover:bg-gray-800 transition shadow-md"
+              >
+                הוסף גם את המבצע לסל 🚀
+              </button>
+              <button 
+                onClick={() => setShowPromoModal(false)}
+                className="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-200 transition text-sm"
+              >
+                המשך לקופה / סגור
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
