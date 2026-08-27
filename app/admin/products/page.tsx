@@ -17,7 +17,7 @@ export default function AdminProducts() {
   const [brand, setBrand] = useState('');
   const [kosher, setKosher] = useState('');
   const [imageUrl, setImageUrl] = useState('');
-  const [imageUrlsStr, setImageUrlsStr] = useState(''); // תמונות מופרדות בפסיקים
+  const [imageUrlsStr, setImageUrlsStr] = useState('');
   const [shortDesc, setShortDesc] = useState('');
   const [description, setDescription] = useState('');
   const [specs, setSpecs] = useState('');
@@ -52,7 +52,6 @@ export default function AdminProducts() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // המרת מחרוזת תמונות מופרדות בפסיקים למערך
     const urlsArray = imageUrlsStr
       ? imageUrlsStr.split(',').map((u) => u.trim()).filter(Boolean)
       : (imageUrl ? [imageUrl] : []);
@@ -74,7 +73,7 @@ export default function AdminProducts() {
       const { error } = await supabase.from('products').update(productData).eq('id', editingId);
       if (error) alert('שגיאה בעדכון: ' + error.message);
       else {
-        alert עודכן בהצלחה! 🎉);
+        alert('עודכן בהצלחה! 🎉');
         resetForm();
         fetchData();
       }
@@ -134,7 +133,6 @@ export default function AdminProducts() {
         </Link>
       </div>
 
-      {/* טופס הוספה / עריכה */}
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
         <h2 className="text-lg font-bold text-gray-800 border-b pb-2">
           {editingId ? 'עריכת מוצר קיים ✏️' : 'הוספת מוצר חדש ➕'}
@@ -143,7 +141,7 @@ export default function AdminProducts() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">שם המוצר</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="למשל: טלפון כשר שיומי" className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" required />
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="למשל: טלפון כשר" className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" required />
           </div>
 
           <div>
@@ -189,23 +187,23 @@ export default function AdminProducts() {
 
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1">קישורים נוספים לתמונות (מופרדים בפסיקים `,`)</label>
-          <input type="text" value={imageUrlsStr} onChange={(e) => setImageUrlsStr(e.target.value)} placeholder="url1, url2, url3..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" />
+          <input type="text" value={imageUrlsStr} onChange={(e) => setImageUrlsStr(e.target.value)} placeholder="url1, url2..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" />
         </div>
 
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1">תיאור קצר</label>
-          <input type="text" value={shortDesc} onChange={(e) => setShortDesc(e.target.value)} placeholder="משפטים קצרים שיוצגו בראש העמוד..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" />
+          <input type="text" value={shortDesc} onChange={(e) => setShortDesc(e.target.value)} placeholder="תיאור קצר שיוצג בראש העמוד..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">תיאור מלא</label>
-            <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="תיאור מורחב על המוצר..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" />
+            <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="תיאור מורחב..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" />
           </div>
 
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">מפרט טכני</label>
-            <textarea rows={4} value={specs} onChange={(e) => setSpecs(e.target.value)} placeholder="מעבד, זיכרון, סוללה..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black font-mono text-sm" />
+            <textarea rows={4} value={specs} onChange={(e) => setSpecs(e.target.value)} placeholder="נתונים טכניים..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black font-mono text-sm" />
           </div>
         </div>
 
@@ -221,7 +219,6 @@ export default function AdminProducts() {
         </div>
       </form>
 
-      {/* רשימת מוצרים קיימים */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
         <h2 className="text-lg font-bold text-gray-800">מוצרים קיימים במערכת ({products.length})</h2>
         {products.length === 0 ? (
