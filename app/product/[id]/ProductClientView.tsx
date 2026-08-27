@@ -40,20 +40,32 @@ export default function ProductClientView({ product }: { product: any }) {
           <div className="flex flex-wrap gap-3">
             {product.category && (
               <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-full border">
-                {product.categoryImage && <img src={product.categoryImage} alt="" className="w-5 h-5 rounded-full object-cover" />}
-                <span className="text-xs font-semibold text-gray-800">📁 {product.category}</span>
+                {product.categoryImage ? (
+                  <img src={product.categoryImage} alt="" className="w-5 h-5 rounded-full object-cover" />
+                ) : (
+                  <span>📁</span>
+                )}
+                <span className="text-xs font-semibold text-gray-800">{product.category}</span>
               </div>
             )}
             {product.brand && (
               <div className="flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-200">
-                {product.brandImage && <img src={product.brandImage} alt="" className="w-5 h-5 rounded-full object-cover" />}
-                <span className="text-xs font-semibold text-blue-800">🏷️ {product.brand}</span>
+                {product.brandImage ? (
+                  <img src={product.brandImage} alt="" className="w-5 h-5 rounded-full object-cover" />
+                ) : (
+                  <span>🏷️</span>
+                )}
+                <span className="text-xs font-semibold text-blue-800">{product.brand}</span>
               </div>
             )}
             {product.kosher && (
               <div className="flex items-center gap-2 bg-green-50 px-3 py-1.5 rounded-full border border-green-200">
-                {product.kosherImage && <img src={product.kosherImage} alt="" className="w-5 h-5 rounded-full object-cover" />}
-                <span className="text-xs font-semibold text-green-800">⭐ {product.kosher}</span>
+                {product.kosherImage ? (
+                  <img src={product.kosherImage} alt="" className="w-5 h-5 rounded-full object-cover" />
+                ) : (
+                  <span>⭐</span>
+                )}
+                <span className="text-xs font-semibold text-green-800">כשרות: {product.kosher}</span>
               </div>
             )}
           </div>
