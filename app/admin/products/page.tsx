@@ -2,22 +2,22 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import Link from 'next/link';
 
 export default function AdminProducts() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [uploadingMain, setUploadingMain] = useState(false);
+  const [uploadingGallery, setUploadingGallery] = useState(false);
 
-  // שדות הטופס
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState('');
   const [brand, setBrand] = useState('');
   const [kosher, setKosher] = useState('');
   const [imageUrl, setImageUrl] = useState('');
-  const [imageUrlsStr, setImageUrlsStr] = useState('');
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [shortDesc, setShortDesc] = useState('');
   const [description, setDescription] = useState('');
   const [specs, setSpecs] = useState('');
@@ -49,12 +49,60 @@ export default function AdminProducts() {
     setLoading(false);
   };
 
+  const handleMainImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingMain(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `prod_main_${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from('product-images').upload(fileName, file);
+      if (uploadError) throw uploadError;
+
+      const { data: pubData } = supabase.storage.from('product-images').getPublicUrl(fileName);
+      if (pubData) {
+        setImageUrl(pubData.publicUrl);
+      }
+    } catch (err: any) {
+      alert('שגיאה בהעלאת התמונה: ' + err.message);
+    } finally {
+      setUploadingMain(false);
+    }
+  };
+
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    try {
+      setUploadingGallery(true);
+      const newUrls: string[] = [...imageUrls];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `prod_gal_${Date.now()}_${i}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from('product-images').upload(fileName, file);
+        if (uploadError) throw uploadError;
+
+        const { data: pubData } = supabase.storage.from('product-images').getPublicUrl(fileName);
+        if (pubData) {
+          newUrls.push(pubData.publicUrl);
+        }
+      }
+      setImageUrls(newUrls);
+    } catch (err: any) {
+      alert('שגיאה בהעלאת תמונות הגלריה: ' + err.message);
+    } finally {
+      setUploadingGallery(false);
+    }
+  };
+
+  const removeGalleryImage = (indexToRemove: number) => {
+    setImageUrls(imageUrls.filter((_, index) => index !== indexToRemove));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const urlsArray = imageUrlsStr
-      ? imageUrlsStr.split(',').map((u) => u.trim()).filter(Boolean)
-      : (imageUrl ? [imageUrl] : []);
 
     const productData = {
       name,
@@ -62,8 +110,8 @@ export default function AdminProducts() {
       category,
       brand,
       kosher,
-      image_url: imageUrl || urlsArray[0] || '',
-      image_urls: urlsArray,
+      image_url: imageUrl || imageUrls[0] || '',
+      image_urls: imageUrls.length > 0 ? imageUrls : (imageUrl ? [imageUrl] : []),
       short_description: shortDesc,
       description,
       specs,
@@ -73,7 +121,7 @@ export default function AdminProducts() {
       const { error } = await supabase.from('products').update(productData).eq('id', editingId);
       if (error) alert('שגיאה בעדכון: ' + error.message);
       else {
-        alert('עודכן בהצלחה! 🎉');
+        alert('המוצר עודכן בהצלחה! 🎉');
         resetForm();
         fetchData();
       }
@@ -96,7 +144,7 @@ export default function AdminProducts() {
     setBrand(p.brand || '');
     setKosher(p.kosher || '');
     setImageUrl(p.image_url || '');
-    setImageUrlsStr(p.image_urls ? p.image_urls.join(', ') : '');
+    setImageUrls(p.image_urls || (p.image_url ? [p.image_url] : []));
     setShortDesc(p.short_description || '');
     setDescription(p.description || '');
     setSpecs(p.specs || '');
@@ -118,7 +166,7 @@ export default function AdminProducts() {
     setBrand('');
     setKosher('');
     setImageUrl('');
-    setImageUrlsStr('');
+    setImageUrls([]);
     setShortDesc('');
     setDescription('');
     setSpecs('');
@@ -126,12 +174,7 @@ export default function AdminProducts() {
 
   return (
     <div className="space-y-8 pb-12" dir="rtl">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-black text-gray-900">ניהול מוצרים</h1>
-        <Link href="/admin/media" className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-xl text-sm font-bold transition">
-          🖼️ מעבר לספריית המדיה להעתקת קישורים
-        </Link>
-      </div>
+      <h1 className="text-2xl font-black text-gray-900">ניהול מוצרים</h1>
 
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
         <h2 className="text-lg font-bold text-gray-800 border-b pb-2">
@@ -180,14 +223,33 @@ export default function AdminProducts() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">קישור תמונה ראשית</label>
-            <input type="text" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" />
+            <label className="block text-xs font-bold text-gray-700 mb-1">תמונה ראשית (העלאה מהמכשיר)</label>
+            <input type="file" accept="image/*" onChange={handleMainImageUpload} className="w-full border rounded-xl p-2 text-sm bg-gray-50 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-black file:text-white cursor-pointer" />
+            {uploadingMain && <p className="text-xs text-blue-600 mt-1">מעלה תמונה ראשית...</p>}
+            {imageUrl && (
+              <div className="mt-2 flex items-center gap-2">
+                <img src={imageUrl} alt="" className="w-10 h-10 object-cover rounded border" />
+                <span className="text-xs text-green-600 font-bold">הועלה בהצלחה ✓</span>
+              </div>
+            )}
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-gray-700 mb-1">קישורים נוספים לתמונות (מופרדים בפסיקים `,`)</label>
-          <input type="text" value={imageUrlsStr} onChange={(e) => setImageUrlsStr(e.target.value)} placeholder="url1, url2..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" />
+          <label className="block text-xs font-bold text-gray-700 mb-1">תמונות נוספות לגלריה (ניתן לבחור כמה יחד)</label>
+          <input type="file" accept="image/*" multiple onChange={handleGalleryUpload} className="w-full border rounded-xl p-2 text-sm bg-gray-50 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-black file:text-white cursor-pointer" />
+          {uploadingGallery && <p className="text-xs text-blue-600 mt-1">מעלה תמונות לגלריה...</p>}
+          
+          {imageUrls.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {imageUrls.map((url, index) => (
+                <div key={index} className="relative w-16 h-16 rounded-lg border overflow-hidden bg-gray-100 group">
+                  <img src={url} alt="" className="w-full h-full object-cover" />
+                  <button type="button" onClick={() => removeGalleryImage(index)} className="absolute top-0 right-0 bg-red-600 text-white w-5 h-5 flex items-center justify-center text-xs font-bold">×</button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div>
