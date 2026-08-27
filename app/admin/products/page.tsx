@@ -199,7 +199,6 @@ export default function AdminProductsFullManager() {
       seo_title: '',
       seo_description: ''
     });
-  };
 
   return (
     <div className="space-y-6" dir="rtl">
