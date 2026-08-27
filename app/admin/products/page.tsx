@@ -12,7 +12,10 @@ export default function AdminProducts() {
   const [loading, setLoading] = useState(false);
   const [uploadingMain, setUploadingMain] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(''); // שדה חיפוש
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // שליטה האם טופס ההוספה/עריכה פתוח או סגור
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
@@ -138,6 +141,7 @@ export default function AdminProducts() {
     setSeoTitle(p.seo_title || '');
     setSeoDescription(p.seo_description || '');
     setSeoKeywords(p.seo_keywords || '');
+    setIsFormOpen(true); // פתיחת הטופס לעריכה
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -152,9 +156,9 @@ export default function AdminProducts() {
     setEditingId(null); setName(''); setPrice(''); setCategory(''); setBrand('');
     setKosher(''); setImageUrl(''); setImageUrls([]); setShortDesc('');
     setDescription(''); setSpecs(''); setSeoTitle(''); setSeoDescription(''); setSeoKeywords('');
+    setIsFormOpen(false); // סגירת הטופס
   };
 
-  // סינון מוצרים לפי חיפוש
   const filteredProducts = products.filter(p => 
     p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -163,110 +167,136 @@ export default function AdminProducts() {
 
   return (
     <div className="space-y-8 pb-12" dir="rtl">
-      <h1 className="text-2xl font-black text-gray-900">ניהול מוצרים</h1>
-
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border space-y-6">
-        <h2 className="text-lg font-bold text-gray-800 border-b pb-2">
-          {editingId ? 'עריכת מוצר קיים ✏️' : 'הוספת מוצר חדש ➕'}
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">שם המוצר</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="שם המוצר..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" required />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">מחיר (₪)</label>
-            <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" required />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">קטגוריה</label>
-            <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black bg-white">
-              <option value="">בחר קטגוריה...</option>
-              {categories.map((c) => (<option key={c.id} value={c.name}>{c.name}</option>))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">מותג</label>
-            <select value={brand} onChange={(e) => setBrand(e.target.value)} className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black bg-white">
-              <option value="">בחר מותג...</option>
-              {brands.map((b) => (<option key={b.id} value={b.name}>{b.name}</option>))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">כשרות</label>
-            <select value={kosher} onChange={(e) => setKosher(e.target.value)} className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black bg-white">
-              <option value="">בחר כשרות...</option>
-              {kosherOptions.map((k) => (<option key={k.id} value={k.name}>{k.name}</option>))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">תמונה ראשית</label>
-            <input type="file" accept="image/*" onChange={handleMainImageUpload} className="w-full border rounded-xl p-2 text-sm bg-gray-50 cursor-pointer" />
-            {uploadingMain && <p className="text-xs text-blue-600 mt-1">מעלה...</p>}
-            {imageUrl && <div className="mt-2 flex items-center gap-2"><img src={imageUrl} alt="" className="w-10 h-10 object-cover rounded border" /><span className="text-xs text-green-600 font-bold">הועלה ✓</span></div>}
-          </div>
-        </div>
-
+      
+      {/* כותרת וכפתור פתיחת טופס הוספה */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border">
         <div>
-          <label className="block text-xs font-bold text-gray-700 mb-1">תמונות נוספות לגלריה</label>
-          <input type="file" accept="image/*" multiple onChange={handleGalleryUpload} className="w-full border rounded-xl p-2 text-sm bg-gray-50 cursor-pointer" />
-          {uploadingGallery && <p className="text-xs text-blue-600 mt-1">מעלה תמונות...</p>}
-          {imageUrls.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-3">
-              {imageUrls.map((url, index) => (
-                <div key={index} className="relative w-16 h-16 rounded-lg border overflow-hidden bg-gray-100">
-                  <img src={url} alt="" className="w-full h-full object-cover" />
-                  <button type="button" onClick={() => removeGalleryImage(index)} className="absolute top-0 right-0 bg-red-600 text-white w-5 h-5 flex items-center justify-center text-xs">×</button>
-                </div>
-              ))}
-            </div>
-          )}
+          <h1 className="text-2xl font-black text-gray-900">ניהול מוצרים 📦</h1>
+          <p className="text-gray-500 text-sm mt-1">נהל את כל המוצרים בחנות, הוסף חדשים ועדכן מלאי ומבצעים.</p>
         </div>
-
-        <div>
-          <label className="block text-xs font-bold text-gray-700 mb-1">תיאור קצר</label>
-          <input type="text" value={shortDesc} onChange={(e) => setShortDesc(e.target.value)} placeholder="תיאור קצר..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">תיאור מלא</label>
-            <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="תיאור מורחב..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">מפרט טכני</label>
-            <textarea rows={4} value={specs} onChange={(e) => setSpecs(e.target.value)} placeholder="נתונים טכניים..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black font-mono text-sm" />
-          </div>
-        </div>
-
-        <div className="bg-gray-50 p-4 rounded-2xl border space-y-4">
-          <h3 className="text-sm font-bold text-gray-900 border-b pb-2">🔍 הגדרות קידום בגוגל (SEO)</h3>
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">כותרת SEO (Meta Title)</label>
-            <input type="text" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} placeholder="כותרת שתוצג בגוגל..." className="w-full border rounded-xl p-2.5 bg-white outline-none focus:ring-2 focus:ring-black" />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">תיאור SEO (Meta Description)</label>
-            <textarea rows={2} value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} placeholder="תיאור קצר בתוצאות החיפוש..." className="w-full border rounded-xl p-2.5 bg-white outline-none focus:ring-2 focus:ring-black" />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">מילות מפתח (Keywords)</label>
-            <input type="text" value={seoKeywords} onChange={(e) => setSeoKeywords(e.target.value)} placeholder="טלפון כשר, שיומי..." className="w-full border rounded-xl p-2.5 bg-white outline-none focus:ring-2 focus:ring-black" />
-          </div>
-        </div>
-
-        <div className="flex gap-3 pt-2">
-          <button type="submit" className="bg-black text-white px-6 py-3 rounded-xl font-bold hover:bg-gray-800 transition shadow-md">
-            {editingId ? 'עדכן מוצר 💾' : 'הוסף מוצר לחנות 🚀'}
+        {!isFormOpen && (
+          <button 
+            onClick={() => { resetForm(); setIsFormOpen(true); }}
+            className="bg-black text-white px-6 py-3 rounded-xl font-bold hover:bg-gray-800 transition shadow-md flex items-center gap-2"
+          >
+            <span>הוסף מוצר חדש</span>
+            <span className="text-lg">➕</span>
           </button>
-          {editingId && (
-            <button type="button" onClick={resetForm} className="bg-gray-200 text-gray-800 px-6 py-3 rounded-xl font-bold">ביטול ❌</button>
-          )}
-        </div>
-      </form>
+        )}
+      </div>
 
-      {/* רשימת מוצרים עם חיפוש */}
+      {/* טופס הוספה / עריכה (מוצג רק כשלוחצים על הוספה או עריכה) */}
+      {isFormOpen && (
+        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border space-y-6 animate-in fade-in duration-200">
+          <div className="flex justify-between items-center border-b pb-3">
+            <h2 className="text-lg font-bold text-gray-800">
+              {editingId ? 'עריכת מוצר קיים ✏️' : 'הוספת מוצר חדש ➕'}
+            </h2>
+            <button 
+              type="button" 
+              onClick={resetForm}
+              className="text-gray-400 hover:text-gray-700 font-bold text-sm bg-gray-100 px-3 py-1.5 rounded-lg"
+            >
+              סגור טופס ✕
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">שם המוצר</label>
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="שם המוצר..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" required />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">מחיר (₪)</label>
+              <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" required />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">קטגוריה</label>
+              <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black bg-white">
+                <option value="">בחר קטגוריה...</option>
+                {categories.map((c) => (<option key={c.id} value={c.name}>{c.name}</option>))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">מותג</label>
+              <select value={brand} onChange={(e) => setBrand(e.target.value)} className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black bg-white">
+                <option value="">בחר מותג...</option>
+                {brands.map((b) => (<option key={b.id} value={b.name}>{b.name}</option>))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">כשרות</label>
+              <select value={kosher} onChange={(e) => setKosher(e.target.value)} className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black bg-white">
+                <option value="">בחר כשרות...</option>
+                {kosherOptions.map((k) => (<option key={k.id} value={k.name}>{k.name}</option>))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">תמונה ראשית</label>
+              <input type="file" accept="image/*" onChange={handleMainImageUpload} className="w-full border rounded-xl p-2 text-sm bg-gray-50 cursor-pointer" />
+              {uploadingMain && <p className="text-xs text-blue-600 mt-1">מעלה...</p>}
+              {imageUrl && <div className="mt-2 flex items-center gap-2"><img src={imageUrl} alt="" className="w-10 h-10 object-cover rounded border" /><span className="text-xs text-green-600 font-bold">הועלה ✓</span></div>}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">תמונות נוספות לגלריה</label>
+            <input type="file" accept="image/*" multiple onChange={handleGalleryUpload} className="w-full border rounded-xl p-2 text-sm bg-gray-50 cursor-pointer" />
+            {uploadingGallery && <p className="text-xs text-blue-600 mt-1">מעלה תמונות...</p>}
+            {imageUrls.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {imageUrls.map((url, index) => (
+                  <div key={index} className="relative w-16 h-16 rounded-lg border overflow-hidden bg-gray-100">
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => removeGalleryImage(index)} className="absolute top-0 right-0 bg-red-600 text-white w-5 h-5 flex items-center justify-center text-xs">×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">תיאור קצר</label>
+            <input type="text" value={shortDesc} onChange={(e) => setShortDesc(e.target.value)} placeholder="תיאור קצר..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">תיאור מלא</label>
+              <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="תיאור מורחב..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">מפרט טכני</label>
+              <textarea rows={4} value={specs} onChange={(e) => setSpecs(e.target.value)} placeholder="נתונים טכניים..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black font-mono text-sm" />
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-2xl border space-y-4">
+            <h3 className="text-sm font-bold text-gray-900 border-b pb-2">🔍 הגדרות קידום בגוגל (SEO)</h3>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">כותרת SEO (Meta Title)</label>
+              <input type="text" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} placeholder="כותרת שתוצג בגוגל..." className="w-full border rounded-xl p-2.5 bg-white outline-none focus:ring-2 focus:ring-black" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">תיאור SEO (Meta Description)</label>
+              <textarea rows={2} value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} placeholder="תיאור קצר בתוצאות החיפוש..." className="w-full border rounded-xl p-2.5 bg-white outline-none focus:ring-2 focus:ring-black" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">מילות מפתח (Keywords)</label>
+              <input type="text" value={seoKeywords} onChange={(e) => setSeoKeywords(e.target.value)} placeholder="טלפון כשר, שיומי..." className="w-full border rounded-xl p-2.5 bg-white outline-none focus:ring-2 focus:ring-black" />
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button type="submit" className="bg-black text-white px-6 py-3 rounded-xl font-bold hover:bg-gray-800 transition shadow-md">
+              {editingId ? 'עדכן מוצר 💾' : 'שמור מוצר חדש 🚀'}
+            </button>
+            <button type="button" onClick={resetForm} className="bg-gray-200 text-gray-700 px-6 py-3 rounded-xl font-bold">ביטול ❌</button>
+          </div>
+        </form>
+      )}
+
+      {/* רשימת מוצרים קיימים עם חיפוש */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 border-b pb-4">
           <h2 className="text-lg font-bold text-gray-800">מוצרים קיימים ({filteredProducts.length})</h2>
