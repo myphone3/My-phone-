@@ -12,6 +12,7 @@ export default function AdminProducts() {
   const [loading, setLoading] = useState(false);
   const [uploadingMain, setUploadingMain] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(''); // שדה חיפוש
 
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
@@ -24,11 +25,9 @@ export default function AdminProducts() {
   const [description, setDescription] = useState('');
   const [specs, setSpecs] = useState('');
   
-  // שדות SEO
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
   const [seoKeywords, setSeoKeywords] = useState('');
-
   const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -74,14 +73,12 @@ export default function AdminProducts() {
     try {
       setUploadingGallery(true);
       const newUrls: string[] = [...imageUrls];
-
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const fileExt = file.name.split('.').pop();
         const fileName = `prod_gal_${Date.now()}_${i}_${Math.random().toString(36).substring(2)}.${fileExt}`;
         const { error: uploadError } = await supabase.storage.from('product-images').upload(fileName, file);
         if (uploadError) throw uploadError;
-
         const { data: pubData } = supabase.storage.from('product-images').getPublicUrl(fileName);
         if (pubData) newUrls.push(pubData.publicUrl);
       }
@@ -99,7 +96,6 @@ export default function AdminProducts() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     const productData = {
       name,
       price: parseFloat(price) || 0,
@@ -119,19 +115,11 @@ export default function AdminProducts() {
     if (editingId) {
       const { error } = await supabase.from('products').update(productData).eq('id', editingId);
       if (error) alert('שגיאה: ' + error.message);
-      else {
-        alert('המוצר עודכן בהצלחה! 🎉');
-        resetForm();
-        fetchData();
-      }
+      else { alert('המוצר עודכן בהצלחה! 🎉'); resetForm(); fetchData(); }
     } else {
       const { error } = await supabase.from('products').insert([productData]);
       if (error) alert('שגיאה: ' + error.message);
-      else {
-        alert('המוצר נוסף בהצלחה! 📦');
-        resetForm();
-        fetchData();
-      }
+      else { alert('המוצר נוסף בהצלחה! 📦'); resetForm(); fetchData(); }
     }
   };
 
@@ -156,26 +144,22 @@ export default function AdminProducts() {
   const handleDelete = async (id: string) => {
     if (!confirm('האם למחוק מוצר זה?')) return;
     const { error } = await supabase.from('products').delete().eq('id', id);
-    if (error) alert('שגיאה: ' + error.message);
+    if (error) alert('שגיאה במחיקה: ' + error.message);
     else fetchData();
   };
 
   const resetForm = () => {
-    setEditingId(null);
-    setName('');
-    setPrice('');
-    setCategory('');
-    setBrand('');
-    setKosher('');
-    setImageUrl('');
-    setImageUrls([]);
-    setShortDesc('');
-    setDescription('');
-    setSpecs('');
-    setSeoTitle('');
-    setSeoDescription('');
-    setSeoKeywords('');
+    setEditingId(null); setName(''); setPrice(''); setCategory(''); setBrand('');
+    setKosher(''); setImageUrl(''); setImageUrls([]); setShortDesc('');
+    setDescription(''); setSpecs(''); setSeoTitle(''); setSeoDescription(''); setSeoKeywords('');
   };
+
+  // סינון מוצרים לפי חיפוש
+  const filteredProducts = products.filter(p => 
+    p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.brand?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="space-y-8 pb-12" dir="rtl">
@@ -191,12 +175,10 @@ export default function AdminProducts() {
             <label className="block text-xs font-bold text-gray-700 mb-1">שם המוצר</label>
             <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="שם המוצר..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" required />
           </div>
-
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">מחיר (₪)</label>
             <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" required />
           </div>
-
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">קטגוריה</label>
             <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black bg-white">
@@ -204,7 +186,6 @@ export default function AdminProducts() {
               {categories.map((c) => (<option key={c.id} value={c.name}>{c.name}</option>))}
             </select>
           </div>
-
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">מותג</label>
             <select value={brand} onChange={(e) => setBrand(e.target.value)} className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black bg-white">
@@ -212,7 +193,6 @@ export default function AdminProducts() {
               {brands.map((b) => (<option key={b.id} value={b.name}>{b.name}</option>))}
             </select>
           </div>
-
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">כשרות</label>
             <select value={kosher} onChange={(e) => setKosher(e.target.value)} className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black bg-white">
@@ -220,17 +200,11 @@ export default function AdminProducts() {
               {kosherOptions.map((k) => (<option key={k.id} value={k.name}>{k.name}</option>))}
             </select>
           </div>
-
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">תמונה ראשית</label>
             <input type="file" accept="image/*" onChange={handleMainImageUpload} className="w-full border rounded-xl p-2 text-sm bg-gray-50 cursor-pointer" />
             {uploadingMain && <p className="text-xs text-blue-600 mt-1">מעלה...</p>}
-            {imageUrl && (
-              <div className="mt-2 flex items-center gap-2">
-                <img src={imageUrl} alt="" className="w-10 h-10 object-cover rounded border" />
-                <span className="text-xs text-green-600 font-bold">הועלה ✓</span>
-              </div>
-            )}
+            {imageUrl && <div className="mt-2 flex items-center gap-2"><img src={imageUrl} alt="" className="w-10 h-10 object-cover rounded border" /><span className="text-xs text-green-600 font-bold">הועלה ✓</span></div>}
           </div>
         </div>
 
@@ -266,7 +240,6 @@ export default function AdminProducts() {
           </div>
         </div>
 
-        {/* שדות קידום אתרים SEO בגוגל */}
         <div className="bg-gray-50 p-4 rounded-2xl border space-y-4">
           <h3 className="text-sm font-bold text-gray-900 border-b pb-2">🔍 הגדרות קידום בגוגל (SEO)</h3>
           <div>
@@ -275,11 +248,11 @@ export default function AdminProducts() {
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">תיאור SEO (Meta Description)</label>
-            <textarea rows={2} value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} placeholder="תיאור קצר שמופיע בתוצאות החיפוש של גוגל..." className="w-full border rounded-xl p-2.5 bg-white outline-none focus:ring-2 focus:ring-black" />
+            <textarea rows={2} value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} placeholder="תיאור קצר בתוצאות החיפוש..." className="w-full border rounded-xl p-2.5 bg-white outline-none focus:ring-2 focus:ring-black" />
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">מילות מפתח (Keywords)</label>
-            <input type="text" value={seoKeywords} onChange={(e) => setSeoKeywords(e.target.value)} placeholder="טלפון כשר, שיומי, מכשירים כשרים..." className="w-full border rounded-xl p-2.5 bg-white outline-none focus:ring-2 focus:ring-black" />
+            <input type="text" value={seoKeywords} onChange={(e) => setSeoKeywords(e.target.value)} placeholder="טלפון כשר, שיומי..." className="w-full border rounded-xl p-2.5 bg-white outline-none focus:ring-2 focus:ring-black" />
           </div>
         </div>
 
@@ -293,25 +266,40 @@ export default function AdminProducts() {
         </div>
       </form>
 
+      {/* רשימת מוצרים עם חיפוש */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
-        <h2 className="text-lg font-bold text-gray-800">מוצרים קיימים ({products.length})</h2>
-        <div className="space-y-3">
-          {products.map((p) => (
-            <div key={p.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-xl border">
-              <div className="flex items-center gap-4">
-                <img src={p.image_url || p.image_urls?.[0]} alt="" className="w-14 h-14 object-contain bg-white rounded border p-1" />
-                <div>
-                  <h3 className="font-bold text-gray-900">{p.name}</h3>
-                  <span className="text-xs bg-gray-200 px-2 py-0.5 rounded">₪{p.price}</span>
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4 border-b pb-4">
+          <h2 className="text-lg font-bold text-gray-800">מוצרים קיימים ({filteredProducts.length})</h2>
+          <input 
+            type="text" 
+            value={searchQuery} 
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="🔍 חפש מוצר לפי שם, מותג או קטגוריה..." 
+            className="w-full md:w-80 border rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-black bg-gray-50"
+          />
+        </div>
+
+        {filteredProducts.length === 0 ? (
+          <p className="text-gray-400 text-sm">לא נמצאו מוצרים תואמים לחיפוש.</p>
+        ) : (
+          <div className="space-y-3">
+            {filteredProducts.map((p) => (
+              <div key={p.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-xl border">
+                <div className="flex items-center gap-4">
+                  <img src={p.image_url || p.image_urls?.[0]} alt="" className="w-14 h-14 object-contain bg-white rounded border p-1" />
+                  <div>
+                    <h3 className="font-bold text-gray-900">{p.name}</h3>
+                    <span className="text-xs bg-gray-200 px-2 py-0.5 rounded">₪{p.price}</span>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => handleEdit(p)} className="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold">ערוך ✏️</button>
+                  <button onClick={() => handleDelete(p.id)} className="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold">מחק 🗑️</button>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <button onClick={() => handleEdit(p)} className="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold">ערוך ✏️</button>
-                <button onClick={() => handleDelete(p.id)} className="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold">מחק 🗑️</button>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
