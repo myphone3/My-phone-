@@ -14,7 +14,7 @@ export default function AdminProducts() {
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
-  // שליטה האם טופס ההוספה/עריכה פתוח או סגור
+  // טופס סגור כברירת מחדל
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   const [name, setName] = useState('');
@@ -141,7 +141,7 @@ export default function AdminProducts() {
     setSeoTitle(p.seo_title || '');
     setSeoDescription(p.seo_description || '');
     setSeoKeywords(p.seo_keywords || '');
-    setIsFormOpen(true); // פתיחת הטופס לעריכה
+    setIsFormOpen(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -156,7 +156,7 @@ export default function AdminProducts() {
     setEditingId(null); setName(''); setPrice(''); setCategory(''); setBrand('');
     setKosher(''); setImageUrl(''); setImageUrls([]); setShortDesc('');
     setDescription(''); setSpecs(''); setSeoTitle(''); setSeoDescription(''); setSeoKeywords('');
-    setIsFormOpen(false); // סגירת הטופס
+    setIsFormOpen(false);
   };
 
   const filteredProducts = products.filter(p => 
@@ -168,7 +168,7 @@ export default function AdminProducts() {
   return (
     <div className="space-y-8 pb-12" dir="rtl">
       
-      {/* כותרת וכפתור פתיחת טופס הוספה */}
+      {/* כותרת וכפתור פתיחת טופס */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border">
         <div>
           <h1 className="text-2xl font-black text-gray-900">ניהול מוצרים 📦</h1>
@@ -187,7 +187,7 @@ export default function AdminProducts() {
 
       {/* טופס הוספה / עריכה (מוצג רק כשלוחצים על הוספה או עריכה) */}
       {isFormOpen && (
-        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border space-y-6 animate-in fade-in duration-200">
+        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border space-y-6">
           <div className="flex justify-between items-center border-b pb-3">
             <h2 className="text-lg font-bold text-gray-800">
               {editingId ? 'עריכת מוצר קיים ✏️' : 'הוספת מוצר חדש ➕'}
