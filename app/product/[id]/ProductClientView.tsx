@@ -8,9 +8,14 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
   const images = product.image_urls?.length > 0 ? product.image_urls : (product.image_url ? [product.image_url] : []);
   const [selectedImage, setSelectedImage] = useState<string>(images[0] || '');
   
-  // פיצול צבעים וגרסאות ממחרוזת בפסיקים
-  const colorList = product.colors ? product.colors.split(',').map((c: string) => c.trim()).filter(Boolean) : [];
-  const versionList = product.versions ? product.versions.split(',').map((v: string) => v.trim()).filter(Boolean) : [];
+  // פיצול צבעים וגרסאות עם תמיכה גמישה
+  const colorList = typeof product.colors === 'string' 
+    ? product.colors.split(',').map((c: string) => c.trim()).filter(Boolean) 
+    : [];
+    
+  const versionList = typeof product.versions === 'string' 
+    ? product.versions.split(',').map((v: string) => v.trim()).filter(Boolean) 
+    : [];
 
   const [selectedColor, setSelectedColor] = useState(colorList[0] || '');
   const [selectedVersion, setSelectedVersion] = useState(versionList[0] || '');
@@ -25,26 +30,30 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
         selectedVersion,
         quantity: 1
       };
-      
-      await supabaseCartOrder(cartItem);
+      await supabase.from('orders').insert([{
+        customer_name: 'לקוח מהחנות',
+        customer_phone: '0500000000',
+        customer_address: 'איסוף עצמי',
+        items: [cartItem],
+        total: product.price,
+        status: 'בטיפול'
+      }]);
     } catch (e) {}
 
     setShowPromoModal(true);
   };
 
-  const supabaseCartOrder = async (cartItem: any) => {
-    await supabase.from('orders').insert([{
-      customer_name: 'לקוח מהחנות',
-      customer_phone: '0500000000',
-      customer_address: 'איסוף עצמי / משלוח',
-      items: [cartItem],
-      total: product.price,
-      status: 'בטיפול'
-    }]);
-  };
-
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 relative" dir="rtl">
+      
+      {/* 🔍 תיבת דיבוג זמנית לבדיקת הנתונים ממסד הנתונים */}
+      <div className="bg-yellow-50 border border-yellow-300 p-4 rounded-2xl mb-6 text-xs font-mono text-yellow-900 space-y-1">
+        <div className="font-bold">🛠️ נתוני דאטה-בייס גולמיים (לדיבוג):</div>
+        <div>• אחריות (warranty): {product.warranty || 'ריק ❌'}</div>
+        <div>• צבעים (colors): {product.colors || 'ריק ❌'}</div>
+        <div>• גרסאות (versions): {product.versions || 'ריק ❌'}</div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white p-6 md:p-8 rounded-3xl shadow-sm border">
         
         {/* גלריית תמונות */}
@@ -98,8 +107,8 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
           <h1 className="text-3xl font-extrabold text-gray-900">{product.name}</h1>
           <div className="text-3xl font-black text-black">₪{product.price}</div>
 
-          {/* בחירת גרסאות / נפח */}
-          {versionList.length > 0 && (
+          {/* הצגת גרסאות */}
+          {versionList.length > 0 ? (
             <div className="space-y-2 pt-2 border-t">
               <label className="block text-xs font-bold text-gray-700">בחר גרסה / נפח: <span className="text-black font-extrabold">{selectedVersion}</span></label>
               <div className="flex flex-wrap gap-2">
@@ -114,10 +123,14 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
                 ))}
               </div>
             </div>
+          ) : (
+            product.versions && (
+              <div className="text-xs text-gray-500">גרסאות (טקסט גולמי): {product.versions}</div>
+            )
           )}
 
-          {/* בחירת צבעים */}
-          {colorList.length > 0 && (
+          {/* הצגת צבעים */}
+          {colorList.length > 0 ? (
             <div className="space-y-2 pt-2">
               <label className="block text-xs font-bold text-gray-700">בחר צבע: <span className="text-black font-extrabold">{selectedColor}</span></label>
               <div className="flex flex-wrap gap-2">
@@ -132,9 +145,13 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
                 ))}
               </div>
             </div>
+          ) : (
+            product.colors && (
+              <div className="text-xs text-gray-500">צבעים (טקסט גולמי): {product.colors}</div>
+            )
           )}
 
-          {/* הצגת אחריות בולטת */}
+          {/* הצגת אחריות */}
           {product.warranty && (
             <div className="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3.5 rounded-2xl text-xs font-bold flex items-center gap-3">
               <span className="text-lg">🛡️</span>
@@ -199,18 +216,15 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
         </div>
       )}
 
-      {/* פופ-אפ מבצע בהוספה לסל */}
+      {/* פופ-אפ מבצע */}
       {showPromoModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-6 text-center animate-in fade-in zoom-in duration-200">
-            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">
-              ✓
-            </div>
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-6 text-center">
+            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">✓</div>
             <div>
               <h3 className="text-2xl font-black text-gray-900">המוצר נוסף לסל בהצלחה!</h3>
               <p className="text-gray-500 text-sm mt-1">בטוח תרצה להוסיף גם את זה:</p>
             </div>
-
             {promoProduct ? (
               <div className="bg-gray-50 p-4 rounded-2xl border flex items-center gap-4 text-right">
                 <img src={promoProduct.image_url || promoProduct.image_urls?.[0]} alt="" className="w-20 h-20 object-contain bg-white rounded-xl border p-1" />
@@ -221,27 +235,13 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-gray-600">אין מבצע מוגדר כרגע למוצר זה.</p>
+              <p className="text-sm text-gray-600">אין מבצע מוגדר כרגע.</p>
             )}
-
             <div className="space-y-2">
               {promoProduct && (
-                <button 
-                  onClick={() => {
-                    alert('המוצר נוסף לסל בהצלחה!');
-                    setShowPromoModal(false);
-                  }}
-                  className="w-full bg-black text-white py-3.5 rounded-xl font-bold hover:bg-gray-800 transition shadow-md"
-                >
-                  הוסף גם את המבצע לסל 🚀
-                </button>
+                <button onClick={() => setShowPromoModal(false)} className="w-full bg-black text-white py-3.5 rounded-xl font-bold">הוסף מבצע לסל 🚀</button>
               )}
-              <button 
-                onClick={() => setShowPromoModal(false)}
-                className="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-200 transition text-sm"
-              >
-                המשך לקופה / סגור
-              </button>
+              <button onClick={() => setShowPromoModal(false)} className="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-bold">המשך לקופה / סגור</button>
             </div>
           </div>
         </div>
