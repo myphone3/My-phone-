@@ -17,7 +17,6 @@ export default function ProductPage() {
 
     async function fetchProduct() {
       try {
-        // שליפת כל המוצרים והשוואת ה-ID כדי למנוע בעיות התאמה (מחרוזת מול מספר)
         const { data, error } = await supabase
           .from('products')
           .select('*');
@@ -27,6 +26,10 @@ export default function ProductPage() {
         } else if (data) {
           const found = data.find((p: any) => String(p.id) === String(id) || String(p._id) === String(id));
           setProduct(found || null);
+          if (found) {
+            const initialImg = (found.images && found.images.length > 0) ? found.images[0] : (found.image || '');
+            setSelectedImage(initialImg);
+          }
         }
       } catch (err) {
         console.error(err);
@@ -38,9 +41,10 @@ export default function ProductPage() {
     fetchProduct();
   }, [id]);
 
-  if (loading) return <div className="p-8 text-center text-gray-500">טוען פרטי מוצר...</div>;
-  if (!product) return <div className="p-8 text-center text-gray-500">המוצר לא נמצא</div>;
+  if (loading) return <div className="p-12 text-center text-gray-500">טוען פרטי מוצר...</div>;
+  if (!product) return <div className="p-12 text-center text-gray-500">המוצר לא נמצא</div>;
 
+  // איסוף התמונות בצורה גמישה (תומך במערך images או בשדה image יחיד)
   const imagesList = Array.isArray(product.images) && product.images.length > 0
     ? product.images
     : product.image 
@@ -50,24 +54,30 @@ export default function ProductPage() {
   const currentImage = selectedImage || imagesList[0] || '';
 
   return (
-    <div className="max-w-4xl mx-auto p-4 flex flex-col md:flex-row gap-8">
+    <div className="max-w-4xl mx-auto p-4 md:p-8 flex flex-col md:flex-row gap-8 bg-white rounded-2xl shadow-sm mt-6">
+      {/* אזור התמונות והגלרייה */}
       <div className="w-full md:w-1/2 flex flex-col gap-4">
-        <div className="w-full h-96 bg-white border rounded-xl overflow-hidden flex items-center justify-center shadow-sm">
-          <img 
-            src={currentImage} 
-            alt={product.name} 
-            className="object-contain h-full w-full p-2"
-          />
+        <div className="w-full h-80 md:h-96 bg-gray-50 border rounded-2xl overflow-hidden flex items-center justify-center relative p-2">
+          {currentImage ? (
+            <img 
+              src={currentImage} 
+              alt={product.name} 
+              className="object-contain h-full w-full"
+            />
+          ) : (
+            <span className="text-gray-400">אין תמונה זמינה</span>
+          )}
         </div>
 
+        {/* תמונות ממוזערות לגלרייה */}
         {imagesList.length > 1 && (
           <div className="flex gap-2 overflow-x-auto pb-2">
             {imagesList.map((img: string, index: number) => (
               <button
                 key={index}
                 onClick={() => setSelectedImage(img)}
-                className={`w-16 h-16 rounded-lg border-2 overflow-hidden flex-shrink-0 transition-all ${
-                  currentImage === img ? 'border-black ring-1 ring-black' : 'border-gray-200 opacity-70 hover:opacity-100'
+                className={`w-16 h-16 rounded-xl border-2 overflow-hidden flex-shrink-0 transition-all ${
+                  currentImage === img ? 'border-black ring-2 ring-black/10' : 'border-gray-200 opacity-70 hover:opacity-100'
                 }`}
               >
                 <img src={img} alt="" className="w-full h-full object-cover" />
@@ -77,10 +87,47 @@ export default function ProductPage() {
         )}
       </div>
 
+      {/* פרטי המוצר, תגיות וכפתורים */}
       <div className="w-full md:w-1/2 flex flex-col gap-4">
-        <h1 className="text-2xl font-bold">{product.name}</h1>
-        <p className="text-xl font-semibold text-gray-800">₪{product.price}</p>
-        <p className="text-gray-600">{product.description}</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight">{product.name}</h1>
+        
+        {/* תגיות / מאפייני כשרות ומותג */}
+        <div className="flex flex-wrap gap-2">
+          {product.brand && (
+            <span className="bg-orange-50 text-orange-700 text-sm px-3 py-1 rounded-lg font-medium border border-orange-100">
+              {product.brand}
+            </span>
+          )}
+          {product.kosher_type && (
+            <span className="bg-blue-50 text-blue-700 text-sm px-3 py-1 rounded-lg font-medium border border-blue-100">
+              {product.kosher_type}
+            </span>
+          )}
+          {product.certification && (
+            <span className="bg-green-50 text-green-700 text-sm px-3 py-1 rounded-lg font-medium border border-green-100">
+              {product.certification}
+            </span>
+          )}
+        </div>
+
+        <p className="text-2xl font-bold text-gray-900">₪{product.price}</p>
+        
+        {/* כפתור הוספה לסל */}
+        <button 
+          onClick={() => {
+            // כאן אפשר לחבר את פונקציית העגלה הקיימת שלך בפרויקט
+            alert('המוצר נוסף לסל בהצלחה!');
+          }}
+          className="w-full bg-black text-white py-4 rounded-xl font-semibold hover:bg-gray-800 transition-colors shadow-sm active:scale-[0.98]"
+        >
+          הוספה לסל
+        </button>
+
+        {/* תיאור המוצר */}
+        <div className="border-t pt-4 mt-2">
+          <h3 className="font-semibold text-gray-800 mb-2">תיאור המוצר:</h3>
+          <p className="text-gray-600 text-sm md:text-base whitespace-pre-line leading-relaxed">{product.description}</p>
+        </div>
       </div>
     </div>
   );
