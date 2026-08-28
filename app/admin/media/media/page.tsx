@@ -14,7 +14,7 @@ export default function AdminMedia() {
 
   const fetchFiles = async () => {
     setLoading(true);
-    const { data, error } = await supabase.storage.from('product-images').list('', {
+    const { data } = await supabase.storage.from('product-images').list('', {
       limit: 100,
       offset: 0,
       sortBy: { column: 'created_at', order: 'desc' },
@@ -96,7 +96,7 @@ export default function AdminMedia() {
               const publicUrl = data.publicUrl;
 
               return (
-                <div key={file.id || file.name} className="bg-gray-50 rounded-2xl border p-3 flex flex-col justify-between space-y-3 group">
+                <div key={file.id || file.name} className="bg-gray-50 rounded-2xl border p-3 flex flex-col justify-between space-y-3">
                   <div className="w-full h-36 bg-white rounded-xl border overflow-hidden flex items-center justify-center">
                     <img src={publicUrl} alt={file.name} className="w-full h-full object-contain p-1" />
                   </div>
