@@ -1,6 +1,8 @@
 import { supabase } from '@/lib/supabase';
 import ProductClientView from './ProductClientView';
 
+export const dynamic = 'force-dynamic';
+
 export async function generateMetadata({ params }: { params: { id: string } }) {
   const { data: product } = await supabase.from('products').select('*').eq('id', params.id).single();
   if (!product) return { title: 'מוצר לא נמצא' };
@@ -16,27 +18,22 @@ export default async function ProductPage({ params }: { params: { id: string } }
   const { data: product } = await supabase.from('products').select('*').eq('id', params.id).single();
   if (!product) return <div className="text-center py-20">המוצר אינו נמצא.</div>;
 
-  // שליפת קטגוריות, מותגים וכשרויות לתצוגת תמונות
   const { data: categories } = await supabase.from('categories').select('*');
   const { data: brands } = await supabase.from('brands').select('*');
   const { data: kosherOptions } = await supabase.from('kosher_options').select('*');
 
-  // שליפת מוצרים קשורים שנבחרו ידנית ע"י המנהל
   let relatedProducts: any[] = [];
   if (product.related_ids && product.related_ids.length > 0) {
     const { data: relData } = await supabase.from('products').select('*').in('id', product.related_ids);
     if (relData) relatedProducts = relData;
   }
 
-  // שליפת מוצר המבצע המותאם אישית (אם הוגדר)
   let promoProduct = null;
   if (product.upsell_product_id) {
     const { data: promoData } = await supabase.from('products').select('*').eq('id', product.upsell_product_id).single();
     if (promoData) {
-      promoProduct = {
-        ...promoData,
-        price: product.upsell_price !== null ? product.upsell_price : promoData.price
-      };
+      promoData.price = product.upsell_price !== null ? product.upsell_price : promoData.price;
+      promoProduct = promoData;
     }
   }
 
