@@ -2,12 +2,12 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase'; // <-- הוסף שורה זו כאן
 
 export default function ProductClientView({ product, relatedProducts, promoProduct }: { product: any; relatedProducts: any[]; promoProduct: any }) {
   const images = product.image_urls?.length > 0 ? product.image_urls : (product.image_url ? [product.image_url] : []);
   const [selectedImage, setSelectedImage] = useState<string>(images[0] || '');
   
-  // פיצול צבעים וגרסאות ממחרוזת בפסיקים
   const colorList = product.colors ? product.colors.split(',').map((c: string) => c.trim()).filter(Boolean) : [];
   const versionList = product.versions ? product.versions.split(',').map((v: string) => v.trim()).filter(Boolean) : [];
 
@@ -16,10 +16,7 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
   const [showPromoModal, setShowPromoModal] = useState(false);
 
   const handleAddToCart = async () => {
-    // שמירת ההזמנה או הוספה לסל מקומי / יצירת הזמנה חדשה ב-Supabase לצורך בדיקה בהזמנות הניהול
     try {
-      await fetch('/api/cart', { method: 'POST' }).catch(() => {});
-      // שמירה ב-LocalStorage או ניהול עגלה
       const cartItem = {
         name: product.name,
         price: product.price,
@@ -28,7 +25,6 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
         quantity: 1
       };
       
-      // שמירה זמנית גם בטבלת הזמנות ב-Supabase להדגמה בפאנל הניהול
       await supabaseCartOrder(cartItem);
     } catch (e) {}
 
@@ -36,7 +32,6 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
   };
 
   const supabaseCartOrder = async (cartItem: any) => {
-    // פונקציית עזר לשמירת הזמנת בדיקה
     await supabase.from('orders').insert([{
       customer_name: 'לקוח מהחנות',
       customer_phone: '0500000000',
@@ -102,7 +97,6 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
           <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
           <div className="text-3xl font-black text-black">₪{product.price}</div>
 
-          {/* בחירת צבעים */}
           {colorList.length > 0 && (
             <div className="space-y-2">
               <label className="block text-xs font-bold text-gray-700">בחר צבע: <span className="text-black">{selectedColor}</span></label>
@@ -120,7 +114,6 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
             </div>
           )}
 
-          {/* בחירת גרסאות */}
           {versionList.length > 0 && (
             <div className="space-y-2">
               <label className="block text-xs font-bold text-gray-700">בחר גרסה / נפח: <span className="text-black">{selectedVersion}</span></label>
@@ -138,7 +131,6 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
             </div>
           )}
 
-          {/* הצגת אחריות */}
           {product.warranty && (
             <div className="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-xl text-xs font-bold flex items-center gap-2">
               <span>🛡️</span>
@@ -161,7 +153,6 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
         </div>
       </div>
 
-      {/* תיאור ומפרט */}
       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
         {product.description && (
           <div className="bg-white p-6 rounded-2xl shadow-sm border space-y-3">
@@ -177,7 +168,6 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
         )}
       </div>
 
-      {/* פריטים שאולי יעניינו אותך (נבחרו ידנית ע"י המנהל) */}
       {relatedProducts.length > 0 && (
         <div className="mt-16 space-y-6">
           <h2 className="text-2xl font-black text-gray-900 text-center">מוצרים נוספים שאולי יעניינו אותך ⭐</h2>
@@ -200,7 +190,6 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
         </div>
       )}
 
-      {/* פופ-אפ מבצע בהוספה לסל (׳בטוח תרצה להוסיף׳) מותאם אישית */}
       {showPromoModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-6 text-center animate-in fade-in zoom-in duration-200">
