@@ -8,7 +8,6 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
   const images = product.image_urls?.length > 0 ? product.image_urls : (product.image_url ? [product.image_url] : []);
   const [selectedImage, setSelectedImage] = useState<string>(images[0] || '');
   
-  // פיצול צבעים וגרסאות עם תמיכה גמישה
   const colorList = typeof product.colors === 'string' 
     ? product.colors.split(',').map((c: string) => c.trim()).filter(Boolean) 
     : [];
@@ -45,15 +44,6 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 relative" dir="rtl">
-      
-      {/* 🔍 תיבת דיבוג זמנית לבדיקת הנתונים ממסד הנתונים */}
-      <div className="bg-yellow-50 border border-yellow-300 p-4 rounded-2xl mb-6 text-xs font-mono text-yellow-900 space-y-1">
-        <div className="font-bold">🛠️ נתוני דאטה-בייס גולמיים (לדיבוג):</div>
-        <div>• אחריות (warranty): {product.warranty || 'ריק ❌'}</div>
-        <div>• צבעים (colors): {product.colors || 'ריק ❌'}</div>
-        <div>• גרסאות (versions): {product.versions || 'ריק ❌'}</div>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white p-6 md:p-8 rounded-3xl shadow-sm border">
         
         {/* גלריית תמונות */}
@@ -107,8 +97,8 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
           <h1 className="text-3xl font-extrabold text-gray-900">{product.name}</h1>
           <div className="text-3xl font-black text-black">₪{product.price}</div>
 
-          {/* הצגת גרסאות */}
-          {versionList.length > 0 ? (
+          {/* בחירת גרסאות */}
+          {versionList.length > 0 && (
             <div className="space-y-2 pt-2 border-t">
               <label className="block text-xs font-bold text-gray-700">בחר גרסה / נפח: <span className="text-black font-extrabold">{selectedVersion}</span></label>
               <div className="flex flex-wrap gap-2">
@@ -123,14 +113,10 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
                 ))}
               </div>
             </div>
-          ) : (
-            product.versions && (
-              <div className="text-xs text-gray-500">גרסאות (טקסט גולמי): {product.versions}</div>
-            )
           )}
 
-          {/* הצגת צבעים */}
-          {colorList.length > 0 ? (
+          {/* בחירת צבעים */}
+          {colorList.length > 0 && (
             <div className="space-y-2 pt-2">
               <label className="block text-xs font-bold text-gray-700">בחר צבע: <span className="text-black font-extrabold">{selectedColor}</span></label>
               <div className="flex flex-wrap gap-2">
@@ -145,10 +131,6 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
                 ))}
               </div>
             </div>
-          ) : (
-            product.colors && (
-              <div className="text-xs text-gray-500">צבעים (טקסט גולמי): {product.colors}</div>
-            )
           )}
 
           {/* הצגת אחריות */}
