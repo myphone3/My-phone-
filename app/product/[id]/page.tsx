@@ -1,9 +1,34 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 
-export default function ProductDetails({ product }: { product: any }) {
-  if (!product) return <div>טוען פרטי מוצר...</div>;
+export default function ProductPage() {
+  const params = useParams();
+  const id = params?.id;
+
+  const [product, setProduct] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState('');
+
+  useEffect(() => {
+    if (!id) return;
+    
+    // שליפת המוצר (ניתן להתאים לפי ה-API או מקור הנתונים שלך)
+    fetch('/api/products') // או נתיב הנתונים שלך
+      .then(res => res.json())
+      .then(data => {
+        const found = Array.isArray(data) ? data.find((p: any) => p.id === id || p._id === id) : data;
+        setProduct(found || { name: "מוצר", price: "0", description: "", images: [] });
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+      });
+  }, [id]);
+
+  if (loading) return <div className="p-8 text-center text-gray-500">טוען פרטי מוצר...</div>;
+  if (!product) return <div className="p-8 text-center text-gray-500">המוצר לא נמצא</div>;
 
   const imagesList = Array.isArray(product.images) && product.images.length > 0
     ? product.images
@@ -11,14 +36,14 @@ export default function ProductDetails({ product }: { product: any }) {
       ? [product.image] 
       : [];
 
-  const [selectedImage, setSelectedImage] = useState(imagesList[0] || '');
+  const currentImage = selectedImage || imagesList[0] || '';
 
   return (
     <div className="max-w-4xl mx-auto p-4 flex flex-col md:flex-row gap-8">
       <div className="w-full md:w-1/2 flex flex-col gap-4">
         <div className="w-full h-96 bg-white border rounded-xl overflow-hidden flex items-center justify-center shadow-sm">
           <img 
-            src={selectedImage} 
+            src={currentImage} 
             alt={product.name} 
             className="object-contain h-full w-full p-2"
           />
@@ -31,7 +56,7 @@ export default function ProductDetails({ product }: { product: any }) {
                 key={index}
                 onClick={() => setSelectedImage(img)}
                 className={`w-16 h-16 rounded-lg border-2 overflow-hidden flex-shrink-0 transition-all ${
-                  selectedImage === img ? 'border-black ring-1 ring-black' : 'border-gray-200 opacity-70 hover:opacity-100'
+                  currentImage === img ? 'border-black ring-1 ring-black' : 'border-gray-200 opacity-70 hover:opacity-100'
                 }`}
               >
                 <img src={img} alt="" className="w-full h-full object-cover" />
