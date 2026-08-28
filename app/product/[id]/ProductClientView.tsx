@@ -5,20 +5,25 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
 export default function ProductClientView({ product, relatedProducts, promoProduct }: { product: any; relatedProducts: any[]; promoProduct: any }) {
-  const images = product.image_urls?.length > 0 ? product.image_urls : (product.image_url ? [product.image_url] : []);
+  let images: string[] = [];
+  if (Array.isArray(product.image_urls)) {
+    images = product.image_urls;
+  } else if (typeof product.image_urls === 'string') {
+    try {
+      images = JSON.parse(product.image_urls);
+    } catch (e) {
+      images = product.image_urls.split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+  }
+  if (images.length === 0 && product.image_url) {
+    images = [product.image_url];
+  }
+
   const [selectedImage, setSelectedImage] = useState<string>(images[0] || '');
   
-  const versionList = typeof product.version === 'string' 
-    ? product.version.split(',').map((v: string) => v.trim()).filter(Boolean) 
-    : [];
-
-  const storageList = typeof product.storage === 'string' 
-    ? product.storage.split(',').map((s: string) => s.trim()).filter(Boolean) 
-    : [];
-
-  const colorList = typeof product.colors === 'string' 
-    ? product.colors.split(',').map((c: string) => c.trim()).filter(Boolean) 
-    : [];
+  const versionList = typeof product.version === 'string' ? product.version.split(',').map((v: string) => v.trim()).filter(Boolean) : [];
+  const storageList = typeof product.storage === 'string' ? product.storage.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+  const colorList = typeof product.colors === 'string' ? product.colors.split(',').map((c: string) => c.trim()).filter(Boolean) : [];
 
   const [selectedVersion, setSelectedVersion] = useState('');
   const [selectedStorage, setSelectedStorage] = useState('');
@@ -58,7 +63,6 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
       }]);
     } catch (e) {}
 
-    // אם הוגדר מוצר מבצע - נפתח פופ-אפ. אם לא - יוצג ישר אישור הוספה לסל.
     if (promoProduct) {
       setShowPromoModal(true);
     } else {
@@ -119,12 +123,14 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
           </div>
 
           <h1 className="text-3xl font-extrabold text-gray-900">{product.name}</h1>
+          
+          {/* מחיר במיקומו הנכון מתחת לשם המוצר */}
           <div className="text-3xl font-black text-black">₪{product.price}</div>
 
           {/* בחירת גרסה */}
           {versionList.length > 0 && (
             <div className="space-y-2 pt-2 border-t">
-              <label className="block text-xs font-bold text-gray-700">בחר גרסה: <span className="text-black font-extrabold">{selectedVersion || '(חובה לבחור)'}</span></label>
+              <label className="block text-xs font-bold text-gray-700">בחר גרסה:</label>
               <div className="flex flex-wrap gap-2">
                 {versionList.map((version: string) => (
                   <button
@@ -142,7 +148,7 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
           {/* בחירת נפח אחסון */}
           {storageList.length > 0 && (
             <div className="space-y-2 pt-2">
-              <label className="block text-xs font-bold text-gray-700">בחר נפח אחסון: <span className="text-black font-extrabold">{selectedStorage || '(חובה לבחור)'}</span></label>
+              <label className="block text-xs font-bold text-gray-700">בחר נפח אחסון:</label>
               <div className="flex flex-wrap gap-2">
                 {storageList.map((storage: string) => (
                   <button
@@ -160,7 +166,7 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
           {/* בחירת צבעים */}
           {colorList.length > 0 && (
             <div className="space-y-2 pt-2">
-              <label className="block text-xs font-bold text-gray-700">בחר צבע: <span className="text-black font-extrabold">{selectedColor || '(חובה לבחור)'}</span></label>
+              <label className="block text-xs font-bold text-gray-700">בחר צבע:</label>
               <div className="flex flex-wrap gap-2">
                 {colorList.map((color: string) => (
                   <button
@@ -175,7 +181,6 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
             </div>
           )}
 
-          {/* אחריות (ללא המילה תנאי) */}
           {product.warranty && (
             <div className="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3.5 rounded-2xl text-xs font-bold flex items-center gap-3">
               <span className="text-lg">🛡️</span>
@@ -240,7 +245,7 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
         </div>
       )}
 
-      {/* פופ-אפ מבצע (מופיע אך ורק אם קיים promoProduct) */}
+      {/* פופ-אפ מבצע */}
       {showPromoModal && promoProduct && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-6 text-center">
