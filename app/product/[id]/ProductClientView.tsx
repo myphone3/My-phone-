@@ -2,12 +2,13 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase'; // <-- הוסף שורה זו כאן
+import { supabase } from '@/lib/supabase';
 
 export default function ProductClientView({ product, relatedProducts, promoProduct }: { product: any; relatedProducts: any[]; promoProduct: any }) {
   const images = product.image_urls?.length > 0 ? product.image_urls : (product.image_url ? [product.image_url] : []);
   const [selectedImage, setSelectedImage] = useState<string>(images[0] || '');
   
+  // פיצול צבעים וגרסאות ממחרוזת בפסיקים
   const colorList = product.colors ? product.colors.split(',').map((c: string) => c.trim()).filter(Boolean) : [];
   const versionList = product.versions ? product.versions.split(',').map((v: string) => v.trim()).filter(Boolean) : [];
 
@@ -35,7 +36,7 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
     await supabase.from('orders').insert([{
       customer_name: 'לקוח מהחנות',
       customer_phone: '0500000000',
-      customer_address: 'כתובת לקוח',
+      customer_address: 'איסוף עצמי / משלוח',
       items: [cartItem],
       total: product.price,
       status: 'בטיפול'
@@ -44,7 +45,7 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 relative" dir="rtl">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white p-6 rounded-2xl shadow-sm border">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white p-6 md:p-8 rounded-3xl shadow-sm border">
         
         {/* גלריית תמונות */}
         <div className="space-y-4">
@@ -94,35 +95,19 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
             )}
           </div>
 
-          <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
+          <h1 className="text-3xl font-extrabold text-gray-900">{product.name}</h1>
           <div className="text-3xl font-black text-black">₪{product.price}</div>
 
-          {colorList.length > 0 && (
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-gray-700">בחר צבע: <span className="text-black">{selectedColor}</span></label>
-              <div className="flex gap-2">
-                {colorList.map((color: string) => (
-                  <button
-                    key={color}
-                    onClick={() => setSelectedColor(color)}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold border transition ${selectedColor === color ? 'bg-black text-white border-black' : 'bg-gray-50 text-gray-800 hover:bg-gray-100'}`}
-                  >
-                    {color}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
+          {/* בחירת גרסאות / נפח */}
           {versionList.length > 0 && (
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-gray-700">בחר גרסה / נפח: <span className="text-black">{selectedVersion}</span></label>
-              <div className="flex gap-2">
+            <div className="space-y-2 pt-2 border-t">
+              <label className="block text-xs font-bold text-gray-700">בחר גרסה / נפח: <span className="text-black font-extrabold">{selectedVersion}</span></label>
+              <div className="flex flex-wrap gap-2">
                 {versionList.map((version: string) => (
                   <button
                     key={version}
                     onClick={() => setSelectedVersion(version)}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold border transition ${selectedVersion === version ? 'bg-black text-white border-black' : 'bg-gray-50 text-gray-800 hover:bg-gray-100'}`}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold border transition ${selectedVersion === version ? 'bg-black text-white border-black shadow-sm' : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'}`}
                   >
                     {version}
                   </button>
@@ -131,21 +116,43 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
             </div>
           )}
 
+          {/* בחירת צבעים */}
+          {colorList.length > 0 && (
+            <div className="space-y-2 pt-2">
+              <label className="block text-xs font-bold text-gray-700">בחר צבע: <span className="text-black font-extrabold">{selectedColor}</span></label>
+              <div className="flex flex-wrap gap-2">
+                {colorList.map((color: string) => (
+                  <button
+                    key={color}
+                    onClick={() => setSelectedColor(color)}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold border transition ${selectedColor === color ? 'bg-black text-white border-black shadow-sm' : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'}`}
+                  >
+                    {color}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* הצגת אחריות בולטת */}
           {product.warranty && (
-            <div className="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-xl text-xs font-bold flex items-center gap-2">
-              <span>🛡️</span>
-              <span>אחריות: {product.warranty}</span>
+            <div className="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3.5 rounded-2xl text-xs font-bold flex items-center gap-3">
+              <span className="text-lg">🛡️</span>
+              <div>
+                <div className="font-black text-amber-950">תנאי אחריות:</div>
+                <div className="mt-0.5 text-amber-900">{product.warranty}</div>
+              </div>
             </div>
           )}
 
           {product.short_description && (
-            <p className="text-gray-600 text-base leading-relaxed">{product.short_description}</p>
+            <p className="text-gray-600 text-base leading-relaxed pt-2">{product.short_description}</p>
           )}
 
           <div className="pt-4 border-t">
             <button 
               onClick={handleAddToCart}
-              className="w-full bg-black text-white py-4 rounded-xl font-bold hover:bg-gray-800 transition shadow-md"
+              className="w-full bg-black text-white py-4 rounded-2xl font-bold hover:bg-gray-800 transition shadow-lg text-base"
             >
               הוסף לסל 🛒
             </button>
@@ -153,21 +160,23 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
         </div>
       </div>
 
+      {/* תיאור ומפרט */}
       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
         {product.description && (
-          <div className="bg-white p-6 rounded-2xl shadow-sm border space-y-3">
+          <div className="bg-white p-6 rounded-3xl shadow-sm border space-y-3">
             <h2 className="text-xl font-bold text-gray-900 border-b pb-2">תיאור מלא</h2>
             <div className="text-gray-700 whitespace-pre-line leading-relaxed">{product.description}</div>
           </div>
         )}
         {product.specs && (
-          <div className="bg-white p-6 rounded-2xl shadow-sm border space-y-3">
+          <div className="bg-white p-6 rounded-3xl shadow-sm border space-y-3">
             <h2 className="text-xl font-bold text-gray-900 border-b pb-2">מפרט טכני</h2>
             <div className="text-gray-700 whitespace-pre-line leading-relaxed bg-gray-50 p-4 rounded-xl font-mono text-sm">{product.specs}</div>
           </div>
         )}
       </div>
 
+      {/* פריטים שאולי יעניינו אותך */}
       {relatedProducts.length > 0 && (
         <div className="mt-16 space-y-6">
           <h2 className="text-2xl font-black text-gray-900 text-center">מוצרים נוספים שאולי יעניינו אותך ⭐</h2>
@@ -190,6 +199,7 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
         </div>
       )}
 
+      {/* פופ-אפ מבצע בהוספה לסל */}
       {showPromoModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-6 text-center animate-in fade-in zoom-in duration-200">
