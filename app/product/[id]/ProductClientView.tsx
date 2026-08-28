@@ -101,6 +101,7 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
 
         {/* פרטי המוצר */}
         <div className="space-y-6">
+          {/* תגיות קטגוריה, מותג וכשרות עם תמונות */}
           <div className="flex flex-wrap gap-3">
             {product.category && (
               <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-full border">
@@ -123,14 +124,12 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
           </div>
 
           <h1 className="text-3xl font-extrabold text-gray-900">{product.name}</h1>
-          
-          {/* מחיר במיקומו הנכון מתחת לשם המוצר */}
           <div className="text-3xl font-black text-black">₪{product.price}</div>
 
-          {/* בחירת גרסה */}
+          {/* בחירת גרסה כאופציות כפתורים */}
           {versionList.length > 0 && (
             <div className="space-y-2 pt-2 border-t">
-              <label className="block text-xs font-bold text-gray-700">בחר גרסה:</label>
+              <label className="block text-xs font-bold text-gray-700">בחר גרסה (שדה חובה):</label>
               <div className="flex flex-wrap gap-2">
                 {versionList.map((version: string) => (
                   <button
@@ -145,10 +144,10 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
             </div>
           )}
 
-          {/* בחירת נפח אחסון */}
+          {/* בחירת נפח אחסון כאופציות כפתורים */}
           {storageList.length > 0 && (
             <div className="space-y-2 pt-2">
-              <label className="block text-xs font-bold text-gray-700">בחר נפח אחסון:</label>
+              <label className="block text-xs font-bold text-gray-700">בחר נפח אחסון (שדה חובה):</label>
               <div className="flex flex-wrap gap-2">
                 {storageList.map((storage: string) => (
                   <button
@@ -163,10 +162,10 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
             </div>
           )}
 
-          {/* בחירת צבעים */}
+          {/* בחירת צבעים כאופציות כפתורים */}
           {colorList.length > 0 && (
             <div className="space-y-2 pt-2">
-              <label className="block text-xs font-bold text-gray-700">בחר צבע:</label>
+              <label className="block text-xs font-bold text-gray-700">בחר צבע (שדה חובה):</label>
               <div className="flex flex-wrap gap-2">
                 {colorList.map((color: string) => (
                   <button
@@ -200,7 +199,7 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
               onClick={handleAddToCart}
               className="w-full bg-black text-white py-4 rounded-2xl font-bold hover:bg-gray-800 transition shadow-lg text-base"
             >
-              הוסף לסל 🛒
+              הוספה לסל 🛒
             </button>
           </div>
         </div>
@@ -210,7 +209,7 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
         {product.description && (
           <div className="bg-white p-6 rounded-3xl shadow-sm border space-y-3">
-            <h2 className="text-xl font-bold text-gray-900 border-b pb-2">תיאור מלא</h2>
+            <h2 className="text-xl font-bold text-gray-900 border-b pb-2">תיאור המוצר:</h2>
             <div className="text-gray-700 whitespace-pre-line leading-relaxed">{product.description}</div>
           </div>
         )}
