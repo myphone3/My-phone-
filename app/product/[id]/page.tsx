@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
 export default function ProductPage() {
   const params = useParams();
@@ -13,18 +14,28 @@ export default function ProductPage() {
 
   useEffect(() => {
     if (!id) return;
-    
-    // שליפת המוצר (ניתן להתאים לפי ה-API או מקור הנתונים שלך)
-    fetch('/api/products') // או נתיב הנתונים שלך
-      .then(res => res.json())
-      .then(data => {
-        const found = Array.isArray(data) ? data.find((p: any) => p.id === id || p._id === id) : data;
-        setProduct(found || { name: "מוצר", price: "0", description: "", images: [] });
+
+    async function fetchProduct() {
+      try {
+        // שליפת כל המוצרים והשוואת ה-ID כדי למנוע בעיות התאמה (מחרוזת מול מספר)
+        const { data, error } = await supabase
+          .from('products')
+          .select('*');
+
+        if (error) {
+          console.error('Error fetching products:', error);
+        } else if (data) {
+          const found = data.find((p: any) => String(p.id) === String(id) || String(p._id) === String(id));
+          setProduct(found || null);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
         setLoading(false);
-      })
-      .catch(() => {
-        setLoading(false);
-      });
+      }
+    }
+
+    fetchProduct();
   }, [id]);
 
   if (loading) return <div className="p-8 text-center text-gray-500">טוען פרטי מוצר...</div>;
