@@ -44,7 +44,6 @@ export default function ProductPage() {
   if (loading) return <div className="p-12 text-center text-gray-500">טוען פרטי מוצר...</div>;
   if (!product) return <div className="p-12 text-center text-gray-500">המוצר לא נמצא</div>;
 
-  // איסוף התמונות בצורה גמישה (תומך במערך images או בשדה image יחיד)
   const imagesList = Array.isArray(product.images) && product.images.length > 0
     ? product.images
     : product.image 
@@ -69,7 +68,6 @@ export default function ProductPage() {
           )}
         </div>
 
-        {/* תמונות ממוזערות לגלרייה */}
         {imagesList.length > 1 && (
           <div className="flex gap-2 overflow-x-auto pb-2">
             {imagesList.map((img: string, index: number) => (
@@ -87,15 +85,25 @@ export default function ProductPage() {
         )}
       </div>
 
-      {/* פרטי המוצר, תגיות וכפתורים */}
+      {/* פרטי המוצר המלאים מהניהול */}
       <div className="w-full md:w-1/2 flex flex-col gap-4">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight">{product.name}</h1>
         
-        {/* תגיות / מאפייני כשרות ומותג */}
+        {/* תגיות מותג, כשרות, קטגוריה, נפח וגרסה */}
         <div className="flex flex-wrap gap-2">
           {product.brand && (
             <span className="bg-orange-50 text-orange-700 text-sm px-3 py-1 rounded-lg font-medium border border-orange-100">
               {product.brand}
+            </span>
+          )}
+          {product.category && (
+            <span className="bg-gray-100 text-gray-700 text-sm px-3 py-1 rounded-lg font-medium border border-gray-200">
+              {product.category}
+            </span>
+          )}
+          {product.kosher && (
+            <span className="bg-blue-50 text-blue-700 text-sm px-3 py-1 rounded-lg font-medium border border-blue-100">
+              {product.kosher}
             </span>
           )}
           {product.kosher_type && (
@@ -108,14 +116,27 @@ export default function ProductPage() {
               {product.certification}
             </span>
           )}
+          {product.storage && (
+            <span className="bg-purple-50 text-purple-700 text-sm px-3 py-1 rounded-lg font-medium border border-purple-100">
+              נפח: {product.storage}
+            </span>
+          )}
+          {product.ram && (
+            <span className="bg-indigo-50 text-indigo-700 text-sm px-3 py-1 rounded-lg font-medium border border-indigo-100">
+              RAM: {product.ram}
+            </span>
+          )}
+          {product.version && (
+            <span className="bg-pink-50 text-pink-700 text-sm px-3 py-1 rounded-lg font-medium border border-pink-100">
+              גרסה: {product.version}
+            </span>
+          )}
         </div>
 
         <p className="text-2xl font-bold text-gray-900">₪{product.price}</p>
         
-        {/* כפתור הוספה לסל */}
         <button 
           onClick={() => {
-            // כאן אפשר לחבר את פונקציית העגלה הקיימת שלך בפרויקט
             alert('המוצר נוסף לסל בהצלחה!');
           }}
           className="w-full bg-black text-white py-4 rounded-xl font-semibold hover:bg-gray-800 transition-colors shadow-sm active:scale-[0.98]"
@@ -123,11 +144,12 @@ export default function ProductPage() {
           הוספה לסל
         </button>
 
-        {/* תיאור המוצר */}
-        <div className="border-t pt-4 mt-2">
-          <h3 className="font-semibold text-gray-800 mb-2">תיאור המוצר:</h3>
-          <p className="text-gray-600 text-sm md:text-base whitespace-pre-line leading-relaxed">{product.description}</p>
-        </div>
+        {product.description && (
+          <div className="border-t pt-4 mt-2">
+            <h3 className="font-semibold text-gray-800 mb-2">תיאור המוצר:</h3>
+            <p className="text-gray-600 text-sm md:text-base whitespace-pre-line leading-relaxed">{product.description}</p>
+          </div>
+        )}
       </div>
     </div>
   );
