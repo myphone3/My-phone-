@@ -21,11 +21,24 @@ export default async function ProductPage({ params }: { params: { id: string } }
   const { data: brands } = await supabase.from('brands').select('*');
   const { data: kosherOptions } = await supabase.from('kosher_options').select('*');
 
-  // שליפת מוצרים קשורים (מתוקן לשימוש ב-params.id)
-  const { data: allProducts } = await supabase.from('products').select('*').neq('id', params.id).limit(4);
+  // שליפת מוצרים קשורים שנבחרו ידנית ע"י המנהל
+  let relatedProducts: any[] = [];
+  if (product.related_ids && product.related_ids.length > 0) {
+    const { data: relData } = await supabase.from('products').select('*').in('id', product.related_ids);
+    if (relData) relatedProducts = relData;
+  }
 
-  // בחירת מוצר מבצע להצגה בעגלה
-  const promoProduct = allProducts && allProducts.length > 0 ? allProducts[0] : null;
+  // שליפת מוצר המבצע המותאם אישית (אם הוגדר)
+  let promoProduct = null;
+  if (product.upsell_product_id) {
+    const { data: promoData } = await supabase.from('products').select('*').eq('id', product.upsell_product_id).single();
+    if (promoData) {
+      promoProduct = {
+        ...promoData,
+        price: product.upsell_price !== null ? product.upsell_price : promoData.price
+      };
+    }
+  }
 
   const matchedCategory = categories?.find(c => c.name?.trim().toLowerCase() === product.category?.trim().toLowerCase());
   const matchedBrand = brands?.find(b => b.name?.trim().toLowerCase() === product.brand?.trim().toLowerCase());
@@ -41,7 +54,7 @@ export default async function ProductPage({ params }: { params: { id: string } }
   return (
     <ProductClientView 
       product={enrichedProduct} 
-      relatedProducts={allProducts || []} 
+      relatedProducts={relatedProducts} 
       promoProduct={promoProduct} 
     />
   );
