@@ -15,6 +15,10 @@ export default function AdminProducts() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
 
+  // חיפושים פנימיים בתוך הטופס
+  const [relatedSearch, setRelatedSearch] = useState('');
+  const [upsellSearch, setUpsellSearch] = useState('');
+
   // שדות הטופס
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
@@ -27,10 +31,12 @@ export default function AdminProducts() {
   const [description, setDescription] = useState('');
   const [specs, setSpecs] = useState('');
   
-  // שדות חדשים: אחריות, צבעים, גרסאות, מוצרים קשורים ומבצע עגלה
   const [warranty, setWarranty] = useState('');
+  const [version, setVersion] = useState(''); // גרסה בנפרד
+  const [storage, setStorage] = useState(''); // נפח אחסון בנפרד
   const [colors, setColors] = useState('');
-  const [versions, setVersions] = useState('');
+  const [stock, setStock] = useState('10'); // מלאי
+  
   const [relatedIds, setRelatedIds] = useState<string[]>([]);
   const [upsellProductId, setUpsellProductId] = useState('');
   const [upsellPrice, setUpsellPrice] = useState('');
@@ -126,8 +132,10 @@ export default function AdminProducts() {
       description,
       specs,
       warranty,
+      version,
+      storage,
       colors,
-      versions,
+      stock: parseInt(stock) || 0,
       related_ids: relatedIds,
       upsell_product_id: upsellProductId || null,
       upsell_price: upsellPrice ? parseFloat(upsellPrice) : null,
@@ -160,8 +168,10 @@ export default function AdminProducts() {
     setDescription(p.description || '');
     setSpecs(p.specs || '');
     setWarranty(p.warranty || '');
+    setVersion(p.version || '');
+    setStorage(p.storage || '');
     setColors(p.colors || '');
-    setVersions(p.versions || '');
+    setStock(p.stock !== undefined && p.stock !== null ? p.stock.toString() : '10');
     setRelatedIds(p.related_ids || []);
     setUpsellProductId(p.upsell_product_id || '');
     setUpsellPrice(p.upsell_price ? p.upsell_price.toString() : '');
@@ -182,8 +192,8 @@ export default function AdminProducts() {
   const resetForm = () => {
     setEditingId(null); setName(''); setPrice(''); setCategory(''); setBrand('');
     setKosher(''); setImageUrl(''); setImageUrls([]); setShortDesc('');
-    setDescription(''); setSpecs(''); setWarranty(''); setColors(''); setVersions('');
-    setRelatedIds([]); setUpsellProductId(''); setUpsellPrice('');
+    setDescription(''); setSpecs(''); setWarranty(''); setVersion(''); setStorage('');
+    setColors(''); setStock('10'); setRelatedIds([]); setUpsellProductId(''); setUpsellPrice('');
     setSeoTitle(''); setSeoDescription(''); setSeoKeywords('');
     setIsFormOpen(false);
   };
@@ -193,6 +203,11 @@ export default function AdminProducts() {
     p.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.brand?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // סינון מוצרים לבחירה עבור מוצרים קשורים ועבור פופ-אפ מבצע לפי שורות חיפוש
+  const selectableProducts = products.filter(p => p.id !== editingId);
+  const filteredRelatedOptions = selectableProducts.filter(p => p.name?.toLowerCase().includes(relatedSearch.toLowerCase()));
+  const filteredUpsellOptions = selectableProducts.filter(p => p.name?.toLowerCase().includes(upsellSearch.toLowerCase()));
 
   return (
     <div className="space-y-8 pb-12" dir="rtl">
@@ -263,12 +278,20 @@ export default function AdminProducts() {
               <input type="text" value={warranty} onChange={(e) => setWarranty(e.target.value)} placeholder="זמן אחריות..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" />
             </div>
             <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">גרסה (למשל: דור 4, תומך כשר, דגם רגיל)</label>
+              <input type="text" value={version} onChange={(e) => setVersion(e.target.value)} placeholder="הקלד גרסה..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">נפח אחסון (למשל: 64GB, 128GB)</label>
+              <input type="text" value={storage} onChange={(e) => setStorage(e.target.value)} placeholder="הקלד נפח אחסון..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" />
+            </div>
+            <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">צבעים (מופרדים בפסיקים `,`)</label>
               <input type="text" value={colors} onChange={(e) => setColors(e.target.value)} placeholder="שחור, לבן, כחול..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">גרסאות / נפח (מופרדים בפסיקים `,`)</label>
-              <input type="text" value={versions} onChange={(e) => setVersions(e.target.value)} placeholder="64GB, 128GB..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" />
+              <label className="block text-xs font-bold text-gray-700 mb-1">כמות מלאי כללית</label>
+              <input type="number" value={stock} onChange={(e) => setStock(e.target.value)} placeholder="10" className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" />
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">תמונה ראשית</label>
@@ -310,31 +333,45 @@ export default function AdminProducts() {
             </div>
           </div>
 
-          {/* הגדרת מוצר מבצע בקופה (Cross-sell popup) עבור מוצר זה */}
+          {/* פופ-אפ מבצע בעגלה עם שורת חיפוש */}
           <div className="bg-gray-50 p-4 rounded-2xl border space-y-4">
             <h3 className="text-sm font-bold text-gray-900 border-b pb-2">🎁 הגדרת פופ-אפ מבצע בעגלה (׳בטוח תרצה להוסיף׳) למוצר זה</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">בחר את המוצר המוצע במבצע</label>
-                <select value={upsellProductId} onChange={(e) => setUpsellProductId(e.target.value)} className="w-full border rounded-xl p-2.5 bg-white outline-none focus:ring-2 focus:ring-black">
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-gray-700">חפש ובחר מוצר מוצע במבצע</label>
+                <input 
+                  type="text" 
+                  value={upsellSearch} 
+                  onChange={(e) => setUpsellSearch(e.target.value)} 
+                  placeholder="🔍 חפש מוצר לפופ-אפ..." 
+                  className="w-full border rounded-xl p-2.5 text-xs bg-white outline-none focus:ring-2 focus:ring-black" 
+                />
+                <select value={upsellProductId} onChange={(e) => setUpsellProductId(e.target.value)} className="w-full border rounded-xl p-2.5 bg-white outline-none focus:ring-2 focus:ring-black text-sm">
                   <option value="">ללא מוצר מבצע</option>
-                  {products.filter(p => p.id !== editingId).map((p) => (
+                  {filteredUpsellOptions.map((p) => (
                     <option key={p.id} value={p.id}>{p.name} (₪{p.price})</option>
                   ))}
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">מחיר מבצע מיוחד למוצר זה (₪)</label>
-                <input type="number" value={upsellPrice} onChange={(e) => setUpsellPrice(e.target.value)} placeholder="למשל: 49" className="w-full border rounded-xl p-2.5 bg-white outline-none focus:ring-2 focus:ring-black" />
+                <input type="number" value={upsellPrice} onChange={(e) => setUpsellPrice(e.target.value)} placeholder="למשל: 49" className="w-full border rounded-xl p-2.5 bg-white outline-none focus:ring-2 focus:ring-black mt-6" />
               </div>
             </div>
           </div>
 
-          {/* בחירת מוצרים קשורים ידנית */}
+          {/* מוצרים קשורים עם שורת חיפוש */}
           <div className="bg-gray-50 p-4 rounded-2xl border space-y-3">
             <h3 className="text-sm font-bold text-gray-900 border-b pb-2">⭐ בחר ידנית ״פריטים שאולי יעניינו אותך״ עבור מוצר זה</h3>
+            <input 
+              type="text" 
+              value={relatedSearch} 
+              onChange={(e) => setRelatedSearch(e.target.value)} 
+              placeholder="🔍 חפש מוצרים רלוונטיים..." 
+              className="w-full md:w-80 border rounded-xl p-2.5 text-xs bg-white outline-none focus:ring-2 focus:ring-black" 
+            />
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-2 bg-white rounded-xl border">
-              {products.filter(p => p.id !== editingId).map((p) => (
+              {filteredRelatedOptions.map((p) => (
                 <label key={p.id} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer text-xs ${relatedIds.includes(p.id) ? 'bg-black text-white border-black' : 'bg-gray-50'}`}>
                   <input type="checkbox" checked={relatedIds.includes(p.id)} onChange={() => handleRelatedToggle(p.id)} className="hidden" />
                   <span className="truncate">{p.name}</span>
