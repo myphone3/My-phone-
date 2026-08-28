@@ -8,25 +8,45 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
   const images = product.image_urls?.length > 0 ? product.image_urls : (product.image_url ? [product.image_url] : []);
   const [selectedImage, setSelectedImage] = useState<string>(images[0] || '');
   
+  const versionList = typeof product.version === 'string' 
+    ? product.version.split(',').map((v: string) => v.trim()).filter(Boolean) 
+    : [];
+
+  const storageList = typeof product.storage === 'string' 
+    ? product.storage.split(',').map((s: string) => s.trim()).filter(Boolean) 
+    : [];
+
   const colorList = typeof product.colors === 'string' 
     ? product.colors.split(',').map((c: string) => c.trim()).filter(Boolean) 
     : [];
-    
-  const versionList = typeof product.versions === 'string' 
-    ? product.versions.split(',').map((v: string) => v.trim()).filter(Boolean) 
-    : [];
 
-  const [selectedColor, setSelectedColor] = useState(colorList[0] || '');
-  const [selectedVersion, setSelectedVersion] = useState(versionList[0] || '');
+  const [selectedVersion, setSelectedVersion] = useState('');
+  const [selectedStorage, setSelectedStorage] = useState('');
+  const [selectedColor, setSelectedColor] = useState('');
   const [showPromoModal, setShowPromoModal] = useState(false);
 
   const handleAddToCart = async () => {
+    // בדיקת חובה לבחירת גרסה, נפח וצבע במידה וקיימים
+    if (versionList.length > 0 && !selectedVersion) {
+      alert('אנא בחר גרסה לפני הוספה לסל');
+      return;
+    }
+    if (storageList.length > 0 && !selectedStorage) {
+      alert('אנא בחר נפח אחסון לפני הוספה לסל');
+      return;
+    }
+    if (colorList.length > 0 && !selectedColor) {
+      alert('אנא בחר צבע לפני הוספה לסל');
+      return;
+    }
+
     try {
       const cartItem = {
         name: product.name,
         price: product.price,
-        selectedColor,
         selectedVersion,
+        selectedStorage,
+        selectedColor,
         quantity: 1
       };
       await supabase.from('orders').insert([{
@@ -97,10 +117,10 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
           <h1 className="text-3xl font-extrabold text-gray-900">{product.name}</h1>
           <div className="text-3xl font-black text-black">₪{product.price}</div>
 
-          {/* בחירת גרסאות */}
+          {/* בחירת גרסה (חובה) */}
           {versionList.length > 0 && (
             <div className="space-y-2 pt-2 border-t">
-              <label className="block text-xs font-bold text-gray-700">בחר גרסה / נפח: <span className="text-black font-extrabold">{selectedVersion}</span></label>
+              <label className="block text-xs font-bold text-gray-700">בחר גרסה: <span className="text-black font-extrabold">{selectedVersion || '(חובה לבחור)'}</span></label>
               <div className="flex flex-wrap gap-2">
                 {versionList.map((version: string) => (
                   <button
@@ -115,10 +135,28 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
             </div>
           )}
 
-          {/* בחירת צבעים */}
+          {/* בחירת נפח אחסון (חובה) */}
+          {storageList.length > 0 && (
+            <div className="space-y-2 pt-2">
+              <label className="block text-xs font-bold text-gray-700">בחר נפח אחסון: <span className="text-black font-extrabold">{selectedStorage || '(חובה לבחור)'}</span></label>
+              <div className="flex flex-wrap gap-2">
+                {storageList.map((storage: string) => (
+                  <button
+                    key={storage}
+                    onClick={() => setSelectedStorage(storage)}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold border transition ${selectedStorage === storage ? 'bg-black text-white border-black shadow-sm' : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'}`}
+                  >
+                    {storage}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* בחירת צבעים (חובה) */}
           {colorList.length > 0 && (
             <div className="space-y-2 pt-2">
-              <label className="block text-xs font-bold text-gray-700">בחר צבע: <span className="text-black font-extrabold">{selectedColor}</span></label>
+              <label className="block text-xs font-bold text-gray-700">בחר צבע: <span className="text-black font-extrabold">{selectedColor || '(חובה לבחור)'}</span></label>
               <div className="flex flex-wrap gap-2">
                 {colorList.map((color: string) => (
                   <button
@@ -133,12 +171,12 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
             </div>
           )}
 
-          {/* הצגת אחריות */}
+          {/* הצגת אחריות (ללא המילה תנאי) */}
           {product.warranty && (
             <div className="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3.5 rounded-2xl text-xs font-bold flex items-center gap-3">
               <span className="text-lg">🛡️</span>
               <div>
-                <div className="font-black text-amber-950">תנאי אחריות:</div>
+                <div className="font-black text-amber-950">אחריות:</div>
                 <div className="mt-0.5 text-amber-900">{product.warranty}</div>
               </div>
             </div>
