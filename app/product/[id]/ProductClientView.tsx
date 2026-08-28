@@ -26,7 +26,6 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
   const [showPromoModal, setShowPromoModal] = useState(false);
 
   const handleAddToCart = async () => {
-    // בדיקת חובה לבחירת גרסה, נפח וצבע במידה וקיימים
     if (versionList.length > 0 && !selectedVersion) {
       alert('אנא בחר גרסה לפני הוספה לסל');
       return;
@@ -59,7 +58,12 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
       }]);
     } catch (e) {}
 
-    setShowPromoModal(true);
+    // אם הוגדר מוצר מבצע - נפתח פופ-אפ. אם לא - יוצג ישר אישור הוספה לסל.
+    if (promoProduct) {
+      setShowPromoModal(true);
+    } else {
+      alert('המוצר נוסף לסל בהצלחה! 🛒');
+    }
   };
 
   return (
@@ -117,7 +121,7 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
           <h1 className="text-3xl font-extrabold text-gray-900">{product.name}</h1>
           <div className="text-3xl font-black text-black">₪{product.price}</div>
 
-          {/* בחירת גרסה (חובה) */}
+          {/* בחירת גרסה */}
           {versionList.length > 0 && (
             <div className="space-y-2 pt-2 border-t">
               <label className="block text-xs font-bold text-gray-700">בחר גרסה: <span className="text-black font-extrabold">{selectedVersion || '(חובה לבחור)'}</span></label>
@@ -135,7 +139,7 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
             </div>
           )}
 
-          {/* בחירת נפח אחסון (חובה) */}
+          {/* בחירת נפח אחסון */}
           {storageList.length > 0 && (
             <div className="space-y-2 pt-2">
               <label className="block text-xs font-bold text-gray-700">בחר נפח אחסון: <span className="text-black font-extrabold">{selectedStorage || '(חובה לבחור)'}</span></label>
@@ -153,7 +157,7 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
             </div>
           )}
 
-          {/* בחירת צבעים (חובה) */}
+          {/* בחירת צבעים */}
           {colorList.length > 0 && (
             <div className="space-y-2 pt-2">
               <label className="block text-xs font-bold text-gray-700">בחר צבע: <span className="text-black font-extrabold">{selectedColor || '(חובה לבחור)'}</span></label>
@@ -171,7 +175,7 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
             </div>
           )}
 
-          {/* הצגת אחריות (ללא המילה תנאי) */}
+          {/* אחריות (ללא המילה תנאי) */}
           {product.warranty && (
             <div className="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3.5 rounded-2xl text-xs font-bold flex items-center gap-3">
               <span className="text-lg">🛡️</span>
@@ -236,8 +240,8 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
         </div>
       )}
 
-      {/* פופ-אפ מבצע */}
-      {showPromoModal && (
+      {/* פופ-אפ מבצע (מופיע אך ורק אם קיים promoProduct) */}
+      {showPromoModal && promoProduct && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-6 text-center">
             <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">✓</div>
@@ -245,22 +249,16 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
               <h3 className="text-2xl font-black text-gray-900">המוצר נוסף לסל בהצלחה!</h3>
               <p className="text-gray-500 text-sm mt-1">בטוח תרצה להוסיף גם את זה:</p>
             </div>
-            {promoProduct ? (
-              <div className="bg-gray-50 p-4 rounded-2xl border flex items-center gap-4 text-right">
-                <img src={promoProduct.image_url || promoProduct.image_urls?.[0]} alt="" className="w-20 h-20 object-contain bg-white rounded-xl border p-1" />
-                <div>
-                  <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded font-bold">מבצע בלעדי 🎁</span>
-                  <h4 className="font-bold text-gray-900 text-sm mt-1 line-clamp-1">{promoProduct.name}</h4>
-                  <div className="text-sm font-black text-black mt-1">₪{promoProduct.price} בלבד!</div>
-                </div>
+            <div className="bg-gray-50 p-4 rounded-2xl border flex items-center gap-4 text-right">
+              <img src={promoProduct.image_url || promoProduct.image_urls?.[0]} alt="" className="w-20 h-20 object-contain bg-white rounded-xl border p-1" />
+              <div>
+                <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded font-bold">מבצע בלעדי 🎁</span>
+                <h4 className="font-bold text-gray-900 text-sm mt-1 line-clamp-1">{promoProduct.name}</h4>
+                <div className="text-sm font-black text-black mt-1">₪{promoProduct.price} בלבד!</div>
               </div>
-            ) : (
-              <p className="text-sm text-gray-600">אין מבצע מוגדר כרגע.</p>
-            )}
+            </div>
             <div className="space-y-2">
-              {promoProduct && (
-                <button onClick={() => setShowPromoModal(false)} className="w-full bg-black text-white py-3.5 rounded-xl font-bold">הוסף מבצע לסל 🚀</button>
-              )}
+              <button onClick={() => setShowPromoModal(false)} className="w-full bg-black text-white py-3.5 rounded-xl font-bold">הוסף מבצע לסל 🚀</button>
               <button onClick={() => setShowPromoModal(false)} className="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-bold">המשך לקופה / סגור</button>
             </div>
           </div>
