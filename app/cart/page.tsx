@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import StoreHeader from '@/components/StoreHeader';
+import StoreHeader from '../StoreHeader';
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<any[]>([]);
