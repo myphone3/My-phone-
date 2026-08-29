@@ -2,10 +2,8 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
 
 export default function ProductClientView({ product, relatedProducts, promoProduct }: { product: any; relatedProducts: any[]; promoProduct: any }) {
-  // איסוף כל התמונות (תמונה ראשית + גלריה) ללא כפילויות
   let allImages: string[] = [];
   if (product.image_url) allImages.push(product.image_url);
   
@@ -24,14 +22,9 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
   const storageList = typeof product.storage === 'string' ? product.storage.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
   const colorList = typeof product.colors === 'string' ? product.colors.split(',').map((c: string) => c.trim()).filter(Boolean) : [];
 
-  // פענוח בטוח של מפת התמונות לפי צבע
   let colorImagesMap = product.color_images;
   if (typeof colorImagesMap === 'string') {
-    try {
-      colorImagesMap = JSON.parse(colorImagesMap);
-    } catch (e) {
-      colorImagesMap = {};
-    }
+    try { colorImagesMap = JSON.parse(colorImagesMap); } catch (e) { colorImagesMap = {}; }
   }
   colorImagesMap = colorImagesMap || {};
 
@@ -43,14 +36,35 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
   const handleColorSelect = (color: string) => {
     const trimmedColor = color.trim();
     setSelectedColor(trimmedColor);
-    
-    // אם הוגדרה תמונה ספציפית לצבע זה, החלף אליה
     if (colorImagesMap[trimmedColor]) {
       setSelectedImage(colorImagesMap[trimmedColor]);
     }
   };
 
-  const handleAddToCart = async () => {
+  const addToCartInternal = (itemToAdd: any) => {
+    try {
+      const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+      const existingIndex = existingCart.findIndex((i: any) => 
+        i.id === itemToAdd.id && 
+        i.selectedVersion === itemToAdd.selectedVersion && 
+        i.selectedStorage === itemToAdd.selectedStorage && 
+        i.selectedColor === itemToAdd.selectedColor
+      );
+
+      if (existingIndex > -1) {
+        existingCart[existingIndex].quantity = (Number(existingCart[existingIndex].quantity) || 1) + 1;
+      } else {
+        existingCart.push({ ...itemToAdd, quantity: 1 });
+      }
+
+      localStorage.setItem('cart', JSON.stringify(existingCart));
+      window.dispatchEvent(new Event('cartUpdated'));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleAddToCart = () => {
     if (versionList.length > 0 && !selectedVersion) {
       alert('אנא בחר גרסה לפני הוספה לסל');
       return;
@@ -64,30 +78,33 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
       return;
     }
 
-    try {
-      const cartItem = {
-        name: product.name,
-        price: product.price,
-        selectedVersion,
-        selectedStorage,
-        selectedColor,
-        quantity: 1
-      };
-      await supabase.from('orders').insert([{
-        customer_name: 'לקוח מהחנות',
-        customer_phone: '0500000000',
-        customer_address: 'איסוף עצמי',
-        items: [cartItem],
-        total: product.price,
-        status: 'בטיפול'
-      }]);
-    } catch (e) {}
+    const cartItem = {
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      selectedVersion,
+      selectedStorage,
+      selectedColor,
+    };
+
+    addToCartInternal(cartItem);
 
     if (promoProduct) {
       setShowPromoModal(true);
     } else {
       alert('המוצר נוסף לסל בהצלחה! 🛒');
     }
+  };
+
+  const handleAddPromoToCart = () => {
+    if (!promoProduct) return;
+    addToCartInternal({
+      id: promoProduct.id,
+      name: promoProduct.name,
+      price: promoProduct.price,
+    });
+    setShowPromoModal(false);
+    alert('מוצר המבצע נוסף לסל בהצלחה! 🎁');
   };
 
   return (
@@ -145,7 +162,6 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
           <h1 className="text-3xl font-extrabold text-gray-900">{product.name}</h1>
           <div className="text-3xl font-black text-black">₪{product.price}</div>
 
-          {/* בחירת גרסה */}
           {versionList.length > 0 && (
             <div className="space-y-2 pt-2 border-t">
               <label className="block text-xs font-bold text-gray-700">בחר גרסה (שדה חובה):</label>
@@ -163,7 +179,6 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
             </div>
           )}
 
-          {/* בחירת נפח אחסון */}
           {storageList.length > 0 && (
             <div className="space-y-2 pt-2">
               <label className="block text-xs font-bold text-gray-700">בחר נפח אחסון (שדה חובה):</label>
@@ -181,7 +196,6 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
             </div>
           )}
 
-          {/* בחירת צבעים */}
           {colorList.length > 0 && (
             <div className="space-y-2 pt-2">
               <label className="block text-xs font-bold text-gray-700">בחר צבע (שדה חובה):</label>
@@ -281,7 +295,7 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
               </div>
             </div>
             <div className="space-y-2">
-              <button onClick={() => setShowPromoModal(false)} className="w-full bg-black text-white py-3.5 rounded-xl font-bold">הוסף מבצע לסל 🚀</button>
+              <button onClick={handleAddPromoToCart} className="w-full bg-black text-white py-3.5 rounded-xl font-bold">הוסף מבצע לסל 🚀</button>
               <button onClick={() => setShowPromoModal(false)} className="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-bold">המשך לקופה / סגור</button>
             </div>
           </div>
