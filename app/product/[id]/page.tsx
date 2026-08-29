@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import ProductClientView from './ProductClientView';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
   const { data: product } = await supabase.from('products').select('*').eq('id', params.id).single();
