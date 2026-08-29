@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
 export default function ProductClientView({ product, relatedProducts, promoProduct }: { product: any; relatedProducts: any[]; promoProduct: any }) {
-  // איסוף כל התמונות (התמונה הראשית + כל תמונות הגלריה) ללא כפילויות
+  // איסוף כל התמונות (תמונה ראשית + גלריה) ללא כפילויות
   let allImages: string[] = [];
   if (product.image_url) allImages.push(product.image_url);
   
@@ -16,7 +16,7 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
     try { gallery = JSON.parse(product.image_urls); } catch (e) { gallery = product.image_urls.split(',').map((s: string) => s.trim()).filter(Boolean); }
   }
   allImages.push(...gallery);
-  allImages = Array.from(new Set(allImages)); // מסיר כפילויות
+  allImages = Array.from(new Set(allImages));
 
   const [selectedImage, setSelectedImage] = useState<string>(allImages[0] || '');
   
@@ -24,16 +24,29 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
   const storageList = typeof product.storage === 'string' ? product.storage.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
   const colorList = typeof product.colors === 'string' ? product.colors.split(',').map((c: string) => c.trim()).filter(Boolean) : [];
 
+  // פענוח בטוח של מפת התמונות לפי צבע
+  let colorImagesMap = product.color_images;
+  if (typeof colorImagesMap === 'string') {
+    try {
+      colorImagesMap = JSON.parse(colorImagesMap);
+    } catch (e) {
+      colorImagesMap = {};
+    }
+  }
+  colorImagesMap = colorImagesMap || {};
+
   const [selectedVersion, setSelectedVersion] = useState('');
   const [selectedStorage, setSelectedStorage] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [showPromoModal, setShowPromoModal] = useState(false);
 
   const handleColorSelect = (color: string) => {
-    setSelectedColor(color);
-    // אם הוגדרה תמונה ספציפית לצבע זה, החלף אליה את התמונה הראשית המוצגת
-    if (product.color_images && product.color_images[color]) {
-      setSelectedImage(product.color_images[color]);
+    const trimmedColor = color.trim();
+    setSelectedColor(trimmedColor);
+    
+    // בדיקה והחלפת תמונה לפי הצבע הנבחר
+    if (colorImagesMap[trimmedColor]) {
+      setSelectedImage(colorImagesMap[trimmedColor]);
     }
   };
 
@@ -81,7 +94,7 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
     <div className="max-w-7xl mx-auto px-4 py-8 relative" dir="rtl">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white p-6 md:p-8 rounded-3xl shadow-sm border">
         
-        {/* גלריית תמונות מקיפה */}
+        {/* גלריית תמונות */}
         <div className="space-y-4">
           <div className="w-full h-96 bg-gray-50 rounded-2xl overflow-hidden border flex items-center justify-center">
             {selectedImage ? (
@@ -168,7 +181,7 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
             </div>
           )}
 
-          {/* בחירת צבעים (משנה תמונה אוטומטית) */}
+          {/* בחירת צבעים */}
           {colorList.length > 0 && (
             <div className="space-y-2 pt-2">
               <label className="block text-xs font-bold text-gray-700">בחר צבע (שדה חובה):</label>
