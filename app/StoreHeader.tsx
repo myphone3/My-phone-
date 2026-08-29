@@ -15,14 +15,13 @@ export default function StoreHeader() {
   const [cartCount, setCartCount] = useState(0);
   const [user, setUser] = useState<any>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [isSignUpMode, setIsSignUpMode] = useState(false);
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // רשימת המיילים המורשים להיות מנהלים בחנות (הכנס כאן את המייל שלך)
   const ADMIN_EMAILS = [
-    'your-email@gmail.com',
-    'manager2@gmail.com',
+    'd0556771356@gmail.com',
+    'd0587223040@gmail.com',
   ];
 
   const updateCartCount = () => {
@@ -54,27 +53,38 @@ export default function StoreHeader() {
     if (data?.user) setUser(data.user);
   };
 
-  const handleAuthSubmit = async (e: React.FormEvent) => {
+  const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email) return;
     setLoading(true);
 
-    if (isSignUpMode) {
-      const { error } = await supabase.auth.signUp({ email, password });
-      if (error) {
-        alert('שגיאת הרשמה: ' + error.message);
-      } else {
-        alert('נרשמת בהצלחה! אנא בדוק את תיבת המייל שלך לאישור החשבון.');
-        setShowAuthModal(false);
+    const cleanEmail = email.trim().toLowerCase();
+    // סיסמה קבועה שנוצרת מאחורי הקלעים למייל זה
+    const autoPassword = cleanEmail + '_StoreSecret2026!';
+
+    // נסיון התחברות
+    let { error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password: autoPassword });
+
+    // אם המשתמש לא קיים עדיין, ניצור אותו אוטומטית ואז נחבר אותו
+    if (error) {
+      const { error: signUpError } = await supabase.auth.signUp({ email: cleanEmail, password: autoPassword });
+      if (signUpError) {
+        alert('שגיאה בהתחברות: ' + signUpError.message);
+        setLoading(false);
+        return;
       }
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        alert('שגיאת התחברות: ' + error.message);
-      } else {
-        checkUser();
-        setShowAuthModal(false);
+      // התחברות מידית לאחר היצירה
+      const { error: loginError } = await supabase.auth.signInWithPassword({ email: cleanEmail, password: autoPassword });
+      if (loginError) {
+        alert('שגיאה: ' + loginError.message);
+        setLoading(false);
+        return;
       }
     }
+
+    checkUser();
+    setShowAuthModal(false);
+    setEmail('');
     setLoading(false);
   };
 
@@ -101,19 +111,15 @@ export default function StoreHeader() {
                     ניהול 🛠️
                   </Link>
                 )}
+                <span className="text-xs text-gray-600 font-medium hidden md:inline">{user.email}</span>
                 <button onClick={handleLogout} className="bg-gray-100 text-gray-600 px-3 py-2 rounded-xl text-xs font-bold hover:bg-gray-200">
                   התנתק
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5">
-                <button onClick={() => { setIsSignUpMode(false); setShowAuthModal(true); }} className="text-xs text-gray-700 font-semibold px-3 py-2 rounded-xl border bg-gray-50 hover:bg-gray-100">
-                  התחברות 🔐
-                </button>
-                <button onClick={() => { setIsSignUpMode(true); setShowAuthModal(true); }} className="text-xs bg-black text-white font-semibold px-3 py-2 rounded-xl hover:bg-gray-800 transition">
-                  הרשמה ✍️
-                </button>
-              </div>
+              <button onClick={() => setShowAuthModal(true)} className="text-xs bg-black text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-gray-800 transition shadow-sm">
+                התחברות מהירה עם מייל ✉️
+              </button>
             )}
 
             <Link 
@@ -131,41 +137,26 @@ export default function StoreHeader() {
         </div>
       </header>
 
+      {/* מודל התחברות בלי סיסמה */}
       {showAuthModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" dir="rtl">
-          <form onSubmit={handleAuthSubmit} className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4">
+          <form onSubmit={handleEmailLogin} className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4">
             <div className="flex justify-between items-center border-b pb-2">
-              <h3 className="text-lg font-black text-gray-900">
-                {isSignUpMode ? 'יצירת חשבון חדש ✍️' : 'התחברות לחשבון 🔐'}
-              </h3>
+              <h3 className="text-lg font-black text-gray-900">התחברות לחשבון ✉️</h3>
               <button type="button" onClick={() => setShowAuthModal(false)} className="text-gray-400 hover:text-black font-bold">✕</button>
             </div>
 
+            <p className="text-xs text-gray-500">הכנס את כתובת המייל שלך, ואנו ניצור או נחבר אותך לחשבון באופן מיידי בלי צורך בסיסמה.</p>
+
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">אימייל</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">כתובת אימייל</label>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your-email@gmail.com" className="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-black" required />
             </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">סיסמה</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-black" required />
-            </div>
 
-            <div className="pt-2 space-y-2">
+            <div className="pt-2">
               <button type="submit" disabled={loading} className="w-full bg-black text-white py-3.5 rounded-xl font-bold text-sm hover:bg-gray-800 transition shadow-md">
-                {loading ? 'מעבד...' : (isSignUpMode ? 'הירשם עכשיו 🚀' : 'התחברות 🔓')}
+                {loading ? 'מתחבר...' : 'כניסה מהירה לחשבון 🚀'}
               </button>
-
-              <div className="text-center pt-2">
-                {isSignUpMode ? (
-                  <button type="button" onClick={() => setIsSignUpMode(false)} className="text-xs text-gray-600 hover:underline">
-                    כבר יש לך חשבון? התחבר כאן
-                  </button>
-                ) : (
-                  <button type="button" onClick={() => setIsSignUpMode(true)} className="text-xs text-gray-600 hover:underline">
-                    אין לך חשבון עדיין? הירשם כאן
-                  </button>
-                )}
-              </div>
             </div>
           </form>
         </div>
