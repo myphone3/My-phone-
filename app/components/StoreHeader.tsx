@@ -2,9 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 export default function StoreHeader() {
+  const pathname = usePathname();
+
+  // אם אנחנו נמצאים בעמודי הניהול - לא נציג את ה-Header והעגלה של החנות כלל!
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
+
   const [cartCount, setCartCount] = useState(0);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -19,8 +27,11 @@ export default function StoreHeader() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
 
-  // 🛠️ החלף את המייל הבא בכתובת המייל שלך שדרכה אתה מתחבר כמנהל
-  const ADMIN_EMAIL = 'd0556771356@gmail.com';
+  // רשימת המיילים המורשים להיות מנהלים בחנות (הוסף כאן את המיילים שלך ושל מנהלים נוספים)
+  const ADMIN_EMAILS = [
+    'your-email@gmail.com',
+    'manager2@gmail.com',
+  ];
 
   useEffect(() => {
     updateCartCount();
@@ -118,7 +129,7 @@ export default function StoreHeader() {
     setUser(null);
   };
 
-  const isAdmin = user && user.email?.trim().toLowerCase() === ADMIN_EMAIL.trim().toLowerCase();
+  const isAdmin = user && ADMIN_EMAILS.map(e => e.trim().toLowerCase()).includes(user.email?.trim().toLowerCase());
 
   return (
     <>
