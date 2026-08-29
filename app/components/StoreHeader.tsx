@@ -13,18 +13,11 @@ export default function StoreHeader() {
   }
 
   const [cartCount, setCartCount] = useState(0);
-  const [isCartOpen, setIsCartOpen] = useState(false);
-  const [cartItems, setCartItems] = useState<any[]>([]);
-  
   const [user, setUser] = useState<any>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const [customerName, setCustomerName] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
-  const [customerAddress, setCustomerAddress] = useState('');
 
   // רשימת המיילים המורשים להיות מנהלים בחנות
   const ADMIN_EMAILS = [
@@ -35,11 +28,9 @@ export default function StoreHeader() {
   const updateCartCount = () => {
     try {
       const savedCart = JSON.parse(localStorage.getItem('cart') || '[]');
-      setCartItems(savedCart);
       const total = savedCart.reduce((sum: number, item: any) => sum + (Number(item.quantity) || 1), 0);
       setCartCount(total);
     } catch (e) {
-      setCartItems([]);
       setCartCount(0);
     }
   };
@@ -48,10 +39,7 @@ export default function StoreHeader() {
     updateCartCount();
     checkUser();
 
-    const handleCartUpdate = () => {
-      updateCartCount();
-    };
-
+    const handleCartUpdate = () => updateCartCount();
     window.addEventListener('cartUpdated', handleCartUpdate);
     window.addEventListener('storage', handleCartUpdate);
 
@@ -64,58 +52,6 @@ export default function StoreHeader() {
   const checkUser = async () => {
     const { data } = await supabase.auth.getUser();
     if (data?.user) setUser(data.user);
-  };
-
-  const handleOpenCart = () => {
-    updateCartCount();
-    setIsCartOpen(true);
-  };
-
-  const updateQuantity = (index: number, delta: number) => {
-    const newCart = [...cartItems];
-    newCart[index].quantity = (Number(newCart[index].quantity) || 1) + delta;
-    if (newCart[index].quantity <= 0) {
-      newCart.splice(index, 1);
-    }
-    setCartItems(newCart);
-    localStorage.setItem('cart', JSON.stringify(newCart));
-    updateCartCount();
-    window.dispatchEvent(new Event('cartUpdated'));
-  };
-
-  const calculateTotal = () => {
-    return cartItems.reduce((sum, item) => sum + (Number(item.price) * (Number(item.quantity) || 1)), 0);
-  };
-
-  const handleCheckout = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (cartItems.length === 0) return;
-    if (!customerName || !customerPhone) {
-      alert('אנא מלא שם ומספר טלפון');
-      return;
-    }
-
-    try {
-      const { error } = await supabase.from('orders').insert([{
-        customer_name: customerName,
-        customer_phone: customerPhone,
-        customer_address: customerAddress || 'איסוף עצמי',
-        items: cartItems,
-        total: calculateTotal(),
-        status: 'בטיפול'
-      }]);
-
-      if (error) throw error;
-
-      alert('ההזמנה בוצעה בהצלחה ונשלחה לניהול! 🎉');
-      localStorage.removeItem('cart');
-      setCartItems([]);
-      setCartCount(0);
-      setIsCartOpen(false);
-      window.dispatchEvent(new Event('cartUpdated'));
-    } catch (err: any) {
-      alert('שגיאה בביצוע ההזמנה: ' + err.message);
-    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -162,8 +98,8 @@ export default function StoreHeader() {
               </button>
             )}
 
-            <button 
-              onClick={handleOpenCart}
+            <Link 
+              href="/cart"
               className="relative bg-black text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-gray-800 transition shadow-sm"
             >
               <span>🛒 עגלה</span>
@@ -172,7 +108,7 @@ export default function StoreHeader() {
                   {cartCount}
                 </span>
               )}
-            </button>
+            </Link>
           </div>
         </div>
       </header>
@@ -198,61 +134,6 @@ export default function StoreHeader() {
               </button>
             </div>
           </form>
-        </div>
-      )}
-
-      {isCartOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex justify-end" dir="rtl">
-          <div className="bg-white w-full max-w-md h-full shadow-2xl flex flex-col p-6 animate-in slide-in-from-left duration-200">
-            <div className="flex justify-between items-center border-b pb-4">
-              <h2 className="text-xl font-black text-gray-900">עגלת הקניות שלך 🛒</h2>
-              <button onClick={() => setIsCartOpen(false)} className="text-gray-400 hover:text-black font-bold text-lg bg-gray-100 w-8 h-8 rounded-full flex items-center justify-center">✕</button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto py-4 space-y-4">
-              {cartItems.length === 0 ? (
-                <p className="text-gray-400 text-center py-20">העגלה שלך ריקה כרגע.</p>
-              ) : (
-                cartItems.map((item, index) => (
-                  <div key={index} className="bg-gray-50 p-4 rounded-2xl border flex justify-between items-center">
-                    <div>
-                      <h4 className="font-bold text-gray-900 text-sm">{item.name}</h4>
-                      <div className="text-xs text-gray-500 space-x-2 space-x-reverse mt-0.5">
-                        {item.selectedVersion && <span>גרסה: {item.selectedVersion}</span>}
-                        {item.selectedStorage && <span>נפח: {item.selectedStorage}</span>}
-                        {item.selectedColor && <span>צבע: {item.selectedColor}</span>}
-                      </div>
-                      <div className="text-sm font-black text-black mt-1">₪{item.price}</div>
-                    </div>
-                    <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-xl border">
-                      <button onClick={() => updateQuantity(index, -1)} className="text-gray-500 font-bold px-2">-</button>
-                      <span className="text-xs font-bold">{item.quantity || 1}</span>
-                      <button onClick={() => updateQuantity(index, 1)} className="text-gray-500 font-bold px-2">+</button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {cartItems.length > 0 && (
-              <form onSubmit={handleCheckout} className="border-t pt-4 space-y-3">
-                <div className="space-y-2">
-                  <input type="text" placeholder="שם מלא *" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="w-full border rounded-xl p-2.5 text-xs outline-none" required />
-                  <input type="tel" placeholder="טלפון נייד *" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} className="w-full border rounded-xl p-2.5 text-xs outline-none" required />
-                  <input type="text" placeholder="כתובת / איסוף עצמי" value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} className="w-full border rounded-xl p-2.5 text-xs outline-none" />
-                </div>
-
-                <div className="flex justify-between items-center text-lg font-black border-t pt-3">
-                  <span>סה״כ לתשלום:</span>
-                  <span>₪{calculateTotal()}</span>
-                </div>
-
-                <button type="submit" className="w-full bg-black text-white py-3.5 rounded-xl font-bold hover:bg-gray-800 transition shadow-md text-sm">
-                  אישור הזמנה ושלח 🚀
-                </button>
-              </form>
-            )}
-          </div>
         </div>
       )}
     </>
