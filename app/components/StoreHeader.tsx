@@ -15,15 +15,15 @@ export default function StoreHeader() {
   const [cartCount, setCartCount] = useState(0);
   const [user, setUser] = useState<any>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [isSignUpMode, setIsSignUpMode] = useState(false); // מעבר בין התחברות להרשמה
+  const [isSignUpMode, setIsSignUpMode] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // רשימת המיילים המורשים להיות מנהלים בחנות
+  // רשימת המיילים המורשים להיות מנהלים בחנות (הכנס כאן את המייל שלך)
   const ADMIN_EMAILS = [
-    'd0587223040@gmail.com',
     'd0556771356@gmail.com',
+    'd0587223040@gmail.com',
   ];
 
   const updateCartCount = () => {
@@ -60,16 +60,14 @@ export default function StoreHeader() {
     setLoading(true);
 
     if (isSignUpMode) {
-      // הרשמה עם מייל
       const { error } = await supabase.auth.signUp({ email, password });
       if (error) {
         alert('שגיאת הרשמה: ' + error.message);
       } else {
-        alert('נרשמת בהצלחה! אנא בדוק את תיבת המייל שלך לאישור החשבון (אם נדרש).');
+        alert('נרשמת בהצלחה! אנא בדוק את תיבת המייל שלך לאישור החשבון.');
         setShowAuthModal(false);
       }
     } else {
-      // התחברות רגילה
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         alert('שגיאת התחברות: ' + error.message);
@@ -96,7 +94,7 @@ export default function StoreHeader() {
             📱 החנות שלי
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {user ? (
               <div className="flex items-center gap-2">
                 {isAdmin && (
@@ -104,14 +102,13 @@ export default function StoreHeader() {
                     ניהול 🛠️
                   </Link>
                 )}
-                <span className="text-xs text-gray-600 font-medium hidden md:inline">שלום, {user.email}</span>
                 <button onClick={handleLogout} className="bg-gray-100 text-gray-600 px-3 py-2 rounded-xl text-xs font-bold hover:bg-gray-200">
                   התנתק
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <button onClick={() => { setIsSignUpMode(false); setShowAuthModal(true); }} className="text-xs text-gray-700 hover:text-black font-semibold px-3 py-2 rounded-xl border bg-gray-50">
+              <div className="flex items-center gap-1.5">
+                <button onClick={() => { setIsSignUpMode(false); setShowAuthModal(true); }} className="text-xs text-gray-700 font-semibold px-3 py-2 rounded-xl border bg-gray-50 hover:bg-gray-100">
                   התחברות 🔐
                 </button>
                 <button onClick={() => { setIsSignUpMode(true); setShowAuthModal(true); }} className="text-xs bg-black text-white font-semibold px-3 py-2 rounded-xl hover:bg-gray-800 transition">
@@ -135,7 +132,6 @@ export default function StoreHeader() {
         </div>
       </header>
 
-      {/* מודל התחברות / הרשמה משולב */}
       {showAuthModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" dir="rtl">
           <form onSubmit={handleAuthSubmit} className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4">
@@ -163,11 +159,11 @@ export default function StoreHeader() {
               <div className="text-center pt-2">
                 {isSignUpMode ? (
                   <button type="button" onClick={() => setIsSignUpMode(false)} className="text-xs text-gray-600 hover:underline">
-                    כבר יש לך חשבון? **התחבר כאן**
+                    כבר יש לך חשבון? התחבר כאן
                   </button>
                 ) : (
                   <button type="button" onClick={() => setIsSignUpMode(true)} className="text-xs text-gray-600 hover:underline">
-                    אין לך חשבון עדיין? **הירשם כאן**
+                    אין לך חשבון עדיין? הירשם כאן
                   </button>
                 )}
               </div>
