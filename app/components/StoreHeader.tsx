@@ -8,7 +8,6 @@ import { supabase } from '@/lib/supabase';
 export default function StoreHeader() {
   const pathname = usePathname();
 
-  // אם אנחנו נמצאים בעמודי הניהול - לא נציג את ה-Header והעגלה של החנות כלל!
   if (pathname?.startsWith('/admin')) {
     return null;
   }
@@ -27,36 +26,44 @@ export default function StoreHeader() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
 
-  // רשימת המיילים המורשים להיות מנהלים בחנות (הוסף כאן את המיילים שלך ושל מנהלים נוספים)
+  // רשימת המיילים המורשים להיות מנהלים בחנות
   const ADMIN_EMAILS = [
     'your-email@gmail.com',
     'manager2@gmail.com',
   ];
 
+  const updateCartCount = () => {
+    try {
+      const savedCart = JSON.parse(localStorage.getItem('cart') || '[]');
+      setCartItems(savedCart);
+      const total = savedCart.reduce((sum: number, item: any) => sum + (Number(item.quantity) || 1), 0);
+      setCartCount(total);
+    } catch (e) {
+      setCartItems([]);
+      setCartCount(0);
+    }
+  };
+
   useEffect(() => {
     updateCartCount();
     checkUser();
 
-    const handleStorageChange = () => updateCartCount();
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('cartUpdated', handleStorageChange);
+    const handleCartUpdate = () => {
+      updateCartCount();
+    };
+
+    window.addEventListener('cartUpdated', handleCartUpdate);
+    window.addEventListener('storage', handleCartUpdate);
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('cartUpdated', handleStorageChange);
+      window.removeEventListener('cartUpdated', handleCartUpdate);
+      window.removeEventListener('storage', handleCartUpdate);
     };
   }, []);
 
   const checkUser = async () => {
     const { data } = await supabase.auth.getUser();
     if (data?.user) setUser(data.user);
-  };
-
-  const updateCartCount = () => {
-    const savedCart = JSON.parse(localStorage.getItem('cart') || '[]');
-    setCartItems(savedCart);
-    const total = savedCart.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
-    setCartCount(total);
   };
 
   const handleOpenCart = () => {
@@ -66,7 +73,7 @@ export default function StoreHeader() {
 
   const updateQuantity = (index: number, delta: number) => {
     const newCart = [...cartItems];
-    newCart[index].quantity = (newCart[index].quantity || 1) + delta;
+    newCart[index].quantity = (Number(newCart[index].quantity) || 1) + delta;
     if (newCart[index].quantity <= 0) {
       newCart.splice(index, 1);
     }
@@ -77,7 +84,7 @@ export default function StoreHeader() {
   };
 
   const calculateTotal = () => {
-    return cartItems.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
+    return cartItems.reduce((sum, item) => sum + (Number(item.price) * (Number(item.quantity) || 1)), 0);
   };
 
   const handleCheckout = async (e: React.FormEvent) => {
