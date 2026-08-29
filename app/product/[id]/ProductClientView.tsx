@@ -44,7 +44,7 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
     const trimmedColor = color.trim();
     setSelectedColor(trimmedColor);
     
-    // בדיקה והחלפת תמונה לפי הצבע הנבחר
+    // אם הוגדרה תמונה ספציפית לצבע זה, החלף אליה
     if (colorImagesMap[trimmedColor]) {
       setSelectedImage(colorImagesMap[trimmedColor]);
     }
