@@ -5,21 +5,20 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
 export default function ProductClientView({ product, relatedProducts, promoProduct }: { product: any; relatedProducts: any[]; promoProduct: any }) {
-  let images: string[] = [];
+  // איסוף כל התמונות (התמונה הראשית + כל תמונות הגלריה) ללא כפילויות
+  let allImages: string[] = [];
+  if (product.image_url) allImages.push(product.image_url);
+  
+  let gallery: string[] = [];
   if (Array.isArray(product.image_urls)) {
-    images = product.image_urls;
+    gallery = product.image_urls;
   } else if (typeof product.image_urls === 'string') {
-    try {
-      images = JSON.parse(product.image_urls);
-    } catch (e) {
-      images = product.image_urls.split(',').map((s: string) => s.trim()).filter(Boolean);
-    }
+    try { gallery = JSON.parse(product.image_urls); } catch (e) { gallery = product.image_urls.split(',').map((s: string) => s.trim()).filter(Boolean); }
   }
-  if (images.length === 0 && product.image_url) {
-    images = [product.image_url];
-  }
+  allImages.push(...gallery);
+  allImages = Array.from(new Set(allImages)); // מסיר כפילויות
 
-  const [selectedImage, setSelectedImage] = useState<string>(images[0] || '');
+  const [selectedImage, setSelectedImage] = useState<string>(allImages[0] || '');
   
   const versionList = typeof product.version === 'string' ? product.version.split(',').map((v: string) => v.trim()).filter(Boolean) : [];
   const storageList = typeof product.storage === 'string' ? product.storage.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
@@ -29,6 +28,14 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
   const [selectedStorage, setSelectedStorage] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [showPromoModal, setShowPromoModal] = useState(false);
+
+  const handleColorSelect = (color: string) => {
+    setSelectedColor(color);
+    // אם הוגדרה תמונה ספציפית לצבע זה, החלף אליה את התמונה הראשית המוצגת
+    if (product.color_images && product.color_images[color]) {
+      setSelectedImage(product.color_images[color]);
+    }
+  };
 
   const handleAddToCart = async () => {
     if (versionList.length > 0 && !selectedVersion) {
@@ -74,19 +81,19 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
     <div className="max-w-7xl mx-auto px-4 py-8 relative" dir="rtl">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white p-6 md:p-8 rounded-3xl shadow-sm border">
         
-        {/* גלריית תמונות */}
+        {/* גלריית תמונות מקיפה */}
         <div className="space-y-4">
           <div className="w-full h-96 bg-gray-50 rounded-2xl overflow-hidden border flex items-center justify-center">
             {selectedImage ? (
-              <img src={selectedImage} alt={product.name} className="w-full h-full object-contain p-2" />
+              <img src={selectedImage} alt={product.name} className="w-full h-full object-contain p-2 transition duration-200" />
             ) : (
               <span className="text-gray-400">אין תמונה זמינה</span>
             )}
           </div>
 
-          {images.length > 1 && (
+          {allImages.length > 1 && (
             <div className="flex gap-2 overflow-x-auto pb-2">
-              {images.map((img: string, index: number) => (
+              {allImages.map((img: string, index: number) => (
                 <button
                   key={index}
                   onClick={() => setSelectedImage(img)}
@@ -101,7 +108,6 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
 
         {/* פרטי המוצר */}
         <div className="space-y-6">
-          {/* תגיות קטגוריה, מותג וכשרות עם תמונות */}
           <div className="flex flex-wrap gap-3">
             {product.category && (
               <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-full border">
@@ -126,7 +132,7 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
           <h1 className="text-3xl font-extrabold text-gray-900">{product.name}</h1>
           <div className="text-3xl font-black text-black">₪{product.price}</div>
 
-          {/* בחירת גרסה כאופציות כפתורים */}
+          {/* בחירת גרסה */}
           {versionList.length > 0 && (
             <div className="space-y-2 pt-2 border-t">
               <label className="block text-xs font-bold text-gray-700">בחר גרסה (שדה חובה):</label>
@@ -144,7 +150,7 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
             </div>
           )}
 
-          {/* בחירת נפח אחסון כאופציות כפתורים */}
+          {/* בחירת נפח אחסון */}
           {storageList.length > 0 && (
             <div className="space-y-2 pt-2">
               <label className="block text-xs font-bold text-gray-700">בחר נפח אחסון (שדה חובה):</label>
@@ -162,7 +168,7 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
             </div>
           )}
 
-          {/* בחירת צבעים כאופציות כפתורים */}
+          {/* בחירת צבעים (משנה תמונה אוטומטית) */}
           {colorList.length > 0 && (
             <div className="space-y-2 pt-2">
               <label className="block text-xs font-bold text-gray-700">בחר צבע (שדה חובה):</label>
@@ -170,7 +176,7 @@ export default function ProductClientView({ product, relatedProducts, promoProdu
                 {colorList.map((color: string) => (
                   <button
                     key={color}
-                    onClick={() => setSelectedColor(color)}
+                    onClick={() => handleColorSelect(color)}
                     className={`px-4 py-2 rounded-xl text-xs font-bold border transition ${selectedColor === color ? 'bg-black text-white border-black shadow-sm' : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'}`}
                   >
                     {color}
