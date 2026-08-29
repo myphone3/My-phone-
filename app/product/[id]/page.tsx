@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import ProductClientView from './ProductClientView';
+import StoreHeader from '@/components/StoreHeader';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -50,10 +51,13 @@ export default async function ProductPage({ params }: { params: { id: string } }
   };
 
   return (
-    <ProductClientView 
-      product={enrichedProduct} 
-      relatedProducts={relatedProducts} 
-      promoProduct={promoProduct} 
-    />
+    <>
+      <StoreHeader />
+      <ProductClientView 
+        product={enrichedProduct} 
+        relatedProducts={relatedProducts} 
+        promoProduct={promoProduct} 
+      />
+    </>
   );
 }
