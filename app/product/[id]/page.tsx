@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import ProductClientView from './ProductClientView';
-import StoreHeader from '@/components/StoreHeader';
+import StoreHeader from '../../StoreHeader';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
