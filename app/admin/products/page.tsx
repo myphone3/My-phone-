@@ -14,7 +14,10 @@ export default function AdminProducts() {
   const [uploadingMain, setUploadingMain] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // טופס סגור כברירת מחדל - נפתח רק בלחיצה על הוספה או עריכה
   const [isFormOpen, setIsFormOpen] = useState(false);
+  
   const [showMediaPickerModal, setShowMediaPickerModal] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<'main' | 'gallery'>('main');
 
@@ -37,6 +40,7 @@ export default function AdminProducts() {
   const [storage, setStorage] = useState('');
   const [colors, setColors] = useState('');
   const [stock, setStock] = useState('10');
+  
   const [colorImages, setColorImages] = useState<Record<string, string>>({});
   
   const [relatedIds, setRelatedIds] = useState<string[]>([]);
@@ -166,7 +170,7 @@ export default function AdminProducts() {
       storage,
       colors,
       stock: parseInt(stock) || 0,
-      color_images: colorImages || {},
+      color_images: colorImages,
       related_ids: relatedIds,
       upsell_product_id: upsellProductId || null,
       upsell_price: upsellPrice ? parseFloat(upsellPrice) : null,
@@ -176,23 +180,13 @@ export default function AdminProducts() {
     };
 
     if (editingId) {
-      const { data, error } = await supabase.from('products').update(productData).eq('id', editingId).select();
-      if (error) {
-        alert('שגיאה בעדכון המוצר: ' + error.message);
-      } else {
-        alert('המוצר עודכן בהצלחה! 🎉');
-        resetForm();
-        fetchData();
-      }
+      const { error } = await supabase.from('products').update(productData).eq('id', editingId);
+      if (error) alert('שגיאה: ' + error.message);
+      else { alert('המוצר עודכן בהצלחה! 🎉'); resetForm(); fetchData(); }
     } else {
-      const { data, error } = await supabase.from('products').insert([productData]).select();
-      if (error) {
-        alert('שגיאה בהוספת המוצר: ' + error.message);
-      } else {
-        alert('המוצר נוסף בהצלחה! 📦');
-        resetForm();
-        fetchData();
-      }
+      const { error } = await supabase.from('products').insert([productData]);
+      if (error) alert('שגיאה: ' + error.message);
+      else { alert('המוצר נוסף בהצלחה! 📦'); resetForm(); fetchData(); }
     }
   };
 
@@ -221,13 +215,7 @@ export default function AdminProducts() {
     setStorage(p.storage || '');
     setColors(p.colors || '');
     setStock(p.stock !== undefined && p.stock !== null ? p.stock.toString() : '10');
-
-    let parsedColorImages = p.color_images;
-    if (typeof parsedColorImages === 'string') {
-      try { parsedColorImages = JSON.parse(parsedColorImages); } catch (e) { parsedColorImages = {}; }
-    }
-    setColorImages(parsedColorImages || {});
-
+    setColorImages(p.color_images || {});
     setRelatedIds(p.related_ids || []);
     setUpsellProductId(p.upsell_product_id || '');
     setUpsellPrice(p.upsell_price ? p.upsell_price.toString() : '');
@@ -283,6 +271,7 @@ export default function AdminProducts() {
         )}
       </div>
 
+      {/* טופס ההוספה/עריכה מוצג אך ורק כאשר לוחצים על הוספה או עריכה */}
       {isFormOpen && (
         <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border space-y-6">
           <div className="flex justify-between items-center border-b pb-3">
@@ -393,16 +382,18 @@ export default function AdminProducts() {
                 {colorList.map((color) => (
                   <div key={color} className="bg-white p-3 rounded-xl border space-y-2">
                     <span className="text-xs font-bold text-gray-800 block">צבע: {color}</span>
-                    <select 
-                      value={colorImages[color] || ''} 
-                      onChange={(e) => setColorImages({ ...colorImages, [color]: e.target.value })}
-                      className="w-full border rounded-lg p-2 text-xs bg-gray-50 outline-none"
-                    >
-                      <option value="">בחר תמונה לצבע...</option>
-                      {imageUrls.concat(imageUrl ? [imageUrl] : []).map((imgUrl, i) => (
-                        <option key={i} value={imgUrl}>תמונה #{i + 1} ({imgUrl.slice(-15)})</option>
-                      ))}
-                    </select>
+                    <div className="flex items-center gap-2">
+                      <select 
+                        value={colorImages[color] || ''} 
+                        onChange={(e) => setColorImages({ ...colorImages, [color]: e.target.value })}
+                        className="w-full border rounded-lg p-2 text-xs bg-gray-50 outline-none"
+                      >
+                        <option value="">בחר תמונה לצבע...</option>
+                        {imageUrls.concat(imageUrl ? [imageUrl] : []).map((imgUrl, i) => (
+                          <option key={i} value={imgUrl}>תמונה #{i + 1} ({imgUrl.slice(-15)})</option>
+                        ))}
+                      </select>
+                    </div>
                     {colorImages[color] && (
                       <img src={colorImages[color]} alt={color} className="w-10 h-10 object-cover rounded border" />
                     )}
@@ -425,6 +416,39 @@ export default function AdminProducts() {
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">מפרט טכני</label>
               <textarea rows={4} value={specs} onChange={(e) => setSpecs(e.target.value)} placeholder="נתונים טכניים..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black font-mono text-sm" />
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-2xl border space-y-4">
+            <h3 className="text-sm font-bold text-gray-900 border-b pb-2">🎁 הגדרת פופ-אפ מבצע בעגלה</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-gray-700">חפש ובחר מוצר מוצע במבצע</label>
+                <input type="text" value={upsellSearch} onChange={(e) => setUpsellSearch(e.target.value)} placeholder="🔍 חפש מוצר לפופ-אפ..." className="w-full border rounded-xl p-2.5 text-xs bg-white outline-none focus:ring-2 focus:ring-black" />
+                <select value={upsellProductId} onChange={(e) => setUpsellProductId(e.target.value)} className="w-full border rounded-xl p-2.5 bg-white outline-none focus:ring-2 focus:ring-black text-sm">
+                  <option value="">ללא מוצר מבצע</option>
+                  {filteredUpsellOptions.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name} (₪{p.price})</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">מחיר מבצע מיוחד (₪)</label>
+                <input type="number" value={upsellPrice} onChange={(e) => setUpsellPrice(e.target.value)} placeholder="למשל: 49" className="w-full border rounded-xl p-2.5 bg-white outline-none focus:ring-2 focus:ring-black mt-6" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-2xl border space-y-3">
+            <h3 className="text-sm font-bold text-gray-900 border-b pb-2">⭐ פריטים שאולי יעניינו אותך</h3>
+            <input type="text" value={relatedSearch} onChange={(e) => setRelatedSearch(e.target.value)} placeholder="🔍 חפש מוצרים רלוונטיים..." className="w-full md:w-80 border rounded-xl p-2.5 text-xs bg-white outline-none focus:ring-2 focus:ring-black" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-2 bg-white rounded-xl border">
+              {filteredRelatedOptions.map((p) => (
+                <label key={p.id} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer text-xs ${relatedIds.includes(p.id) ? 'bg-black text-white border-black' : 'bg-gray-50'}`}>
+                  <input type="checkbox" checked={relatedIds.includes(p.id)} onChange={() => handleRelatedToggle(p.id)} className="hidden" />
+                  <span className="truncate">{p.name}</span>
+                </label>
+              ))}
             </div>
           </div>
 
@@ -460,6 +484,7 @@ export default function AdminProducts() {
         </div>
       )}
 
+      {/* רשימת מוצרים קיימים */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 border-b pb-4">
           <h2 className="text-lg font-bold text-gray-800">מוצרים קיימים ({filteredProducts.length})</h2>
