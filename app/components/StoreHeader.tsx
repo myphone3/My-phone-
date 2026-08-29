@@ -22,8 +22,8 @@ export default function StoreHeader() {
 
   // רשימת המיילים המורשים להיות מנהלים בחנות
   const ADMIN_EMAILS = [
-    'your-email@gmail.com',
-    'manager2@gmail.com',
+    'd0587223040@gmail.com',
+    'd0556771356@gmail.com',
   ];
 
   const updateCartCount = () => {
