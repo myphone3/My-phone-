@@ -8,18 +8,19 @@ export default function AdminProducts() {
   const [categories, setCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
   const [kosherOptions, setKosherOptions] = useState<any[]>([]);
+  const [mediaFiles, setMediaFiles] = useState<string[]>([]); // רשימת כל התמונות מהענן
   
   const [loading, setLoading] = useState(false);
   const [uploadingMain, setUploadingMain] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [showMediaPickerModal, setShowMediaPickerModal] = useState(false);
+  const [pickerTarget, setPickerTarget] = useState<'main' | 'gallery'>('main');
 
-  // חיפושים פנימיים בתוך הטופס
   const [relatedSearch, setRelatedSearch] = useState('');
   const [upsellSearch, setUpsellSearch] = useState('');
 
-  // שדות הטופס
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState('');
@@ -32,10 +33,13 @@ export default function AdminProducts() {
   const [specs, setSpecs] = useState('');
   
   const [warranty, setWarranty] = useState('');
-  const [version, setVersion] = useState(''); // גרסה בנפרד
-  const [storage, setStorage] = useState(''); // נפח אחסון בנפרד
+  const [version, setVersion] = useState('');
+  const [storage, setStorage] = useState('');
   const [colors, setColors] = useState('');
-  const [stock, setStock] = useState('10'); // מלאי
+  const [stock, setStock] = useState('10');
+  
+  // מיפוי תמונה לפי צבע: { [color]: imageUrl }
+  const [colorImages, setColorImages] = useState<Record<string, string>>({});
   
   const [relatedIds, setRelatedIds] = useState<string[]>([]);
   const [upsellProductId, setUpsellProductId] = useState('');
@@ -48,6 +52,7 @@ export default function AdminProducts() {
 
   useEffect(() => {
     fetchData();
+    fetchMediaFiles();
   }, []);
 
   const fetchData = async () => {
@@ -64,6 +69,17 @@ export default function AdminProducts() {
     setLoading(false);
   };
 
+  const fetchMediaFiles = async () => {
+    const { data } = await supabase.storage.from('product-images').list('', { limit: 200 });
+    if (data) {
+      const urls = data.map(file => {
+        const { data: pub } = supabase.storage.from('product-images').getPublicUrl(file.name);
+        return pub.publicUrl;
+      });
+      setMediaFiles(urls);
+    }
+  };
+
   const handleMainImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -75,7 +91,10 @@ export default function AdminProducts() {
       if (uploadError) throw uploadError;
 
       const { data: pubData } = supabase.storage.from('product-images').getPublicUrl(fileName);
-      if (pubData) setImageUrl(pubData.publicUrl);
+      if (pubData) {
+        setImageUrl(pubData.publicUrl);
+        fetchMediaFiles();
+      }
     } catch (err: any) {
       alert('שגיאה: ' + err.message);
     } finally {
@@ -99,11 +118,21 @@ export default function AdminProducts() {
         if (pubData) newUrls.push(pubData.publicUrl);
       }
       setImageUrls(newUrls);
+      fetchMediaFiles();
     } catch (err: any) {
       alert('שגיאה: ' + err.message);
     } finally {
       setUploadingGallery(false);
     }
+  };
+
+  const selectExistingImage = (url: string) => {
+    if (pickerTarget === 'main') {
+      setImageUrl(url);
+    } else {
+      setImageUrls([...imageUrls, url]);
+    }
+    setShowMediaPickerModal(false);
   };
 
   const removeGalleryImage = (indexToRemove: number) => {
@@ -120,14 +149,17 @@ export default function AdminProducts() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const finalMainImage = imageUrl || imageUrls[0] || '';
+    const finalImageUrls = imageUrls.length > 0 ? imageUrls : (finalMainImage ? [finalMainImage] : []);
+
     const productData = {
       name,
       price: parseFloat(price) || 0,
       category,
       brand,
       kosher,
-      image_url: imageUrl || imageUrls[0] || '',
-      image_urls: imageUrls.length > 0 ? imageUrls : (imageUrl ? [imageUrl] : []),
+      image_url: finalMainImage,
+      image_urls: finalImageUrls,
       short_description: shortDesc,
       description,
       specs,
@@ -136,6 +168,7 @@ export default function AdminProducts() {
       storage,
       colors,
       stock: parseInt(stock) || 0,
+      color_images: colorImages,
       related_ids: relatedIds,
       upsell_product_id: upsellProductId || null,
       upsell_price: upsellPrice ? parseFloat(upsellPrice) : null,
@@ -163,7 +196,15 @@ export default function AdminProducts() {
     setBrand(p.brand || '');
     setKosher(p.kosher || '');
     setImageUrl(p.image_url || '');
-    setImageUrls(p.image_urls || (p.image_url ? [p.image_url] : []));
+
+    let parsedGallery: string[] = [];
+    if (Array.isArray(p.image_urls)) {
+      parsedGallery = p.image_urls;
+    } else if (typeof p.image_urls === 'string') {
+      try { parsedGallery = JSON.parse(p.image_urls); } catch (e) { parsedGallery = p.image_urls.split(',').map((s: string) => s.trim()).filter(Boolean); }
+    }
+    setImageUrls(parsedGallery.length > 0 ? parsedGallery : (p.image_url ? [p.image_url] : []));
+
     setShortDesc(p.short_description || '');
     setDescription(p.description || '');
     setSpecs(p.specs || '');
@@ -172,6 +213,7 @@ export default function AdminProducts() {
     setStorage(p.storage || '');
     setColors(p.colors || '');
     setStock(p.stock !== undefined && p.stock !== null ? p.stock.toString() : '10');
+    setColorImages(p.color_images || {});
     setRelatedIds(p.related_ids || []);
     setUpsellProductId(p.upsell_product_id || '');
     setUpsellPrice(p.upsell_price ? p.upsell_price.toString() : '');
@@ -193,7 +235,7 @@ export default function AdminProducts() {
     setEditingId(null); setName(''); setPrice(''); setCategory(''); setBrand('');
     setKosher(''); setImageUrl(''); setImageUrls([]); setShortDesc('');
     setDescription(''); setSpecs(''); setWarranty(''); setVersion(''); setStorage('');
-    setColors(''); setStock('10'); setRelatedIds([]); setUpsellProductId(''); setUpsellPrice('');
+    setColors(''); setStock('10'); setColorImages({}); setRelatedIds([]); setUpsellProductId(''); setUpsellPrice('');
     setSeoTitle(''); setSeoDescription(''); setSeoKeywords('');
     setIsFormOpen(false);
   };
@@ -204,14 +246,13 @@ export default function AdminProducts() {
     p.brand?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // סינון מוצרים לבחירה עבור מוצרים קשורים ועבור פופ-אפ מבצע לפי שורות חיפוש
   const selectableProducts = products.filter(p => p.id !== editingId);
   const filteredRelatedOptions = selectableProducts.filter(p => p.name?.toLowerCase().includes(relatedSearch.toLowerCase()));
   const filteredUpsellOptions = selectableProducts.filter(p => p.name?.toLowerCase().includes(upsellSearch.toLowerCase()));
+  const colorList = colors ? colors.split(',').map(c => c.trim()).filter(Boolean) : [];
 
   return (
     <div className="space-y-8 pb-12" dir="rtl">
-      
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border">
         <div>
           <h1 className="text-2xl font-black text-gray-900">ניהול מוצרים 📦</h1>
@@ -274,15 +315,15 @@ export default function AdminProducts() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">אחריות (למשל: שנה אחריות יבואן רשמי)</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">אחריות</label>
               <input type="text" value={warranty} onChange={(e) => setWarranty(e.target.value)} placeholder="זמן אחריות..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">גרסה (למשל: דור 4, תומך כשר, דגם רגיל)</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">גרסה</label>
               <input type="text" value={version} onChange={(e) => setVersion(e.target.value)} placeholder="הקלד גרסה..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">נפח אחסון (למשל: 64GB, 128GB)</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">נפח אחסון</label>
               <input type="text" value={storage} onChange={(e) => setStorage(e.target.value)} placeholder="הקלד נפח אחסון..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" />
             </div>
             <div>
@@ -293,16 +334,29 @@ export default function AdminProducts() {
               <label className="block text-xs font-bold text-gray-700 mb-1">כמות מלאי כללית</label>
               <input type="number" value={stock} onChange={(e) => setStock(e.target.value)} placeholder="10" className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" />
             </div>
+
+            {/* תמונה ראשית */}
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">תמונה ראשית</label>
-              <input type="file" accept="image/*" onChange={handleMainImageUpload} className="w-full border rounded-xl p-2 text-sm bg-gray-50 cursor-pointer" />
+              <div className="flex gap-2">
+                <input type="file" accept="image/*" onChange={handleMainImageUpload} className="w-full border rounded-xl p-2 text-sm bg-gray-50 cursor-pointer" />
+                <button type="button" onClick={() => { setPickerTarget('main'); setShowMediaPickerModal(true); }} className="bg-gray-200 text-gray-800 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap hover:bg-gray-300">
+                  בחר מהמדיה 🖼️
+                </button>
+              </div>
               {uploadingMain && <p className="text-xs text-blue-600 mt-1">מעלה...</p>}
-              {imageUrl && <div className="mt-2 flex items-center gap-2"><img src={imageUrl} alt="" className="w-10 h-10 object-cover rounded border" /><span className="text-xs text-green-600 font-bold">הועלה ✓</span></div>}
+              {imageUrl && <div className="mt-2 flex items-center gap-2"><img src={imageUrl} alt="" className="w-10 h-10 object-cover rounded border" /><span className="text-xs text-green-600 font-bold">נבחרה תמונה ראשית ✓</span></div>}
             </div>
           </div>
 
+          {/* תמונות גלריה */}
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">תמונות נוספות לגלריה</label>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-xs font-bold text-gray-700">תמונות נוספות לגלריה</label>
+              <button type="button" onClick={() => { setPickerTarget('gallery'); setShowMediaPickerModal(true); }} className="bg-gray-200 text-gray-800 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-gray-300">
+                הוסף מהמדיה הקיימת 🖼️
+              </button>
+            </div>
             <input type="file" accept="image/*" multiple onChange={handleGalleryUpload} className="w-full border rounded-xl p-2 text-sm bg-gray-50 cursor-pointer" />
             {uploadingGallery && <p className="text-xs text-blue-600 mt-1">מעלה תמונות...</p>}
             {imageUrls.length > 0 && (
@@ -316,6 +370,35 @@ export default function AdminProducts() {
               </div>
             )}
           </div>
+
+          {/* הגדרת תמונה לכל צבע */}
+          {colorList.length > 0 && (
+            <div className="bg-gray-50 p-4 rounded-2xl border space-y-3">
+              <h3 className="text-sm font-bold text-gray-900 border-b pb-2">🎨 התאמת תמונה לפי צבע</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {colorList.map((color) => (
+                  <div key={color} className="bg-white p-3 rounded-xl border space-y-2">
+                    <span className="text-xs font-bold text-gray-800 block">צבע: {color}</span>
+                    <div className="flex items-center gap-2">
+                      <select 
+                        value={colorImages[color] || ''} 
+                        onChange={(e) => setColorImages({ ...colorImages, [color]: e.target.value })}
+                        className="w-full border rounded-lg p-2 text-xs bg-gray-50 outline-none"
+                      >
+                        <option value="">בחר תמונה לצבע...</option>
+                        {imageUrls.concat(imageUrl ? [imageUrl] : []).map((imgUrl, i) => (
+                          <option key={i} value={imgUrl}>תמונה #{i + 1} ({imgUrl.slice(-15)})</option>
+                        ))}
+                      </select>
+                    </div>
+                    {colorImages[color] && (
+                      <img src={colorImages[color]} alt={color} className="w-10 h-10 object-cover rounded border" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">תיאור קצר</label>
@@ -333,19 +416,12 @@ export default function AdminProducts() {
             </div>
           </div>
 
-          {/* פופ-אפ מבצע בעגלה עם שורת חיפוש */}
           <div className="bg-gray-50 p-4 rounded-2xl border space-y-4">
-            <h3 className="text-sm font-bold text-gray-900 border-b pb-2">🎁 הגדרת פופ-אפ מבצע בעגלה (׳בטוח תרצה להוסיף׳) למוצר זה</h3>
+            <h3 className="text-sm font-bold text-gray-900 border-b pb-2">🎁 הגדרת פופ-אפ מבצע בעגלה</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="block text-xs font-bold text-gray-700">חפש ובחר מוצר מוצע במבצע</label>
-                <input 
-                  type="text" 
-                  value={upsellSearch} 
-                  onChange={(e) => setUpsellSearch(e.target.value)} 
-                  placeholder="🔍 חפש מוצר לפופ-אפ..." 
-                  className="w-full border rounded-xl p-2.5 text-xs bg-white outline-none focus:ring-2 focus:ring-black" 
-                />
+                <input type="text" value={upsellSearch} onChange={(e) => setUpsellSearch(e.target.value)} placeholder="🔍 חפש מוצר לפופ-אפ..." className="w-full border rounded-xl p-2.5 text-xs bg-white outline-none focus:ring-2 focus:ring-black" />
                 <select value={upsellProductId} onChange={(e) => setUpsellProductId(e.target.value)} className="w-full border rounded-xl p-2.5 bg-white outline-none focus:ring-2 focus:ring-black text-sm">
                   <option value="">ללא מוצר מבצע</option>
                   {filteredUpsellOptions.map((p) => (
@@ -354,22 +430,15 @@ export default function AdminProducts() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">מחיר מבצע מיוחד למוצר זה (₪)</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">מחיר מבצע מיוחד (₪)</label>
                 <input type="number" value={upsellPrice} onChange={(e) => setUpsellPrice(e.target.value)} placeholder="למשל: 49" className="w-full border rounded-xl p-2.5 bg-white outline-none focus:ring-2 focus:ring-black mt-6" />
               </div>
             </div>
           </div>
 
-          {/* מוצרים קשורים עם שורת חיפוש */}
           <div className="bg-gray-50 p-4 rounded-2xl border space-y-3">
-            <h3 className="text-sm font-bold text-gray-900 border-b pb-2">⭐ בחר ידנית ״פריטים שאולי יעניינו אותך״ עבור מוצר זה</h3>
-            <input 
-              type="text" 
-              value={relatedSearch} 
-              onChange={(e) => setRelatedSearch(e.target.value)} 
-              placeholder="🔍 חפש מוצרים רלוונטיים..." 
-              className="w-full md:w-80 border rounded-xl p-2.5 text-xs bg-white outline-none focus:ring-2 focus:ring-black" 
-            />
+            <h3 className="text-sm font-bold text-gray-900 border-b pb-2">⭐ פריטים שאולי יעניינו אותך</h3>
+            <input type="text" value={relatedSearch} onChange={(e) => setRelatedSearch(e.target.value)} placeholder="🔍 חפש מוצרים רלוונטיים..." className="w-full md:w-80 border rounded-xl p-2.5 text-xs bg-white outline-none focus:ring-2 focus:ring-black" />
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-2 bg-white rounded-xl border">
               {filteredRelatedOptions.map((p) => (
                 <label key={p.id} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer text-xs ${relatedIds.includes(p.id) ? 'bg-black text-white border-black' : 'bg-gray-50'}`}>
@@ -377,22 +446,6 @@ export default function AdminProducts() {
                   <span className="truncate">{p.name}</span>
                 </label>
               ))}
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-2xl border space-y-4">
-            <h3 className="text-sm font-bold text-gray-900 border-b pb-2">🔍 הגדרות קידום בגוגל (SEO)</h3>
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">כותרת SEO (Meta Title)</label>
-              <input type="text" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} placeholder="כותרת שתוצג בגוגל..." className="w-full border rounded-xl p-2.5 bg-white outline-none focus:ring-2 focus:ring-black" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">תיאור SEO (Meta Description)</label>
-              <textarea rows={2} value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} placeholder="תיאור קצר בתוצאות החיפוש..." className="w-full border rounded-xl p-2.5 bg-white outline-none focus:ring-2 focus:ring-black" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">מילות מפתח (Keywords)</label>
-              <input type="text" value={seoKeywords} onChange={(e) => setSeoKeywords(e.target.value)} placeholder="טלפון כשר, שיומי..." className="w-full border rounded-xl p-2.5 bg-white outline-none focus:ring-2 focus:ring-black" />
             </div>
           </div>
 
@@ -405,16 +458,33 @@ export default function AdminProducts() {
         </form>
       )}
 
+      {/* חלון בחירת תמונות מספריית המדיה */}
+      {showMediaPickerModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-3xl w-full max-h-[80vh] overflow-y-auto shadow-2xl space-y-4">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="text-lg font-bold text-gray-900">בחר תמונה מספריית המדיה 🖼️</h3>
+              <button type="button" onClick={() => setShowMediaPickerModal(false)} className="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold">סגור ✕</button>
+            </div>
+            {mediaFiles.length === 0 ? (
+              <p className="text-gray-400 text-center py-8">אין תמונות בספריית המדיה.</p>
+            ) : (
+              <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+                {mediaFiles.map((url, i) => (
+                  <div key={i} onClick={() => selectExistingImage(url)} className="w-full h-28 bg-gray-50 rounded-xl border p-2 cursor-pointer hover:border-black transition flex items-center justify-center overflow-hidden">
+                    <img src={url} alt="" className="w-full h-full object-contain" />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 border-b pb-4">
           <h2 className="text-lg font-bold text-gray-800">מוצרים קיימים ({filteredProducts.length})</h2>
-          <input 
-            type="text" 
-            value={searchQuery} 
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="🔍 חפש מוצר לפי שם, מותג או קטגוריה..." 
-            className="w-full md:w-80 border rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-black bg-gray-50"
-          />
+          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="🔍 חפש מוצר לפי שם, מותג או קטגוריה..." className="w-full md:w-80 border rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-black bg-gray-50" />
         </div>
 
         {filteredProducts.length === 0 ? (
