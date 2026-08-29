@@ -14,7 +14,8 @@ export default function StoreHeader() {
 
   const [cartCount, setCartCount] = useState(0);
   const [user, setUser] = useState<any>(null);
-  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isSignUpMode, setIsSignUpMode] = useState(false); // מעבר בין התחברות להרשמה
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -54,15 +55,28 @@ export default function StoreHeader() {
     if (data?.user) setUser(data.user);
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      alert('שגיאת התחברות: ' + error.message);
+
+    if (isSignUpMode) {
+      // הרשמה עם מייל
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) {
+        alert('שגיאת הרשמה: ' + error.message);
+      } else {
+        alert('נרשמת בהצלחה! אנא בדוק את תיבת המייל שלך לאישור החשבון (אם נדרש).');
+        setShowAuthModal(false);
+      }
     } else {
-      checkUser();
-      setShowLoginModal(false);
+      // התחברות רגילה
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        alert('שגיאת התחברות: ' + error.message);
+      } else {
+        checkUser();
+        setShowAuthModal(false);
+      }
     }
     setLoading(false);
   };
@@ -83,19 +97,27 @@ export default function StoreHeader() {
           </Link>
 
           <div className="flex items-center gap-3">
-            {isAdmin ? (
+            {user ? (
               <div className="flex items-center gap-2">
-                <Link href="/admin/products" className="bg-black text-white px-4 py-2 rounded-xl text-xs font-bold shadow-sm hover:bg-gray-800 transition">
-                  מעבר לפאנל ניהול 🛠️
-                </Link>
+                {isAdmin && (
+                  <Link href="/admin/products" className="bg-black text-white px-3 py-2 rounded-xl text-xs font-bold shadow-sm hover:bg-gray-800 transition">
+                    ניהול 🛠️
+                  </Link>
+                )}
+                <span className="text-xs text-gray-600 font-medium hidden md:inline">שלום, {user.email}</span>
                 <button onClick={handleLogout} className="bg-gray-100 text-gray-600 px-3 py-2 rounded-xl text-xs font-bold hover:bg-gray-200">
                   התנתק
                 </button>
               </div>
             ) : (
-              <button onClick={() => setShowLoginModal(true)} className="text-xs text-gray-500 hover:text-black font-semibold px-3 py-2 rounded-xl border bg-gray-50">
-                כניסת מנהלים 🔐
-              </button>
+              <div className="flex items-center gap-2">
+                <button onClick={() => { setIsSignUpMode(false); setShowAuthModal(true); }} className="text-xs text-gray-700 hover:text-black font-semibold px-3 py-2 rounded-xl border bg-gray-50">
+                  התחברות 🔐
+                </button>
+                <button onClick={() => { setIsSignUpMode(true); setShowAuthModal(true); }} className="text-xs bg-black text-white font-semibold px-3 py-2 rounded-xl hover:bg-gray-800 transition">
+                  הרשמה ✍️
+                </button>
+              </div>
             )}
 
             <Link 
@@ -113,25 +135,42 @@ export default function StoreHeader() {
         </div>
       </header>
 
-      {showLoginModal && (
+      {/* מודל התחברות / הרשמה משולב */}
+      {showAuthModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" dir="rtl">
-          <form onSubmit={handleLogin} className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4">
-            <h3 className="text-lg font-black text-gray-900 border-b pb-2">התחברות מנהל מערכת</h3>
+          <form onSubmit={handleAuthSubmit} className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4">
+            <div className="flex justify-between items-center border-b pb-2">
+              <h3 className="text-lg font-black text-gray-900">
+                {isSignUpMode ? 'יצירת חשבון חדש ✍️' : 'התחברות לחשבון 🔐'}
+              </h3>
+              <button type="button" onClick={() => setShowAuthModal(false)} className="text-gray-400 hover:text-black font-bold">✕</button>
+            </div>
+
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">אימייל</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@store.com" className="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-black" required />
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your-email@gmail.com" className="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-black" required />
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">סיסמה</label>
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-black" required />
             </div>
-            <div className="flex gap-2 pt-2">
-              <button type="submit" disabled={loading} className="flex-1 bg-black text-white py-3 rounded-xl font-bold text-sm">
-                {loading ? 'מתחבר...' : 'התחבר'}
+
+            <div className="pt-2 space-y-2">
+              <button type="submit" disabled={loading} className="w-full bg-black text-white py-3.5 rounded-xl font-bold text-sm hover:bg-gray-800 transition shadow-md">
+                {loading ? 'מעבד...' : (isSignUpMode ? 'הירשם עכשיו 🚀' : 'התחברות 🔓')}
               </button>
-              <button type="button" onClick={() => setShowLoginModal(false)} className="bg-gray-100 text-gray-700 px-4 py-3 rounded-xl font-bold text-sm">
-                ביטול
-              </button>
+
+              <div className="text-center pt-2">
+                {isSignUpMode ? (
+                  <button type="button" onClick={() => setIsSignUpMode(false)} className="text-xs text-gray-600 hover:underline">
+                    כבר יש לך חשבון? **התחבר כאן**
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => setIsSignUpMode(true)} className="text-xs text-gray-600 hover:underline">
+                    אין לך חשבון עדיין? **הירשם כאן**
+                  </button>
+                )}
+              </div>
             </div>
           </form>
         </div>
