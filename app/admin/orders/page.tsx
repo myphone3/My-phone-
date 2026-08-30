@@ -101,13 +101,10 @@ export default function AdminOrdersPage() {
       <header className="bg-white border-b shadow-sm sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <h1 className="text-xl font-black text-gray-900 tracking-tight">🛠️ פאנל ניהול חנות</h1>
+            <h1 className="text-xl font-black text-gray-900 tracking-tight">🛠️ פאנל ניהול הזמנות</h1>
             <nav className="hidden md:flex items-center gap-2">
-              <Link href="/admin/products" className="text-gray-600 hover:bg-gray-100 px-4 py-2 rounded-xl text-xs font-bold transition">
-                מוצרים 📱
-              </Link>
-              <Link href="/admin/orders" className="bg-black text-white px-4 py-2 rounded-xl text-xs font-bold">
-                הזמנות 📦
+              <Link href="/admin" className="text-gray-600 hover:bg-gray-100 px-4 py-2 rounded-xl text-xs font-bold transition">
+                חזרה לניהול 📱
               </Link>
             </nav>
           </div>
@@ -118,7 +115,7 @@ export default function AdminOrdersPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-6">
-        <h2 className="text-xl font-black text-gray-900">ניהול הזמנות הלקוחות ({orders.length})</h2>
+        <h2 className="text-xl font-black text-gray-900">הזמנות לקוחות ({orders.length})</h2>
 
         {loading ? (
           <div className="text-center py-20 text-gray-500 font-medium">טוען הזמנות...</div>
