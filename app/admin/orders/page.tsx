@@ -13,7 +13,7 @@ export default function AdminOrdersPage() {
   }, []);
 
   const fetchOrders = async () => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('orders')
       .select('*')
       .order('created_at', { ascending: false });
@@ -74,7 +74,6 @@ export default function AdminOrdersPage() {
             <p><strong>כתובת / פרטים:</strong> ${order.address || 'לא צוינה כתובת'}</p>
             <p><strong>סטטוס הזמנה:</strong> ${order.status}</p>
           </div>
-
           <h3>פירוט המוצרים:</h3>
           <table>
             <thead>
@@ -87,18 +86,10 @@ export default function AdminOrdersPage() {
                 <th>מחיר</th>
               </tr>
             </thead>
-            <tbody>
-              ${itemsHtml}
-            </tbody>
+            <tbody>${itemsHtml}</tbody>
           </table>
-
-          <div class="total">
-            סה"כ לתשלום: ₪${order.total_amount}
-          </div>
-
-          <script>
-            window.onload = function() { window.print(); }
-          </script>
+          <div class="total">סה"כ לתשלום: ₪${order.total_amount}</div>
+          <script>window.onload = function() { window.print(); }</script>
         </body>
       </html>
     `);
@@ -107,7 +98,7 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 pb-12" dir="rtl">
-      {/* תפריט ניהול עליון */}
+      {/* תפריט ניהול עליון משולב */}
       <header className="bg-white border-b shadow-sm sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
           <div className="flex items-center gap-6">
@@ -165,7 +156,6 @@ export default function AdminOrdersPage() {
                       🖨️ הדפס סיכום הזמנה
                     </button>
                     
-                    {/* בחירת סטטוס הזמנה */}
                     <select
                       value={order.status || 'בטיפול'}
                       onChange={(e) => updateOrderStatus(order.id, e.target.value)}
@@ -184,14 +174,13 @@ export default function AdminOrdersPage() {
                   </div>
                 </div>
 
-                {/* פרטי הלקוח והמשלוח */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs bg-gray-50 p-4 rounded-2xl">
                   <div>
                     <span className="text-gray-400 block mb-0.5">שם הלקוח:</span>
                     <span className="font-bold text-gray-900 text-sm">{order.customer_name}</span>
                   </div>
                   <div>
-                    <span className="text-gray-400 block mb-0.5">טלפון ליצירת קשר:</span>
+                    <span className="text-gray-400 block mb-0.5">טלפון:</span>
                     <span className="font-bold text-gray-900 text-sm" dir="ltr">{order.phone}</span>
                   </div>
                   <div>
@@ -202,15 +191,14 @@ export default function AdminOrdersPage() {
                   </div>
                 </div>
 
-                {/* פירוט המוצרים בהזמנה */}
                 <div className="space-y-2">
-                  <h4 className="text-xs font-black text-gray-500">מוצרים שנרכשו בהזמנה זו:</h4>
+                  <h4 className="text-xs font-black text-gray-500">מוצרים בהזמנה:</h4>
                   <div className="divide-y border rounded-2xl overflow-hidden">
                     {order.items?.map((item: any, idx: number) => (
                       <div key={idx} className="p-3 flex justify-between items-center text-xs bg-white">
                         <div className="space-y-1">
                           <span className="font-bold text-gray-900 text-sm block">{item.name}</span>
-                          <div className="flex gap-3 text-gray-500">
+                          <div className="flex gap-3 text-gray-500 text-xs">
                             {item.version && <span>גרסה: <strong>{item.version}</strong></span>}
                             {item.color && <span>צבע: <strong>{item.color}</strong></span>}
                             {item.storage && <span>נפח: <strong>{item.storage}</strong></span>}
@@ -226,7 +214,7 @@ export default function AdminOrdersPage() {
                 </div>
 
                 <div className="flex justify-between items-center pt-2 border-t">
-                  <span className="text-xs font-bold text-gray-500">סה"כ לתשלום בהזמנה:</span>
+                  <span className="text-xs font-bold text-gray-500">סה"כ לתשלום:</span>
                   <span className="text-base font-black text-gray-900">₪{order.total_amount}</span>
                 </div>
               </div>
