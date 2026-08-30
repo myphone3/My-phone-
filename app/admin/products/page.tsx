@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../../../lib/supabase';
-
+import { supabase } from '../../lib/supabase';
 import Link from 'next/link';
 
 export default function AdminProductsPage() {
@@ -11,7 +10,7 @@ export default function AdminProductsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // שדות הטופס המלאים
+  // כל השדות המלאים לניהול המוצר
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [imageUrl, setImageUrl] = useState('');
@@ -138,7 +137,7 @@ export default function AdminProductsPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-black text-gray-900">ניהול מוצרים 📦</h2>
-          <p className="text-gray-500 text-sm mt-1">הוספה, עריכה וניהול מלאי המוצרים בחנות.</p>
+          <p className="text-gray-500 text-sm mt-1">הוספה, עריכה מלאה וניהול מלאי המוצרים בחנות.</p>
         </div>
 
         {!isFormOpen && (
