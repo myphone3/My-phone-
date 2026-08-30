@@ -71,6 +71,9 @@ export default function AdminProductsPage() {
               <Link href="/admin/products" className="bg-black text-white px-4 py-2 rounded-xl text-xs font-bold">
                 מוצרים 📱
               </Link>
+              <Link href="/admin/orders" className="text-gray-600 hover:bg-gray-100 px-4 py-2 rounded-xl text-xs font-bold transition">
+                הזמנות 📦
+              </Link>
               <Link href="/admin/customers" className="text-gray-600 hover:bg-gray-100 px-4 py-2 rounded-xl text-xs font-bold transition">
                 לקוחות והודעות 👥
               </Link>
