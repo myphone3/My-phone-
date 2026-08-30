@@ -3,11 +3,19 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export default function StoreHeader() {
+  const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+
+  // אם אנחנו נמצאים בדפי הניהול - הסתר לחלוטין את התפריט העליון של החנות
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
 
   useEffect(() => {
     const checkUser = async () => {
@@ -28,8 +36,24 @@ export default function StoreHeader() {
       }
     });
 
+    // מעקב אחר פריטים בעגלת הקניות
+    const updateCartCount = () => {
+      try {
+        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        const totalItems = cart.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
+        setCartCount(totalItems);
+      } catch (e) {
+        setCartCount(0);
+      }
+    };
+    updateCartCount();
+    window.addEventListener('storage', updateCartCount);
+    window.addEventListener('cartUpdated', updateCartCount);
+
     return () => {
       authListener.subscription.unsubscribe();
+      window.removeEventListener('storage', updateCartCount);
+      window.removeEventListener('cartUpdated', updateCartCount);
     };
   }, []);
 
@@ -48,13 +72,39 @@ export default function StoreHeader() {
   return (
     <header className="bg-white border-b sticky top-0 z-40 shadow-sm" dir="rtl">
       <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
-        <Link href="/" className="text-xl font-black text-gray-900 tracking-tight">
-          📱 חנות הסלולר
+        {/* לוגו החנות */}
+        <Link href="/" className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+          📱 <span>חנות הסלולר</span>
         </Link>
 
-        <div className="flex items-center gap-4">
+        {/* פעולות ותפריט מצד שמאל */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* כפתור מעבר מהיר לניהול */}
+          <Link 
+            href="/admin/products" 
+            className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1"
+            title="פאנל ניהול"
+          >
+            🛠️ ניהול
+          </Link>
+
+          {/* עגלת קניות */}
+          <Link 
+            href="/cart" 
+            className="relative p-2.5 bg-gray-100 hover:bg-gray-200 rounded-2xl text-sm transition flex items-center justify-center"
+            title="עגלת קניות"
+          >
+            🛒
+            {cartCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-black text-white w-5 h-5 rounded-full text-[10px] flex items-center justify-center font-bold shadow-sm">
+                {cartCount}
+              </span>
+            )}
+          </Link>
+
           {user ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {/* פעמון התראות */}
               <button 
                 onClick={() => setShowNotificationsModal(true)}
                 className="relative p-2.5 bg-gray-100 hover:bg-gray-200 rounded-2xl text-sm transition flex items-center justify-center cursor-pointer"
@@ -68,10 +118,6 @@ export default function StoreHeader() {
                 )}
               </button>
 
-              <span className="text-xs font-bold text-gray-700 hidden sm:inline">
-                {user.email}
-              </span>
-
               <button 
                 onClick={() => supabase.auth.signOut()}
                 className="text-xs font-bold text-red-600 hover:bg-red-50 px-3 py-2 rounded-xl transition cursor-pointer"
@@ -82,7 +128,7 @@ export default function StoreHeader() {
           ) : (
             <Link 
               href="/login" 
-              className="bg-black text-white px-5 py-2.5 rounded-2xl text-xs font-bold hover:bg-gray-800 transition shadow-sm"
+              className="bg-black text-white px-4 py-2.5 rounded-2xl text-xs font-bold hover:bg-gray-800 transition shadow-sm"
             >
               התחברות / הרשמה 👤
             </Link>
@@ -90,6 +136,7 @@ export default function StoreHeader() {
         </div>
       </div>
 
+      {/* מודל פופ-אפ להצגת ההתראות והמבצעים */}
       {showNotificationsModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 max-h-[80vh] overflow-y-auto">
