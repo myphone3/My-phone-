@@ -12,7 +12,7 @@ export default function StoreHeader() {
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [cartCount, setCartCount] = useState(0);
 
-  // אם אנחנו נמצאים בדפי הניהול - הסתר לחלוטין את התפריט העליון של החנות
+  // הסתרת התפריט בדפי הניהול
   if (pathname?.startsWith('/admin')) {
     return null;
   }
@@ -36,7 +36,6 @@ export default function StoreHeader() {
       }
     });
 
-    // מעקב אחר פריטים בעגלת הקניות
     const updateCartCount = () => {
       try {
         const cart = JSON.parse(localStorage.getItem('cart') || '[]');
@@ -71,19 +70,18 @@ export default function StoreHeader() {
 
   return (
     <header className="bg-white border-b sticky top-0 z-40 shadow-sm" dir="rtl">
-      <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
-        {/* לוגו החנות */}
-        <Link href="/" className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+      <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between gap-4">
+        {/* לוגו החנות מימין */}
+        <Link href="/" className="text-lg sm:text-xl font-black text-gray-900 tracking-tight flex items-center gap-2 shrink-0">
           📱 <span>חנות הסלולר</span>
         </Link>
 
-        {/* פעולות ותפריט מצד שמאל */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        {/* כפתורי פעולות משמאל */}
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
           {/* כפתור מעבר מהיר לניהול */}
           <Link 
             href="/admin/products" 
-            className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1"
-            title="פאנל ניהול"
+            className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1 shrink-0"
           >
             🛠️ ניהול
           </Link>
@@ -91,7 +89,7 @@ export default function StoreHeader() {
           {/* עגלת קניות */}
           <Link 
             href="/cart" 
-            className="relative p-2.5 bg-gray-100 hover:bg-gray-200 rounded-2xl text-sm transition flex items-center justify-center"
+            className="relative p-2.5 bg-gray-100 hover:bg-gray-200 rounded-2xl text-sm transition flex items-center justify-center shrink-0"
             title="עגלת קניות"
           >
             🛒
@@ -103,7 +101,7 @@ export default function StoreHeader() {
           </Link>
 
           {user ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               {/* פעמון התראות */}
               <button 
                 onClick={() => setShowNotificationsModal(true)}
@@ -128,7 +126,7 @@ export default function StoreHeader() {
           ) : (
             <Link 
               href="/login" 
-              className="bg-black text-white px-4 py-2.5 rounded-2xl text-xs font-bold hover:bg-gray-800 transition shadow-sm"
+              className="bg-black text-white px-4 py-2.5 rounded-2xl text-xs font-bold hover:bg-gray-800 transition shadow-sm shrink-0"
             >
               התחברות / הרשמה 👤
             </Link>
