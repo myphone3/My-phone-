@@ -53,8 +53,8 @@ export default function HomePage() {
           <span className="text-4xl">📦</span>
           <p className="text-gray-500 font-medium">אין מוצרים זמינים בחנות כרגע.</p>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      ) : (<div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 px-4">
+
           {products.map((product) => (
             <div key={product.id} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md transition">
               <div>
