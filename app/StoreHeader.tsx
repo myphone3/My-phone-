@@ -77,13 +77,13 @@ export default function StoreHeader() {
 
         {/* כפתורים בשורה אחת בלבד */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 flex-nowrap">
-          {/* ניהול */}
           <Link 
-            href="/admin/products" 
-            className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-2.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1 shrink-0"
-          >
-            🛠️ ניהול
-          </Link>
+  href="/admin" 
+  className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1 shrink-0"
+>
+  🛠️ ניהול
+</Link>
+
 
           {/* עגלה */}
           <Link 
