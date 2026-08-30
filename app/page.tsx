@@ -60,7 +60,8 @@ export default function HomePage() {
               <div>
                 {product.image_url ? (
                   <div className="h-48 w-full bg-gray-50 overflow-hidden relative">
-                    <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                    <img src={product.image_url} alt={product.name} className="w-full h-full object-contain" />
+
                   </div>
                 ) : (
                   <div className="h-48 w-full bg-gray-100 flex items-center justify-center text-gray-400 text-sm font-bold">
