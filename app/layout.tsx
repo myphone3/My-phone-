@@ -1,8 +1,9 @@
 import './globals.css';
+import StoreHeader from '@/components/StoreHeader';
 
 export const metadata = {
-  title: 'חנות מכשירים ואביזרים כשרים',
-  description: 'החנות המובילה למכשירים ואביזרים כשרים',
+  title: 'חנות סלולר',
+  description: 'חנות טכנולוגיה וסלולר',
 };
 
 export default function RootLayout({
@@ -12,8 +13,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="he" dir="rtl">
-      <body className="bg-gray-50 text-gray-900 min-h-screen flex flex-col">
-        <main className="flex-1">{children}</main>
+      <body className="bg-gray-50 text-gray-900 min-h-screen">
+        {/* התפריט העליון של החנות כולל פעמון ההתראות */}
+        <StoreHeader />
+        
+        {/* תוכן העמודים באתר */}
+        <main>{children}</main>
       </body>
     </html>
   );
