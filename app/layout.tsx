@@ -8,6 +8,12 @@ import { useEffect, useState } from 'react';
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  
+  // רשימת התראות (ניתן לחבר בעתיד למסד הנתונים)
+  const [notifications, setNotifications] = useState<string[]>([
+    'ההזמנה שלך נקלטה בהצלחה! 📦',
+    'מוצרים חדשים הגיעו לחנות 🔥'
+  ]);
 
   // רשימת אימיילים של המנהלים במערכת
   const adminEmails = [
@@ -59,21 +65,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Link>
 
             <div className="flex items-center gap-2 sm:gap-3">
-              {/* אזור התראות / עגלה */}
-              <Link
-                href="/"
-                className="relative bg-gray-100 hover:bg-gray-200 p-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center"
-                title="התראות ועגלה"
-              >
-                🔔
-              </Link>
-
-              {/* פרופיל משתמש עם תפריט נפתח בלחיצה */}
+              {/* פרופיל משתמש משולב עם התראות ותפריט נפתח */}
               {user ? (
                 <div className="relative">
                   <button
                     onClick={() => setDropdownOpen(!dropdownOpen)}
-                    className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-2xl shadow-2xs hover:bg-gray-100 transition cursor-pointer"
+                    className="relative flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-2xl shadow-2xs hover:bg-gray-100 transition cursor-pointer"
                   >
                     {user.user_metadata?.avatar_url ? (
                       <img
@@ -89,21 +86,44 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     <span className="text-xs font-bold hidden sm:inline max-w-[100px] truncate">
                       {user.user_metadata?.full_name || user.email?.split('@')[0]}
                     </span>
+
+                    {/* נקודת חיווי אדומה על הפרופיל אם יש התראות */}
+                    {notifications.length > 0 && (
+                      <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white"></span>
+                    )}
                   </button>
 
-                  {/* תפריט נפתח (Dropdown) שמופיע רק כשלוחצים על הפרופיל */}
+                  {/* תפריט נפתח הכולל התראות וכפתור התנתקות */}
                   {dropdownOpen && (
-                    <div className="absolute left-0 mt-2 w-48 bg-white border rounded-2xl shadow-lg p-2 z-50 space-y-1">
-                      <div className="px-3 py-2 border-b text-[11px] text-gray-500 truncate">
-                        {user.email}
+                    <div className="absolute left-0 mt-2 w-72 bg-white border rounded-2xl shadow-xl p-3 z-50 space-y-3">
+                      <div className="px-2 py-1 border-b text-xs font-bold text-gray-700 flex justify-between items-center">
+                        <span>חשבון משתמש</span>
+                        <span className="text-[10px] text-gray-400 truncate max-w-[120px]">{user.email}</span>
                       </div>
-                      <button
-                        onClick={handleLogout}
-                        className="w-full text-right text-red-600 hover:bg-red-50 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between"
-                      >
-                        <span>התנתקות מהמערכת</span>
-                        <span>🚪</span>
-                      </button>
+
+                      {/* אזור ההתראות בתפריט */}
+                      <div className="space-y-1.5">
+                        <div className="text-[11px] font-black text-gray-400 px-1">התראות ועדכונים 🔔</div>
+                        {notifications.length === 0 ? (
+                          <div className="text-xs text-gray-500 px-2 py-1">אין התראות חדשות</div>
+                        ) : (
+                          notifications.map((notif, idx) => (
+                            <div key={idx} className="bg-gray-50 p-2 rounded-xl text-xs text-gray-800 border border-gray-100">
+                              {notif}
+                            </div>
+                          ))
+                        )}
+                      </div>
+
+                      <div className="border-t pt-2">
+                        <button
+                          onClick={handleLogout}
+                          className="w-full text-right text-red-600 hover:bg-red-50 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between cursor-pointer"
+                        >
+                          <span>התנתקות מהמערכת</span>
+                          <span>🚪</span>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
