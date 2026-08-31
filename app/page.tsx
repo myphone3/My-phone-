@@ -7,6 +7,7 @@ import Link from 'next/link';
 export default function HomePage() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [productImages, setProductImages] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     fetchProducts();
@@ -20,8 +21,21 @@ export default function HomePage() {
       .or('is_published.is.null,is_published.eq.true')
       .order('created_at', { ascending: false });
 
-    if (data) setProducts(data);
+    if (data) {
+      setProducts(data);
+      // אתחול תמונה ראשית לכל מוצר
+      const initialImages: { [key: string]: string } = {};
+      data.forEach((p) => {
+        initialImages[p.id] = p.image_url || p.images?.[0] || '';
+      });
+      setProductImages(initialImages);
+    }
     setLoading(false);
+  };
+
+  const handleImageChange = (productId: string, url: string) => {
+    if (!url) return;
+    setProductImages((prev) => ({ ...prev, [productId]: url }));
   };
 
   return (
@@ -45,13 +59,21 @@ export default function HomePage() {
         <div className="grid grid-cols-2 gap-3 sm:gap-6">
           {products.map((product) => {
             const colors = product.product_colors || [];
+            const primaryImg = product.image_url || product.images?.[0] || '';
+            const secondaryImg = product.images?.[1] || primaryImg;
+            const currentImg = productImages[product.id] || primaryImg;
 
             return (
-              <div key={product.id} className="bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md transition p-3 sm:p-4">
+              <div 
+                key={product.id} 
+                className="bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md transition p-3 sm:p-4"
+                onMouseEnter={() => handleImageChange(product.id, secondaryImg)}
+                onMouseLeave={() => handleImageChange(product.id, primaryImg)}
+              >
                 <Link href={`/product/${product.id}`} className="block">
-                  {product.image_url ? (
-                    <div className="h-36 sm:h-48 w-full bg-gray-50 overflow-hidden relative rounded-xl sm:rounded-2xl mb-3">
-                      <img src={product.image_url} alt={product.name} className="w-full h-full object-contain hover:scale-105 transition" />
+                  {currentImg ? (
+                    <div className="h-36 sm:h-48 w-full bg-gray-50 overflow-hidden relative rounded-xl sm:rounded-2xl mb-3 flex items-center justify-center">
+                      <img src={currentImg} alt={product.name} className="w-full h-full object-contain hover:scale-105 transition" />
                     </div>
                   ) : (
                     <div className="h-36 sm:h-48 w-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs font-bold rounded-xl sm:rounded-2xl mb-3">
@@ -70,13 +92,20 @@ export default function HomePage() {
                       {colors.map((col: any, idx: number) => {
                         const colHex = typeof col === 'object' ? col.hex : '#000000';
                         const colName = typeof col === 'object' ? col.name : col;
+                        const colImg = typeof col === 'object' ? col.image : '';
+
                         return (
-                          <span
+                          <button
                             key={idx}
                             title={colName}
-                            className="w-4 h-4 rounded-full border border-gray-300 shrink-0 shadow-2xs"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (colImg) handleImageChange(product.id, colImg);
+                            }}
+                            className="w-4 h-4 rounded-full border border-gray-300 shrink-0 shadow-2xs cursor-pointer hover:scale-110 transition"
                             style={{ backgroundColor: colHex }}
-                          ></span>
+                          ></button>
                         );
                       })}
                     </div>
