@@ -147,24 +147,32 @@ export default function AdminProductsPage() {
     setSpecsTab('edit');
   };
 
-  // 🤖 סוכן AI חכם שלוקח את מה שכתבת ועורך אותו בצורה מקצועית
+  // 🤖 מנוע AI שיווקי מתקדם שמנתח את מה שכתבת ובונה טקסט מעוצב, ברור ומקצועי
   const handleAIEnhance = (type: 'short' | 'full' | 'specs') => {
-    if (!name && !shortDesc && !description && !specs) {
-      alert('נא להזין קודם את שם המוצר או טקסט כלשהו בשדה כדי שה-AI יוכל לשפר אותו.');
-      return;
-    }
+    const rawName = name.trim() || 'המוצר';
 
     if (type === 'short') {
-      const baseText = shortDesc.trim() || name;
-      setShortDesc(`🔥 ${baseText} - מוצר איכותי ואמין בסטנדרט גבוה, כולל אחריות מלאה ומחיר משתלם במיוחד.`);
+      const input = shortDesc.trim() || rawName;
+      setShortDesc(`🔥 **${input}** | איכות ללא פשרות, ביצועים חלקים במיוחד ואחריות מלאה. הזמינו עכשיו במחיר משתלם!`);
     } else if (type === 'full') {
-      const baseText = description.trim() || name;
-      setDescription(`✨ ${name || 'תיאור המוצר'}\n\nסקירה כללית:\n${baseText}\n\nיתרונות מרכזיים:\n• איכות בנייה גבוהה ואמינות לאורך זמן.\n• נוח לשימוש יומיומי עם ביצועים חלקים.\n• אחריות מלאה ושירות מקצועי בחנות.`);
+      const input = description.trim() || name || 'מוצר איכותי';
+      setDescription(
+        `✨ **${rawName}**\n\n` +
+        `מחפשים את השילוב המושלם בין איכות, אמינות ומחיר משתלם? הגעתם למקום הנכון. ה-${rawName} מציע חווית שימוש מתקדמת, עיצוב מרשים וביצועים יוצאי דופן שיתאימו בדיוק לצרכים שלכם.\n\n` +
+        `📌 **סקירה כללית:**\n${input}\n\n` +
+        `🚀 **יתרונות בולטים:**\n` +
+        `• **ביצועים חסרי פשרות:** עבודה חלקה, מהירה ויעילה לאורך זמן.\n` +
+        `• **איכות בנייה גבוהה:** עמיד ואמין לשימוש יומיומי אינטנסיבי.\n` +
+        `• **שקט נפשי:** כולל אחריות מלאה ושירות לקוחות מקצועי.\n\n` +
+        `🛒 **הזמינו עכשיו ותיהנו משירות מהיר ומשלוח עד הבית!**`
+      );
     } else if (type === 'specs') {
-      const baseText = specs.trim() || 'מפרט טכני מלא';
-      const lines = baseText.split('\n').map(l => l.trim()).filter(Boolean);
-      const formattedSpecs = lines.length > 0 ? lines.map(l => `• ${l}`).join('\n') : `• ${baseText}`;
-      setSpecs(formattedSpecs);
+      const input = specs.trim() || 'מפרט טכני מתקדם';
+      const lines = input.split('\n').map(l => l.replace(/^[•\-\*]\s*/, '').trim()).filter(Boolean);
+      const formatted = lines.length > 0 
+        ? lines.map(l => `• **${l.includes(':') ? l.split(':')[0] + ':' : 'מאפיין:'}** ${l.includes(':') ? l.split(':')[1] : l}`).join('\n')
+        : `• **דגם:** ${rawName}\n• **תקן איכות:** אמינות גבוהה בסטנדרט מחמיר\n• **תאימות מלאה:** שימוש נוח ויעיל לכל מטרה`;
+      setSpecs(formatted);
     }
   };
 
@@ -295,7 +303,7 @@ export default function AdminProductsPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-black text-gray-900">ניהול מוצרים 📦</h2>
-          <p className="text-gray-500 text-sm mt-1">הוספה מתקדמת עם AI חכם שלוקח את המלל שלך ועורך אותו מקצועי.</p>
+          <p className="text-gray-500 text-sm mt-1">הוספה מתקדמת עם AI שיווקי חכם שעורך את המלל שלך בצורה מקצועית.</p>
         </div>
         {!isFormOpen && (
           <button type="button" onClick={() => { resetForm(); setIsFormOpen(true); }} className="bg-black text-white px-6 py-3 rounded-2xl text-xs font-bold hover:bg-gray-800 transition cursor-pointer">
@@ -369,7 +377,7 @@ export default function AdminProductsPage() {
               {shortDescTab === 'edit' ? (
                 <input type="text" value={shortDesc} onChange={(e) => setShortDesc(e.target.value)} className="w-full border rounded-xl px-4 py-2 text-sm outline-none" placeholder="כתוב כאן תיאור קצר..." />
               ) : (
-                <div className="w-full border rounded-xl p-3 bg-gray-50 text-xs text-gray-800">
+                <div className="w-full border rounded-xl p-3 bg-gray-50 text-xs text-gray-800 whitespace-pre-line leading-relaxed">
                   {shortDesc ? shortDesc : <span className="text-gray-400 italic">טרם הוזן תיאור קצר.</span>}
                 </div>
               )}
@@ -389,7 +397,7 @@ export default function AdminProductsPage() {
               </div>
 
               {descTab === 'edit' ? (
-                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={5} className="w-full border rounded-xl px-4 py-2.5 text-sm outline-none" placeholder="כתוב כאן פירוט מלא..." />
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={6} className="w-full border rounded-xl px-4 py-2.5 text-sm outline-none" placeholder="כתוב כאן פירוט מלא..." />
               ) : (
                 <div className="w-full border rounded-xl p-4 bg-gray-50 min-h-[120px] text-xs text-gray-800 whitespace-pre-line leading-relaxed">
                   {description ? description : <span className="text-gray-400 italic">טרם הוזן תיאור מלא.</span>}
@@ -411,7 +419,7 @@ export default function AdminProductsPage() {
               </div>
 
               {specsTab === 'edit' ? (
-                <textarea value={specs} onChange={(e) => setSpecs(e.target.value)} rows={3} className="w-full border rounded-xl px-4 py-2 text-sm outline-none" placeholder="כתוב כאן מפרט טכני..." />
+                <textarea value={specs} onChange={(e) => setSpecs(e.target.value)} rows={4} className="w-full border rounded-xl px-4 py-2 text-sm outline-none" placeholder="כתוב כאן מפרט טכני (כל שורה תהפוך לנקודה בולטת)..." />
               ) : (
                 <div className="w-full border rounded-xl p-4 bg-gray-50 min-h-[80px] text-xs text-gray-800 whitespace-pre-line leading-relaxed">
                   {specs ? specs : <span className="text-gray-400 italic">טרם הוזן מפרט טכני.</span>}
