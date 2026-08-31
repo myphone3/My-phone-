@@ -9,13 +9,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [user, setUser] = useState<any>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   
-  // רשימת התראות (ניתן לחבר בעתיד למסד הנתונים)
   const [notifications, setNotifications] = useState<string[]>([
     'ההזמנה שלך נקלטה בהצלחה! 📦',
     'מוצרים חדשים הגיעו לחנות 🔥'
   ]);
 
-  // רשימת אימיילים של המנהלים במערכת
   const adminEmails = [
     'daniel@example.com',
     'd0587223040@gmail.com',
@@ -57,11 +55,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="he" dir="rtl">
       <body className="bg-gray-50 min-h-screen text-gray-900">
-        {/* תפריט עליון של האתר */}
+        {/* תפריט עליון מעודכן עם הלוגו שלך */}
         <header className="bg-white border-b sticky top-0 z-40 shadow-xs">
           <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-            <Link href="/" className="font-black text-lg tracking-tight">
-              📱 חנות הסלולר
+            <Link href="/" className="flex items-center gap-3 cursor-pointer group">
+              <img src="/logo.PNG" alt="NEW PHONE" className="w-10 h-10 object-contain rounded-full shadow-xs group-hover:scale-105 transition" />
+              <div className="flex flex-col">
+                <span className="font-black text-base text-gray-950 tracking-wider">NEW PHONE</span>
+                <span className="text-[10px] text-gray-500 font-bold">הפלאפון החדש שלי</span>
+              </div>
             </Link>
 
             <div className="flex items-center gap-2 sm:gap-3">
@@ -87,13 +89,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       {user.user_metadata?.full_name || user.email?.split('@')[0]}
                     </span>
 
-                    {/* נקודת חיווי אדומה על הפרופיל אם יש התראות */}
                     {notifications.length > 0 && (
                       <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white"></span>
                     )}
                   </button>
 
-                  {/* תפריט נפתח הכולל התראות וכפתור התנתקות */}
                   {dropdownOpen && (
                     <div className="absolute left-0 mt-2 w-72 bg-white border rounded-2xl shadow-xl p-3 z-50 space-y-3">
                       <div className="px-2 py-1 border-b text-xs font-bold text-gray-700 flex justify-between items-center">
@@ -101,7 +101,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         <span className="text-[10px] text-gray-400 truncate max-w-[120px]">{user.email}</span>
                       </div>
 
-                      {/* אזור ההתראות בתפריט */}
                       <div className="space-y-1.5">
                         <div className="text-[11px] font-black text-gray-400 px-1">התראות ועדכונים 🔔</div>
                         {notifications.length === 0 ? (
@@ -143,7 +142,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </button>
               )}
 
-              {/* כפתור פאנל ניהול - מוצג אך ורק למנהל מחובר */}
               {isAdmin && (
                 <Link
                   href="/admin/products"
