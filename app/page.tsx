@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { supabase } from './lib/supabase';
+import { supabase } from '../lib/supabase';
 import Link from 'next/link';
 
 export default function HomePage() {
@@ -65,7 +65,6 @@ export default function HomePage() {
                 </Link>
 
                 <div className="pt-3 sm:pt-4 mt-3 sm:mt-4 border-t flex flex-col gap-2">
-                  {/* הצגת צבעים ליד המחיר */}
                   {colors.length > 0 && (
                     <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
                       {colors.map((col: any, idx: number) => {
