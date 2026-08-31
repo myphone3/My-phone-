@@ -16,15 +16,16 @@ export default function AdminProductsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   
-  // ניהול מודל בחירת תמונות ממאגר המדיה
   const [mediaModalOpen, setMediaModalOpen] = useState(false);
   const [mediaTargetType, setMediaTargetType] = useState<'main' | 'color'>('main');
   const [activeColorIndex, setActiveColorIndex] = useState<number | null>(null);
 
-  // טאב תצוגה מקדימה לתיאור
+  // טאבים לתצוגה מקדימה
+  const [shortDescTab, setShortDescTab] = useState<'edit' | 'preview'>('edit');
   const [descTab, setDescTab] = useState<'edit' | 'preview'>('edit');
+  const [specsTab, setSpecsTab] = useState<'edit' | 'preview'>('edit');
 
-  // שדות הטופס המלאים
+  // שדות הטופס
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [salePrice, setSalePrice] = useState('');
@@ -106,7 +107,9 @@ export default function AdminProductsPage() {
     setProductColors([]);
     setIsPublished(true);
     setIsFormOpen(false);
+    setShortDescTab('edit');
     setDescTab('edit');
+    setSpecsTab('edit');
   };
 
   const handleEdit = (p: any) => {
@@ -139,18 +142,22 @@ export default function AdminProductsPage() {
     setProductColors(p.product_colors || []);
     setIsPublished(p.is_published !== false);
     setIsFormOpen(true);
+    setShortDescTab('edit');
     setDescTab('edit');
+    setSpecsTab('edit');
   };
 
-  const handleAIEnhance = (type: 'short' | 'full') => {
+  const handleAIEnhance = (type: 'short' | 'full' | 'specs') => {
     if (!name) {
       alert('נא להזין קודם את שם המוצר כדי שה-AI ידע מה לנסח.');
       return;
     }
     if (type === 'short') {
       setShortDesc(`🔥 ${name} - מכשיר מעולה באיכות גבוהה, אחריות מלאה ומחיר משתלם במיוחד! הזמינו עכשיו.`);
-    } else {
+    } else if (type === 'full') {
       setDescription(`✨ ${name}\n\nיתרונות מרכזיים:\n• מכשיר איכותי ואמין בסטנדרט גבוה.\n• מתאים לשימוש יומיומי חלק ומהיר.\n• אחריות ושירות מלאים מחנות הסלולר.`);
+    } else if (type === 'specs') {
+      setSpecs(`• תמיכה מלאה בדור 4 VoLTE\n• נפח אחסון מהיר\n• סוללה חזקה לאורך זמן`);
     }
   };
 
@@ -281,7 +288,7 @@ export default function AdminProductsPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-black text-gray-900">ניהול מוצרים 📦</h2>
-          <p className="text-gray-500 text-sm mt-1">הוספה מתקדמת עם מחיר מבצע ותצוגה מקדימה.</p>
+          <p className="text-gray-500 text-sm mt-1">הוספה מתקדמת עם AI ותצוגה מקדימה לתיאורים ולמפרט.</p>
         </div>
         {!isFormOpen && (
           <button type="button" onClick={() => { resetForm(); setIsFormOpen(true); }} className="bg-black text-white px-6 py-3 rounded-2xl text-xs font-bold hover:bg-gray-800 transition cursor-pointer">
@@ -339,23 +346,36 @@ export default function AdminProductsPage() {
               </div>
             </div>
 
-            {/* תיאור קצר */}
+            {/* תיאור קצר עם AI ותצוגה מקדימה */}
             <div className="space-y-1">
               <div className="flex justify-between items-center">
-                <label className="text-xs font-bold text-gray-700">תיאור קצר</label>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-bold text-gray-700">תיאור קצר</label>
+                  <div className="flex bg-gray-100 p-0.5 rounded-lg text-xs">
+                    <button type="button" onClick={() => setShortDescTab('edit')} className={`px-3 py-1 rounded-md font-bold transition ${shortDescTab === 'edit' ? 'bg-white shadow-xs text-black' : 'text-gray-500'}`}>עריכה</button>
+                    <button type="button" onClick={() => setShortDescTab('preview')} className={`px-3 py-1 rounded-md font-bold transition ${shortDescTab === 'preview' ? 'bg-white shadow-xs text-black' : 'text-gray-500'}`}>👀 תצוגה מקדימה</button>
+                  </div>
+                </div>
                 <button type="button" onClick={() => handleAIEnhance('short')} className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1 rounded-xl text-[11px] font-black transition">✨ שפר עם AI</button>
               </div>
-              <input type="text" value={shortDesc} onChange={(e) => setShortDesc(e.target.value)} className="w-full border rounded-xl px-4 py-2 text-sm outline-none" placeholder="משפט תיאור קצר שמופיע בקטלוג..." />
+
+              {shortDescTab === 'edit' ? (
+                <input type="text" value={shortDesc} onChange={(e) => setShortDesc(e.target.value)} className="w-full border rounded-xl px-4 py-2 text-sm outline-none" placeholder="משפט תיאור קצר שמופיע בקטלוג..." />
+              ) : (
+                <div className="w-full border rounded-xl p-3 bg-gray-50 text-xs text-gray-800">
+                  {shortDesc ? shortDesc : <span className="text-gray-400 italic">טרם הוזן תיאור קצר.</span>}
+                </div>
+              )}
             </div>
 
-            {/* תיאור מלא עם תצוגה מקדימה */}
+            {/* תיאור מלא עם AI ותצוגה מקדימה */}
             <div className="space-y-1">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <label className="text-xs font-bold text-gray-700">תיאור מלא</label>
                   <div className="flex bg-gray-100 p-0.5 rounded-lg text-xs">
                     <button type="button" onClick={() => setDescTab('edit')} className={`px-3 py-1 rounded-md font-bold transition ${descTab === 'edit' ? 'bg-white shadow-xs text-black' : 'text-gray-500'}`}>עריכה</button>
-                    <button type="button" onClick={() => setDescTab('preview')} className={`px-3 py-1 rounded-md font-bold transition ${descTab === 'preview' ? 'bg-white shadow-xs text-black' : 'text-gray-500'}`}>👀 תצוגה מקדימה באתר</button>
+                    <button type="button" onClick={() => setDescTab('preview')} className={`px-3 py-1 rounded-md font-bold transition ${descTab === 'preview' ? 'bg-white shadow-xs text-black' : 'text-gray-500'}`}>👀 תצוגה מקדימה</button>
                   </div>
                 </div>
                 <button type="button" onClick={() => handleAIEnhance('full')} className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1 rounded-xl text-[11px] font-black transition">✨ שפר עם AI</button>
@@ -365,17 +385,35 @@ export default function AdminProductsPage() {
                 <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={5} className="w-full border rounded-xl px-4 py-2.5 text-sm outline-none" placeholder="פירוט מלא על המוצר..." />
               ) : (
                 <div className="w-full border rounded-xl p-4 bg-gray-50 min-h-[120px] text-xs text-gray-800 whitespace-pre-line leading-relaxed">
-                  {description ? description : <span className="text-gray-400 italic">טרם הוזן תיאור לתצוגה מקדימה.</span>}
+                  {description ? description : <span className="text-gray-400 italic">טרם הוזן תיאור מלא.</span>}
                 </div>
               )}
             </div>
 
-            {/* מפרט, אחריות, מלאי */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">מפרט טכני</label>
-                <input type="text" value={specs} onChange={(e) => setSpecs(e.target.value)} className="w-full border rounded-xl px-4 py-2 text-sm outline-none" placeholder="למשל: מסך 2.4 אינץ'" />
+            {/* מפרט טכני עם AI ותצוגה מקדימה */}
+            <div className="space-y-1">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-bold text-gray-700">מפרט טכני</label>
+                  <div className="flex bg-gray-100 p-0.5 rounded-lg text-xs">
+                    <button type="button" onClick={() => setSpecsTab('edit')} className={`px-3 py-1 rounded-md font-bold transition ${specsTab === 'edit' ? 'bg-white shadow-xs text-black' : 'text-gray-500'}`}>עריכה</button>
+                    <button type="button" onClick={() => setSpecsTab('preview')} className={`px-3 py-1 rounded-md font-bold transition ${specsTab === 'preview' ? 'bg-white shadow-xs text-black' : 'text-gray-500'}`}>👀 תצוגה מקדימה</button>
+                  </div>
+                </div>
+                <button type="button" onClick={() => handleAIEnhance('specs')} className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1 rounded-xl text-[11px] font-black transition">✨ שפר עם AI</button>
               </div>
+
+              {specsTab === 'edit' ? (
+                <textarea value={specs} onChange={(e) => setSpecs(e.target.value)} rows={3} className="w-full border rounded-xl px-4 py-2 text-sm outline-none" placeholder="למשל: מסך 2.4 אינץ', סוללה 1000mAh..." />
+              ) : (
+                <div className="w-full border rounded-xl p-4 bg-gray-50 min-h-[80px] text-xs text-gray-800 whitespace-pre-line leading-relaxed">
+                  {specs ? specs : <span className="text-gray-400 italic">טרם הוזן מפרט טכני.</span>}
+                </div>
+              )}
+            </div>
+
+            {/* אחריות ומלאי */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">אחריות</label>
                 <input type="text" value={warranty} onChange={(e) => setWarranty(e.target.value)} className="w-full border rounded-xl px-4 py-2 text-sm outline-none" placeholder="למשל: שנה אחריות יבואן" />
@@ -450,7 +488,7 @@ export default function AdminProductsPage() {
                 {productColors.map((col, idx) => (
                   <div key={idx} className="flex items-center gap-2 bg-gray-50 p-2 rounded-2xl border">
                     <input type="color" value={col.hex} onChange={(e) => updateColorRow(idx, 'hex', e.target.value)} className="w-8 h-8 rounded-lg cursor-pointer border-0" />
-                    <input type="text" value={col.name} onChange={(e) => updateColorRow(idx, 'name', e.target.value)} placeholder="שם הצבע (למשל: שחור מט)" className="flex-1 border rounded-xl px-3 py-1.5 text-xs outline-none bg-white" />
+                    <input type="text" value={col.name} onChange={(e) => updateColorRow(idx, 'name', e.target.value)} placeholder="שם הצבע..." className="flex-1 border rounded-xl px-3 py-1.5 text-xs outline-none bg-white" />
                     
                     {col.image ? (
                       <img src={col.image} alt="" className="w-8 h-8 object-contain rounded-lg border bg-white" />
