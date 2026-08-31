@@ -13,11 +13,9 @@ export default function AdminCustomersPage() {
 
   const fetchCustomers = async () => {
     setLoading(true);
-    // שליפת הזמנות כדי להציג את פרטי הלקוחות שרכשו
     const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
     
     if (data) {
-      // איסוף לקוחות ייחודיים לפי טלפון או אימייל
       setCustomers(data);
     }
     setLoading(false);
