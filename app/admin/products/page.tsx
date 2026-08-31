@@ -29,6 +29,10 @@ export default function AdminProductsPage() {
   const [specs, setSpecs] = useState('');
   const [warranty, setWarranty] = useState('');
   const [storage, setStorage] = useState('');
+  const [storageOptions, setStorageOptions] = useState(''); // נפחי אחסון מרובים מופרדים בפסיקים
+  const [tags, setTags] = useState(''); // תגיות מופרדות בפסיקים
+  const [seoTitle, setSeoTitle] = useState(''); // כותרת SEO
+  const [seoDescription, setSeoDescription] = useState(''); // תיאור SEO
   const [stock, setStock] = useState('10');
   const [category, setCategory] = useState('');
   const [brand, setBrand] = useState('');
@@ -57,7 +61,6 @@ export default function AdminProductsPage() {
     if (kosherRes.data) setKosherList(kosherRes.data);
     if (verRes.data) setVersionsList(verRes.data);
 
-    // שליפה ישירה של כל הקבצים מתיקיית product-images ב-Supabase Storage
     let allMedia: any[] = [];
     const { data: files } = await supabase.storage.from('product-images').list();
     if (files) {
@@ -84,6 +87,10 @@ export default function AdminProductsPage() {
     setSpecs('');
     setWarranty('');
     setStorage('');
+    setStorageOptions('');
+    setTags('');
+    setSeoTitle('');
+    setSeoDescription('');
     setStock('10');
     setCategory('');
     setBrand('');
@@ -111,6 +118,10 @@ export default function AdminProductsPage() {
     setSpecs(p.specs || '');
     setWarranty(p.warranty || '');
     setStorage(p.storage || '');
+    setStorageOptions(p.storage_options || '');
+    setTags(p.tags || '');
+    setSeoTitle(p.seo_title || '');
+    setSeoDescription(p.seo_description || '');
     setStock(p.stock !== undefined && p.stock !== null ? p.stock.toString() : '10');
     setCategory(p.category || '');
     setBrand(p.brand || '');
@@ -215,12 +226,16 @@ export default function AdminProductsPage() {
       specs,
       warranty,
       storage,
+      storage_options: storageOptions,
+      tags: tags,
+      seo_title: seoTitle,
+      seo_description: seoDescription,
       stock: parseInt(stock) || 0,
       category,
       brand,
       kosher: kosherStatus,
       product_versions: selectedVersions,
-      version: selectedVersions[0] || '', // לתאימות אחורית
+      version: selectedVersions[0] || '',
       product_colors: productColors,
       is_published: isPublished,
     };
@@ -248,7 +263,7 @@ export default function AdminProductsPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-black text-gray-900">ניהול מוצרים 📦</h2>
-          <p className="text-gray-500 text-sm mt-1">הוספה מתקדמת הכוללת מותגים, בחירת גרסאות מרובות וטיוטות.</p>
+          <p className="text-gray-500 text-sm mt-1">הוספה מתקדמת הכוללת מותגים, נפחי אחסון, תגיות, SEO וטיוטות.</p>
         </div>
         {!isFormOpen && (
           <button type="button" onClick={() => { resetForm(); setIsFormOpen(true); }} className="bg-black text-white px-6 py-3 rounded-2xl text-xs font-bold hover:bg-gray-800 transition">
@@ -290,6 +305,62 @@ export default function AdminProductsPage() {
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">מחיר (₪) *</label>
                 <input type="number" step="any" value={price} onChange={(e) => setPrice(e.target.value)} required className="w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-black" placeholder="699" />
+              </div>
+            </div>
+
+            {/* נפחי אחסון ווריאציות */}
+            <div className="bg-gray-50 p-4 rounded-2xl border space-y-2">
+              <label className="block text-xs font-black text-gray-800">
+                נפחי אחסון מרובים (מופרדים בפסיקים, למשל: 64GB, 128GB, 256GB)
+              </label>
+              <input
+                type="text"
+                value={storageOptions}
+                onChange={(e) => setStorageOptions(e.target.value)}
+                className="w-full border bg-white rounded-xl px-4 py-2.5 text-sm outline-none"
+                placeholder="64GB, 128GB, 256GB (השאר ריק אם אין אפשרויות מרובות)"
+              />
+              <p className="text-[11px] text-gray-500">
+                💡 אם תזין כאן יותר מאופציה אחת, המערכת בחנות תחייב את הלקוח לבחור נפח אחסון כתנאי להוספה לעגלה.
+              </p>
+            </div>
+
+            {/* תגיות */}
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">תגיות למוצר (מופרדות בפסיקים)</label>
+              <input
+                type="text"
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
+                className="w-full border rounded-xl px-4 py-2.5 text-sm outline-none"
+                placeholder="חדש, מבצע, מומלץ"
+              />
+            </div>
+
+            {/* הגדרות SEO */}
+            <div className="border p-4 rounded-2xl bg-gray-50/50 space-y-3">
+              <h4 className="text-xs font-black text-gray-900">הגדרות SEO לקידום בגוגל 🔍</h4>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">כותרת SEO (Meta Title)</label>
+                  <input
+                    type="text"
+                    value={seoTitle}
+                    onChange={(e) => setSeoTitle(e.target.value)}
+                    className="w-full border bg-white rounded-xl px-4 py-2 text-sm outline-none"
+                    placeholder="כותרת שתופיע בתוצאות החיפוש בגוגל"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">תיאור SEO (Meta Description)</label>
+                  <textarea
+                    value={seoDescription}
+                    onChange={(e) => setSeoDescription(e.target.value)}
+                    rows={2}
+                    className="w-full border bg-white rounded-xl px-4 py-2 text-sm outline-none"
+                    placeholder="תיאור קצר ומושך שיופיע מתחת לכותרת בגוגל"
+                  />
+                </div>
               </div>
             </div>
 
@@ -382,7 +453,7 @@ export default function AdminProductsPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">נפח אחסון (לדוגמה: 128GB)</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">נפח אחסון יחיד (לדוגמה: 128GB)</label>
                 <input type="text" value={storage} onChange={(e) => setStorage(e.target.value)} className="w-full border rounded-xl px-4 py-2.5 text-sm outline-none" placeholder="128GB" />
               </div>
               <div>
