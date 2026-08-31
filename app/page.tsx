@@ -3,13 +3,8 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import { supabase } from '../lib/supabase';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 
 function StoreContent() {
-  const searchParams = useSearchParams();
-  const selectedBrand = searchParams.get('brand');
-  const selectedCategory = searchParams.get('category');
-
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
@@ -73,12 +68,6 @@ function StoreContent() {
     }
   };
 
-  const filteredProducts = products.filter((p) => {
-    if (selectedBrand && p.brand !== selectedBrand) return false;
-    if (selectedCategory && p.category !== selectedCategory) return false;
-    return true;
-  });
-
   const scrollingBrands = [...brands, ...brands, ...brands];
 
   return (
@@ -99,6 +88,7 @@ function StoreContent() {
         }
       `}</style>
 
+      {/* מותגים נעים בגלילה שמובילים לעמוד נפרד לכל מותג */}
       {brands.length > 0 && (
         <div className="w-full overflow-x-auto bg-gray-50/60 py-3 border-b scrollbar-none">
           <div className="animate-marquee flex items-center gap-12 px-4 cursor-grab">
@@ -106,7 +96,7 @@ function StoreContent() {
               brand.image_url && (
                 <Link 
                   key={`${brand.id}-${idx}`} 
-                  href={`/?brand=${encodeURIComponent(brand.name)}`}
+                  href={`/brand/${encodeURIComponent(brand.name)}`}
                   className="w-24 h-12 flex items-center justify-center flex-shrink-0 opacity-85 hover:opacity-100 hover:scale-110 transition cursor-pointer"
                 >
                   <img src={brand.image_url} alt={brand.name} className="max-h-full max-w-full object-contain" />
@@ -153,6 +143,7 @@ function StoreContent() {
 
       <div className="max-w-7xl mx-auto px-4 space-y-10 pt-10">
 
+        {/* קטגוריות מובילות שמובילות לעמוד נפרד לכל קטגוריה */}
         {categories.length > 0 && (
           <section className="space-y-4">
             <h2 className="text-lg sm:text-xl font-black text-gray-900">קטגוריות מובילות</h2>
@@ -160,7 +151,7 @@ function StoreContent() {
               {categories.map((cat) => (
                 <Link 
                   key={cat.id} 
-                  href={`/?category=${encodeURIComponent(cat.name)}`}
+                  href={`/category/${encodeURIComponent(cat.name)}`}
                   className="flex flex-col items-center text-center gap-2 cursor-pointer group"
                 >
                   <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gray-50 flex items-center justify-center overflow-hidden group-hover:scale-105 transition shadow-xs border">
@@ -177,34 +168,23 @@ function StoreContent() {
           </section>
         )}
 
+        {/* כל המוצרים בחנות */}
         <section className="space-y-6 pt-4 border-t">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-            <div>
-              <h2 className="text-lg sm:text-xl font-black text-gray-900">
-                {selectedBrand ? `מוצרים ממותג: ${selectedBrand}` : selectedCategory ? `מוצרים מקטגוריה: ${selectedCategory}` : 'כל המוצרים בחנות'}
-              </h2>
-              {(selectedBrand || selectedCategory) && (
-                <Link href="/" className="text-xs text-indigo-600 hover:underline font-bold mt-1 inline-block">
-                  ✕ הצג את כל המוצרים בחנות
-                </Link>
-              )}
-            </div>
-            <span className="text-xs text-gray-500 font-bold">{filteredProducts.length} מוצרים זמינים</span>
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg sm:text-xl font-black text-gray-900">כל המוצרים בחנות</h2>
+            <span className="text-xs text-gray-500 font-bold">{products.length} מוצרים זמינים</span>
           </div>
 
           {loading ? (
             <div className="text-center py-20 text-gray-500 font-medium">טוען את חנות NEW PHONE...</div>
-          ) : filteredProducts.length === 0 ? (
+          ) : products.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-3xl border p-8 space-y-3 shadow-sm">
               <span className="text-4xl">📦</span>
-              <p className="text-gray-500 font-medium">לא נמצאו מוצרים תחת סינון זה.</p>
-              <Link href="/" className="inline-block bg-black text-white px-4 py-2 rounded-xl text-xs font-bold mt-2">
-                חזרה לכל המוצרים
-              </Link>
+              <p className="text-gray-500 font-medium">אין מוצרים זמינים בחנות כרגע.</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
-              {filteredProducts.map((product) => {
+              {products.map((product) => {
                 const colors = product.product_colors || [];
                 const primaryImg = product.image_url || product.images?.[0] || '';
                 const secondaryImg = product.images?.[1] || primaryImg;
