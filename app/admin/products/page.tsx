@@ -40,26 +40,17 @@ export default function AdminProductsPage() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [prodRes, catRes, verRes] = await Promise.all([
+    const [prodRes, catRes, kosherRes, verRes] = await Promise.all([
       supabase.from('products').select('*').order('created_at', { ascending: false }),
       supabase.from('categories').select('*'),
+      supabase.from('kosher_options').select('*'),
       supabase.from('versions').select('*'),
     ]);
 
     if (prodRes.data) setProducts(prodRes.data);
     if (catRes.data) setCategories(catRes.data);
+    if (kosherRes.data) setKosherList(kosherRes.data);
     if (verRes.data) setVersionsList(verRes.data);
-
-    // שליפה גמישה של כשרויות מכל שם טבלה אפשרי
-    let kosherData: any[] = [];
-    const k1 = await supabase.from('kosher').select('*');
-    if (k1.data && k1.data.length > 0) {
-      kosherData = k1.data;
-    } else {
-      const k2 = await supabase.from('koshrut').select('*');
-      if (k2.data) kosherData = k2.data;
-    }
-    setKosherList(kosherData);
 
     // שליפה ישירה של כל הקבצים מתיקיית product-images ב-Supabase Storage
     let allMedia: any[] = [];
