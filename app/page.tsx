@@ -3,8 +3,13 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 export default function HomePage() {
+  const searchParams = useSearchParams();
+  const selectedBrand = searchParams.get('brand');
+  const selectedCategory = searchParams.get('category');
+
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
@@ -68,19 +73,43 @@ export default function HomePage() {
     }
   };
 
+  // סינון מוצרים לפי מותג או קטגוריה שנבחרו
+  const filteredProducts = products.filter((p) => {
+    if (selectedBrand && p.brand !== selectedBrand) return false;
+    if (selectedCategory && p.category !== selectedCategory) return false;
+    return true;
+  });
+
+  const scrollingBrands = [...brands, ...brands, ...brands];
+
   return (
     <div className="space-y-0 pb-12" dir="rtl">
       
-      {/* מותגים צמודים לבאנר, עם גלילת מגע חופשית ימינה ושמאלה */}
+      <style jsx>{`
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-33.333%); }
+        }
+        .animate-marquee {
+          display: flex;
+          width: max-content;
+          animation: marquee 30s linear infinite;
+        }
+        .animate-marquee:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
+
+      {/* מותגים צמודים לבאנר עם תנועה רציפה ואפשרות מגע/עצירה */}
       {brands.length > 0 && (
         <div className="w-full overflow-x-auto bg-gray-50/60 py-3 border-b scrollbar-none">
-          <div className="flex items-center gap-8 px-4 w-max mx-auto">
-            {brands.map((brand) => (
+          <div className="animate-marquee flex items-center gap-12 px-4 cursor-grab">
+            {scrollingBrands.map((brand, idx) => (
               brand.image_url && (
                 <Link 
-                  key={brand.id} 
+                  key={`${brand.id}-${idx}`} 
                   href={`/?brand=${encodeURIComponent(brand.name)}`}
-                  className="w-20 h-10 flex items-center justify-center flex-shrink-0 opacity-80 hover:opacity-100 hover:scale-105 transition cursor-pointer"
+                  className="w-24 h-12 flex items-center justify-center flex-shrink-0 opacity-85 hover:opacity-100 hover:scale-110 transition cursor-pointer"
                 >
                   <img src={brand.image_url} alt={brand.name} className="max-h-full max-w-full object-contain" />
                 </Link>
@@ -90,7 +119,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* באנרים רצים מקצה לקצה - צמוד לחלוטין למותגים */}
+      {/* באנרים רצים מקצה לקצה צמודים למותגים */}
       {banners.length > 0 && (
         <div className="relative w-full bg-gradient-to-r from-gray-900 via-purple-950 to-black overflow-hidden shadow-lg text-white py-12 px-6 sm:px-16 transition-all duration-500">
           <div className="max-w-7xl mx-auto space-y-4 relative z-10">
@@ -127,14 +156,18 @@ export default function HomePage() {
 
       <div className="max-w-7xl mx-auto px-4 space-y-10 pt-10">
 
-        {/* קטגוריות ללא מסגרת, תמונות גדולות */}
+        {/* קטגוריות מובילות - לחיצה עליהן מסננת את המוצרים */}
         {categories.length > 0 && (
           <section className="space-y-4">
             <h2 className="text-lg sm:text-xl font-black text-gray-900">קטגוריות מובילות</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
               {categories.map((cat) => (
-                <div key={cat.id} className="flex flex-col items-center text-center gap-2 cursor-pointer group">
-                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gray-50 flex items-center justify-center overflow-hidden group-hover:scale-105 transition shadow-xs">
+                <Link 
+                  key={cat.id} 
+                  href={`/?category=${encodeURIComponent(cat.name)}`}
+                  className="flex flex-col items-center text-center gap-2 cursor-pointer group"
+                >
+                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gray-50 flex items-center justify-center overflow-hidden group-hover:scale-105 transition shadow-xs border">
                     {cat.image_url ? (
                       <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover" />
                     ) : (
@@ -142,29 +175,41 @@ export default function HomePage() {
                     )}
                   </div>
                   <span className="font-bold text-xs sm:text-sm text-gray-900">{cat.name}</span>
-                </div>
+                </Link>
               ))}
             </div>
           </section>
         )}
 
-        {/* קטלוג מוצרים */}
+        {/* קטלוג מוצרים עם חיווי סינון */}
         <section className="space-y-6 pt-4 border-t">
-          <div className="flex justify-between items-center">
-            <h2 className="text-lg sm:text-xl font-black text-gray-900">כל המוצרים בחנות</h2>
-            <span className="text-xs text-gray-500 font-bold">{products.length} מוצרים זמינים</span>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+            <div>
+              <h2 className="text-lg sm:text-xl font-black text-gray-900">
+                {selectedBrand ? `מוצרים ממותג: ${selectedBrand}` : selectedCategory ? `מוצרים מקטגוריה: ${selectedCategory}` : 'כל המוצרים בחנות'}
+              </h2>
+              {(selectedBrand || selectedCategory) && (
+                <Link href="/" className="text-xs text-indigo-600 hover:underline font-bold mt-1 inline-block">
+                  ✕ הצג את כל המוצרים בחנות
+                </Link>
+              )}
+            </div>
+            <span className="text-xs text-gray-500 font-bold">{filteredProducts.length} מוצרים זמינים</span>
           </div>
 
           {loading ? (
             <div className="text-center py-20 text-gray-500 font-medium">טוען את חנות NEW PHONE...</div>
-          ) : products.length === 0 ? (
+          ) : filteredProducts.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-3xl border p-8 space-y-3 shadow-sm">
               <span className="text-4xl">📦</span>
-              <p className="text-gray-500 font-medium">אין מוצרים זמינים בחנות כרגע.</p>
+              <p className="text-gray-500 font-medium">לא נמצאו מוצרים תחת סינון זה.</p>
+              <Link href="/" className="inline-block bg-black text-white px-4 py-2 rounded-xl text-xs font-bold mt-2">
+                חזרה לכל המוצרים
+              </Link>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
-              {products.map((product) => {
+              {filteredProducts.map((product) => {
                 const colors = product.product_colors || [];
                 const primaryImg = product.image_url || product.images?.[0] || '';
                 const secondaryImg = product.images?.[1] || primaryImg;
