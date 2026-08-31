@@ -66,13 +66,11 @@ export default function HomePage() {
               >
                 <Link href={`/product/${product.id}`} className="block">
                   <div className="h-36 sm:h-48 w-full bg-gray-50 overflow-hidden relative rounded-xl sm:rounded-2xl mb-3 flex items-center justify-center">
-                    {/* תמונה ראשית / תמונה נבחרת מצבע */}
                     <img 
                       src={activeImage} 
                       alt={product.name} 
                       className={`w-full h-full object-contain transition duration-300 group-hover:scale-105 ${hasHoverImage ? 'group-hover:opacity-0' : ''}`} 
                     />
-                    {/* תמונה שנייה מופיעה חלקה בריחוף */}
                     {hasHoverImage && (
                       <img 
                         src={secondaryImg} 
@@ -109,7 +107,16 @@ export default function HomePage() {
                   )}
 
                   <div className="flex items-center justify-between gap-1">
-                    <span className="text-sm sm:text-lg font-black text-gray-900">₪{product.price}</span>
+                    <div className="flex items-baseline gap-1.5">
+                      {product.sale_price ? (
+                        <>
+                          <span className="text-sm sm:text-lg font-black text-red-600">₪{product.sale_price}</span>
+                          <span className="text-[10px] text-gray-400 line-through">₪{product.price}</span>
+                        </>
+                      ) : (
+                        <span className="text-sm sm:text-lg font-black text-gray-900">₪{product.price}</span>
+                      )}
+                    </div>
                     <Link
                       href={`/product/${product.id}`}
                       className="bg-black text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-xs font-bold hover:bg-gray-800 transition whitespace-nowrap"
