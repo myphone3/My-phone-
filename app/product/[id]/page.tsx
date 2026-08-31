@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
-
 import { useParams } from 'next/navigation';
 
 export default function ProductDetailPage() {
@@ -12,6 +11,7 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState<any>(null);
   const [categoriesList, setCategoriesList] = useState<any[]>([]);
   const [brandsList, setBrandsList] = useState<any[]>([]);
+  const [kosherList, setKosherList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStorage, setSelectedStorage] = useState('');
   const [selectedVersion, setSelectedVersion] = useState('');
@@ -23,10 +23,11 @@ export default function ProductDetailPage() {
 
   const fetchProductData = async () => {
     setLoading(true);
-    const [prodRes, catRes, brandRes] = await Promise.all([
+    const [prodRes, catRes, brandRes, kosherRes] = await Promise.all([
       supabase.from('products').select('*').eq('id', id).single(),
       supabase.from('categories').select('*'),
       supabase.from('brands').select('*'),
+      supabase.from('kosher_options').select('*'),
     ]);
 
     if (prodRes.data) {
@@ -41,6 +42,7 @@ export default function ProductDetailPage() {
     }
     if (catRes.data) setCategoriesList(catRes.data);
     if (brandRes.data) setBrandsList(brandRes.data);
+    if (kosherRes.data) setKosherList(kosherRes.data);
 
     setLoading(false);
   };
@@ -52,9 +54,10 @@ export default function ProductDetailPage() {
   const versionsList = product.product_versions || (product.version ? [product.version] : []);
   const colorsList = product.product_colors || [];
 
-  // מציאת תמונת לוגו למותג או לקטגוריה אם קיימת
+  // חיפוש אובייקטים לפי השם השמור במוצר
   const currentBrandObj = brandsList.find((b) => b.name === product.brand);
   const currentCatObj = categoriesList.find((c) => c.name === product.category);
+  const currentKosherObj = kosherList.find((k) => k.name === product.kosher);
 
   const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
   
@@ -96,23 +99,35 @@ export default function ProductDetailPage() {
           <h1 className="text-2xl font-black text-gray-900">{product.name}</h1>
           <div className="text-xl font-black text-black">₪{product.price}</div>
 
-          {/* מותג, קטגוריה וכשרות (מותג וקטגוריה כוללים תמונה/אייקון אם זמין) */}
+          {/* תגיות: מותג (לוגו בלבד), כשרות (לוגו בלבד), קטגוריה (לוגו ושם) */}
           <div className="flex flex-wrap gap-2 text-xs items-center">
+            {/* מותג - רק לוגו */}
             {product.brand && (
-              <span className="bg-gray-100 text-gray-800 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5">
-                {currentBrandObj?.image_url && <img src={currentBrandObj.image_url} alt="" className="w-4 h-4 object-contain" />}
-                🏷️ {product.brand}
+              <span className="bg-gray-100 px-3 py-1.5 rounded-xl font-bold flex items-center">
+                {currentBrandObj?.image_url ? (
+                  <img src={currentBrandObj.image_url} alt={product.brand} className="h-5 object-contain" />
+                ) : (
+                  <span>{product.brand}</span>
+                )}
               </span>
             )}
+
+            {/* כשרות - רק לוגו */}
+            {product.kosher && (
+              <span className="bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl font-bold flex items-center">
+                {currentKosherObj?.image_url ? (
+                  <img src={currentKosherObj.image_url} alt={product.kosher} className="h-5 object-contain" />
+                ) : (
+                  <span>{product.kosher}</span>
+                )}
+              </span>
+            )}
+
+            {/* קטגוריה - לוגו ושם */}
             {product.category && (
               <span className="bg-gray-100 text-gray-800 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5">
                 {currentCatObj?.image_url && <img src={currentCatObj.image_url} alt="" className="w-4 h-4 object-contain" />}
                 📂 {product.category}
-              </span>
-            )}
-            {product.kosher && (
-              <span className="bg-amber-50 text-amber-800 px-3 py-1.5 rounded-xl font-bold border border-amber-200">
-                {product.kosher}
               </span>
             )}
           </div>
@@ -196,7 +211,7 @@ export default function ProductDetailPage() {
             הוספה לעגלה 🛒
           </button>
 
-          {/* כפתורי שיתוף (אייקון וואטסאפ רשמי בלבד + העתקת קישור) */}
+          {/* כפתורי שיתוף */}
           <div className="flex items-center gap-3 pt-4 border-t">
             <button
               type="button"
