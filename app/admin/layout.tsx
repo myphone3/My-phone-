@@ -13,6 +13,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'ניהול קטגוריות 📁', href: '/admin/categories' },
     { name: 'ניהול מותגים 🏷️', href: '/admin/brands' },
     { name: 'ניהול כשרות ⭐', href: '/admin/kosher' },
+    { name: 'ניהול גירסאות ⚙️', href: '/admin/versions' },
     { name: 'ספריית מדיה 🖼️', href: '/admin/media' },
     { name: 'קופונים 🎟️', href: '/admin/coupons' },
     { name: 'לקוחות והודעות 👥', href: '/admin/customers' },
