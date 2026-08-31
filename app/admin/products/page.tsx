@@ -2,16 +2,17 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
-
 import Link from 'next/link';
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [kosherList, setKosherList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // כל השדות המלאים לניהול המוצר
+  // שדות הטופס המלאים
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [imageUrl, setImageUrl] = useState('');
@@ -23,19 +24,25 @@ export default function AdminProductsPage() {
   const [storage, setStorage] = useState('');
   const [colors, setColors] = useState('');
   const [stock, setStock] = useState('10');
+  const [category, setCategory] = useState('');
+  const [kosherStatus, setKosherStatus] = useState('');
+  const [colorImages, setColorImages] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
-    fetchProducts();
+    fetchData();
   }, []);
 
-  const fetchProducts = async () => {
+  const fetchData = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('products')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const [prodRes, catRes, kosherRes] = await Promise.all([
+      supabase.from('products').select('*').order('created_at', { ascending: false }),
+      supabase.from('categories').select('*'),
+      supabase.from('kosher').select('*')
+    ]);
 
-    if (data) setProducts(data);
+    if (prodRes.data) setProducts(prodRes.data);
+    if (catRes.data) setCategories(catRes.data);
+    if (kosherRes.data) setKosherList(kosherRes.data);
     setLoading(false);
   };
 
@@ -52,6 +59,9 @@ export default function AdminProductsPage() {
     setStorage('');
     setColors('');
     setStock('10');
+    setCategory('');
+    setKosherStatus('');
+    setColorImages({});
     setIsFormOpen(false);
   };
 
@@ -68,7 +78,17 @@ export default function AdminProductsPage() {
     setStorage(p.storage || '');
     setColors(p.colors || '');
     setStock(p.stock !== undefined && p.stock !== null ? p.stock.toString() : '10');
+    setCategory(p.category || '');
+    setKosherStatus(p.kosher || '');
+    setColorImages(p.color_images || {});
     setIsFormOpen(true);
+  };
+
+  const handleColorImageChange = (color: string, url: string) => {
+    setColorImages((prev) => ({
+      ...prev,
+      [color.trim()]: url,
+    }));
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -90,6 +110,9 @@ export default function AdminProductsPage() {
       storage,
       colors,
       stock: parseInt(stock) || 0,
+      category,
+      kosher: kosherStatus,
+      color_images: colorImages,
     };
 
     if (editingId) {
@@ -102,7 +125,7 @@ export default function AdminProductsPage() {
         alert('שגיאה בעדכון המוצר: ' + error.message);
       } else {
         resetForm();
-        fetchProducts();
+        fetchData();
       }
     } else {
       const { error } = await supabase
@@ -113,7 +136,7 @@ export default function AdminProductsPage() {
         alert('שגיאה בהוספת המוצר: ' + error.message);
       } else {
         resetForm();
-        fetchProducts();
+        fetchData();
       }
     }
   };
@@ -129,9 +152,12 @@ export default function AdminProductsPage() {
     if (error) {
       alert('שגיאה במחיקת המוצר: ' + error.message);
     } else {
-      fetchProducts();
+      fetchData();
     }
   };
+
+  // פיצול הצבעים שהוזנו כדי להציג שדה תמונה לכל צבע
+  const colorList = colors ? colors.split(',').map((c) => c.trim()).filter(Boolean) : [];
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -192,9 +218,9 @@ export default function AdminProductsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">קישור לתמונה (Image URL)</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">קישור לתמונה ראשית (Image URL)</label>
                 <input
                   type="text"
                   value={imageUrl}
@@ -204,14 +230,34 @@ export default function AdminProductsPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">כמות במלאי</label>
-                <input
-                  type="number"
-                  value={stock}
-                  onChange={(e) => setStock(e.target.value)}
-                  className="w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-black transition"
-                  placeholder="10"
-                />
+                <label className="block text-xs font-bold text-gray-700 mb-1">קטגוריה</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-black transition bg-white"
+                >
+                  <option value="">בחר קטגוריה</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id || cat.name} value={cat.name}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">כשרות</label>
+                <select
+                  value={kosherStatus}
+                  onChange={(e) => setKosherStatus(e.target.value)}
+                  className="w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-black transition bg-white"
+                >
+                  <option value="">בחר רמת כשרות</option>
+                  {kosherList.map((k) => (
+                    <option key={k.id || k.name} value={k.name}>
+                      {k.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -237,16 +283,48 @@ export default function AdminProductsPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">צבעים (מופרדים בפסיק)</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">כמות במלאי</label>
                 <input
-                  type="text"
-                  value={colors}
-                  onChange={(e) => setColors(e.target.value)}
+                  type="number"
+                  value={stock}
+                  onChange={(e) => setStock(e.target.value)}
                   className="w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-black transition"
-                  placeholder="שחור, לבן, כחול"
+                  placeholder="10"
                 />
               </div>
             </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">צבעים (מופרדים בפסיק)</label>
+              <input
+                type="text"
+                value={colors}
+                onChange={(e) => setColors(e.target.value)}
+                className="w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-black transition"
+                placeholder="שחור, לבן, כחול"
+              />
+            </div>
+
+            {/* בחירת תמונה לכל צבע שהוזן */}
+            {colorList.length > 0 && (
+              <div className="bg-gray-50 p-4 rounded-2xl space-y-3 border">
+                <span className="text-xs font-black text-gray-700 block">תמונות לפי צבע:</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {colorList.map((color) => (
+                    <div key={color} className="space-y-1">
+                      <label className="block text-xs text-gray-600 font-bold">קישור תמונה עבור צבע: {color}</label>
+                      <input
+                        type="text"
+                        value={colorImages[color] || ''}
+                        onChange={(e) => handleColorImageChange(color, e.target.value)}
+                        className="w-full border rounded-xl px-3 py-2 text-xs outline-none focus:border-black bg-white transition"
+                        placeholder={`קישור תמונה ל-${color}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">תיאור קצר</label>
@@ -338,9 +416,9 @@ export default function AdminProductsPage() {
                     <h4 className="font-bold text-sm text-gray-900">{p.name}</h4>
                     <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
                       <span className="font-black text-black">₪{p.price}</span>
+                      {p.category && <span className="bg-gray-100 px-2 py-0.5 rounded-md">קטגוריה: {p.category}</span>}
+                      {p.kosher && <span className="bg-amber-50 text-amber-800 px-2 py-0.5 rounded-md">כשרות: {p.kosher}</span>}
                       {p.stock !== undefined && <span>מלאי: {p.stock}</span>}
-                      {p.storage && <span>נפח: {p.storage}</span>}
-                      {p.version && <span>גרסה: {p.version}</span>}
                     </div>
                   </div>
                 </div>
