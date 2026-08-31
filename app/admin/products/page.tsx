@@ -9,6 +9,7 @@ export default function AdminProductsPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [kosherList, setKosherList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -84,7 +85,66 @@ export default function AdminProductsPage() {
     setIsFormOpen(true);
   };
 
-  const handleColorImageChange = (color: string, url: string) => {
+  // העלאת קובץ תמונה ל-Supabase Storage
+  const uploadImageFile = async (file: File): Promise<string | null> => {
+    try {
+      setUploading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      // ניסיון העלאה לbucket בשם images
+      let { error: uploadError } = await supabase.storage
+        .from('images')
+        .upload(filePath, file);
+
+      let bucketName = 'images';
+
+      if (uploadError) {
+        // אם ה-bucket בשם images לא קיים, ננסה products
+        const { error: err2 } = await supabase.storage
+          .from('products')
+          .upload(filePath, file);
+        
+        if (err2) {
+          alert('שגיאה בהעלאת הקובץ ל-Supabase Storage: ' + err2.message);
+          setUploading(false);
+          return null;
+        }
+        bucketName = 'products';
+      }
+
+      const { data } = supabase.storage.from(bucketName).getPublicUrl(filePath);
+      setUploading(false);
+      return data.publicUrl;
+    } catch (err: any) {
+      console.error(err);
+      setUploading(false);
+      alert('שגיאה בהעלאת התמונה');
+      return null;
+    }
+  };
+
+  const handleMainImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const publicUrl = await uploadImageFile(file);
+    if (publicUrl) setImageUrl(publicUrl);
+  };
+
+  const handleColorImageFileChange = async (color: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const publicUrl = await uploadImageFile(file);
+    if (publicUrl) {
+      setColorImages((prev) => ({
+        ...prev,
+        [color.trim()]: publicUrl,
+      }));
+    }
+  };
+
+  const handleColorImageTextChange = (color: string, url: string) => {
     setColorImages((prev) => ({
       ...prev,
       [color.trim()]: url,
@@ -156,7 +216,6 @@ export default function AdminProductsPage() {
     }
   };
 
-  // פיצול הצבעים שהוזנו כדי להציג שדה תמונה לכל צבע
   const colorList = colors ? colors.split(',').map((c) => c.trim()).filter(Boolean) : [];
 
   return (
@@ -220,14 +279,21 @@ export default function AdminProductsPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">קישור לתמונה ראשית (Image URL)</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">תמונה ראשית (העלאת קובץ או קישור)</label>
                 <input
-                  type="text"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  className="w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-black transition"
-                  placeholder="https://example.com/image.jpg"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleMainImageChange}
+                  className="w-full border rounded-xl px-3 py-2 text-xs outline-none focus:border-black bg-white transition mb-1 cursor-pointer"
                 />
+                <input
+                type="text"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                className="w-full border rounded-xl px-3 py-2 text-xs outline-none focus:border-black transition text-gray-500"
+                placeholder="או הדבק קישור לתמונה כאן..."
+              />
+              {uploading && <span className="text-xs text-blue-600 font-bold">מעלה תמונה... ⏳</span>}
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">קטגוריה</label>
@@ -305,20 +371,26 @@ export default function AdminProductsPage() {
               />
             </div>
 
-            {/* בחירת תמונה לכל צבע שהוזן */}
+            {/* בחירת קובץ או קישור תמונה לכל צבע */}
             {colorList.length > 0 && (
               <div className="bg-gray-50 p-4 rounded-2xl space-y-3 border">
                 <span className="text-xs font-black text-gray-700 block">תמונות לפי צבע:</span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {colorList.map((color) => (
-                    <div key={color} className="space-y-1">
-                      <label className="block text-xs text-gray-600 font-bold">קישור תמונה עבור צבע: {color}</label>
+                    <div key={color} className="space-y-1.5 bg-white p-3 rounded-xl border">
+                      <label className="block text-xs text-gray-800 font-bold">צבע: {color}</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleColorImageFileChange(color, e)}
+                        className="w-full border rounded-lg px-2 py-1 text-xs outline-none bg-white cursor-pointer mb-1"
+                      />
                       <input
                         type="text"
                         value={colorImages[color] || ''}
-                        onChange={(e) => handleColorImageChange(color, e.target.value)}
-                        className="w-full border rounded-xl px-3 py-2 text-xs outline-none focus:border-black bg-white transition"
-                        placeholder={`קישור תמונה ל-${color}`}
+                        onChange={(e) => handleColorImageTextChange(color, e.target.value)}
+                        className="w-full border rounded-lg px-2 py-1 text-xs outline-none text-gray-500"
+                        placeholder={`או הדבק קישור תמונה ל-${color}`}
                       />
                     </div>
                   ))}
@@ -381,9 +453,10 @@ export default function AdminProductsPage() {
               </button>
               <button
                 type="submit"
-                className="bg-black text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-gray-800 transition cursor-pointer shadow-sm"
+                disabled={uploading}
+                className="bg-black text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-gray-800 transition cursor-pointer shadow-sm disabled:opacity-50"
               >
-                {editingId ? 'שמור שינויים' : 'הוסף מוצר לחנות'}
+                {uploading ? 'מעלה קבצים...' : editingId ? 'שמור שינויים' : 'הוסף מוצר לחנות'}
               </button>
             </div>
           </form>
