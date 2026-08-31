@@ -4,8 +4,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { supabase } from '../../lib/supabase';
 
-
-
 export default function StoreHeader() {
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -35,18 +33,20 @@ export default function StoreHeader() {
   return (
     <header className="bg-white border-b sticky top-0 z-50 px-4 py-3" dir="rtl">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {/* לוגו / כותרת החנות */}
-        <Link href="/" className="font-black text-lg text-gray-900 flex items-center gap-2">
-          📱 חנות הסלולר
+        {/* לוגו ושם החנות החדש */}
+        <Link href="/" className="flex items-center gap-3">
+          <img src="/logo.png" alt="NEW PHONE" className="w-10 h-10 object-contain rounded-full shadow-xs" />
+          <div className="flex flex-col">
+            <span className="font-black text-base text-gray-900 tracking-wider">NEW PHONE</span>
+            <span className="text-[10px] text-gray-500 font-bold">הפלאפון החדש שלי</span>
+          </div>
         </Link>
 
         <div className="flex items-center gap-3 relative" ref={dropdownRef}>
-          {/* כפתור פאנל ניהול */}
           <Link href="/admin/products" className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3.5 py-2 rounded-2xl text-xs font-bold transition flex items-center gap-1.5">
             ⚙️ פאנל ניהול
           </Link>
 
-          {/* כפתור פרופיל / תפריט משתמש */}
           <button 
             onClick={() => setIsOpen(!isOpen)}
             className="w-10 h-10 rounded-full bg-gray-100 border flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-black transition cursor-pointer"
@@ -58,7 +58,6 @@ export default function StoreHeader() {
             )}
           </button>
 
-          {/* תפריט נפתח (Dropdown) מסודר עם dir="rtl" מלא */}
           {isOpen && (
             <div className="absolute left-0 top-12 w-80 bg-white border rounded-3xl shadow-xl p-4 space-y-3 z-50 text-right" dir="rtl">
               <div className="border-b pb-2 text-xs font-bold text-gray-600 truncate px-1">
