@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { supabase } from './lib/supabase';
+import { supabase } from '../lib/supabase';
 import Link from 'next/link';
 
 export default function HomePage() {
@@ -42,7 +42,6 @@ export default function HomePage() {
           <p className="text-gray-500 font-medium">אין מוצרים זמינים בחנות כרגע.</p>
         </div>
       ) : (
-        /* פריסה של 2 מוצרים בשורה בדיוק כפי שביקשת */
         <div className="grid grid-cols-2 gap-3 sm:gap-6">
           {products.map((product) => (
             <div key={product.id} className="bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md transition p-3 sm:p-4">
