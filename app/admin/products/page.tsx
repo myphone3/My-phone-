@@ -52,27 +52,14 @@ export default function AdminProductsPage() {
     if (kosherRes.data) setKosherList(kosherRes.data);
     if (verRes.data) setVersionsList(verRes.data);
 
-    // שליפה ישירה של כל הקבצים מתוך אחסון ה-Storage של Supabase
+    // שליפה ישירה מתיקיית product-images ב-Supabase Storage
     let allMedia: any[] = [];
-    
-    const { data: imgFiles } = await supabase.storage.from('images').list();
-    if (imgFiles) {
-      for (const file of imgFiles) {
+    const { data: files } = await supabase.storage.from('product-images').list();
+    if (files) {
+      for (const file of files) {
         if (file.name && file.name !== '.emptyFolderPlaceholder') {
-          const { data: pub } = supabase.storage.from('images').getPublicUrl(file.name);
+          const { data: pub } = supabase.storage.from('product-images').getPublicUrl(file.name);
           if (pub?.publicUrl) allMedia.push({ id: file.id || file.name, url: pub.publicUrl });
-        }
-      }
-    }
-
-    const { data: prodFiles } = await supabase.storage.from('products').list();
-    if (prodFiles) {
-      for (const file of prodFiles) {
-        if (file.name && file.name !== '.emptyFolderPlaceholder') {
-          const { data: pub } = supabase.storage.from('products').getPublicUrl(file.name);
-          if (pub?.publicUrl && !allMedia.some(m => m.url === pub.publicUrl)) {
-            allMedia.push({ id: file.id || file.name, url: pub.publicUrl });
-          }
         }
       }
     }
@@ -131,19 +118,14 @@ export default function AdminProductsPage() {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       
-      let { error: uploadError } = await supabase.storage.from('images').upload(fileName, file);
-      let bucket = 'images';
+      const { error: uploadError } = await supabase.storage.from('product-images').upload(fileName, file);
       if (uploadError) {
-        const { error: err2 } = await supabase.storage.from('products').upload(fileName, file);
-        if (err2) {
-          alert('שגיאה בהעלאת קובץ: ' + err2.message);
-          setUploading(false);
-          return null;
-        }
-        bucket = 'products';
+        alert('שגיאה בהעלאת קובץ: ' + uploadError.message);
+        setUploading(false);
+        return null;
       }
 
-      const { data } = supabase.storage.from(bucket).getPublicUrl(fileName);
+      const { data } = supabase.storage.from('product-images').getPublicUrl(fileName);
       setUploading(false);
       return data.publicUrl;
     } catch (err) {
@@ -158,7 +140,7 @@ export default function AdminProductsPage() {
     const url = await uploadFile(file);
     if (url) {
       setImages((prev) => [...prev, url]);
-      fetchData(); // רענון ספריית המדיה אוטומטית
+      fetchData();
     }
   };
 
