@@ -57,8 +57,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-gray-50 min-h-screen text-gray-900">
         <header className="bg-white border-b sticky top-0 z-40 shadow-xs">
           <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+            {/* הלוגו המוגדל ככפתור הבית */}
             <Link href="/" className="flex items-center cursor-pointer group">
-              <img src="/logo.PNG" alt="NEW PHONE" className="h-11 w-auto object-contain group-hover:scale-105 transition" />
+              <img src="/logo.PNG" alt="NEW PHONE" className="h-14 w-auto sm:h-16 object-contain group-hover:scale-105 transition" />
             </Link>
 
             <div className="flex items-center gap-2 sm:gap-3">
