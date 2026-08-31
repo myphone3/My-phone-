@@ -1,136 +1,99 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { supabase } from '../lib/supabase';
 
 export default function StoreHeader() {
+  const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // בדיקת משתמש מחובר בטעינה
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user || null);
-      if (session?.user) {
-        fetchNotifications(session.user.id);
-      }
-    };
-    checkUser();
-
-    // האזנה לשינויים במצב ההתחברות (התחברות / התנתקות)
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user || null);
-      if (session?.user) {
-        fetchNotifications(session.user.id);
-      } else {
-        setNotifications([]);
-      }
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user);
     });
 
-    return () => {
-      authListener.subscription.unsubscribe();
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
     };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // שליפת התראות המיועדות ספציפית למשתמש זה או התראות כלליות לכלל הלקוחות (user_id IS NULL)
-  const fetchNotifications = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .or(`user_id.eq.${userId},user_id.is.null`)
-      .order('created_at', { ascending: false });
-    
-    if (data) {
-      setNotifications(data);
-    }
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setIsOpen(false);
+    window.location.reload();
   };
 
   return (
-    <header className="bg-white border-b sticky top-0 z-40 shadow-sm" dir="rtl">
-      <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
-        {/* לוגו החנות */}
-        <Link href="/" className="text-xl font-black text-gray-900 tracking-tight">
+    <header className="bg-white border-b sticky top-0 z-50 px-4 py-3" dir="rtl">
+      <div className="max-w-7xl mx-auto flex items-center justify-between">
+        {/* לוגו / כותרת החנות */}
+        <Link href="/" className="font-black text-lg text-gray-900 flex items-center gap-2">
           📱 חנות הסלולר
         </Link>
 
-        {/* אזור פעולות מצד שמאל */}
-        <div className="flex items-center gap-4">
-          {user ? (
-            <div className="flex items-center gap-3">
-              {/* כפתור פעמון ההתראות */}
-              <button 
-                onClick={() => setShowNotificationsModal(true)}
-                className="relative p-2.5 bg-gray-100 hover:bg-gray-200 rounded-2xl text-sm transition flex items-center justify-center cursor-pointer"
-                title="התראות ומבצעים"
-              >
-                🔔
-                {notifications.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-600 text-white w-5 h-5 rounded-full text-[10px] flex items-center justify-center font-bold shadow-sm">
-                    {notifications.length}
-                  </span>
-                )}
-              </button>
+        <div className="flex items-center gap-3 relative" ref={dropdownRef}>
+          {/* כפתור פאנל ניהול */}
+          <Link href="/admin/products" className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3.5 py-2 rounded-2xl text-xs font-bold transition flex items-center gap-1.5">
+            ⚙️ פאנל ניהול
+          </Link>
 
-              <span className="text-xs font-bold text-gray-700 hidden sm:inline">
-                {user.email}
-              </span>
+          {/* כפתור פרופיל / תפריט משתמש */}
+          <button 
+            onClick={() => setIsOpen(!isOpen)}
+            className="w-10 h-10 rounded-full bg-gray-100 border flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-black transition cursor-pointer"
+          >
+            {user?.user_metadata?.avatar_url ? (
+              <img src={user.user_metadata.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-sm">👤</span>
+            )}
+          </button>
 
-              <button 
-                onClick={() => supabase.auth.signOut()}
-                className="text-xs font-bold text-red-600 hover:bg-red-50 px-3 py-2 rounded-xl transition cursor-pointer"
-              >
-                התנתק 🚪
-              </button>
+          {/* תפריט נפתח (Dropdown) מסודר עם dir="rtl" מלא */}
+          {isOpen && (
+            <div className="absolute left-0 top-12 w-80 bg-white border rounded-3xl shadow-xl p-4 space-y-3 z-50 text-right" dir="rtl">
+              <div className="border-b pb-2 text-xs font-bold text-gray-600 truncate px-1">
+                {user?.email ? user.email : 'משתמש מחובר'}
+              </div>
+
+              <div className="space-y-1 text-xs font-medium text-gray-800">
+                <div className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded-xl transition">
+                  <span>🔔</span>
+                  <span>הזמנה שלך נקלטה בהצלחה!</span>
+                </div>
+                <div className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded-xl transition">
+                  <span>🔥</span>
+                  <span>מוצרים חדשים הגיעו לחנות</span>
+                </div>
+              </div>
+
+              {user ? (
+                <button
+                  onClick={handleLogout}
+                  className="w-full mt-2 bg-red-50 text-red-600 hover:bg-red-100 py-2.5 rounded-2xl text-xs font-bold transition cursor-pointer"
+                >
+                  התנתק מהמערכת 🚪
+                </button>
+              ) : (
+                <Link
+                  href="/login"
+                  onClick={() => setIsOpen(false)}
+                  className="block text-center w-full mt-2 bg-black text-white hover:bg-gray-800 py-2.5 rounded-2xl text-xs font-bold transition"
+                >
+                  התחברות / הרשמה
+                </Link>
+              )}
             </div>
-          ) : (
-            <Link 
-              href="/login" 
-              className="bg-black text-white px-5 py-2.5 rounded-2xl text-xs font-bold hover:bg-gray-800 transition shadow-sm"
-            >
-              התחברות / הרשמה 👤
-            </Link>
           )}
         </div>
       </div>
-
-      {/* מודל פופ-אפ להצגת ההתראות והמבצעים */}
-      {showNotificationsModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b pb-3">
-              <h3 className="text-lg font-black text-gray-900">התראות ומבצעים אישיים 🔔</h3>
-              <button 
-                onClick={() => setShowNotificationsModal(false)} 
-                className="text-gray-400 hover:text-black font-bold text-lg w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            {notifications.length === 0 ? (
-              <div className="text-center py-12 space-y-2">
-                <span className="text-3xl">📭</span>
-                <p className="text-gray-500 text-sm font-medium">אין התראות חדשות כרגע.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {notifications.map((n) => (
-                  <div key={n.id} className="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-1 hover:bg-gray-100/60 transition">
-                    <h4 className="font-bold text-sm text-gray-900">{n.title}</h4>
-                    <p className="text-xs text-gray-600 leading-relaxed">{n.message}</p>
-                    <span className="text-[10px] text-gray-400 block pt-1">
-                      {new Date(n.created_at).toLocaleDateString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </header>
   );
 }
