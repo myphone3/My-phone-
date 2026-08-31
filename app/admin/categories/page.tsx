@@ -1,144 +1,115 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../../../lib/supabase';
 
-export default function AdminCategories() {
+export default function AdminCategoriesPage() {
   const [categories, setCategories] = useState<any[]>([]);
+  const [mediaList, setMediaList] = useState<any[]>([]);
   const [name, setName] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [mediaModalOpen, setMediaModalOpen] = useState(false);
 
   useEffect(() => {
-    fetchCategories();
+    fetchData();
   }, []);
 
-  const fetchCategories = async () => {
-    const { data } = await supabase.from('categories').select('*').order('created_at', { ascending: false });
-    if (data) setCategories(data);
-  };
+  const fetchData = async () => {
+    const { data: catData } = await supabase.from('categories').select('*');
+    if (catData) setCategories(catData);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      setUploading(true);
-      const fileExt = file.name.split('.').pop();
-      const fileName = `cat_${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage.from('product-images').upload(fileName, file);
-      if (uploadError) throw uploadError;
-
-      const { data: pubData } = supabase.storage.from('product-images').getPublicUrl(fileName);
-      if (pubData) setImageUrl(pubData.publicUrl);
-    } catch (err: any) {
-      alert('שגיאה בהעלאת התמונה: ' + err.message);
-    } finally {
-      setUploading(false);
+    let allMedia: any[] = [];
+    const { data: files } = await supabase.storage.from('product-images').list();
+    if (files) {
+      for (const file of files) {
+        if (file.name && file.name !== '.emptyFolderPlaceholder') {
+          const { data: pub } = supabase.storage.from('product-images').getPublicUrl(file.name);
+          if (pub?.publicUrl) allMedia.push({ id: file.id || file.name, url: pub.publicUrl });
+        }
+      }
     }
+    setMediaList(allMedia);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
-    setLoading(true);
+    if (!name) return;
 
     if (editingId) {
-      const { error } = await supabase.from('categories').update({ name, image_url: imageUrl }).eq('id', editingId);
-      if (error) alert('שגיאה בעדכון: ' + error.message);
-      else {
-        alert('הקטגוריה עודכנה בהצלחה! 🎉');
-        resetForm();
-        fetchCategories();
-      }
+      await supabase.from('categories').update({ name, image_url: imageUrl }).eq('id', editingId);
     } else {
-      const { error } = await supabase.from('categories').insert([{ name, image_url: imageUrl }]);
-      if (error) alert('שגיאה: ' + error.message);
-      else {
-        alert('הקטגוריה נוספה בהצלחה! 🚀');
-        resetForm();
-        fetchCategories();
-      }
+      await supabase.from('categories').insert([{ name, image_url: imageUrl }]);
     }
-    setLoading(false);
-  };
-
-  const handleEdit = (c: any) => {
-    setEditingId(c.id);
-    setName(c.name || '');
-    setImageUrl(c.image_url || '');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setName('');
+    setImageUrl('');
+    setEditingId(null);
+    fetchData();
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('האם למחוק קטגוריה זו?')) return;
-    const { error } = await supabase.from('categories').delete().eq('id', id);
-    if (error) alert('שגיאה במחיקה: ' + error.message);
-    else fetchCategories();
-  };
-
-  const resetForm = () => {
-    setEditingId(null);
-    setName('');
-    setImageUrl('');
+    if (!confirm('למחוק קטגוריה זו?')) return;
+    await supabase.from('categories').delete().eq('id', id);
+    fetchData();
   };
 
   return (
-    <div className="space-y-6" dir="rtl">
-      <h1 className="text-2xl font-bold text-gray-900">ניהול קטגוריות</h1>
+    <div className="max-w-4xl mx-auto p-6 space-y-6" dir="rtl">
+      <h2 className="text-2xl font-black">ניהול קטגוריות 🗂️</h2>
 
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
-        <h2 className="text-lg font-bold text-gray-800 border-b pb-2">
-          {editingId ? 'עריכת קטגוריה ✏️' : 'הוספת קטגוריה חדשה ➕'}
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">שם הקטגוריה</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="למשל: סמארטפונים..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" required />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">תמונה / אייקון</label>
-            <input type="file" accept="image/*" onChange={handleFileUpload} className="w-full border rounded-xl p-2.5 text-sm bg-gray-50 cursor-pointer" />
-            {uploading && <p className="text-xs text-blue-600 mt-1">מעלה...</p>}
-            {imageUrl && (
-              <div className="mt-2 flex items-center gap-3">
-                <img src={imageUrl} alt="" className="w-12 h-12 object-cover rounded-lg border" />
-                <span className="text-xs text-green-600 font-semibold">תמונה נבחרה ✓</span>
-              </div>
-            )}
-          </div>
+      <form onSubmit={handleSave} className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
+        <div>
+          <label className="block text-xs font-bold text-gray-700 mb-1">שם הקטגוריה</label>
+          <input type="text" value={name} onChange={(e) => setName(e.target.value)} required className="w-full border rounded-xl px-4 py-2 text-sm outline-none" />
         </div>
-        <div className="flex gap-2">
-          <button type="submit" disabled={loading || uploading} className="bg-black text-white px-6 py-3 rounded-xl font-bold hover:bg-gray-800 transition shadow-md">
-            {editingId ? 'עדכן קטגוריה 💾' : 'הוסף קטגוריה 🚀'}
-          </button>
-          {editingId && (
-            <button type="button" onClick={resetForm} className="bg-gray-200 text-gray-800 px-6 py-3 rounded-xl font-bold">ביטול ❌</button>
-          )}
+
+        <div>
+          <label className="block text-xs font-bold text-gray-700 mb-1">תמונת קטגוריה</label>
+          <div className="flex gap-3 items-center">
+            <input type="text" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="קישור תמונה או בחר מהמאגר" className="flex-1 border rounded-xl px-4 py-2 text-sm outline-none" />
+            <button type="button" onClick={() => setMediaModalOpen(true)} className="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-xl text-xs font-bold transition">
+              🖼️ בחר ממאגר המדיה
+            </button>
+          </div>
+          {imageUrl && <img src={imageUrl} alt="" className="w-16 h-16 object-cover mt-2 rounded-xl border" />}
         </div>
+
+        <button type="submit" className="bg-black text-white px-6 py-2.5 rounded-xl text-xs font-bold">
+          {editingId ? 'שמור שינויים' : 'הוסף קטגוריה'}
+        </button>
       </form>
 
-      <div className="bg-white p-6 rounded-2xl shadow-sm border space-y-3">
-        <h2 className="text-lg font-bold text-gray-800">קטגוריות קיימות ({categories.length})</h2>
-        <div className="space-y-2">
-          {categories.map((c) => (
-            <div key={c.id} className="flex justify-between items-center p-3.5 bg-gray-50 rounded-xl border">
-              <div className="flex items-center gap-3">
-                {c.image_url ? (
-                  <img src={c.image_url} alt="" className="w-12 h-12 rounded-lg object-cover border bg-white" />
-                ) : (
-                  <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center text-xs">📁</div>
-                )}
-                <span className="font-semibold text-gray-800 text-lg">{c.name}</span>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={() => handleEdit(c)} className="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold">ערוך ✏️</button>
-                <button onClick={() => handleDelete(c.id)} className="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold">מחק 🗑️</button>
-              </div>
+      {mediaModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 space-y-4 max-h-[80vh] overflow-y-auto" dir="rtl">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="font-black text-base">בחר תמונה ממאגר המדיה</h3>
+              <button onClick={() => setMediaModalOpen(false)} className="text-gray-400 hover:text-black font-bold">✕</button>
             </div>
-          ))}
+            <div className="grid grid-cols-4 gap-3">
+              {mediaList.map((m) => (
+                <div key={m.id} onClick={() => { setImageUrl(m.url); setMediaModalOpen(false); }} className="border rounded-2xl p-2 bg-gray-50 h-28 flex items-center justify-center cursor-pointer hover:border-black transition">
+                  <img src={m.url} alt="" className="max-h-full object-contain" />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
+      )}
+
+      <div className="bg-white rounded-3xl border shadow-sm overflow-hidden divide-y">
+        {categories.map((c) => (
+          <div key={c.id} className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {c.image_url && <img src={c.image_url} alt="" className="w-10 h-10 object-cover rounded-lg" />}
+              <span className="font-bold text-sm">{c.name}</span>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => { setEditingId(c.id); setName(c.name); setImageUrl(c.image_url || ''); }} className="bg-gray-100 px-3 py-1.5 rounded-xl text-xs font-bold">עריכה</button>
+              <button onClick={() => handleDelete(c.id)} className="bg-red-50 text-red-600 px-3 py-1.5 rounded-xl text-xs font-bold">מחיקה</button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
