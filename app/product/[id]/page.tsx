@@ -1,4 +1,4 @@
-import { supabase } from '../../../../lib/supabase';
+import { supabase } from '../../../lib/supabase';
 import ProductClientView from './ProductClientView';
 
 export default async function ProductPage({ params }: { params: { id: string } }) {
