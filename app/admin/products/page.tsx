@@ -6,6 +6,7 @@ import { supabase } from '../../../lib/supabase';
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [brandsList, setBrandsList] = useState<any[]>([]);
   const [kosherList, setKosherList] = useState<any[]>([]);
   const [versionsList, setVersionsList] = useState<any[]>([]);
   const [mediaList, setMediaList] = useState<any[]>([]);
@@ -27,12 +28,14 @@ export default function AdminProductsPage() {
   const [description, setDescription] = useState('');
   const [specs, setSpecs] = useState('');
   const [warranty, setWarranty] = useState('');
-  const [version, setVersion] = useState('');
   const [storage, setStorage] = useState('');
   const [stock, setStock] = useState('10');
   const [category, setCategory] = useState('');
+  const [brand, setBrand] = useState('');
   const [kosherStatus, setKosherStatus] = useState('');
+  const [selectedVersions, setSelectedVersions] = useState<string[]>([]);
   const [productColors, setProductColors] = useState<Array<{ name: string; hex: string; image: string }>>([]);
+  const [isPublished, setIsPublished] = useState(true);
 
   useEffect(() => {
     fetchData();
@@ -40,15 +43,17 @@ export default function AdminProductsPage() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [prodRes, catRes, kosherRes, verRes] = await Promise.all([
+    const [prodRes, catRes, brandRes, kosherRes, verRes] = await Promise.all([
       supabase.from('products').select('*').order('created_at', { ascending: false }),
       supabase.from('categories').select('*'),
+      supabase.from('brands').select('*'),
       supabase.from('kosher_options').select('*'),
       supabase.from('versions').select('*'),
     ]);
 
     if (prodRes.data) setProducts(prodRes.data);
     if (catRes.data) setCategories(catRes.data);
+    if (brandRes.data) setBrandsList(brandRes.data);
     if (kosherRes.data) setKosherList(kosherRes.data);
     if (verRes.data) setVersionsList(verRes.data);
 
@@ -78,12 +83,14 @@ export default function AdminProductsPage() {
     setDescription('');
     setSpecs('');
     setWarranty('');
-    setVersion('');
     setStorage('');
     setStock('10');
     setCategory('');
+    setBrand('');
     setKosherStatus('');
+    setSelectedVersions([]);
     setProductColors([]);
+    setIsPublished(true);
     setIsFormOpen(false);
   };
 
@@ -103,12 +110,14 @@ export default function AdminProductsPage() {
     setDescription(p.description || '');
     setSpecs(p.specs || '');
     setWarranty(p.warranty || '');
-    setVersion(p.version || '');
     setStorage(p.storage || '');
     setStock(p.stock !== undefined && p.stock !== null ? p.stock.toString() : '10');
     setCategory(p.category || '');
+    setBrand(p.brand || '');
     setKosherStatus(p.kosher || '');
+    setSelectedVersions(p.product_versions || (p.version ? [p.version] : []));
     setProductColors(p.product_colors || []);
+    setIsPublished(p.is_published !== false);
     setIsFormOpen(true);
   };
 
@@ -141,6 +150,14 @@ export default function AdminProductsPage() {
     if (url) {
       setImages((prev) => [...prev, url]);
       fetchData();
+    }
+  };
+
+  const toggleVersionSelection = (verName: string) => {
+    if (selectedVersions.includes(verName)) {
+      setSelectedVersions(selectedVersions.filter((v) => v !== verName));
+    } else {
+      setSelectedVersions([...selectedVersions, verName]);
     }
   };
 
@@ -197,12 +214,15 @@ export default function AdminProductsPage() {
       description,
       specs,
       warranty,
-      version,
       storage,
       stock: parseInt(stock) || 0,
       category,
+      brand,
       kosher: kosherStatus,
+      product_versions: selectedVersions,
+      version: selectedVersions[0] || '', // לתאימות אחורית
       product_colors: productColors,
+      is_published: isPublished,
     };
 
     if (editingId) {
@@ -228,7 +248,7 @@ export default function AdminProductsPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-black text-gray-900">ניהול מוצרים 📦</h2>
-          <p className="text-gray-500 text-sm mt-1">הוספה מתקדמת הכוללת גלריית תמונות, צבעים פיזיים, כשרות וגירסאות.</p>
+          <p className="text-gray-500 text-sm mt-1">הוספה מתקדמת הכוללת מותגים, בחירת גרסאות מרובות וטיוטות.</p>
         </div>
         {!isFormOpen && (
           <button type="button" onClick={() => { resetForm(); setIsFormOpen(true); }} className="bg-black text-white px-6 py-3 rounded-2xl text-xs font-bold hover:bg-gray-800 transition">
@@ -245,6 +265,23 @@ export default function AdminProductsPage() {
           </div>
 
           <form onSubmit={handleSave} className="space-y-5">
+            {/* סטטוס פרסום / טיוטה */}
+            <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-center justify-between">
+              <div>
+                <span className="font-bold text-sm text-amber-900 block">סטטוס מוצר בחנות</span>
+                <span className="text-xs text-amber-700">מוצר המוגדר כטיוטה לא יוצג ללקוחות באתר החנות.</span>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isPublished}
+                  onChange={(e) => setIsPublished(e.target.checked)}
+                  className="w-5 h-5 rounded accent-black cursor-pointer"
+                />
+                <span className="text-xs font-black text-gray-900">{isPublished ? '🟢 פורסם בחנות' : '📝 שמור כטיוטה (מוסתר)'}</span>
+              </label>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">שם המוצר *</label>
@@ -290,7 +327,7 @@ export default function AdminProductsPage() {
               )}
             </div>
 
-            {/* קטגוריה, כשרות, גרסה */}
+            {/* קטגוריה, מותג, כשרות */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">קטגוריה</label>
@@ -300,24 +337,52 @@ export default function AdminProductsPage() {
                 </select>
               </div>
               <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">מותג (מתוך ניהול מותגים)</label>
+                <select value={brand} onChange={(e) => setBrand(e.target.value)} className="w-full border rounded-xl px-4 py-2.5 text-sm outline-none bg-white">
+                  <option value="">בחר מותג</option>
+                  {brandsList.map((b) => <option key={b.id} value={b.name}>{b.name}</option>)}
+                </select>
+              </div>
+              <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">כשרות (מתוך ניהול כשרויות)</label>
                 <select value={kosherStatus} onChange={(e) => setKosherStatus(e.target.value)} className="w-full border rounded-xl px-4 py-2.5 text-sm outline-none bg-white">
                   <option value="">בחר רמת כשרות</option>
                   {kosherList.map((k) => <option key={k.id} value={k.name}>{k.name}</option>)}
                 </select>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">גרסה (מתוך ניהול גירסאות)</label>
-                <select value={version} onChange={(e) => setVersion(e.target.value)} className="w-full border rounded-xl px-4 py-2.5 text-sm outline-none bg-white">
-                  <option value="">בחר גרסה</option>
-                  {versionsList.map((v) => <option key={v.id} value={v.name}>{v.name}</option>)}
-                </select>
-              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* בחירת גרסאות מרובות למוצר */}
+            <div className="bg-gray-50 p-4 rounded-2xl border space-y-3">
+              <span className="text-xs font-black text-gray-800 block">בחר אילו גרסאות יהיו זמינות לרכישה עבור מוצר זה (הלקוח יבחר מהן בחנות):</span>
+              {versionsList.length === 0 ? (
+                <p className="text-xs text-gray-400">טרם הוגדרו גרסאות בעמוד "ניהול גרסאות".</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {versionsList.map((v) => {
+                    const isSelected = selectedVersions.includes(v.name);
+                    return (
+                      <button
+                        type="button"
+                        key={v.id}
+                        onClick={() => toggleVersionSelection(v.name)}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold transition border ${
+                          isSelected
+                            ? 'bg-black text-white border-black shadow-sm'
+                            : 'bg-white text-gray-700 border-gray-200 hover:border-black'
+                        }`}
+                      >
+                        {isSelected ? '✓ ' : '+ '} {v.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">נפח אחסון</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">נפח אחסון (לדוגמה: 128GB)</label>
                 <input type="text" value={storage} onChange={(e) => setStorage(e.target.value)} className="w-full border rounded-xl px-4 py-2.5 text-sm outline-none" placeholder="128GB" />
               </div>
               <div>
@@ -329,7 +394,7 @@ export default function AdminProductsPage() {
             {/* ניהול צבעים פיזיים ותמונות לצבע */}
             <div className="bg-gray-50 p-4 rounded-2xl border space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-xs font-black text-gray-800">צבעים פיזיים ותמונות מותאמות לצבע:</span>
+                <span className="text-xs font-black text-gray-800">צבעים פיזיים ותמונות מותאמות לצבע (יוצגו ללקוח בחנות):</span>
                 <button type="button" onClick={addColorRow} className="bg-black text-white px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-gray-800 transition">
                   + הוסף צבע
                 </button>
@@ -430,12 +495,17 @@ export default function AdminProductsPage() {
               <div className="flex items-center gap-4">
                 <img src={p.image_url || 'https://via.placeholder.com/60'} alt={p.name} className="w-14 h-14 object-contain rounded-2xl border bg-white" />
                 <div>
-                  <h4 className="font-bold text-sm text-gray-900">{p.name}</h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-bold text-sm text-gray-900">{p.name}</h4>
+                    {p.is_published === false && (
+                      <span className="bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded-full">טיוטה (מוסתר)</span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2 text-xs text-gray-500 mt-1 flex-wrap">
                     <span className="font-black text-black">₪{p.price}</span>
+                    {p.brand && <span className="bg-gray-100 px-2 py-0.5 rounded-md">מותג: {p.brand}</span>}
                     {p.category && <span className="bg-gray-100 px-2 py-0.5 rounded-md">קטגוריה: {p.category}</span>}
                     {p.kosher && <span className="bg-amber-50 text-amber-800 px-2 py-0.5 rounded-md">כשרות: {p.kosher}</span>}
-                    {p.version && <span className="bg-blue-50 text-blue-800 px-2 py-0.5 rounded-md">גרסה: {p.version}</span>}
                   </div>
                 </div>
               </div>
