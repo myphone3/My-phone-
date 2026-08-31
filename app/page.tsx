@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from './lib/supabase';
 import Link from 'next/link';
 
 export default function HomePage() {
@@ -43,35 +43,59 @@ export default function HomePage() {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:gap-6">
-          {products.map((product) => (
-            <div key={product.id} className="bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md transition p-3 sm:p-4">
-              <Link href={`/product/${product.id}`} className="block">
-                {product.image_url ? (
-                  <div className="h-36 sm:h-48 w-full bg-gray-50 overflow-hidden relative rounded-xl sm:rounded-2xl mb-3">
-                    <img src={product.image_url} alt={product.name} className="w-full h-full object-contain hover:scale-105 transition" />
-                  </div>
-                ) : (
-                  <div className="h-36 sm:h-48 w-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs font-bold rounded-xl sm:rounded-2xl mb-3">
-                    אין תמונה
-                  </div>
-                )}
-                <div className="space-y-1">
-                  <h3 className="font-black text-gray-900 text-xs sm:text-base line-clamp-1">{product.name}</h3>
-                  <p className="text-[11px] sm:text-xs text-gray-500 line-clamp-2">{product.short_description || product.description}</p>
-                </div>
-              </Link>
+          {products.map((product) => {
+            const colors = product.product_colors || [];
 
-              <div className="pt-3 sm:pt-4 mt-3 sm:mt-4 border-t flex items-center justify-between gap-2">
-                <span className="text-sm sm:text-lg font-black text-gray-900">₪{product.price}</span>
-                <Link
-                  href={`/product/${product.id}`}
-                  className="bg-black text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-xs font-bold hover:bg-gray-800 transition whitespace-nowrap"
-                >
-                  רק לצפייה
+            return (
+              <div key={product.id} className="bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md transition p-3 sm:p-4">
+                <Link href={`/product/${product.id}`} className="block">
+                  {product.image_url ? (
+                    <div className="h-36 sm:h-48 w-full bg-gray-50 overflow-hidden relative rounded-xl sm:rounded-2xl mb-3">
+                      <img src={product.image_url} alt={product.name} className="w-full h-full object-contain hover:scale-105 transition" />
+                    </div>
+                  ) : (
+                    <div className="h-36 sm:h-48 w-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs font-bold rounded-xl sm:rounded-2xl mb-3">
+                      אין תמונה
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    <h3 className="font-black text-gray-900 text-xs sm:text-base line-clamp-1">{product.name}</h3>
+                    <p className="text-[11px] sm:text-xs text-gray-500 line-clamp-2">{product.short_description || product.description}</p>
+                  </div>
                 </Link>
+
+                <div className="pt-3 sm:pt-4 mt-3 sm:mt-4 border-t flex flex-col gap-2">
+                  {/* הצגת צבעים ליד המחיר */}
+                  {colors.length > 0 && (
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                      {colors.map((col: any, idx: number) => {
+                        const colHex = typeof col === 'object' ? col.hex : '#000000';
+                        const colName = typeof col === 'object' ? col.name : col;
+                        return (
+                          <span
+                            key={idx}
+                            title={colName}
+                            className="w-4 h-4 rounded-full border border-gray-300 shrink-0 shadow-2xs"
+                            style={{ backgroundColor: colHex }}
+                          ></span>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-sm sm:text-lg font-black text-gray-900">₪{product.price}</span>
+                    <Link
+                      href={`/product/${product.id}`}
+                      className="bg-black text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-xs font-bold hover:bg-gray-800 transition whitespace-nowrap"
+                    >
+                      לצפייה
+                    </Link>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
