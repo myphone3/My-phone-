@@ -80,7 +80,6 @@ export default function AdminProductsPage() {
     setName(p.name || '');
     setPrice(p.price?.toString() || '');
     
-    // טיפול בתמונות (תמיכה במערך תמונות או תמונה בודדת ישנה)
     let loadedImages = p.images || [];
     if (loadedImages.length === 0 && p.image_url) {
       loadedImages = [p.image_url];
@@ -97,13 +96,10 @@ export default function AdminProductsPage() {
     setStock(p.stock !== undefined && p.stock !== null ? p.stock.toString() : '10');
     setCategory(p.category || '');
     setKosherStatus(p.kosher || '');
-    
-    // טעינת צבעים מובנים (name, hex, image)
     setProductColors(p.product_colors || []);
     setIsFormOpen(true);
   };
 
-  // העלאת קובץ ל-Supabase Storage
   const uploadFile = async (file: File): Promise<string | null> => {
     try {
       setUploading(true);
@@ -184,7 +180,7 @@ export default function AdminProductsPage() {
     const productData = {
       name,
       price: parseFloat(price),
-      image_url: mainImgUrl, // לתאימות עם חלקי האתר הקיימים
+      image_url: mainImgUrl,
       images: images,
       main_image_index: mainImageIdx,
       short_description: shortDesc,
@@ -225,7 +221,7 @@ export default function AdminProductsPage() {
           <p className="text-gray-500 text-sm mt-1">הוספה מתקדמת הכוללת גלריית תמונות, צבעים פיזיים, כשרות וגירסאות.</p>
         </div>
         {!isFormOpen && (
-          <button onClick={() => { resetForm(); setIsFormOpen(true); }} className="bg-black text-white px-6 py-3 rounded-2xl text-xs font-bold hover:bg-gray-800 transition">
+          <button type="button" onClick={() => { resetForm(); setIsFormOpen(true); }} className="bg-black text-white px-6 py-3 rounded-2xl text-xs font-bold hover:bg-gray-800 transition">
             + הוסף מוצר חדש
           </button>
         )}
@@ -235,7 +231,7 @@ export default function AdminProductsPage() {
         <div className="bg-white rounded-3xl p-6 md:p-8 border shadow-sm space-y-6">
           <div className="flex justify-between items-center border-b pb-4">
             <h3 className="text-lg font-black text-gray-900">{editingId ? 'עריכת מוצר ✏️' : 'הוספת מוצר חדש ➕'}</h3>
-            <button onClick={resetForm} className="text-gray-400 hover:text-black font-bold text-sm">ביטול ✕</button>
+            <button type="button" onClick={resetForm} className="text-gray-400 hover:text-black font-bold text-sm">ביטול ✕</button>
           </div>
 
           <form onSubmit={handleSave} className="space-y-5">
@@ -259,7 +255,7 @@ export default function AdminProductsPage() {
                     + העלה מהמכשיר
                     <input type="file" accept="image/*" onChange={handleAddImageFromFile} className="hidden" />
                   </label>
-                  <button type="type" onClick={() => { setMediaTargetType('main'); setMediaModalOpen(true); }} className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-1.5 rounded-xl text-xs font-bold transition">
+                  <button type="button" onClick={() => { setMediaTargetType('main'); setMediaModalOpen(true); }} className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-1.5 rounded-xl text-xs font-bold transition">
                     📂 בחר מהמדיה
                   </button>
                 </div>
@@ -392,7 +388,7 @@ export default function AdminProductsPage() {
           <div className="bg-white rounded-3xl max-w-3xl w-full p-6 space-y-4 max-h-[80vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b pb-3">
               <h3 className="font-black text-base">בחר תמונה מספריית המדיה</h3>
-              <button onClick={() => setMediaModalOpen(false)} className="text-gray-400 font-bold">✕ סגור</button>
+              <button type="button" onClick={() => setMediaModalOpen(false)} className="text-gray-400 font-bold">✕ סגור</button>
             </div>
             {mediaList.length === 0 ? (
               <p className="text-center py-12 text-gray-400">אין תמונות בספריית המדיה.</p>
@@ -434,8 +430,8 @@ export default function AdminProductsPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => handleEdit(p)} className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1.5 rounded-xl text-xs font-bold transition">ערוך ✏️</button>
-                <button onClick={() => handleDelete(p.id)} className="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-xl text-xs font-bold transition">מחק 🗑️</button>
+                <button type="button" onClick={() => handleEdit(p)} className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1.5 rounded-xl text-xs font-bold transition">ערוך ✏️</button>
+                <button type="button" onClick={() => handleDelete(p.id)} className="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-xl text-xs font-bold transition">מחק 🗑️</button>
               </div>
             </div>
           ))
