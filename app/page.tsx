@@ -68,16 +68,34 @@ export default function HomePage() {
     }
   };
 
+  // הכפלת רשימת המותגים לצורך אנימציית גלילה אינסופית חלקה
+  const scrollingBrands = [...brands, ...brands, ...brands];
+
   return (
     <div className="space-y-10 pb-12" dir="rtl">
       
-      {/* 3. מותגים מעל הבאנרים - תמונות בלבד בלי שם */}
+      <style jsx>{`
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-33.333%); }
+        }
+        .animate-marquee {
+          display: flex;
+          width: max-content;
+          animation: marquee 25s linear infinite;
+        }
+        .animate-marquee:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
+
+      {/* מותגים בצבע מלא גולשים ברציפות */}
       {brands.length > 0 && (
-        <div className="max-w-7xl mx-auto px-4 pt-4">
-          <div className="flex gap-6 items-center justify-center sm:justify-start overflow-x-auto pb-2 scrollbar-none">
-            {brands.map((brand) => (
+        <div className="w-full overflow-hidden bg-gray-50/50 py-4 border-b">
+          <div className="animate-marquee flex items-center gap-12">
+            {scrollingBrands.map((brand, idx) => (
               brand.image_url && (
-                <div key={brand.id} className="w-16 h-12 flex items-center justify-center grayscale hover:grayscale-0 opacity-70 hover:opacity-100 transition cursor-pointer flex-shrink-0">
+                <div key={idx} className="w-24 h-12 flex items-center justify-center flex-shrink-0 opacity-90 hover:opacity-100 transition">
                   <img src={brand.image_url} alt={brand.name} className="max-h-full max-w-full object-contain" />
                 </div>
               )
@@ -86,12 +104,12 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* 4. באנרים רצים מקצה לקצה (ללא רווחים בצדדים) */}
+      {/* באנרים רצים מקצה לקצה */}
       {banners.length > 0 && (
         <div className="relative w-full bg-gradient-to-r from-gray-900 via-purple-950 to-black overflow-hidden shadow-lg text-white py-12 px-6 sm:px-16 transition-all duration-500">
           <div className="max-w-7xl mx-auto space-y-4 relative z-10">
-            <span className="bg-white/20 backdrop-blur-md text-white px-3.5 py-1 rounded-full text-xs font-bold tracking-wide">
-              ⚡ NEW PHONE מבצעים חמים
+            <span className="bg-white/25 backdrop-blur-md text-white px-3.5 py-1 rounded-full text-xs font-bold tracking-wide">
+              NEW PHONE מבצעים חמים ⚡
             </span>
             <h1 className="text-2xl sm:text-4xl font-black leading-tight">
               {banners[currentBanner]?.title}
@@ -123,10 +141,10 @@ export default function HomePage() {
 
       <div className="max-w-7xl mx-auto px-4 space-y-10">
 
-        {/* 2. קטגוריות - תמונות גדולות ושם בלבד, ללא מסגרת */}
+        {/* קטגוריות ללא מסגרת, תמונות גדולות */}
         {categories.length > 0 && (
           <section className="space-y-4">
-            <h2 className="text-lg sm:text-xl font-black text-gray-900">🗂️ קטגוריות מובילות</h2>
+            <h2 className="text-lg sm:text-xl font-black text-gray-900">קטגוריות מובילות</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
               {categories.map((cat) => (
                 <div key={cat.id} className="flex flex-col items-center text-center gap-2 cursor-pointer group">
@@ -144,10 +162,10 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* קטלוג המוצרים המרכזי */}
+        {/* קטלוג מוצרים */}
         <section className="space-y-6 pt-4 border-t">
           <div className="flex justify-between items-center">
-            <h2 className="text-lg sm:text-xl font-black text-gray-900">🛍️ כל המוצרים בחנות</h2>
+            <h2 className="text-lg sm:text-xl font-black text-gray-900">כל המוצרים בחנות</h2>
             <span className="text-xs text-gray-500 font-bold">{products.length} מוצרים זמינים</span>
           </div>
 
