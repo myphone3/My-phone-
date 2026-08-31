@@ -7,7 +7,7 @@ import Link from 'next/link';
 export default function HomePage() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [productImages, setProductImages] = useState<{ [key: string]: string }>({});
+  const [selectedColors, setSelectedColors] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     fetchProducts();
@@ -21,21 +21,16 @@ export default function HomePage() {
       .or('is_published.is.null,is_published.eq.true')
       .order('created_at', { ascending: false });
 
-    if (data) {
-      setProducts(data);
-      // אתחול תמונה ראשית לכל מוצר
-      const initialImages: { [key: string]: string } = {};
-      data.forEach((p) => {
-        initialImages[p.id] = p.image_url || p.images?.[0] || '';
-      });
-      setProductImages(initialImages);
-    }
+    if (data) setProducts(data);
     setLoading(false);
   };
 
-  const handleImageChange = (productId: string, url: string) => {
-    if (!url) return;
-    setProductImages((prev) => ({ ...prev, [productId]: url }));
+  const handleColorClick = (productId: string, colorImg: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (colorImg) {
+      setSelectedColors((prev) => ({ ...prev, [productId]: colorImg }));
+    }
   };
 
   return (
@@ -61,25 +56,31 @@ export default function HomePage() {
             const colors = product.product_colors || [];
             const primaryImg = product.image_url || product.images?.[0] || '';
             const secondaryImg = product.images?.[1] || primaryImg;
-            const currentImg = productImages[product.id] || primaryImg;
+            const activeImage = selectedColors[product.id] || primaryImg;
+            const hasHoverImage = secondaryImg && secondaryImg !== primaryImg && !selectedColors[product.id];
 
             return (
               <div 
                 key={product.id} 
-                className="bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md transition p-3 sm:p-4"
-                onMouseEnter={() => handleImageChange(product.id, secondaryImg)}
-                onMouseLeave={() => handleImageChange(product.id, primaryImg)}
+                className="group bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md transition p-3 sm:p-4"
               >
                 <Link href={`/product/${product.id}`} className="block">
-                  {currentImg ? (
-                    <div className="h-36 sm:h-48 w-full bg-gray-50 overflow-hidden relative rounded-xl sm:rounded-2xl mb-3 flex items-center justify-center">
-                      <img src={currentImg} alt={product.name} className="w-full h-full object-contain hover:scale-105 transition" />
-                    </div>
-                  ) : (
-                    <div className="h-36 sm:h-48 w-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs font-bold rounded-xl sm:rounded-2xl mb-3">
-                      אין תמונה
-                    </div>
-                  )}
+                  <div className="h-36 sm:h-48 w-full bg-gray-50 overflow-hidden relative rounded-xl sm:rounded-2xl mb-3 flex items-center justify-center">
+                    {/* תמונה ראשית / תמונה נבחרת מצבע */}
+                    <img 
+                      src={activeImage} 
+                      alt={product.name} 
+                      className={`w-full h-full object-contain transition duration-300 group-hover:scale-105 ${hasHoverImage ? 'group-hover:opacity-0' : ''}`} 
+                    />
+                    {/* תמונה שנייה מופיעה חלקה בריחוף */}
+                    {hasHoverImage && (
+                      <img 
+                        src={secondaryImg} 
+                        alt={product.name} 
+                        className="absolute inset-0 w-full h-full object-contain opacity-0 group-hover:opacity-100 transition duration-300 group-hover:scale-105" 
+                      />
+                    )}
+                  </div>
                   <div className="space-y-1">
                     <h3 className="font-black text-gray-900 text-xs sm:text-base line-clamp-1">{product.name}</h3>
                     <p className="text-[11px] sm:text-xs text-gray-500 line-clamp-2">{product.short_description || product.description}</p>
@@ -98,11 +99,7 @@ export default function HomePage() {
                           <button
                             key={idx}
                             title={colName}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              if (colImg) handleImageChange(product.id, colImg);
-                            }}
+                            onClick={(e) => handleColorClick(product.id, colImg, e)}
                             className="w-4 h-4 rounded-full border border-gray-300 shrink-0 shadow-2xs cursor-pointer hover:scale-110 transition"
                             style={{ backgroundColor: colHex }}
                           ></button>
