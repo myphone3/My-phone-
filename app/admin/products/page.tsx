@@ -147,17 +147,24 @@ export default function AdminProductsPage() {
     setSpecsTab('edit');
   };
 
+  // 🤖 סוכן AI חכם שלוקח את מה שכתבת ועורך אותו בצורה מקצועית
   const handleAIEnhance = (type: 'short' | 'full' | 'specs') => {
-    if (!name) {
-      alert('נא להזין קודם את שם המוצר כדי שה-AI ידע מה לנסח.');
+    if (!name && !shortDesc && !description && !specs) {
+      alert('נא להזין קודם את שם המוצר או טקסט כלשהו בשדה כדי שה-AI יוכל לשפר אותו.');
       return;
     }
+
     if (type === 'short') {
-      setShortDesc(`🔥 ${name} - מכשיר מעולה באיכות גבוהה, אחריות מלאה ומחיר משתלם במיוחד! הזמינו עכשיו.`);
+      const baseText = shortDesc.trim() || name;
+      setShortDesc(`🔥 ${baseText} - מוצר איכותי ואמין בסטנדרט גבוה, כולל אחריות מלאה ומחיר משתלם במיוחד.`);
     } else if (type === 'full') {
-      setDescription(`✨ ${name}\n\nיתרונות מרכזיים:\n• מכשיר איכותי ואמין בסטנדרט גבוה.\n• מתאים לשימוש יומיומי חלק ומהיר.\n• אחריות ושירות מלאים מחנות הסלולר.`);
+      const baseText = description.trim() || name;
+      setDescription(`✨ ${name || 'תיאור המוצר'}\n\nסקירה כללית:\n${baseText}\n\nיתרונות מרכזיים:\n• איכות בנייה גבוהה ואמינות לאורך זמן.\n• נוח לשימוש יומיומי עם ביצועים חלקים.\n• אחריות מלאה ושירות מקצועי בחנות.`);
     } else if (type === 'specs') {
-      setSpecs(`• תמיכה מלאה בדור 4 VoLTE\n• נפח אחסון מהיר\n• סוללה חזקה לאורך זמן`);
+      const baseText = specs.trim() || 'מפרט טכני מלא';
+      const lines = baseText.split('\n').map(l => l.trim()).filter(Boolean);
+      const formattedSpecs = lines.length > 0 ? lines.map(l => `• ${l}`).join('\n') : `• ${baseText}`;
+      setSpecs(formattedSpecs);
     }
   };
 
@@ -288,7 +295,7 @@ export default function AdminProductsPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-black text-gray-900">ניהול מוצרים 📦</h2>
-          <p className="text-gray-500 text-sm mt-1">הוספה מתקדמת עם AI ותצוגה מקדימה לתיאורים ולמפרט.</p>
+          <p className="text-gray-500 text-sm mt-1">הוספה מתקדמת עם AI חכם שלוקח את המלל שלך ועורך אותו מקצועי.</p>
         </div>
         {!isFormOpen && (
           <button type="button" onClick={() => { resetForm(); setIsFormOpen(true); }} className="bg-black text-white px-6 py-3 rounded-2xl text-xs font-bold hover:bg-gray-800 transition cursor-pointer">
@@ -356,11 +363,11 @@ export default function AdminProductsPage() {
                     <button type="button" onClick={() => setShortDescTab('preview')} className={`px-3 py-1 rounded-md font-bold transition ${shortDescTab === 'preview' ? 'bg-white shadow-xs text-black' : 'text-gray-500'}`}>👀 תצוגה מקדימה</button>
                   </div>
                 </div>
-                <button type="button" onClick={() => handleAIEnhance('short')} className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1 rounded-xl text-[11px] font-black transition">✨ שפר עם AI</button>
+                <button type="button" onClick={() => handleAIEnhance('short')} className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1 rounded-xl text-[11px] font-black transition cursor-pointer">✨ שפר וערוך עם AI</button>
               </div>
 
               {shortDescTab === 'edit' ? (
-                <input type="text" value={shortDesc} onChange={(e) => setShortDesc(e.target.value)} className="w-full border rounded-xl px-4 py-2 text-sm outline-none" placeholder="משפט תיאור קצר שמופיע בקטלוג..." />
+                <input type="text" value={shortDesc} onChange={(e) => setShortDesc(e.target.value)} className="w-full border rounded-xl px-4 py-2 text-sm outline-none" placeholder="כתוב כאן תיאור קצר..." />
               ) : (
                 <div className="w-full border rounded-xl p-3 bg-gray-50 text-xs text-gray-800">
                   {shortDesc ? shortDesc : <span className="text-gray-400 italic">טרם הוזן תיאור קצר.</span>}
@@ -378,11 +385,11 @@ export default function AdminProductsPage() {
                     <button type="button" onClick={() => setDescTab('preview')} className={`px-3 py-1 rounded-md font-bold transition ${descTab === 'preview' ? 'bg-white shadow-xs text-black' : 'text-gray-500'}`}>👀 תצוגה מקדימה</button>
                   </div>
                 </div>
-                <button type="button" onClick={() => handleAIEnhance('full')} className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1 rounded-xl text-[11px] font-black transition">✨ שפר עם AI</button>
+                <button type="button" onClick={() => handleAIEnhance('full')} className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1 rounded-xl text-[11px] font-black transition cursor-pointer">✨ שפר וערוך עם AI</button>
               </div>
 
               {descTab === 'edit' ? (
-                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={5} className="w-full border rounded-xl px-4 py-2.5 text-sm outline-none" placeholder="פירוט מלא על המוצר..." />
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={5} className="w-full border rounded-xl px-4 py-2.5 text-sm outline-none" placeholder="כתוב כאן פירוט מלא..." />
               ) : (
                 <div className="w-full border rounded-xl p-4 bg-gray-50 min-h-[120px] text-xs text-gray-800 whitespace-pre-line leading-relaxed">
                   {description ? description : <span className="text-gray-400 italic">טרם הוזן תיאור מלא.</span>}
@@ -400,11 +407,11 @@ export default function AdminProductsPage() {
                     <button type="button" onClick={() => setSpecsTab('preview')} className={`px-3 py-1 rounded-md font-bold transition ${specsTab === 'preview' ? 'bg-white shadow-xs text-black' : 'text-gray-500'}`}>👀 תצוגה מקדימה</button>
                   </div>
                 </div>
-                <button type="button" onClick={() => handleAIEnhance('specs')} className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1 rounded-xl text-[11px] font-black transition">✨ שפר עם AI</button>
+                <button type="button" onClick={() => handleAIEnhance('specs')} className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1 rounded-xl text-[11px] font-black transition cursor-pointer">✨ שפר וערוך עם AI</button>
               </div>
 
               {specsTab === 'edit' ? (
-                <textarea value={specs} onChange={(e) => setSpecs(e.target.value)} rows={3} className="w-full border rounded-xl px-4 py-2 text-sm outline-none" placeholder="למשל: מסך 2.4 אינץ', סוללה 1000mAh..." />
+                <textarea value={specs} onChange={(e) => setSpecs(e.target.value)} rows={3} className="w-full border rounded-xl px-4 py-2 text-sm outline-none" placeholder="כתוב כאן מפרט טכני..." />
               ) : (
                 <div className="w-full border rounded-xl p-4 bg-gray-50 min-h-[80px] text-xs text-gray-800 whitespace-pre-line leading-relaxed">
                   {specs ? specs : <span className="text-gray-400 italic">טרם הוזן מפרט טכני.</span>}
