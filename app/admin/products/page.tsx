@@ -335,6 +335,37 @@ export default function AdminProductsPage() {
           </form>
         </div>
       )}
+
+      {/* טבלת מוצרים קיימים */}
+      <div className="bg-white rounded-3xl border shadow-sm overflow-hidden">
+        <div className="p-4 border-b font-black text-sm">רשימת מוצרים קיימים ({products.length})</div>
+        <div className="divide-y">
+          {products.map((p) => (
+            <div key={p.id} className="p-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <img src={p.image_url || 'https://via.placeholder.com/150'} alt="" className="w-12 h-12 object-contain rounded-xl bg-gray-50 border p-1" />
+                <div>
+                  <h4 className="font-bold text-sm">{p.name}</h4>
+                  <div className="flex items-center gap-2 text-xs">
+                    {p.sale_price ? (
+                      <>
+                        <span className="font-black text-red-600">₪{p.sale_price}</span>
+                        <span className="text-gray-400 line-through">₪{p.price}</span>
+                      </>
+                    ) : (
+                      <span className="font-black text-gray-900">₪{p.price}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => handleEdit(p)} className="bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-xl text-xs font-bold transition">עריכה</button>
+                <button onClick={() => handleDelete(p.id)} className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-xl text-xs font-bold transition">מחיקה</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
