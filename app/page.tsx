@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { supabase } from '../lib/supabase';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
-export default function HomePage() {
+function StoreContent() {
   const searchParams = useSearchParams();
   const selectedBrand = searchParams.get('brand');
   const selectedCategory = searchParams.get('category');
@@ -73,7 +73,6 @@ export default function HomePage() {
     }
   };
 
-  // סינון מוצרים לפי מותג או קטגוריה שנבחרו
   const filteredProducts = products.filter((p) => {
     if (selectedBrand && p.brand !== selectedBrand) return false;
     if (selectedCategory && p.category !== selectedCategory) return false;
@@ -100,7 +99,6 @@ export default function HomePage() {
         }
       `}</style>
 
-      {/* מותגים צמודים לבאנר עם תנועה רציפה ואפשרות מגע/עצירה */}
       {brands.length > 0 && (
         <div className="w-full overflow-x-auto bg-gray-50/60 py-3 border-b scrollbar-none">
           <div className="animate-marquee flex items-center gap-12 px-4 cursor-grab">
@@ -119,7 +117,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* באנרים רצים מקצה לקצה צמודים למותגים */}
       {banners.length > 0 && (
         <div className="relative w-full bg-gradient-to-r from-gray-900 via-purple-950 to-black overflow-hidden shadow-lg text-white py-12 px-6 sm:px-16 transition-all duration-500">
           <div className="max-w-7xl mx-auto space-y-4 relative z-10">
@@ -156,7 +153,6 @@ export default function HomePage() {
 
       <div className="max-w-7xl mx-auto px-4 space-y-10 pt-10">
 
-        {/* קטגוריות מובילות - לחיצה עליהן מסננת את המוצרים */}
         {categories.length > 0 && (
           <section className="space-y-4">
             <h2 className="text-lg sm:text-xl font-black text-gray-900">קטגוריות מובילות</h2>
@@ -181,7 +177,6 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* קטלוג מוצרים עם חיווי סינון */}
         <section className="space-y-6 pt-4 border-t">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div>
@@ -296,5 +291,13 @@ export default function HomePage() {
 
       </div>
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="text-center py-20 font-bold text-sm text-gray-600">טוען את חנות NEW PHONE...</div>}>
+      <StoreContent />
+    </Suspense>
   );
 }
