@@ -68,43 +68,29 @@ export default function HomePage() {
     }
   };
 
-  // הכפלת רשימת המותגים לצורך אנימציית גלילה אינסופית חלקה
-  const scrollingBrands = [...brands, ...brands, ...brands];
-
   return (
-    <div className="space-y-10 pb-12" dir="rtl">
+    <div className="space-y-0 pb-12" dir="rtl">
       
-      <style jsx>{`
-        @keyframes marquee {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-33.333%); }
-        }
-        .animate-marquee {
-          display: flex;
-          width: max-content;
-          animation: marquee 25s linear infinite;
-        }
-        .animate-marquee:hover {
-          animation-play-state: paused;
-        }
-      `}</style>
-
-      {/* מותגים בצבע מלא גולשים ברציפות */}
+      {/* מותגים צמודים לבאנר, עם גלילת מגע חופשית ימינה ושמאלה */}
       {brands.length > 0 && (
-        <div className="w-full overflow-hidden bg-gray-50/50 py-4 border-b">
-          <div className="animate-marquee flex items-center gap-12">
-            {scrollingBrands.map((brand, idx) => (
+        <div className="w-full overflow-x-auto bg-gray-50/60 py-3 border-b scrollbar-none">
+          <div className="flex items-center gap-8 px-4 w-max mx-auto">
+            {brands.map((brand) => (
               brand.image_url && (
-                <div key={idx} className="w-24 h-12 flex items-center justify-center flex-shrink-0 opacity-90 hover:opacity-100 transition">
+                <Link 
+                  key={brand.id} 
+                  href={`/?brand=${encodeURIComponent(brand.name)}`}
+                  className="w-20 h-10 flex items-center justify-center flex-shrink-0 opacity-80 hover:opacity-100 hover:scale-105 transition cursor-pointer"
+                >
                   <img src={brand.image_url} alt={brand.name} className="max-h-full max-w-full object-contain" />
-                </div>
+                </Link>
               )
             ))}
           </div>
         </div>
       )}
 
-      {/* באנרים רצים מקצה לקצה */}
+      {/* באנרים רצים מקצה לקצה - צמוד לחלוטין למותגים */}
       {banners.length > 0 && (
         <div className="relative w-full bg-gradient-to-r from-gray-900 via-purple-950 to-black overflow-hidden shadow-lg text-white py-12 px-6 sm:px-16 transition-all duration-500">
           <div className="max-w-7xl mx-auto space-y-4 relative z-10">
@@ -139,7 +125,7 @@ export default function HomePage() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 space-y-10">
+      <div className="max-w-7xl mx-auto px-4 space-y-10 pt-10">
 
         {/* קטגוריות ללא מסגרת, תמונות גדולות */}
         {categories.length > 0 && (
