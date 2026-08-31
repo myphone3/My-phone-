@@ -33,11 +33,11 @@ export default function StoreHeader() {
   return (
     <header className="bg-white border-b sticky top-0 z-50 px-4 py-3" dir="rtl">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {/* כפתור הבית עם הלוגו והשם החדש */}
+        {/* כפתור הבית עם הלוגו */}
         <Link href="/" className="flex items-center gap-3 cursor-pointer group">
           <img src="/logo.PNG" alt="NEW PHONE" className="w-10 h-10 object-contain rounded-full shadow-xs group-hover:scale-105 transition" />
           <div className="flex flex-col">
-            <span className="font-black text-base text-gray-900 tracking-wider">NEW PHONE</span>
+            <span className="font-black text-base text-gray-950 tracking-wider">NEW PHONE</span>
             <span className="text-[10px] text-gray-500 font-bold">הפלאפון החדש שלי</span>
           </div>
         </Link>
