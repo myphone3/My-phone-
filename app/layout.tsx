@@ -9,7 +9,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [user, setUser] = useState<any>(null);
 
   // רשימת אימיילים של מנהלים (הכנס כאן את האימייל שלך איתו אתה מתחבר בגוגל)
-  const adminEmails = ['daniel@example.com', 'myphone3@gmail.com']; // עדכן לאימייל שלך
+  const adminEmails = ['daniel@example.com', 'd0587223040@gmail.com']; // עדכן לאימייל שלך
   const isAdmin = user && (adminEmails.includes(user.email) || user.email?.includes('admin'));
 
   useEffect(() => {
