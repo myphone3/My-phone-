@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // רשימת אימיילים של המנהלים במערכת
   const adminEmails = [
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    setDropdownOpen(false);
     window.location.reload();
   };
 
@@ -66,30 +68,44 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 🔔
               </Link>
 
-              {/* הצגת פרופיל משתמש אם מחובר, או כפתור התחברות אם לא */}
+              {/* פרופיל משתמש עם תפריט נפתח בלחיצה */}
               {user ? (
-                <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-2xl shadow-2xs">
-                  {user.user_metadata?.avatar_url ? (
-                    <img
-                      src={user.user_metadata.avatar_url}
-                      alt="Profile"
-                      className="w-7 h-7 rounded-full object-cover border"
-                    />
-                  ) : (
-                    <div className="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center text-xs font-bold">
-                      {user.email?.[0]?.toUpperCase()}
+                <div className="relative">
+                  <button
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                    className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-2xl shadow-2xs hover:bg-gray-100 transition cursor-pointer"
+                  >
+                    {user.user_metadata?.avatar_url ? (
+                      <img
+                        src={user.user_metadata.avatar_url}
+                        alt="Profile"
+                        className="w-7 h-7 rounded-full object-cover border"
+                      />
+                    ) : (
+                      <div className="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center text-xs font-bold">
+                        {user.email?.[0]?.toUpperCase()}
+                      </div>
+                    )}
+                    <span className="text-xs font-bold hidden sm:inline max-w-[100px] truncate">
+                      {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                    </span>
+                  </button>
+
+                  {/* תפריט נפתח (Dropdown) שמופיע רק כשלוחצים על הפרופיל */}
+                  {dropdownOpen && (
+                    <div className="absolute left-0 mt-2 w-48 bg-white border rounded-2xl shadow-lg p-2 z-50 space-y-1">
+                      <div className="px-3 py-2 border-b text-[11px] text-gray-500 truncate">
+                        {user.email}
+                      </div>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-right text-red-600 hover:bg-red-50 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between"
+                      >
+                        <span>התנתקות מהמערכת</span>
+                        <span>🚪</span>
+                      </button>
                     </div>
                   )}
-                  <span className="text-xs font-bold hidden sm:inline max-w-[100px] truncate">
-                    {user.user_metadata?.full_name || user.email?.split('@')[0]}
-                  </span>
-                  <button
-                    onClick={handleLogout}
-                    title="התנתק"
-                    className="text-red-500 hover:text-red-700 text-xs font-bold px-1.5 py-1 transition"
-                  >
-                    יציאה 🚪
-                  </button>
                 </div>
               ) : (
                 <button
