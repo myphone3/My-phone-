@@ -40,19 +40,29 @@ export default function AdminProductsPage() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [prodRes, catRes, kosherRes, verRes, mediaRes] = await Promise.all([
+    const [prodRes, catRes, kosherRes, verRes] = await Promise.all([
       supabase.from('products').select('*').order('created_at', { ascending: false }),
       supabase.from('categories').select('*'),
       supabase.from('kosher').select('*'),
       supabase.from('versions').select('*'),
-      supabase.from('media').select('*').order('created_at', { ascending: false }),
     ]);
 
     if (prodRes.data) setProducts(prodRes.data);
     if (catRes.data) setCategories(catRes.data);
     if (kosherRes.data) setKosherList(kosherRes.data);
     if (verRes.data) setVersionsList(verRes.data);
-    if (mediaRes.data) setMediaList(mediaRes.data);
+
+    // שליפה גמישה של מדיה מכל טבלה אפשרית
+    let mediaData: any[] = [];
+    const m1 = await supabase.from('media').select('*');
+    if (m1.data && m1.data.length > 0) {
+      mediaData = m1.data;
+    } else {
+      const m2 = await supabase.from('images').select('*');
+      if (m2.data) mediaData = m2.data;
+    }
+    setMediaList(mediaData);
+
     setLoading(false);
   };
 
@@ -160,6 +170,7 @@ export default function AdminProductsPage() {
   };
 
   const selectMediaFromLibrary = (url: string) => {
+    if (!url) return;
     if (mediaTargetType === 'main') {
       setImages((prev) => [...prev, url]);
     } else if (mediaTargetType === 'color' && activeColorIndex !== null) {
@@ -394,11 +405,14 @@ export default function AdminProductsPage() {
               <p className="text-center py-12 text-gray-400">אין תמונות בספריית המדיה.</p>
             ) : (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                {mediaList.map((m) => (
-                  <div key={m.id || m.url} onClick={() => selectMediaFromLibrary(m.url || m.image_url)} className="border rounded-2xl p-2 cursor-pointer hover:border-black transition flex flex-col items-center bg-gray-50">
-                    <img src={m.url || m.image_url} alt="media" className="w-24 h-24 object-contain rounded-xl bg-white" />
-                  </div>
-                ))}
+                {mediaList.map((m, idx) => {
+                  const mediaUrl = m.url || m.image_url || m.file_url || m.path || m.src || '';
+                  return (
+                    <div key={m.id || idx} onClick={() => selectMediaFromLibrary(mediaUrl)} className="border rounded-2xl p-2 cursor-pointer hover:border-black transition flex flex-col items-center bg-gray-50">
+                      <img src={mediaUrl} alt="media" className="w-24 h-24 object-contain rounded-xl bg-white" />
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
