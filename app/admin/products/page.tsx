@@ -52,17 +52,32 @@ export default function AdminProductsPage() {
     if (kosherRes.data) setKosherList(kosherRes.data);
     if (verRes.data) setVersionsList(verRes.data);
 
-    // שליפה גמישה של מדיה מכל טבלה אפשרית
-    let mediaData: any[] = [];
-    const m1 = await supabase.from('media').select('*');
-    if (m1.data && m1.data.length > 0) {
-      mediaData = m1.data;
-    } else {
-      const m2 = await supabase.from('images').select('*');
-      if (m2.data) mediaData = m2.data;
+    // שליפה ישירה של כל הקבצים מתוך אחסון ה-Storage של Supabase
+    let allMedia: any[] = [];
+    
+    const { data: imgFiles } = await supabase.storage.from('images').list();
+    if (imgFiles) {
+      for (const file of imgFiles) {
+        if (file.name && file.name !== '.emptyFolderPlaceholder') {
+          const { data: pub } = supabase.storage.from('images').getPublicUrl(file.name);
+          if (pub?.publicUrl) allMedia.push({ id: file.id || file.name, url: pub.publicUrl });
+        }
+      }
     }
-    setMediaList(mediaData);
 
+    const { data: prodFiles } = await supabase.storage.from('products').list();
+    if (prodFiles) {
+      for (const file of prodFiles) {
+        if (file.name && file.name !== '.emptyFolderPlaceholder') {
+          const { data: pub } = supabase.storage.from('products').getPublicUrl(file.name);
+          if (pub?.publicUrl && !allMedia.some(m => m.url === pub.publicUrl)) {
+            allMedia.push({ id: file.id || file.name, url: pub.publicUrl });
+          }
+        }
+      }
+    }
+
+    setMediaList(allMedia);
     setLoading(false);
   };
 
@@ -143,6 +158,7 @@ export default function AdminProductsPage() {
     const url = await uploadFile(file);
     if (url) {
       setImages((prev) => [...prev, url]);
+      fetchData(); // רענון ספריית המדיה אוטומטית
     }
   };
 
@@ -166,6 +182,7 @@ export default function AdminProductsPage() {
     const url = await uploadFile(file);
     if (url) {
       updateColorRow(index, 'image', url);
+      fetchData();
     }
   };
 
@@ -402,17 +419,14 @@ export default function AdminProductsPage() {
               <button type="button" onClick={() => setMediaModalOpen(false)} className="text-gray-400 font-bold">✕ סגור</button>
             </div>
             {mediaList.length === 0 ? (
-              <p className="text-center py-12 text-gray-400">אין תמונות בספריית המדיה.</p>
+              <p className="text-center py-12 text-gray-400">אין תמונות באחסון האתר.</p>
             ) : (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                {mediaList.map((m, idx) => {
-                  const mediaUrl = m.url || m.image_url || m.file_url || m.path || m.src || '';
-                  return (
-                    <div key={m.id || idx} onClick={() => selectMediaFromLibrary(mediaUrl)} className="border rounded-2xl p-2 cursor-pointer hover:border-black transition flex flex-col items-center bg-gray-50">
-                      <img src={mediaUrl} alt="media" className="w-24 h-24 object-contain rounded-xl bg-white" />
-                    </div>
-                  );
-                })}
+                {mediaList.map((m, idx) => (
+                  <div key={m.id || idx} onClick={() => selectMediaFromLibrary(m.url)} className="border rounded-2xl p-2 cursor-pointer hover:border-black transition flex flex-col items-center bg-gray-50">
+                    <img src={m.url} alt="media" className="w-24 h-24 object-contain rounded-xl bg-white" />
+                  </div>
+                ))}
               </div>
             )}
           </div>
