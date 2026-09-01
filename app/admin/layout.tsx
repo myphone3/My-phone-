@@ -10,10 +10,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const navItems = [
     { name: 'ניהול מוצרים 📦', href: '/admin/products' },
     { name: 'ניהול הזמנות 📋', href: '/admin/orders' },
-    { name: 'ניהול באנרים 🖼️', href: '/admin/banners' },
     { name: 'ניהול קטגוריות 📁', href: '/admin/categories' },
     { name: 'ניהול מותגים 🏷️', href: '/admin/brands' },
     { name: 'ניהול כשרות ⭐', href: '/admin/kosher' },
+    { name: 'ניהול באנרים 🖼️', href: '/admin/banners' },
     { name: 'ניהול גירסאות ⚙️', href: '/admin/versions' },
     { name: 'ספריית מדיה 🖼️', href: '/admin/media' },
     { name: 'קופונים 🎟️', href: '/admin/coupons' },
@@ -21,8 +21,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ];
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8" dir="rtl">
-      {/* כותרת עליונה */}
+    <div className="max-w-6xl mx-auto px-4 py-8 space-y-6" dir="rtl">
+      {/* כותרת עליונה ראשית וחזרה לחנות */}
       <div className="flex justify-between items-center border-b pb-4">
         <div>
           <h1 className="text-2xl font-black text-gray-900">פאנל ניהול האתר 🛠️</h1>
@@ -33,8 +33,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </Link>
       </div>
 
-      {/* תפריט ניהול עליון אחיד לכל העמודים */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2">
+      {/* תפריט ניהול עליון אחיד לכל העמודים עם כל האפשרויות */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b pb-4">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -51,7 +51,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         })}
       </div>
 
-      {/* תוכן העמוד הספציפי (מוצרים, הזמנות, באנרים וכו') */}
+      {/* תוכן העמוד הספציפי */}
       <main>{children}</main>
     </div>
   );
