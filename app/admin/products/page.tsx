@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<'products' | 'banners' | 'orders'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'banners' | 'orders' | 'brands' | 'kosher'>('products');
 
   // --- States for Products ---
   const [products, setProducts] = useState<any[]>([]);
@@ -37,7 +37,15 @@ export default function AdminPage() {
   const [bannerSubtitle, setBannerSubtitle] = useState('');
   const [bannerImgUrl, setBannerImgUrl] = useState('');
   const [linkProductId, setLinkProductId] = useState('');
-  const [bannerUploading, setBannerUploading] = useState(false);
+
+  // --- States for Brands & Kosher ---
+  const [brandsList, setBrandsList] = useState<any[]>([]);
+  const [brandName, setBrandName] = useState('');
+  const [brandImgUrl, setBrandImgUrl] = useState('');
+
+  const [kosherList, setKosherList] = useState<any[]>([]);
+  const [kosherName, setKosherName] = useState('');
+  const [kosherImgUrl, setKosherImgUrl] = useState('');
 
   // --- States for Orders ---
   const [orders, setOrders] = useState<any[]>([]);
@@ -48,16 +56,20 @@ export default function AdminPage() {
 
   const fetchAllData = async () => {
     setLoading(true);
-    const [prodRes, bannerRes, orderRes, storageRes] = await Promise.all([
+    const [prodRes, bannerRes, orderRes, brandRes, kosherRes, storageRes] = await Promise.all([
       supabase.from('products').select('*').order('created_at', { ascending: false }),
       supabase.from('banners').select('*').order('created_at', { ascending: false }),
       supabase.from('orders').select('*').order('created_at', { ascending: false }),
+      supabase.from('brands').select('*'),
+      supabase.from('kosher_types').select('*'),
       supabase.storage.from('products').list('', { limit: 100 })
     ]);
 
     if (prodRes.data) setProducts(prodRes.data);
     if (bannerRes.data) setBanners(bannerRes.data);
     if (orderRes.data) setOrders(orderRes.data);
+    if (brandRes.data) setBrandsList(brandRes.data);
+    if (kosherRes.data) setKosherList(kosherRes.data);
     if (storageRes.data) {
       const files = storageRes.data.map((f: any) => {
         const { data } = supabase.storage.from('products').getPublicUrl(f.name);
@@ -68,14 +80,14 @@ export default function AdminPage() {
     setLoading(false);
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, setter: (url: string) => void) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}.${fileExt}`;
-    const filePath = `products/${fileName}`;
+    const filePath = `media/${fileName}`;
 
     const { error } = await supabase.storage.from('products').upload(filePath, file);
     if (error) {
@@ -85,8 +97,7 @@ export default function AdminPage() {
     }
 
     const { data } = supabase.storage.from('products').getPublicUrl(filePath);
-    setImageUrl(data.publicUrl);
-    setImages((prev) => [...prev, data.publicUrl]);
+    setter(data.publicUrl);
     setUploading(false);
     fetchAllData();
   };
@@ -191,43 +202,38 @@ export default function AdminPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-8" dir="rtl">
       
-      {/* כותרת ראשית עליונה בלבד (ללא כפילויות) */}
       <div className="flex justify-between items-center border-b pb-4">
         <div>
           <h1 className="text-2xl font-black text-gray-900">פאנל ניהול האתר 🛠️</h1>
-          <p className="text-xs text-gray-500 font-medium">ניהול מוצרים, באנרים והזמנות לקוחות.</p>
+          <p className="text-xs text-gray-500 font-medium">ניהול מוצרים, באנרים, הזמנות, מותגים וכשרויות.</p>
         </div>
         <Link href="/" className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-xl text-xs font-bold transition">
           חזרה לחנות ➔
         </Link>
       </div>
 
-      {/* טאבים ראשיים לניווט */}
-      <div className="flex items-center gap-3 overflow-x-auto pb-2">
-        <button
-          onClick={() => setActiveTab('products')}
-          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition cursor-pointer shrink-0 ${activeTab === 'products' ? 'bg-orange-600 text-white shadow-sm' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'}`}
-        >
+      {/* טאבים ראשיים בשורה אחת */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2">
+        <button onClick={() => setActiveTab('products')} className={`px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${activeTab === 'products' ? 'bg-orange-600 text-white' : 'bg-gray-100 text-gray-800'}`}>
           📦 ניהול מוצרים
         </button>
-        <button
-          onClick={() => setActiveTab('banners')}
-          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition cursor-pointer shrink-0 ${activeTab === 'banners' ? 'bg-orange-600 text-white shadow-sm' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'}`}
-        >
+        <button onClick={() => setActiveTab('banners')} className={`px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${activeTab === 'banners' ? 'bg-orange-600 text-white' : 'bg-gray-100 text-gray-800'}`}>
           🖼️ ניהול באנרים
         </button>
-        <button
-          onClick={() => setActiveTab('orders')}
-          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition cursor-pointer shrink-0 relative ${activeTab === 'orders' ? 'bg-orange-600 text-white shadow-sm' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'}`}
-        >
+        <button onClick={() => setActiveTab('orders')} className={`px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 relative cursor-pointer ${activeTab === 'orders' ? 'bg-orange-600 text-white' : 'bg-gray-100 text-gray-800'}`}>
           📋 ניהול הזמנות ({orders.length})
+        </button>
+        <button onClick={() => setActiveTab('brands')} className={`px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${activeTab === 'brands' ? 'bg-orange-600 text-white' : 'bg-gray-100 text-gray-800'}`}>
+          🏷️ ניהול מותגים
+        </button>
+        <button onClick={() => setActiveTab('kosher')} className={`px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${activeTab === 'kosher' ? 'bg-orange-600 text-white' : 'bg-gray-100 text-gray-800'}`}>
+          🛡️ ניהול כשרויות
         </button>
       </div>
 
       {loading ? (
         <div className="text-center py-20 text-gray-500 font-medium">טוען נתונים...</div>
       ) : activeTab === 'products' ? (
-        /* ================= טאב ניהול מוצרים ================= */
         <div className="space-y-8">
           <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-6">
             <h2 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">
@@ -256,8 +262,8 @@ export default function AdminPage() {
                   <input type="text" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="כגון: מכשירים כשרים" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">מותג</label>
-                  <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="כגון: Xiaomi" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
+                  <label className="block text-xs font-bold text-gray-700 mb-1">תמונת מותג (URL או בחירה)</label>
+                  <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="קישור לתמונת מותג או שם" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
                 </div>
               </div>
 
@@ -267,19 +273,19 @@ export default function AdminPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">תמונת מוצר (העלאה או בחירה מתוך המדיה הקיימת)</label>
-                <input type="file" accept="image/*" onChange={handleImageUpload} className="w-full bg-gray-50 border rounded-xl p-2 text-xs mb-2 cursor-pointer" />
+                <label className="block text-xs font-bold text-gray-700 mb-1">תמונת מוצר (העלאה או בחירה מתוך המדיה)</label>
+                <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (url) => { setImageUrl(url); setImages(prev => [...prev, url]); })} className="w-full bg-gray-50 border rounded-xl p-2 text-xs mb-2 cursor-pointer" />
                 {uploading && <p className="text-[11px] text-orange-600">מעלה...</p>}
 
                 {storageFiles.length > 0 && (
-                  <div className="mt-2">
-                    <span className="text-[11px] font-bold text-gray-600 block mb-1">או בחר מהמדיה הקיימת באחסון:</span>
+                  <div>
+                    <span className="text-[11px] font-bold text-gray-600 block mb-1">בחר מהמדיה הקיימת באחסון:</span>
                     <div className="flex gap-2 overflow-x-auto pb-2">
                       {storageFiles.map((url, idx) => (
                         <button
                           key={idx}
                           type="button"
-                          onClick={() => { setImageUrl(url); setImages((prev) => [...prev, url]); }}
+                          onClick={() => { setImageUrl(url); setImages(prev => [...prev, url]); }}
                           className={`w-12 h-12 rounded-lg border overflow-hidden shrink-0 transition cursor-pointer ${imageUrl === url ? 'border-orange-600 ring-2 ring-orange-600/30' : 'border-gray-200'}`}
                         >
                           <img src={url} alt="" className="w-full h-full object-cover" />
@@ -292,23 +298,12 @@ export default function AdminPage() {
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">תיאור קצר</label>
-                <input type="text" value={shortDesc} onChange={(e) => setShortDesc(e.target.value)} placeholder="משפט סיכום קצר על המוצר..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
+                <input type="text" value={shortDesc} onChange={(e) => setShortDesc(e.target.value)} placeholder="משפט סיכום קצר..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">תיאור מלא</label>
                 <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="תיאור מפורט..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"></textarea>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">SEO Title (כותרת בגוגל)</label>
-                  <input type="text" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} placeholder="כותרת SEO..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">SEO Description (תיאור בגוגל)</label>
-                  <input type="text" value={seoDesc} onChange={(e) => setSeoDesc(e.target.value)} placeholder="תיאור SEO..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
-                </div>
               </div>
 
               <div className="flex gap-3 pt-4">
@@ -346,13 +341,12 @@ export default function AdminPage() {
           </div>
         </div>
       ) : activeTab === 'banners' ? (
-        /* ================= טאב ניהול באנרים ================= */
         <div className="space-y-8">
           <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-6">
             <h2 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">הוספת באנר חדש</h2>
             <form onSubmit={async (e) => {
               e.preventDefault();
-              if (!bannerTitle) return alert('נא להזין כותרת לבאנר');
+              if (!bannerTitle) return alert('נא להזין כותרת');
               await supabase.from('banners').insert([{ title: bannerTitle, subtitle: bannerSubtitle, image_url: bannerImgUrl, link_product_id: linkProductId || null, is_active: true }]);
               setBannerTitle(''); setBannerSubtitle(''); setBannerImgUrl('');
               fetchAllData();
@@ -365,36 +359,19 @@ export default function AdminPage() {
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">תמונת באנר (העלאה או בחירה מהמדיה)</label>
-                <input type="file" accept="image/*" onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  const path = `banners/${Date.now()}.${file.name.split('.').pop()}`;
-                  await supabase.storage.from('products').upload(path, file);
-                  const { data } = supabase.storage.from('products').getPublicUrl(path);
-                  setBannerImgUrl(data.publicUrl);
-                  fetchAllData();
-                }} className="bg-gray-50 border rounded-xl p-2 text-xs w-full mb-2 cursor-pointer" />
-
+                <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, setBannerImgUrl)} className="bg-gray-50 border rounded-xl p-2 text-xs w-full mb-2 cursor-pointer" />
                 {storageFiles.length > 0 && (
-                  <div>
-                    <span className="text-[11px] font-bold text-gray-600 block mb-1">בחר מהמדיה הקיימת באחסון:</span>
-                    <div className="flex gap-2 overflow-x-auto pb-2">
-                      {storageFiles.map((url, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => setBannerImgUrl(url)}
-                          className={`w-12 h-12 rounded-lg border overflow-hidden shrink-0 transition cursor-pointer ${bannerImgUrl === url ? 'border-orange-600 ring-2 ring-orange-600/30' : 'border-gray-200'}`}
-                        >
-                          <img src={url} alt="" className="w-full h-full object-cover" />
-                        </button>
-                      ))}
-                    </div>
+                  <div className="flex gap-2 overflow-x-auto pb-2">
+                    {storageFiles.map((url, idx) => (
+                      <button key={idx} type="button" onClick={() => setBannerImgUrl(url)} className={`w-12 h-12 rounded-lg border overflow-hidden shrink-0 ${bannerImgUrl === url ? 'border-orange-600 ring-2' : 'border-gray-200'}`}>
+                        <img src={url} alt="" className="w-full h-full object-cover" />
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
 
-              <button type="submit" className="bg-black text-white px-6 py-3 rounded-xl text-xs font-bold shadow-sm">+ הוסף באנר</button>
+              <button type="submit" className="bg-black text-white px-6 py-3 rounded-xl text-xs font-bold">+ הוסף באנר</button>
             </form>
           </div>
 
@@ -408,6 +385,88 @@ export default function AdminPage() {
                     <p className="text-xs text-gray-500">{b.subtitle}</p>
                   </div>
                   <button onClick={async () => { await supabase.from('banners').delete().eq('id', b.id); fetchAllData(); }} className="bg-red-50 text-red-600 px-3 py-1.5 rounded-xl text-xs font-bold">מחיקה</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : activeTab === 'brands' ? (
+        <div className="space-y-6">
+          <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
+            <h2 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">ניהול מותגים (בחירת תמונה מהמדיה)</h2>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!brandName) return alert('נא להזין שם מותג');
+              await supabase.from('brands').insert([{ name: brandName, image_url: brandImgUrl }]);
+              setBrandName(''); setBrandImgUrl('');
+              fetchAllData();
+              alert('המותג נוסף בהצלחה!');
+            }} className="space-y-4">
+              <input type="text" value={brandName} onChange={(e) => setBrandName(e.target.value)} placeholder="שם המותג (לדוגמה: Xiaomi)" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">תמונת לוגו למותג</label>
+                <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, setBrandImgUrl)} className="w-full bg-gray-50 border rounded-xl p-2 text-xs mb-2 cursor-pointer" />
+                {storageFiles.length > 0 && (
+                  <div className="flex gap-2 overflow-x-auto pb-2">
+                    {storageFiles.map((url, idx) => (
+                      <button key={idx} type="button" onClick={() => setBrandImgUrl(url)} className={`w-12 h-12 rounded-lg border overflow-hidden shrink-0 ${brandImgUrl === url ? 'border-orange-600 ring-2' : 'border-gray-200'}`}>
+                        <img src={url} alt="" className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button type="submit" className="bg-orange-600 text-white px-6 py-3 rounded-xl text-xs font-bold">+ הוסף מותג</button>
+            </form>
+          </div>
+          <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
+            <h2 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">מותגים קיימים</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {brandsList.map((b) => (
+                <div key={b.id} className="border rounded-2xl p-4 flex flex-col items-center justify-center gap-2 bg-gray-50">
+                  {b.image_url ? <img src={b.image_url} alt={b.name} className="h-10 object-contain" /> : <span className="font-bold text-xs">{b.name}</span>}
+                  <button onClick={async () => { await supabase.from('brands').delete().eq('id', b.id); fetchAllData(); }} className="text-red-500 text-xs font-bold">מחיקה</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : activeTab === 'kosher' ? (
+        <div className="space-y-6">
+          <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
+            <h2 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">ניהול כשרויות (בחירת תמונה מהמדיה)</h2>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!kosherName) return alert('נא להזין שם כשרות');
+              await supabase.from('kosher_types').insert([{ name: kosherName, image_url: kosherImgUrl }]);
+              setKosherName(''); setKosherImgUrl('');
+              fetchAllData();
+              alert('הכשרות נוספה בהצלחה!');
+            }} className="space-y-4">
+              <input type="text" value={kosherName} onChange={(e) => setKosherName(e.target.value)} placeholder="שם הכשרות (לדוגמה: בד״צ העדה החרדית)" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">תמונת סמל הכשרות</label>
+                <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, setKosherImgUrl)} className="w-full bg-gray-50 border rounded-xl p-2 text-xs mb-2 cursor-pointer" />
+                {storageFiles.length > 0 && (
+                  <div className="flex gap-2 overflow-x-auto pb-2">
+                    {storageFiles.map((url, idx) => (
+                      <button key={idx} type="button" onClick={() => setKosherImgUrl(url)} className={`w-12 h-12 rounded-lg border overflow-hidden shrink-0 ${kosherImgUrl === url ? 'border-orange-600 ring-2' : 'border-gray-200'}`}>
+                        <img src={url} alt="" className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button type="submit" className="bg-orange-600 text-white px-6 py-3 rounded-xl text-xs font-bold">+ הוסף כשרות</button>
+            </form>
+          </div>
+          <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
+            <h2 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">כשרויות קיימות</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {kosherList.map((k) => (
+                <div key={k.id} className="border rounded-2xl p-4 flex flex-col items-center justify-center gap-2 bg-gray-50">
+                  {k.image_url ? <img src={k.image_url} alt={k.name} className="h-10 object-contain" /> : <span className="font-bold text-xs">{k.name}</span>}
+                  <button onClick={async () => { await supabase.from('kosher_types').delete().eq('id', k.id); fetchAllData(); }} className="text-red-500 text-xs font-bold">מחיקה</button>
                 </div>
               ))}
             </div>
