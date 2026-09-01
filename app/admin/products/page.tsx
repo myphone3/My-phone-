@@ -36,12 +36,6 @@ export default function AdminPage() {
   const [bannerSubtitle, setBannerSubtitle] = useState('');
   const [bannerImgUrl, setBannerImgUrl] = useState('');
   const [linkProductId, setLinkProductId] = useState('');
-  const [bannerActive, setBannerActive] = useState(true);
-  const [bannerUploading, setBannerUploading] = useState(false);
-
-  const [announcementText, setAnnouncementText] = useState('');
-  const [announcementEndTime, setAnnouncementEndTime] = useState('');
-  const [savingSettings, setSavingSettings] = useState(false);
 
   // --- States for Orders ---
   const [orders, setOrders] = useState<any[]>([]);
@@ -52,20 +46,15 @@ export default function AdminPage() {
 
   const fetchAllData = async () => {
     setLoading(true);
-    const [prodRes, bannerRes, settingsRes, orderRes] = await Promise.all([
+    const [prodRes, bannerRes, orderRes] = await Promise.all([
       supabase.from('products').select('*').order('created_at', { ascending: false }),
       supabase.from('banners').select('*').order('created_at', { ascending: false }),
-      supabase.from('settings').select('*').single(),
       supabase.from('orders').select('*').order('created_at', { ascending: false })
     ]);
 
     if (prodRes.data) setProducts(prodRes.data);
     if (bannerRes.data) setBanners(bannerRes.data);
     if (orderRes.data) setOrders(orderRes.data);
-    if (settingsRes.data) {
-      setAnnouncementText(settingsRes.data.announcement_text || '');
-      setAnnouncementEndTime(settingsRes.data.announcement_end_time ? new Date(settingsRes.data.announcement_end_time).toISOString().slice(0, 16) : '');
-    }
     setLoading(false);
   };
 
@@ -189,6 +178,8 @@ export default function AdminPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-8" dir="rtl">
+      
+      {/* כותרת ראשית עליונה וניקוי כפילויות */}
       <div className="flex justify-between items-center border-b pb-4">
         <div>
           <h1 className="text-2xl font-black text-gray-900">פאנל ניהול האתר</h1>
@@ -317,7 +308,7 @@ export default function AdminPage() {
             <form onSubmit={async (e) => {
               e.preventDefault();
               if (!bannerTitle) return alert('נא להזין כותרת');
-              await supabase.from('banners').insert([{ title: bannerTitle, subtitle: bannerSubtitle, image_url: bannerImgUrl, link_product_id: linkProductId || null, is_active: bannerActive }]);
+              await supabase.from('banners').insert([{ title: bannerTitle, subtitle: bannerSubtitle, image_url: bannerImgUrl, link_product_id: linkProductId || null, is_active: true }]);
               setBannerTitle(''); setBannerSubtitle(''); setBannerImgUrl('');
               fetchAllData();
               alert('הבאנר נוסף בהצלחה!');
