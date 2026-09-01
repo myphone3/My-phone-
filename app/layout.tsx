@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
   const [announcement, setAnnouncement] = useState<{ text: string; endTime?: string } | null>({
     text: '🚚 משלוח מהיר עד הבית | מבצעי ענק על מכשירים כשרים וסלולר!',
     endTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
@@ -37,11 +38,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     });
 
     fetchSettings();
+    updateCartCount();
+
+    // האזנה לעדכוני עגלה
+    window.addEventListener('storage', updateCartCount);
+    const interval = setInterval(updateCartCount, 1000);
 
     return () => {
       authListener?.subscription.unsubscribe();
+      window.removeEventListener('storage', updateCartCount);
+      clearInterval(interval);
     };
   }, []);
+
+  const updateCartCount = () => {
+    try {
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      const total = cart.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
+      setCartCount(total);
+    } catch (e) {
+      setCartCount(0);
+    }
+  };
 
   const fetchSettings = async () => {
     try {
@@ -93,6 +111,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="he" dir="rtl">
       <body className="bg-gray-50 min-h-screen text-gray-900">
         
+        {/* פס מבצעים עליון */}
         {announcement && (
           <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white text-[11px] font-bold py-1 px-4 flex items-center justify-between shadow-xs overflow-hidden">
             <div className="truncate flex-1 text-center sm:text-right">
@@ -107,19 +126,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         )}
 
+        {/* תפריט עליון ראשי */}
         <header className="bg-white border-b sticky top-0 z-40 shadow-xs">
           <div className="max-w-7xl mx-auto px-4 h-20 sm:h-24 flex items-center justify-between">
+            {/* לוגו מורחב ומרשים */}
             <Link href="/" className="flex items-center cursor-pointer group py-1">
-              <img src="/Logo.JPG" alt="NEW PHONE" className="h-16 sm:h-20 w-auto object-contain group-hover:scale-105 transition duration-300 drop-shadow-sm" />
+              <img src="/Logo.JPG" alt="NEW PHONE" className="h-16 sm:h-22 w-44 sm:w-60 object-contain group-hover:scale-105 transition duration-300 drop-shadow-sm" />
             </Link>
 
             <div className="flex items-center gap-2 sm:gap-3">
+              {/* כפתור עגלה בעיצוב עדין ויוקרתי */}
               <Link
                 href="/cart"
-                className="relative bg-orange-600 hover:bg-orange-700 text-white p-2.5 rounded-xl transition flex items-center justify-center shadow-sm cursor-pointer"
+                className="relative bg-orange-50 border border-orange-200 hover:bg-orange-100 text-orange-800 px-3.5 py-2 rounded-2xl transition flex items-center gap-2 shadow-2xs cursor-pointer text-xs font-bold"
                 title="עגלת קניות"
               >
-                🛒
+                <span className="text-sm">🛒</span>
+                <span className="hidden sm:inline">עגלה</span>
+                {cartCount > 0 && (
+                  <span className="bg-orange-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
+                    {cartCount}
+                  </span>
+                )}
               </Link>
 
               {user ? (
