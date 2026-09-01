@@ -60,8 +60,12 @@ export default function AdminProductsPage() {
     const prodRes = await supabase.from('products').select('*').order('created_at', { ascending: false });
     const brandRes = await supabase.from('brands').select('*');
     const kosherRes = await supabase.from('kosher_types').select('*');
-    const catRes = await supabase.from('categories').select('*').catch(() => ({ data: [] }));
     
+    let catRes: any = { data: [] };
+    try {
+      catRes = await supabase.from('categories').select('*');
+    } catch (e) {}
+
     let versionRes: any = { data: [] };
     try {
       versionRes = await supabase.from('versions').select('*');
