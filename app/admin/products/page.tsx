@@ -60,7 +60,6 @@ export default function AdminProductsPage() {
     const prodRes = await supabase.from('products').select('*').order('created_at', { ascending: false });
     const brandRes = await supabase.from('brands').select('*');
     
-    // שליפה גמישה ובטוחה לטבלת כשרות (תומך גם ב-kosher_types וגם ב-kosher)
     let kosherRes: any = { data: [] };
     try {
       kosherRes = await supabase.from('kosher_types').select('*');
@@ -101,7 +100,6 @@ export default function AdminProductsPage() {
     setLoading(false);
   };
 
-  // העלאת מספר תמונות מהמכשיר
   const handleMultipleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -281,7 +279,6 @@ export default function AdminProductsPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* בחירת קטגוריה מהרשימה */}
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">קטגוריה</label>
               {categoriesList.length > 0 ? (
@@ -311,7 +308,6 @@ export default function AdminProductsPage() {
             </div>
           </div>
 
-          {/* בחירת גרסאות מתוך הניהול */}
           <div className="space-y-2 bg-gray-50 p-4 rounded-2xl border">
             <label className="block text-xs font-bold text-gray-700">בחר גרסאות מותרות למוצר זה (שדה חובה ללקוח בחנות):</label>
             {versionsList.length > 0 ? (
@@ -341,7 +337,6 @@ export default function AdminProductsPage() {
             )}
           </div>
 
-          {/* מותג עם שורת חיפוש */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-gray-700">בחר מותג מתוך הרשימה (כולל חיפוש)</label>
             <input
@@ -367,7 +362,6 @@ export default function AdminProductsPage() {
             <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="או הזן קישור לתמונת מותג..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
           </div>
 
-          {/* כשרות מהרשימה */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-gray-700">בחר רמת כשרות מתוך הרשימה</label>
             {kosherList.length > 0 ? (
@@ -390,7 +384,6 @@ export default function AdminProductsPage() {
             <input type="text" value={kosher} onChange={(e) => setKosher(e.target.value)} placeholder="או הזן כשרות ידנית..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
           </div>
 
-          {/* העלאת תמונות מרובות + בחירה ישירה מספריית המדיה */}
           <div className="space-y-3 bg-gray-50 p-4 rounded-2xl border">
             <label className="block text-xs font-bold text-gray-700">תמונות המוצר (העלה מהמכשיר או בחר מהמדיה הקיימת)</label>
             <input type="file" accept="image/*" multiple onChange={handleMultipleImageUpload} className="bg-white border rounded-xl p-2 text-xs cursor-pointer w-full" />
@@ -447,7 +440,6 @@ export default function AdminProductsPage() {
             )}
           </div>
 
-          {/* צבעי המוצר ושיוך תמונה */}
           <div className="space-y-3 bg-gray-50 p-4 rounded-2xl border">
             <div className="flex justify-between items-center">
               <label className="block text-xs font-bold text-gray-700">צבעי המוצר ושיוך תמונה לכל צבע</label>
@@ -509,7 +501,6 @@ export default function AdminProductsPage() {
             </div>
           </div>
 
-          {/* תיאור קצר עם כלי עיצוב ותצוגה מקדימה נפרדת */}
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <label className="block text-xs font-bold text-gray-700">תיאור קצר</label>
@@ -525,7 +516,6 @@ export default function AdminProductsPage() {
             )}
           </div>
 
-          {/* תיאור מלא עם כלי עיצוב ותצוגה מקדימה נפרדת */}
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <label className="block text-xs font-bold text-gray-700">תיאור מלא</label>
@@ -541,7 +531,6 @@ export default function AdminProductsPage() {
             )}
           </div>
 
-          {/* מפרט מלא עם תצוגה מקדימה נפרדת */}
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <label className="block text-xs font-bold text-gray-700">מפרט טכני מלא</label>
@@ -564,7 +553,6 @@ export default function AdminProductsPage() {
             </div>
           </div>
 
-          {/* כפתור שמירה כטיוטה בתחתית הטופס */}
           <div className="bg-orange-50/50 border border-orange-200 p-4 rounded-2xl flex items-center justify-between">
             <div>
               <span className="text-xs font-black text-gray-900 block">שמור כטיוטה (לא מפורסם בחנות)</span>
@@ -589,7 +577,7 @@ export default function AdminProductsPage() {
       <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
         <h2 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">מוצרים קיימים ({products.length})</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {products.pathnames ? null : products.map((p) => (
+          {products.map((p) => (
             <div key={p.id} className="border rounded-2xl p-4 flex justify-between items-center bg-gray-50/50 shadow-xs">
               <div className="flex items-center gap-3">
                 <img src={p.image_url} alt="" className="w-12 h-12 object-contain bg-white rounded-xl border p-1" />
