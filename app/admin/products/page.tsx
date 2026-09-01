@@ -57,45 +57,47 @@ export default function AdminProductsPage() {
     
     const prodRes = await supabase.from('products').select('*').order('created_at', { ascending: false });
     const brandRes = await supabase.from('brands').select('*');
-    
-    // שליפה חכמה לטבלת כשרות מכל שם אפשרי במסד הנתונים
+
+    // ניסיון לשלוף את כל הטבלאות האפשריות לכשרות
     let kosherData: any[] = [];
-    const possibleKosherTables = ['kosher', 'kosher_types', 'kosher_list', 'kosher_levels'];
-    for (const tableName of possibleKosherTables) {
+    const tablesToTry = ['kosher', 'kosher_types', 'kosher_list', 'kosher_levels', 'kosher_table'];
+    for (const tbl of tablesToTry) {
       try {
-        const res = await supabase.from(tableName).select('*');
-        if (res.data && res.data.length > 0) {
-          kosherData = res.data;
+        const { data, error } = await supabase.from(tbl).select('*');
+        if (data && data.length > 0) {
+          kosherData = data;
+          console.log(`מצאנו כשרות בטבלה: ${tbl}`, data);
           break;
         }
-      } catch (e) {}
+      } catch (err) {
+        console.log(`טבלה ${tbl} לא קיימת`);
+      }
     }
     setKosherList(kosherData);
 
     let catRes: any = { data: [] };
-    try {
-      catRes = await supabase.from('categories').select('*');
-    } catch (e) {}
+    try { catRes = await supabase.from('categories').select('*'); } catch (e) {}
 
     let versionRes: any = { data: [] };
-    try {
-      versionRes = await supabase.from('versions').select('*');
-    } catch (e) {}
+    try { versionRes = await supabase.from('versions').select('*'); } catch (e) {}
 
-    // שליפת תמונות מהאחסון (בודק גם ב-products וגם ב-media/public)
+    // שליפת תמונות מכל באקט אפשרי באחסון
     let filesList: string[] = [];
-    const possibleBuckets = ['products', 'media', 'public', 'images'];
-    for (const bucketName of possibleBuckets) {
+    const bucketsToTry = ['products', 'media', 'public', 'images', 'uploads', 'store'];
+    for (const bucket of bucketsToTry) {
       try {
-        const storageRes = await supabase.storage.from(bucketName).list('', { limit: 100 });
+        const storageRes = await supabase.storage.from(bucket).list('', { limit: 100 });
         if (storageRes.data && storageRes.data.length > 0) {
           const mapped = storageRes.data.map((f: any) => {
-            const { data } = supabase.storage.from(bucketName).getPublicUrl(f.name);
+            const { data } = supabase.storage.from(bucket).getPublicUrl(f.name);
             return data.publicUrl;
           });
           filesList = [...filesList, ...mapped];
+          console.log(`מצאנו תמונות בבאקט: ${bucket}`, mapped);
         }
-      } catch (e) {}
+      } catch (e) {
+        console.log(`באקט ${bucket} לא נמצא או ריק`);
+      }
     }
 
     if (prodRes.data) setProducts(prodRes.data);
@@ -387,7 +389,7 @@ export default function AdminProductsPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-gray-400">לא נמצאו כשרויות במסד הנתונים.</p>
+              <p className="text-xs text-red-500 font-bold">לא נמצאו כשרויות במסד הנתונים. (ודא ששם הטבלה ב-Supabase נכון או הזן ידנית למטה)</p>
             )}
             <input type="text" value={kosher} onChange={(e) => setKosher(e.target.value)} placeholder="או הזן כשרות ידנית..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
           </div>
@@ -446,7 +448,7 @@ export default function AdminProductsPage() {
                   })}
                 </div>
               ) : (
-                <p className="text-xs text-gray-400 py-2">לא נמצאו תמונות באחסון המדיה של האתר כרגע.</p>
+                <p className="text-xs text-red-500 font-bold py-2">לא נמצאו תמונות באחסון (Storage) של האתר כרגע. ודא שהתמונות הועלו ל-Supabase Storage.</p>
               )}
             </div>
           </div>
