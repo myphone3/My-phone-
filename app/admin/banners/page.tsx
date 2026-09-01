@@ -128,14 +128,32 @@ export default function AdminBannersPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-10" dir="rtl">
+    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8" dir="rtl">
+      
+      {/* כותרת הפאנל */}
       <div className="flex justify-between items-center border-b pb-4">
         <div>
-          <h1 className="text-2xl font-black text-gray-900">ניהול באנרים והגדרות עמוד הבית</h1>
-          <p className="text-xs text-gray-500 font-medium">כאן ניתן לנהל את הבאנרים המתחלפים, קישורים למוצרים ופס המבצעים העליון.</p>
+          <h1 className="text-2xl font-black text-gray-900">פאנל ניהול האתר</h1>
+          <p className="text-xs text-gray-500 font-medium">ניהול מתקדם של באנרים, מבצעים ומוצרים.</p>
         </div>
-        <Link href="/admin/products" className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-xl text-xs font-bold transition">
-          ← חזרה לפאנל ניהול מוצרים
+        <Link href="/" className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-xl text-xs font-bold transition">
+          חזרה לחנות ➔
+        </Link>
+      </div>
+
+      {/* טאבים לניווט בתוך פאנל הניהול */}
+      <div className="flex items-center gap-3">
+        <Link
+          href="/admin/products"
+          className="px-4 py-2.5 rounded-2xl text-xs font-bold bg-gray-100 text-gray-800 hover:bg-gray-200 transition"
+        >
+          📦 ניהול מוצרים
+        </Link>
+        <Link
+          href="/admin/banners"
+          className="px-4 py-2.5 rounded-2xl text-xs font-bold bg-orange-600 text-white shadow-sm"
+        >
+          🖼️ ניהול באנרים והגדרות עמוד הבית
         </Link>
       </div>
 
@@ -155,7 +173,7 @@ export default function AdminBannersPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">תאריך ושעה לסיום המבצע (לפעלת הטיימר)</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">תאריך ושעה לסיום המבצע (להפעלת הטיימר)</label>
               <input
                 type="datetime-local"
                 value={announcementEndTime}
