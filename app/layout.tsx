@@ -93,7 +93,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="he" dir="rtl">
       <body className="bg-gray-50 min-h-screen text-gray-900">
         
-        {/* פס מבצעים עליון בשורה אחת ללא חיתוך */}
         {announcement && (
           <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white text-[11px] font-bold py-1 px-4 flex items-center justify-between shadow-xs overflow-hidden">
             <div className="truncate flex-1 text-center sm:text-right">
@@ -108,19 +107,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         )}
 
-        {/* תפריט עליון ראשי */}
         <header className="bg-white border-b sticky top-0 z-40 shadow-xs">
           <div className="max-w-7xl mx-auto px-4 h-20 sm:h-24 flex items-center justify-between">
-            {/* לוגו */}
             <Link href="/" className="flex items-center cursor-pointer group py-1">
               <img src="/Logo.JPG" alt="NEW PHONE" className="h-16 sm:h-20 w-auto object-contain group-hover:scale-105 transition duration-300 drop-shadow-sm" />
             </Link>
 
             <div className="flex items-center gap-2 sm:gap-3">
-              {/* כפתור עגלה חוזר */}
               <Link
                 href="/cart"
-                className="relative bg-gray-50 border border-gray-200 hover:bg-gray-100 p-2 rounded-xl text-gray-800 transition flex items-center justify-center shadow-2xs cursor-pointer"
+                className="relative bg-orange-600 hover:bg-orange-700 text-white p-2.5 rounded-xl transition flex items-center justify-center shadow-sm cursor-pointer"
                 title="עגלת קניות"
               >
                 🛒
@@ -200,7 +196,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </button>
               )}
 
-              {/* כפתור ניהול מוקטן ודיסקרטי */}
               {isAdmin && (
                 <Link
                   href="/admin/products"
