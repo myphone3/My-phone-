@@ -93,22 +93,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="he" dir="rtl">
       <body className="bg-gray-50 min-h-screen text-gray-900">
         
+        {/* פס מבצעים דק במיוחד בשורה אחת בלבד */}
         {announcement && (
-          <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white text-xs font-bold py-2 px-4 text-center flex flex-wrap items-center justify-center gap-3 shadow-inner">
-            <span>{announcement.text}</span>
+          <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white text-[11px] sm:text-xs font-bold py-1 px-3 flex items-center justify-between overflow-hidden whitespace-nowrap shadow-xs">
+            <div className="truncate flex-1 text-center sm:text-right px-2">
+              <span>{announcement.text}</span>
+            </div>
             {announcement.endTime && (
-              <div className="bg-black/20 backdrop-blur-sm px-2.5 py-0.5 rounded-lg flex items-center gap-1.5 text-[11px]">
-                <span>⏱️ נותר:</span>
+              <div className="bg-black/25 backdrop-blur-sm px-2 py-0.5 rounded-md flex items-center gap-1 text-[10px] shrink-0 mr-2">
+                <span>⏱️</span>
                 <span className="font-black">{String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}</span>
               </div>
             )}
           </div>
         )}
 
+        {/* תפריט עליון עם לוגו ענק ומרשים */}
         <header className="bg-white border-b sticky top-0 z-40 shadow-xs">
-          <div className="max-w-7xl mx-auto px-4 h-20 sm:h-24 flex items-center justify-between">
-            <Link href="/" className="flex items-center cursor-pointer group py-2">
-              <img src="/Logo.JPG" alt="NEW PHONE" className="h-16 sm:h-20 w-auto object-contain group-hover:scale-105 transition duration-300 drop-shadow-sm" />
+          <div className="max-w-7xl mx-auto px-4 h-24 sm:h-28 flex items-center justify-between">
+            <Link href="/" className="flex items-center cursor-pointer group py-1">
+              <img src="/Logo.JPG" alt="NEW PHONE" className="h-20 sm:h-26 w-auto object-contain group-hover:scale-105 transition duration-300 drop-shadow-md" />
             </Link>
 
             <div className="flex items-center gap-2 sm:gap-3">
@@ -158,7 +162,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         )}
                       </div>
 
-                      <div className="border-t pt-2">
+                      <div className="border-t pt-2 space-y-1">
+                        {isAdmin && (
+                          <Link
+                            href="/admin/banners"
+                            className="block w-full text-right text-gray-900 hover:bg-gray-50 px-3 py-2 rounded-xl text-xs font-bold transition"
+                          >
+                            🖼️ ניהול באנרים והגדרות
+                          </Link>
+                        )}
                         <button
                           onClick={handleLogout}
                           className="w-full text-right text-red-600 hover:bg-red-50 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between cursor-pointer"
