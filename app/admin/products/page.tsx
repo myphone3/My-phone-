@@ -61,17 +61,21 @@ export default function AdminProductsPage() {
     const prodRes = await supabase.from('products').select('*').order('created_at', { ascending: false });
     const brandRes = await supabase.from('brands').select('*');
 
-    // סנכרון מדויק מול טבלת הניהול של הכשרויות
+    // סנכרון חכם ומקיף לטבלת הכשרות מכל שם אפשרי במסד הנתונים
     let kosherData: any[] = [];
-    try {
-      const { data: kosherTableData } = await supabase.from('kosher').select('*');
-      if (kosherTableData && kosherTableData.length > 0) {
-        kosherData = kosherTableData;
-      } else {
-        const { data: kosherTypesData } = await supabase.from('kosher_types').select('*');
-        if (kosherTypesData) kosherData = kosherTypesData;
-      }
-    } catch (e) {}
+    const tablesToTry = ['kosher', 'kosher_types', 'kosher_list', 'kosher_levels'];
+    for (const tbl of tablesToTry) {
+      try {
+        const { data, error } = await supabase.from(tbl).select('*');
+        if (data && data.length > 0) {
+          kosherData = data;
+          break;
+        }
+        if (error) {
+          console.log(`שגיאה בשליפת טבלה ${tbl}:`, error.message);
+        }
+      } catch (e) {}
+    }
     setKosherList(kosherData);
 
     let catRes: any = { data: [] };
@@ -80,7 +84,7 @@ export default function AdminProductsPage() {
     let versionRes: any = { data: [] };
     try { versionRes = await supabase.from('versions').select('*'); } catch (e) {}
 
-    // איסוף תמונות מהאחסון עבור ספריית המדיה
+    // איסוף תמונות מהאחסון
     let filesList: string[] = [];
     const bucketsToTry = ['products', 'media', 'public', 'images', 'uploads'];
     for (const bucket of bucketsToTry) {
@@ -489,17 +493,17 @@ export default function AdminProductsPage() {
                     onClick={() => setShowMediaModal(false)}
                     className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold cursor-pointer shadow-sm"
                   >
-                    אישור וסיום בחירה ({images.length} נבחרו)
+                    אישור וסיום בחירת תמונות ({images.length} נבחרו)
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* בחירת צבעים ושיוך תמונה מתוך תמונות המוצר שנבחרו */}
+          {/* בחירת צבעים ושיוך תמונה מתוך תמונות המוצר עם תצוגה חזותית */}
           <div className="space-y-3 bg-gray-50 p-4 rounded-2xl border">
             <div className="flex justify-between items-center">
-              <label className="block text-xs font-bold text-gray-700">צבעי המוצר ושיוך תמונה מתוך תמונות המוצר</label>
+              <label className="block text-xs font-bold text-gray-700">צבעי המוצר ושיוך תמונה חזותית לכל צבע</label>
               <button
                 type="button"
                 onClick={() => setColors([...colors, { name: '', hex: '#000000', image: '' }])}
@@ -509,57 +513,75 @@ export default function AdminProductsPage() {
               </button>
             </div>
             
-            <div className="space-y-3">
+            <div className="space-y-4">
               {colors.map((col, index) => (
-                <div key={index} className="bg-white p-3 rounded-xl border flex flex-col sm:flex-row gap-3 items-center">
-                  <input
-                    type="text"
-                    placeholder="שם הצבע (לדוגמה: כחול)"
-                    value={col.name}
-                    onChange={(e) => {
-                      const newCols = [...colors];
-                      newCols[index].name = e.target.value;
-                      setColors(newCols);
-                    }}
-                    className="bg-gray-50 border rounded-xl p-2 text-xs w-full sm:w-1/3 outline-none"
-                  />
-                  <input
-                    type="color"
-                    value={col.hex}
-                    onChange={(e) => {
-                      const newCols = [...colors];
-                      newCols[index].hex = e.target.value;
-                      setColors(newCols);
-                    }}
-                    className="w-10 h-10 rounded-xl border cursor-pointer p-1 bg-white"
-                  />
-                  
-                  {/* בחירת תמונה לצבע מתוך תמונות המוצר */}
-                  <select
-                    value={col.image}
-                    onChange={(e) => {
-                      const newCols = [...colors];
-                      newCols[index].image = e.target.value;
-                      setColors(newCols);
-                    }}
-                    className="bg-gray-50 border rounded-xl p-2 text-xs flex-1 outline-none"
-                  >
-                    <option value="">בחר תמונה מתוך תמונות המוצר...</option>
-                    {images.map((imgUrl, imgIdx) => (
-                      <option key={imgIdx} value={imgUrl}>
-                        תמונה מספר {imgIdx + 1}
-                      </option>
-                    ))}
-                  </select>
+                <div key={index} className="bg-white p-4 rounded-2xl border space-y-3">
+                  <div className="flex flex-col sm:flex-row gap-3 items-center">
+                    <input
+                      type="text"
+                      placeholder="שם הצבע (לדוגמה: כחול)"
+                      value={col.name}
+                      onChange={(e) => {
+                        const newCols = [...colors];
+                        newCols[index].name = e.target.value;
+                        setColors(newCols);
+                      }}
+                      className="bg-gray-50 border rounded-xl p-2.5 text-xs w-full sm:w-1/3 outline-none"
+                    />
+                    <input
+                      type="color"
+                      value={col.hex}
+                      onChange={(e) => {
+                        const newCols = [...colors];
+                        newCols[index].hex = e.target.value;
+                        setColors(newCols);
+                      }}
+                      className="w-10 h-10 rounded-xl border cursor-pointer p-1 bg-white"
+                    />
+                    <span className="text-xs text-gray-500 flex-1">
+                      {col.image ? '✓ תמונה משויכת לצבע' : 'לא נבחרה תמונה לצבע זה'}
+                    </span>
+                    {colors.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setColors(colors.filter((_, i) => i !== index))}
+                        className="text-red-500 font-bold text-xs px-2"
+                      >
+                        מחק צבע
+                      </button>
+                    )}
+                  </div>
 
-                  {colors.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => setColors(colors.filter((_, i) => i !== index))}
-                      className="text-red-500 font-bold text-xs px-2"
-                    >
-                      מחק
-                    </button>
+                  {/* תצוגה חזותית של תמונות המוצר לבחירת התמונה של הצבע */}
+                  {images.length > 0 ? (
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-bold text-gray-600 block">בחר תמונה לצבע זה מתוך תמונות המוצר:</span>
+                      <div className="flex gap-2 overflow-x-auto pb-2">
+                        {images.map((imgUrl, imgIdx) => {
+                          const isSelected = col.image === imgUrl;
+                          return (
+                            <div
+                              key={imgIdx}
+                              onClick={() => {
+                                const newCols = [...colors];
+                                newCols[index].image = imgUrl;
+                                setColors(newCols);
+                              }}
+                              className={`relative w-14 h-14 rounded-xl border overflow-hidden cursor-pointer shrink-0 transition bg-gray-50 flex items-center justify-center p-0.5 ${isSelected ? 'border-orange-600 ring-2 ring-orange-600/50 bg-orange-50' : 'border-gray-200 hover:border-gray-400'}`}
+                            >
+                              <img src={imgUrl} alt="" className="w-full h-full object-contain" />
+                              {isSelected && (
+                                <span className="absolute bottom-0 right-0 bg-orange-600 text-white text-[9px] px-1 rounded-tl font-bold">
+                                  ✓
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-orange-600">העלה או בחר תמונות לעיל עבור המוצר כדי שתוכל לשייך אותן לצבעים.</p>
                   )}
                 </div>
               ))}
