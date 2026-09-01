@@ -32,7 +32,7 @@ export default function AdminProductsPage() {
   const [images, setImages] = useState<string[]>([]);
   const [imageUrl, setImageUrl] = useState('');
   
-  // פתיחת גלריית המדיה דרך כפתור
+  // פתיחת גלריית המדיה
   const [showMediaModal, setShowMediaModal] = useState(false);
   
   const [colors, setColors] = useState<{ name: string; hex: string; image: string }[]>([
@@ -61,15 +61,15 @@ export default function AdminProductsPage() {
     const prodRes = await supabase.from('products').select('*').order('created_at', { ascending: false });
     const brandRes = await supabase.from('brands').select('*');
 
-    // שליפה ישירה מעמוד ניהול הכשרויות (טבלאות kosher או kosher_types בלבד)
+    // סנכרון מדויק מול טבלת הניהול של הכשרויות
     let kosherData: any[] = [];
     try {
-      const res1 = await supabase.from('kosher').select('*');
-      if (res1.data && res1.data.length > 0) {
-        kosherData = res1.data;
+      const { data: kosherTableData } = await supabase.from('kosher').select('*');
+      if (kosherTableData && kosherTableData.length > 0) {
+        kosherData = kosherTableData;
       } else {
-        const res2 = await supabase.from('kosher_types').select('*');
-        if (res2.data) kosherData = res2.data;
+        const { data: kosherTypesData } = await supabase.from('kosher_types').select('*');
+        if (kosherTypesData) kosherData = kosherTypesData;
       }
     } catch (e) {}
     setKosherList(kosherData);
@@ -80,7 +80,7 @@ export default function AdminProductsPage() {
     let versionRes: any = { data: [] };
     try { versionRes = await supabase.from('versions').select('*'); } catch (e) {}
 
-    // איסוף תמונות מהאחסון וממוצרים קיימים עבור הגלריה
+    // איסוף תמונות מהאחסון עבור ספריית המדיה
     let filesList: string[] = [];
     const bucketsToTry = ['products', 'media', 'public', 'images', 'uploads'];
     for (const bucket of bucketsToTry) {
@@ -496,9 +496,10 @@ export default function AdminProductsPage() {
             </div>
           )}
 
+          {/* בחירת צבעים ושיוך תמונה מתוך תמונות המוצר שנבחרו */}
           <div className="space-y-3 bg-gray-50 p-4 rounded-2xl border">
             <div className="flex justify-between items-center">
-              <label className="block text-xs font-bold text-gray-700">צבעי המוצר ושיוך תמונה לכל צבע</label>
+              <label className="block text-xs font-bold text-gray-700">צבעי המוצר ושיוך תמונה מתוך תמונות המוצר</label>
               <button
                 type="button"
                 onClick={() => setColors([...colors, { name: '', hex: '#000000', image: '' }])}
@@ -532,9 +533,9 @@ export default function AdminProductsPage() {
                     }}
                     className="w-10 h-10 rounded-xl border cursor-pointer p-1 bg-white"
                   />
-                  <input
-                    type="text"
-                    placeholder="קישור תמונה לצבע"
+                  
+                  {/* בחירת תמונה לצבע מתוך תמונות המוצר */}
+                  <select
                     value={col.image}
                     onChange={(e) => {
                       const newCols = [...colors];
@@ -542,7 +543,15 @@ export default function AdminProductsPage() {
                       setColors(newCols);
                     }}
                     className="bg-gray-50 border rounded-xl p-2 text-xs flex-1 outline-none"
-                  />
+                  >
+                    <option value="">בחר תמונה מתוך תמונות המוצר...</option>
+                    {images.map((imgUrl, imgIdx) => (
+                      <option key={imgIdx} value={imgUrl}>
+                        תמונה מספר {imgIdx + 1}
+                      </option>
+                    ))}
+                  </select>
+
                   {colors.length > 1 && (
                     <button
                       type="button"
