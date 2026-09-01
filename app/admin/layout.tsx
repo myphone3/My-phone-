@@ -10,6 +10,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const navItems = [
     { name: 'ניהול מוצרים 📦', href: '/admin/products' },
     { name: 'ניהול הזמנות 📋', href: '/admin/orders' },
+    { name: 'ניהול באנרים 🖼️', href: '/admin/banners' },
     { name: 'ניהול קטגוריות 📁', href: '/admin/categories' },
     { name: 'ניהול מותגים 🏷️', href: '/admin/brands' },
     { name: 'ניהול כשרות ⭐', href: '/admin/kosher' },
@@ -20,45 +21,38 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row" dir="rtl">
-      <aside className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-l p-4 flex flex-col justify-between shrink-0 shadow-sm">
-        <div className="space-y-6">
-          <div className="flex items-center justify-between md:block">
-            <h1 className="text-xl font-black text-gray-900 tracking-tight">🛠️ פאנל ניהול</h1>
-          </div>
-          
-          <nav className="flex md:flex-col gap-1.5 overflow-x-auto pb-2 md:pb-0">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-                    isActive ? 'bg-black text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                  }`}
-                >
-                  {item.name}
-                </Link>
-              );
-            })}
-          </nav>
+    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8" dir="rtl">
+      {/* כותרת עליונה */}
+      <div className="flex justify-between items-center border-b pb-4">
+        <div>
+          <h1 className="text-2xl font-black text-gray-900">פאנל ניהול האתר 🛠️</h1>
+          <p className="text-xs text-gray-500 font-medium">ניהול מלא של חנות הסלולר, המוצרים והמערכת.</p>
         </div>
-        
-        {/* כפתור צפייה באתר */}
-        <div className="pt-4 mt-4 border-t hidden md:block">
-          <Link 
-            href="/" 
-            className="w-full bg-black text-white hover:bg-gray-800 px-4 py-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm"
-          >
-            🏠 צפייה באתר
-          </Link>
-        </div>
-      </aside>
+        <Link href="/" className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-xl text-xs font-bold transition">
+          חזרה לחנות ➔
+        </Link>
+      </div>
 
-      <main className="flex-1 p-4 md:p-8 overflow-y-auto">
-        {children}
-      </main>
+      {/* תפריט ניהול עליון אחיד לכל העמודים */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2">
+        {navItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer shrink-0 ${
+                isActive ? 'bg-orange-600 text-white shadow-sm' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+              }`}
+            >
+              {item.name}
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* תוכן העמוד הספציפי (מוצרים, הזמנות, באנרים וכו') */}
+      <main>{children}</main>
     </div>
   );
 }
