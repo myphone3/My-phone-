@@ -32,6 +32,9 @@ export default function AdminProductsPage() {
   const [images, setImages] = useState<string[]>([]);
   const [imageUrl, setImageUrl] = useState('');
   
+  // פתיחת גלריית המדיה דרך כפתור
+  const [showMediaModal, setShowMediaModal] = useState(false);
+  
   const [colors, setColors] = useState<{ name: string; hex: string; image: string }[]>([
     { name: 'שחור', hex: '#000000', image: '' }
   ]);
@@ -58,30 +61,17 @@ export default function AdminProductsPage() {
     const prodRes = await supabase.from('products').select('*').order('created_at', { ascending: false });
     const brandRes = await supabase.from('brands').select('*');
 
-    // שליפה חכמה לטבלת כשרות עם גיבוי מובנה של רמות כשרות נפוצות
+    // שליפה ישירה מעמוד ניהול הכשרויות (טבלאות kosher או kosher_types בלבד)
     let kosherData: any[] = [];
-    const tablesToTry = ['kosher_types', 'kosher', 'kosher_list', 'kosher_levels'];
-    for (const tbl of tablesToTry) {
-      try {
-        const res = await supabase.from(tbl).select('*');
-        if (res.data && res.data.length > 0) {
-          kosherData = res.data;
-          break;
-        }
-      } catch (e) {}
-    }
-
-    // אם לא נמצאו טבלאות, טוען רשימת ברירת מחדל כדי שתמיד יהיו אפשרויות לבחירה
-    if (kosherData.length === 0) {
-      kosherData = [
-        { id: 1, name: 'מהדרין' },
-        { id: 2, name: 'בד״ץ העדה החרדית' },
-        { id: 3, name: 'רובין' },
-        { id: 4, name: 'לנדא' },
-        { id: 5, name: 'הרב מחפוד' },
-        { id: 6, name: 'כשר רגיל' }
-      ];
-    }
+    try {
+      const res1 = await supabase.from('kosher').select('*');
+      if (res1.data && res1.data.length > 0) {
+        kosherData = res1.data;
+      } else {
+        const res2 = await supabase.from('kosher_types').select('*');
+        if (res2.data) kosherData = res2.data;
+      }
+    } catch (e) {}
     setKosherList(kosherData);
 
     let catRes: any = { data: [] };
@@ -90,7 +80,7 @@ export default function AdminProductsPage() {
     let versionRes: any = { data: [] };
     try { versionRes = await supabase.from('versions').select('*'); } catch (e) {}
 
-    // איסוף תמונות מאחסון האתר (Storage)
+    // איסוף תמונות מהאחסון וממוצרים קיימים עבור הגלריה
     let filesList: string[] = [];
     const bucketsToTry = ['products', 'media', 'public', 'images', 'uploads'];
     for (const bucket of bucketsToTry) {
@@ -106,7 +96,6 @@ export default function AdminProductsPage() {
       } catch (e) {}
     }
 
-    // איסוף תמונות גם ממוצרים קיימים כדי להבטיח זמינות תמידית של ספריית המדיה
     if (prodRes.data) {
       prodRes.data.forEach((p: any) => {
         if (p.image_url && !filesList.includes(p.image_url)) filesList.push(p.image_url);
@@ -389,7 +378,7 @@ export default function AdminProductsPage() {
             <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="או הזן קישור לתמונת מותג..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
           </div>
 
-          {/* כשרות מהרשימה */}
+          {/* כשרות מתוך ניהול הכשרויות */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-gray-700">בחר רמת כשרות מתוך הרשימה</label>
             {kosherList.length > 0 ? (
@@ -407,28 +396,37 @@ export default function AdminProductsPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-gray-400">טוען נתונים...</p>
+              <p className="text-xs text-gray-400">טרם הוגדרו כשרויות בעמוד "ניהול כשרות".</p>
             )}
             <input type="text" value={kosher} onChange={(e) => setKosher(e.target.value)} placeholder="או הזן כשרות ידנית..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
           </div>
 
-          {/* בחירת תמונות מרובות וגלריית המדיה הקיימת */}
+          {/* ניהול תמונות עם כפתור פתיחת גלריית מדיה */}
           <div className="space-y-3 bg-gray-50 p-4 rounded-2xl border">
-            <label className="block text-xs font-bold text-gray-700">תמונות המוצר (העלה מהמכשיר או בחר מהמדיה הקיימת)</label>
-            <input type="file" accept="image/*" multiple onChange={handleMultipleImageUpload} className="bg-white border rounded-xl p-2 text-xs cursor-pointer w-full" />
+            <label className="block text-xs font-bold text-gray-700">תמונות המוצר</label>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input type="file" accept="image/*" multiple onChange={handleMultipleImageUpload} className="bg-white border rounded-xl p-2 text-xs cursor-pointer flex-1" />
+              <button
+                type="button"
+                onClick={() => setShowMediaModal(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                🖼️ בחר מתוך ספריית המדיה ({storageFiles.length})
+              </button>
+            </div>
             {uploading && <span className="text-xs text-orange-600 font-bold">מעלה קבצים...</span>}
 
             {images.length > 0 && (
-              <div className="space-y-1">
+              <div className="space-y-1 pt-2">
                 <span className="text-[11px] font-bold text-gray-600 block">תמונות שנבחרו למוצר:</span>
                 <div className="flex gap-2 overflow-x-auto pb-2">
                   {images.map((img, idx) => (
-                    <div key={idx} className="relative w-16 h-16 rounded-xl border bg-white shrink-0 overflow-hidden">
+                    <div key={idx} className="relative w-16 h-16 rounded-xl border bg-white shrink-0 overflow-hidden shadow-xs">
                       <img src={img} alt="" className="w-full h-full object-contain p-1" />
                       <button
                         type="button"
                         onClick={() => setImages(images.filter((_, i) => i !== idx))}
-                        className="absolute top-0 right-0 bg-red-600 text-white text-[10px] px-1 rounded-bl cursor-pointer"
+                        className="absolute top-0 right-0 bg-red-600 text-white text-[10px] px-1.5 py-0.5 rounded-bl cursor-pointer font-bold"
                       >
                         ✕
                       </button>
@@ -437,39 +435,66 @@ export default function AdminProductsPage() {
                 </div>
               </div>
             )}
-
-            <div className="space-y-1 pt-2 border-t">
-              <span className="text-[11px] font-bold text-gray-700 block">📁 בחר תמונות מתוך ספריית המדיה הקיימת באתר (לחץ להוספה):</span>
-              {storageFiles.length > 0 ? (
-                <div className="grid grid-cols-5 sm:grid-cols-10 gap-2 max-h-40 overflow-y-auto p-1 bg-white rounded-xl border">
-                  {storageFiles.map((url, idx) => {
-                    const isSelected = images.includes(url);
-                    return (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => {
-                          if (!images.includes(url)) {
-                            const updated = [...images, url];
-                            setImages(updated);
-                            if (!imageUrl) setImageUrl(url);
-                          } else {
-                            setImages(images.filter(i => i !== url));
-                          }
-                        }}
-                        className={`relative w-12 h-12 rounded-lg border overflow-hidden shrink-0 transition cursor-pointer bg-gray-50 ${isSelected ? 'border-orange-600 ring-2 ring-orange-600/50 bg-orange-50' : 'border-gray-200'}`}
-                      >
-                        <img src={url} alt="" className="w-full h-full object-contain p-0.5" />
-                        {isSelected && <span className="absolute bottom-0 right-0 bg-orange-600 text-white text-[9px] px-1 rounded-tl">✓</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-xs text-gray-400 py-2">טוען תמונות ממרכז המדיה...</p>
-              )}
-            </div>
           </div>
+
+          {/* חלון מודל לבחירת תמונות מספריית המדיה */}
+          {showMediaModal && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+              <div className="bg-white w-full max-w-2xl rounded-3xl p-6 space-y-4 shadow-xl max-h-[80vh] flex flex-col" dir="rtl">
+                <div className="flex justify-between items-center border-b pb-3">
+                  <h3 className="font-black text-sm text-gray-900">בחר תמונות מתוך ספריית המדיה של האתר</h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowMediaModal(false)}
+                    className="bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer"
+                  >
+                    סגור ✕
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 overflow-y-auto p-2 flex-1">
+                  {storageFiles.length > 0 ? (
+                    storageFiles.map((url, idx) => {
+                      const isSelected = images.includes(url);
+                      return (
+                        <div
+                          key={idx}
+                          onClick={() => {
+                            if (!images.includes(url)) {
+                              setImages([...images, url]);
+                              if (!imageUrl) setImageUrl(url);
+                            } else {
+                              setImages(images.filter(i => i !== url));
+                            }
+                          }}
+                          className={`relative h-24 rounded-xl border overflow-hidden cursor-pointer transition bg-gray-50 flex items-center justify-center p-1 ${isSelected ? 'border-orange-600 ring-2 ring-orange-600/40 bg-orange-50' : 'border-gray-200 hover:border-gray-400'}`}
+                        >
+                          <img src={url} alt="" className="w-full h-full object-contain" />
+                          {isSelected && (
+                            <span className="absolute top-1 right-1 bg-orange-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold shadow-xs">
+                              ✓
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="col-span-full text-center text-xs text-gray-400 py-10">לא נמצאו תמונות באחסון האתר כרגע.</p>
+                  )}
+                </div>
+
+                <div className="border-t pt-3 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setShowMediaModal(false)}
+                    className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold cursor-pointer shadow-sm"
+                  >
+                    אישור וסיום בחירה ({images.length} נבחרו)
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-3 bg-gray-50 p-4 rounded-2xl border">
             <div className="flex justify-between items-center">
@@ -597,7 +622,7 @@ export default function AdminProductsPage() {
               {editingId ? 'עדכן מוצר ➔' : '+ הוסף מוצר לחנות ➔'}
             </button>
             {editingId && (
-              <button type="button" onClick={resetForm} className="bg-gray-200 text-800 px-6 py-3.5 rounded-2xl text-xs font-bold transition cursor-pointer">
+              <button type="button" onClick={resetForm} className="bg-gray-200 text-gray-800 px-6 py-3.5 rounded-2xl text-xs font-bold transition cursor-pointer">
                 ביטול
               </button>
             )}
