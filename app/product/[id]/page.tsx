@@ -2,233 +2,183 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function ProductDetailPage() {
   const params = useParams();
-  const id = params?.id;
+  const router = useRouter();
+  const productId = params.id as string;
 
   const [product, setProduct] = useState<any>(null);
-  const [categoriesList, setCategoriesList] = useState<any[]>([]);
-  const [brandsList, setBrandsList] = useState<any[]>([]);
-  const [kosherList, setKosherList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedStorage, setSelectedStorage] = useState('');
-  const [selectedVersion, setSelectedVersion] = useState('');
-  const [activeImage, setActiveImage] = useState('');
+  const [selectedImage, setSelectedImage] = useState('');
+  const [selectedColor, setSelectedColor] = useState<any>(null);
+  const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
-    if (id) fetchProductData();
-  }, [id]);
-
-  const fetchProductData = async () => {
-    setLoading(true);
-    const [prodRes, catRes, brandRes, kosherRes] = await Promise.all([
-      supabase.from('products').select('*').eq('id', id).single(),
-      supabase.from('categories').select('*'),
-      supabase.from('brands').select('*'),
-      supabase.from('kosher_options').select('*'),
-    ]);
-
-    if (prodRes.data) {
-      setProduct(prodRes.data);
-      setActiveImage(prodRes.data.image_url || prodRes.data.images?.[0] || '');
-      
-      const storageList = prodRes.data.storage_options ? prodRes.data.storage_options.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
-      if (storageList.length > 0) setSelectedStorage(storageList[0]);
-
-      const versionsList = prodRes.data.product_versions || (prodRes.data.version ? [prodRes.data.version] : []);
-      if (versionsList.length > 0) setSelectedVersion(versionsList[0]);
+    if (productId) {
+      fetchProduct();
     }
-    if (catRes.data) setCategoriesList(catRes.data);
-    if (brandRes.data) setBrandsList(brandRes.data);
-    if (kosherRes.data) setKosherList(kosherRes.data);
+  }, [productId]);
 
+  const fetchProduct = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', productId)
+      .single();
+
+    if (data) {
+      setProduct(data);
+      setSelectedImage(data.image_url || data.images?.[0] || '');
+      if (data.product_colors && data.product_colors.length > 0) {
+        setSelectedColor(data.product_colors[0]);
+        if (data.product_colors[0].image) {
+          setSelectedImage(data.product_colors[0].image);
+        }
+      }
+    }
     setLoading(false);
   };
 
-  if (loading) return <div className="text-center py-20 text-gray-500">טוען פרטי מוצר...</div>;
-  if (!product) return <div className="text-center py-20 text-gray-400">המוצר אינו נמצא.</div>;
+  const addToCart = () => {
+    if (!product) return;
 
-  const storageList = product.storage_options ? product.storage_options.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
-  const versionsList = product.product_versions || (product.version ? [product.version] : []);
-  const colorsList = product.product_colors || [];
+    const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const existingIndex = existingCart.findIndex((item: any) => 
+      item.id === product.id && item.selectedColor?.name === selectedColor?.name
+    );
 
-  // חיפוש אובייקטים לפי השם השמור במוצר
-  const currentBrandObj = brandsList.find((b) => b.name === product.brand);
-  const currentCatObj = categoriesList.find((c) => c.name === product.category);
-  const currentKosherObj = kosherList.find((k) => k.name === product.kosher);
+    const itemToAdd = {
+      ...product,
+      image_url: selectedImage || product.image_url,
+      selectedColor: selectedColor || null,
+      quantity: quantity
+    };
 
-  const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
-  
-  const handleWhatsAppShare = () => {
-    const text = encodeURIComponent(`היי, תראה איזה מוצר מדהים מצאתי בחנות: ${product.name} - ${shareUrl}`);
-    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+    if (existingIndex > -1) {
+      existingCart[existingIndex].quantity += quantity;
+    } else {
+      existingCart.push(itemToAdd);
+    }
+
+    localStorage.setItem('cart', JSON.stringify(existingCart));
+    alert('המוצר נוסף לעגלה בהצלחה! 🛒');
   };
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(shareUrl);
-    alert('הקישור הועתק בהצלחה ללוח! 📋');
-  };
+  if (loading) {
+    return <div className="text-center py-20 font-bold text-sm text-gray-600">טוען מוצר...</div>;
+  }
 
-  const handleAddToCart = () => {
-    alert(`המוצר נוסף לעגלה בהצלחה!`);
-  };
+  if (!product) {
+    return (
+      <div className="text-center py-20 space-y-4">
+        <p className="text-gray-500 font-medium">המוצר לא נמצא</p>
+        <Link href="/" className="inline-block bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-bold">
+          חזרה לדף הבית
+        </Link>
+      </div>
+    );
+  }
+
+  const images = [product.image_url, ...(product.images || [])].filter(Boolean);
+  const uniqueImages = Array.from(new Set(images));
+  const colors = product.product_colors || [];
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white rounded-3xl border shadow-sm space-y-6" dir="rtl">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8" dir="rtl">
+      <div className="flex items-center gap-2 text-xs font-bold text-gray-500 bg-gray-100 px-4 py-2 rounded-xl w-fit">
+        <Link href="/" className="hover:text-black transition">דף הבית</Link>
+        <span>/</span>
+        <span>{product.category || 'מוצרים'}</span>
+        <span>/</span>
+        <span className="text-black">{product.name}</span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white p-6 sm:p-8 rounded-3xl border shadow-sm">
         {/* תמונות המוצר */}
         <div className="space-y-4">
-          <div className="bg-gray-50 rounded-2xl p-4 flex items-center justify-center border h-80">
-            <img src={activeImage || product.image_url} alt={product.name} className="max-h-full object-contain" />
+          <div className="h-72 sm:h-96 w-full bg-gray-50 rounded-2xl border flex items-center justify-center overflow-hidden relative">
+            <img src={selectedImage} alt={product.name} className="w-full h-full object-contain p-4" />
+            {product.sale_price && (
+              <span className="absolute top-3 right-3 bg-red-500 text-white text-xs font-black px-3 py-1 rounded-full shadow">
+                מבצע ⚡
+              </span>
+            )}
           </div>
-          {product.images && product.images.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {product.images.map((img: string, idx: number) => (
-                <button key={idx} onClick={() => setActiveImage(img)} className={`border-2 rounded-xl p-1 bg-gray-50 w-16 h-16 flex-shrink-0 ${activeImage === img ? 'border-black' : 'border-transparent'}`}>
-                  <img src={img} alt="thumb" className="w-full h-full object-contain" />
+          {uniqueImages.length > 1 && (
+            <div className="flex items-center gap-2 overflow-x-auto pb-2">
+              {uniqueImages.map((img: string, idx: number) => (
+                <button
+                  key={idx}
+                  onClick={() => setSelectedImage(img)}
+                  className={`w-16 h-16 rounded-xl border overflow-hidden shrink-0 transition cursor-pointer ${selectedImage === img ? 'border-orange-600 ring-2 ring-orange-600/20' : 'border-gray-200'}`}
+                >
+                  <img src={img} alt="" className="w-full h-full object-contain p-1" />
                 </button>
               ))}
             </div>
           )}
         </div>
 
-        {/* פרטי המוצר המלאים */}
-        <div className="space-y-4">
-          <h1 className="text-2xl font-black text-gray-900">{product.name}</h1>
-          <div className="text-xl font-black text-black">₪{product.price}</div>
+        {/* פרטי המוצר וכפתורי רכישה */}
+        <div className="space-y-6 flex flex-col justify-between">
+          <div className="space-y-4">
+            <div>
+              <span className="text-xs font-bold text-orange-600 bg-orange-50 px-3 py-1 rounded-full">{product.brand || product.category}</span>
+              <h1 className="text-xl sm:text-2xl font-black text-gray-900 mt-2">{product.name}</h1>
+            </div>
 
-          {/* תגיות: מותג (לוגו בלבד), כשרות (לוגו בלבד), קטגוריה (לוגו ושם) */}
-          <div className="flex flex-wrap gap-2 text-xs items-center">
-            {/* מותג - רק לוגו */}
-            {product.brand && (
-              <span className="bg-gray-100 px-3 py-1.5 rounded-xl font-bold flex items-center">
-                {currentBrandObj?.image_url ? (
-                  <img src={currentBrandObj.image_url} alt={product.brand} className="h-5 object-contain" />
-                ) : (
-                  <span>{product.brand}</span>
-                )}
-              </span>
-            )}
+            <div className="flex items-baseline gap-3">
+              {product.sale_price ? (
+                <>
+                  <span className="text-2xl font-black text-red-600">₪{product.sale_price}</span>
+                  <span className="text-sm text-gray-400 line-through">₪{product.price}</span>
+                </>
+              ) : (
+                <span className="text-2xl font-black text-gray-900">₪{product.price}</span>
+              )}
+            </div>
 
-            {/* כשרות - רק לוגו */}
-            {product.kosher && (
-              <span className="bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl font-bold flex items-center">
-                {currentKosherObj?.image_url ? (
-                  <img src={currentKosherObj.image_url} alt={product.kosher} className="h-5 object-contain" />
-                ) : (
-                  <span>{product.kosher}</span>
-                )}
-              </span>
-            )}
+            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{product.description || product.short_description}</p>
 
-            {/* קטגוריה - לוגו ושם */}
-            {product.category && (
-              <span className="bg-gray-100 text-gray-800 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5">
-                {currentCatObj?.image_url && <img src={currentCatObj.image_url} alt="" className="w-4 h-4 object-contain" />}
-                📂 {product.category}
-              </span>
+            {/* בחירת צבעים */}
+            {colors.length > 0 && (
+              <div className="space-y-2 pt-2 border-t">
+                <span className="text-xs font-bold text-gray-700">בחר צבע: <span className="text-orange-600">{selectedColor?.name}</span></span>
+                <div className="flex items-center gap-2">
+                  {colors.map((col: any, idx: number) => {
+                    const isSelected = selectedColor?.name === col.name;
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          setSelectedColor(col);
+                          if (col.image) setSelectedImage(col.image);
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition flex items-center gap-2 cursor-pointer ${
+                          isSelected ? 'border-orange-600 bg-orange-50 text-orange-700 shadow-xs' : 'border-gray-200 bg-white hover:bg-gray-50'
+                        }`}
+                      >
+                        <span className="w-3.5 h-3.5 rounded-full border border-gray-300" style={{ backgroundColor: col.hex || '#000' }}></span>
+                        <span>{col.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             )}
           </div>
 
-          <p className="text-sm text-gray-600">{product.short_description || product.description}</p>
-
-          {/* צבעים פיזיים */}
-          {colorsList.length > 0 && (
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-gray-700">בחר צבע</label>
-              <div className="flex flex-wrap gap-2">
-                {colorsList.map((col: any, idx: number) => (
-                  <button
-                    type="button"
-                    key={idx}
-                    onClick={() => {
-                      if (col.image) setActiveImage(col.image);
-                    }}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold hover:border-black transition cursor-pointer"
-                  >
-                    <span className="w-4 h-4 rounded-full border shadow-sm" style={{ backgroundColor: col.hex }}></span>
-                    {col.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* גרסאות מכשיר */}
-          {versionsList.length > 0 && (
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-gray-700">בחר גרסה</label>
-              <div className="flex flex-wrap gap-2">
-                {versionsList.map((ver: string, idx: number) => (
-                  <button
-                    type="button"
-                    key={idx}
-                    onClick={() => setSelectedVersion(ver)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition cursor-pointer ${selectedVersion === ver ? 'bg-black text-white border-black' : 'bg-white text-gray-700 border-gray-200'}`}
-                  >
-                    {ver}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* נפחי אחסון */}
-          {storageList.length > 0 && (
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-gray-700">בחר נפח אחסון</label>
-              <div className="flex flex-wrap gap-2">
-                {storageList.map((opt: string, idx: number) => (
-                  <button
-                    type="button"
-                    key={idx}
-                    onClick={() => setSelectedStorage(opt)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition cursor-pointer ${selectedStorage === opt ? 'bg-black text-white border-black' : 'bg-white text-gray-700 border-gray-200'}`}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* תיאור מלא */}
-          {product.description && (
-            <div className="border-t pt-3 text-xs text-gray-700 whitespace-pre-line leading-relaxed">
-              <span className="font-bold block mb-1">תיאור מלא:</span>
-              {product.description}
-            </div>
-          )}
-
-          {/* הוספה לעגלה */}
-          <button
-            type="button"
-            onClick={handleAddToCart}
-            className="w-full bg-black text-white hover:bg-gray-800 font-bold py-3.5 rounded-2xl transition text-sm cursor-pointer"
-          >
-            הוספה לעגלה 🛒
-          </button>
-
-          {/* כפתורי שיתוף */}
-          <div className="flex items-center gap-3 pt-4 border-t">
+          {/* כפתור הוספה לעגלה */}
+          <div className="space-y-3 pt-4 border-t">
             <button
-              type="button"
-              onClick={handleWhatsAppShare}
-              title="שיתוף בוואטסאפ"
-              className="bg-emerald-500 hover:bg-emerald-600 text-white w-11 h-11 rounded-2xl flex items-center justify-center transition cursor-pointer shadow-sm flex-shrink-0"
+              onClick={addToCart}
+              className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-2xl text-sm font-black transition shadow-md cursor-pointer flex items-center justify-center gap-2"
             >
-              <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
-                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
-              </svg>
-            </button>
-            <button
-              type="button"
-              onClick={handleCopyLink}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-3 rounded-2xl text-xs font-bold transition flex items-center gap-2 cursor-pointer flex-1 justify-center"
-            >
-              🔗 העתק קישור
+              <span>🛒 הוספה לעגלה</span>
             </button>
           </div>
         </div>
