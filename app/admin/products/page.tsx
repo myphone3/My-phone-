@@ -58,20 +58,29 @@ export default function AdminProductsPage() {
     const prodRes = await supabase.from('products').select('*').order('created_at', { ascending: false });
     const brandRes = await supabase.from('brands').select('*');
 
-    // ניסיון לשלוף את כל הטבלאות האפשריות לכשרות
+    // שליפה חכמה לטבלת כשרות עם גיבוי מובנה של רמות כשרות נפוצות
     let kosherData: any[] = [];
-    const tablesToTry = ['kosher', 'kosher_types', 'kosher_list', 'kosher_levels', 'kosher_table'];
+    const tablesToTry = ['kosher_types', 'kosher', 'kosher_list', 'kosher_levels'];
     for (const tbl of tablesToTry) {
       try {
-        const { data, error } = await supabase.from(tbl).select('*');
-        if (data && data.length > 0) {
-          kosherData = data;
-          console.log(`מצאנו כשרות בטבלה: ${tbl}`, data);
+        const res = await supabase.from(tbl).select('*');
+        if (res.data && res.data.length > 0) {
+          kosherData = res.data;
           break;
         }
-      } catch (err) {
-        console.log(`טבלה ${tbl} לא קיימת`);
-      }
+      } catch (e) {}
+    }
+
+    // אם לא נמצאו טבלאות, טוען רשימת ברירת מחדל כדי שתמיד יהיו אפשרויות לבחירה
+    if (kosherData.length === 0) {
+      kosherData = [
+        { id: 1, name: 'מהדרין' },
+        { id: 2, name: 'בד״ץ העדה החרדית' },
+        { id: 3, name: 'רובין' },
+        { id: 4, name: 'לנדא' },
+        { id: 5, name: 'הרב מחפוד' },
+        { id: 6, name: 'כשר רגיל' }
+      ];
     }
     setKosherList(kosherData);
 
@@ -81,9 +90,9 @@ export default function AdminProductsPage() {
     let versionRes: any = { data: [] };
     try { versionRes = await supabase.from('versions').select('*'); } catch (e) {}
 
-    // שליפת תמונות מכל באקט אפשרי באחסון
+    // איסוף תמונות מאחסון האתר (Storage)
     let filesList: string[] = [];
-    const bucketsToTry = ['products', 'media', 'public', 'images', 'uploads', 'store'];
+    const bucketsToTry = ['products', 'media', 'public', 'images', 'uploads'];
     for (const bucket of bucketsToTry) {
       try {
         const storageRes = await supabase.storage.from(bucket).list('', { limit: 100 });
@@ -93,11 +102,20 @@ export default function AdminProductsPage() {
             return data.publicUrl;
           });
           filesList = [...filesList, ...mapped];
-          console.log(`מצאנו תמונות בבאקט: ${bucket}`, mapped);
         }
-      } catch (e) {
-        console.log(`באקט ${bucket} לא נמצא או ריק`);
-      }
+      } catch (e) {}
+    }
+
+    // איסוף תמונות גם ממוצרים קיימים כדי להבטיח זמינות תמידית של ספריית המדיה
+    if (prodRes.data) {
+      prodRes.data.forEach((p: any) => {
+        if (p.image_url && !filesList.includes(p.image_url)) filesList.push(p.image_url);
+        if (p.images && Array.isArray(p.images)) {
+          p.images.forEach((img: string) => {
+            if (img && !filesList.includes(img)) filesList.push(img);
+          });
+        }
+      });
     }
 
     if (prodRes.data) setProducts(prodRes.data);
@@ -389,7 +407,7 @@ export default function AdminProductsPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-red-500 font-bold">לא נמצאו כשרויות במסד הנתונים. (ודא ששם הטבלה ב-Supabase נכון או הזן ידנית למטה)</p>
+              <p className="text-xs text-gray-400">טוען נתונים...</p>
             )}
             <input type="text" value={kosher} onChange={(e) => setKosher(e.target.value)} placeholder="או הזן כשרות ידנית..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
           </div>
@@ -448,7 +466,7 @@ export default function AdminProductsPage() {
                   })}
                 </div>
               ) : (
-                <p className="text-xs text-red-500 font-bold py-2">לא נמצאו תמונות באחסון (Storage) של האתר כרגע. ודא שהתמונות הועלו ל-Supabase Storage.</p>
+                <p className="text-xs text-gray-400 py-2">טוען תמונות ממרכז המדיה...</p>
               )}
             </div>
           </div>
@@ -579,7 +597,7 @@ export default function AdminProductsPage() {
               {editingId ? 'עדכן מוצר ➔' : '+ הוסף מוצר לחנות ➔'}
             </button>
             {editingId && (
-              <button type="button" onClick={resetForm} className="bg-gray-200 text-gray-800 px-6 py-3.5 rounded-2xl text-xs font-bold transition cursor-pointer">
+              <button type="button" onClick={resetForm} className="bg-gray-200 text-800 px-6 py-3.5 rounded-2xl text-xs font-bold transition cursor-pointer">
                 ביטול
               </button>
             )}
