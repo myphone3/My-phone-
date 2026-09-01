@@ -155,7 +155,7 @@ export default function AdminProductsPage() {
     setVariantsInput('');
     setColors([{ name: 'שחור', hex: '#000000', image: '' }]);
     setSeoTitle('');
-    setseoDesc('');
+    setSeoDesc('');
     setIsPublished(true);
     setEditingId(null);
   };
@@ -266,7 +266,6 @@ export default function AdminProductsPage() {
             <input type="text" value={variantsInput} onChange={(e) => setVariantsInput(e.target.value)} placeholder="64GB, 128GB, 256GB" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
           </div>
 
-          {/* העלאת קובץ תמונה ובחירה מהמדיה */}
           <div className="space-y-3 bg-gray-50 p-4 rounded-2xl border">
             <label className="block text-xs font-bold text-gray-700">תמונת מוצר ראשית (העלאת קובץ או בחירה מתוך ספריית המדיה)</label>
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
