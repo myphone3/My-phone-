@@ -8,6 +8,11 @@ import { useEffect, useState } from 'react';
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [announcement, setAnnouncement] = useState<{ text: string; endTime?: string } | null>({
+    text: '🚚 משלוח מהיר עד הבית | מבצעי ענק על מכשירים כשרים וסלולר!',
+    endTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+  });
+  const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number }>({ hours: 0, minutes: 0, seconds: 0 });
   
   const [notifications, setNotifications] = useState<string[]>([
     'ההזמנה שלך נקלטה בהצלחה! 📦',
@@ -31,10 +36,42 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       setUser(session?.user || null);
     });
 
+    fetchSettings();
+
     return () => {
       authListener?.subscription.unsubscribe();
     };
   }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const { data } = await supabase.from('settings').select('*').single();
+      if (data && data.announcement_text) {
+        setAnnouncement({
+          text: data.announcement_text,
+          endTime: data.announcement_end_time
+        });
+      }
+    } catch (err) {}
+  };
+
+  useEffect(() => {
+    if (!announcement?.endTime) return;
+
+    const timer = setInterval(() => {
+      const difference = new Date(announcement.endTime!).getTime() - new Date().getTime();
+      if (difference > 0) {
+        const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((difference / 1000 / 60) % 60);
+        const seconds = Math.floor((difference / 1000) % 60);
+        setTimeLeft({ hours, minutes, seconds });
+      } else {
+        setTimeLeft({ hours: 0, minutes: 0, seconds: 0 });
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [announcement?.endTime]);
 
   const handleGoogleLogin = async () => {
     await supabase.auth.signInWithOAuth({
@@ -55,11 +92,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="he" dir="rtl">
       <body className="bg-gray-50 min-h-screen text-gray-900">
+        
+        {announcement && (
+          <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white text-xs font-bold py-2 px-4 text-center flex flex-wrap items-center justify-center gap-3 shadow-inner">
+            <span>{announcement.text}</span>
+            {announcement.endTime && (
+              <div className="bg-black/20 backdrop-blur-sm px-2.5 py-0.5 rounded-lg flex items-center gap-1.5 text-[11px]">
+                <span>⏱️ נותר:</span>
+                <span className="font-black">{String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}</span>
+              </div>
+            )}
+          </div>
+        )}
+
         <header className="bg-white border-b sticky top-0 z-40 shadow-xs">
-          <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-            {/* הלוגו המדויק תואם לקובץ Logo.JPG */}
-            <Link href="/" className="flex items-center cursor-pointer group">
-              <img src="/Logo.JPG" alt="NEW PHONE" className="h-14 w-auto sm:h-16 object-contain group-hover:scale-105 transition" />
+          <div className="max-w-7xl mx-auto px-4 h-20 sm:h-24 flex items-center justify-between">
+            <Link href="/" className="flex items-center cursor-pointer group py-2">
+              <img src="/Logo.JPG" alt="NEW PHONE" className="h-16 sm:h-20 w-auto object-contain group-hover:scale-105 transition duration-300 drop-shadow-sm" />
             </Link>
 
             <div className="flex items-center gap-2 sm:gap-3">
@@ -76,7 +125,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         className="w-7 h-7 rounded-full object-cover border"
                       />
                     ) : (
-                      <div className="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center text-xs font-bold">
+                      <div className="w-7 h-7 rounded-full bg-orange-600 text-white flex items-center justify-center text-xs font-bold">
                         {user.email?.[0]?.toUpperCase()}
                       </div>
                     )}
@@ -140,7 +189,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               {isAdmin && (
                 <Link
                   href="/admin/products"
-                  className="bg-black text-white hover:bg-gray-800 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-xs"
+                  className="bg-orange-600 text-white hover:bg-orange-700 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-xs"
                 >
                   ⚙️ פאנל ניהול
                 </Link>
