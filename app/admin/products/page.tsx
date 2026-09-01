@@ -59,7 +59,19 @@ export default function AdminProductsPage() {
     
     const prodRes = await supabase.from('products').select('*').order('created_at', { ascending: false });
     const brandRes = await supabase.from('brands').select('*');
-    const kosherRes = await supabase.from('kosher_types').select('*');
+    
+    // שליפה גמישה ובטוחה לטבלת כשרות (תומך גם ב-kosher_types וגם ב-kosher)
+    let kosherRes: any = { data: [] };
+    try {
+      kosherRes = await supabase.from('kosher_types').select('*');
+      if (!kosherRes.data || kosherRes.data.length === 0) {
+        kosherRes = await supabase.from('kosher').select('*');
+      }
+    } catch (e) {
+      try {
+        kosherRes = await supabase.from('kosher').select('*');
+      } catch (err) {}
+    }
     
     let catRes: any = { data: [] };
     try {
@@ -218,7 +230,7 @@ export default function AdminProductsPage() {
     setDescription(prod.description || '');
     setSpecs(prod.specs || '');
     setImageUrl(prod.image_url || '');
-    setImages(prod.images || prod.image_url ? [prod.image_url] : []);
+    setImages(prod.images || (prod.image_url ? [prod.image_url] : []));
     setColors(prod.product_colors || [{ name: 'שחור', hex: '#000000', image: '' }]);
     setSeoTitle(prod.seo_title || '');
     setSeoDesc(prod.seo_description || '');
@@ -378,46 +390,58 @@ export default function AdminProductsPage() {
             <input type="text" value={kosher} onChange={(e) => setKosher(e.target.value)} placeholder="או הזן כשרות ידנית..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
           </div>
 
-          {/* העלאת תמונות מרובות + ספריית מדיה */}
+          {/* העלאת תמונות מרובות + בחירה ישירה מספריית המדיה */}
           <div className="space-y-3 bg-gray-50 p-4 rounded-2xl border">
-            <label className="block text-xs font-bold text-gray-700">תמונות המוצר (ניתן לבחור מספר תמונות יחד מהמכשיר או מהמדיה)</label>
+            <label className="block text-xs font-bold text-gray-700">תמונות המוצר (העלה מהמכשיר או בחר מהמדיה הקיימת)</label>
             <input type="file" accept="image/*" multiple onChange={handleMultipleImageUpload} className="bg-white border rounded-xl p-2 text-xs cursor-pointer w-full" />
             {uploading && <span className="text-xs text-orange-600 font-bold">מעלה קבצים...</span>}
 
             {images.length > 0 && (
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {images.map((img, idx) => (
-                  <div key={idx} className="relative w-16 h-16 rounded-xl border bg-white shrink-0 overflow-hidden">
-                    <img src={img} alt="" className="w-full h-full object-contain p-1" />
-                    <button
-                      type="button"
-                      onClick={() => setImages(images.filter((_, i) => i !== idx))}
-                      className="absolute top-0 right-0 bg-red-600 text-white text-[10px] px-1 rounded-bl"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
+              <div className="space-y-1">
+                <span className="text-[11px] font-bold text-gray-600 block">תמונות שנבחרו למוצר:</span>
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {images.map((img, idx) => (
+                    <div key={idx} className="relative w-16 h-16 rounded-xl border bg-white shrink-0 overflow-hidden">
+                      <img src={img} alt="" className="w-full h-full object-contain p-1" />
+                      <button
+                        type="button"
+                        onClick={() => setImages(images.filter((_, i) => i !== idx))}
+                        className="absolute top-0 right-0 bg-red-600 text-white text-[10px] px-1 rounded-bl cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
             {storageFiles.length > 0 && (
-              <div>
-                <span className="text-[11px] font-bold text-gray-600 block mb-1">הוסף מהמדיה הקיימת באתר:</span>
-                <div className="flex gap-2 overflow-x-auto pb-2">
-                  {storageFiles.map((url, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => {
-                        if (!images.includes(url)) setImages([...images, url]);
-                        if (!imageUrl) setImageUrl(url);
-                      }}
-                      className="w-12 h-12 rounded-xl border bg-white shrink-0 overflow-hidden hover:ring-2 hover:ring-orange-600"
-                    >
-                      <img src={url} alt="" className="w-full h-full object-contain p-1" />
-                    </button>
-                  ))}
+              <div className="space-y-1 pt-2 border-t">
+                <span className="text-[11px] font-bold text-gray-700 block">📁 בחר תמונות מתוך ספריית המדיה הקיימת באתר (לחץ להוספה):</span>
+                <div className="grid grid-cols-5 sm:grid-cols-10 gap-2 max-h-40 overflow-y-auto p-1 bg-white rounded-xl border">
+                  {storageFiles.map((url, idx) => {
+                    const isSelected = images.includes(url);
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          if (!images.includes(url)) {
+                            const updated = [...images, url];
+                            setImages(updated);
+                            if (!imageUrl) setImageUrl(url);
+                          } else {
+                            setImages(images.filter(i => i !== url));
+                          }
+                        }}
+                        className={`relative w-12 h-12 rounded-lg border overflow-hidden shrink-0 transition cursor-pointer bg-gray-50 ${isSelected ? 'border-orange-600 ring-2 ring-orange-600/50 bg-orange-50' : 'border-gray-200'}`}
+                      >
+                        <img src={url} alt="" className="w-full h-full object-contain p-0.5" />
+                        {isSelected && <span className="absolute bottom-0 right-0 bg-orange-600 text-white text-[9px] px-1 rounded-tl">✓</span>}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -565,7 +589,7 @@ export default function AdminProductsPage() {
       <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
         <h2 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">מוצרים קיימים ({products.length})</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {products.map((p) => (
+          {products.pathnames ? null : products.map((p) => (
             <div key={p.id} className="border rounded-2xl p-4 flex justify-between items-center bg-gray-50/50 shadow-xs">
               <div className="flex items-center gap-3">
                 <img src={p.image_url} alt="" className="w-12 h-12 object-contain bg-white rounded-xl border p-1" />
