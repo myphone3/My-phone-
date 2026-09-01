@@ -1,141 +1,134 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
-import StoreHeader from '../StoreHeader';
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<any[]>([]);
-  const [customerName, setCustomerName] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
-  const [customerAddress, setCustomerAddress] = useState('');
 
   useEffect(() => {
-    loadCart();
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+      try {
+        setCartItems(JSON.parse(savedCart));
+      } catch (e) {
+        setCartItems([]);
+      }
+    }
   }, []);
 
-  const loadCart = () => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('cart') || '[]');
-      setCartItems(saved);
-    } catch (e) {
-      setCartItems([]);
-    }
-  };
-
   const updateQuantity = (index: number, delta: number) => {
-    const newCart = [...cartItems];
-    newCart[index].quantity = (Number(newCart[index].quantity) || 1) + delta;
-    if (newCart[index].quantity <= 0) {
-      newCart.splice(index, 1);
+    const updated = [...cartItems];
+    updated[index].quantity = (updated[index].quantity || 1) + delta;
+    if (updated[index].quantity <= 0) {
+      updated.splice(index, 1);
     }
-    setCartItems(newCart);
-    localStorage.setItem('cart', JSON.stringify(newCart));
-    window.dispatchEvent(new Event('cartUpdated'));
+    setCartItems(updated);
+    localStorage.setItem('cart', JSON.stringify(updated));
   };
 
-  const calculateTotal = () => {
-    return cartItems.reduce((sum, item) => sum + (Number(item.price) * (Number(item.quantity) || 1)), 0);
+  const removeItem = (index: number) => {
+    const updated = cartItems.filter((_, i) => i !== index);
+    setCartItems(updated);
+    localStorage.setItem('cart', JSON.stringify(updated));
   };
 
-  const handleCheckout = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (cartItems.length === 0) return;
-    if (!customerName || !customerPhone) {
-      alert('אנא מלא שם ומספר טלפון');
-      return;
-    }
-
-    try {
-      const { error } = await supabase.from('orders').insert([{
-        customer_name: customerName,
-        customer_phone: customerPhone,
-        customer_address: customerAddress || 'איסוף עצמי',
-        items: cartItems,
-        total: calculateTotal(),
-        status: 'בטיפול'
-      }]);
-
-      if (error) throw error;
-
-      alert('ההזמנה בוצעה בהצלחה ונשלחה לניהול! 🎉');
-      localStorage.removeItem('cart');
-      setCartItems([]);
-      window.dispatchEvent(new Event('cartUpdated'));
-    } catch (err: any) {
-      alert('שגיאה בביצוע ההזמנה: ' + err.message);
-    }
-  };
+  const totalPrice = cartItems.reduce((sum, item) => {
+    const price = item.sale_price || item.price || 0;
+    return sum + price * (item.quantity || 1);
+  }, 0);
 
   return (
-    <>
-      <StoreHeader />
+    <div className="max-w-4xl mx-auto px-4 py-8 space-y-6" dir="rtl">
+      <h1 className="text-2xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">עגלת קניות</h1>
+
       {cartItems.length === 0 ? (
-        <div className="max-w-4xl mx-auto px-4 py-20 text-center space-y-6" dir="rtl">
-          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto text-3xl">🛒</div>
-          <h1 className="text-2xl font-black text-gray-900">העגלה שלך ריקה</h1>
-          <p className="text-gray-500 text-sm">עדיין לא הוספת מוצרים לעגלה</p>
-          <div>
-            <Link href="/" className="inline-block bg-black text-white px-8 py-3.5 rounded-2xl font-bold hover:bg-gray-800 transition shadow-md">
-              למעבר לקטלוג 🏠
-            </Link>
+        <div className="text-center py-20 bg-white rounded-3xl border p-8 space-y-4 shadow-sm">
+          <div className="w-20 h-20 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mx-auto text-3xl">
+            🛒
           </div>
+          <h2 className="text-lg font-black text-gray-900">העגלה שלך ריקה</h2>
+          <p className="text-xs text-gray-500 font-medium">עדיין לא הוספת מוצרים לעגלה</p>
+          <Link href="/" className="inline-block bg-orange-600 text-white px-6 py-3 rounded-2xl text-xs font-bold hover:bg-orange-700 transition shadow-sm">
+            🏠 למעבר לקטלוג
+          </Link>
         </div>
       ) : (
-        <div className="max-w-4xl mx-auto px-4 py-8 space-y-8" dir="rtl">
-          <h1 className="text-3xl font-black text-gray-900">עגלת הקניות שלך 🛒</h1>
+        <div className="space-y-6">
+          <div className="bg-white rounded-3xl border shadow-sm divide-y">
+            {cartItems.map((item, index) => {
+              const itemImg = item.image_url || item.images?.[0] || '';
+              const itemPrice = item.sale_price || item.price || 0;
+              const qty = item.quantity || 1;
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="md:col-span-2 space-y-4">
-              {cartItems.map((item, index) => (
-                <div key={index} className="bg-white p-4 rounded-2xl border shadow-sm flex justify-between items-center">
-                  <div>
-                    <h3 className="font-bold text-gray-900">{item.name}</h3>
-                    <div className="text-xs text-gray-500 space-x-2 space-x-reverse mt-1">
-                      {item.selectedVersion && <span>גרסה: {item.selectedVersion}</span>}
-                      {item.selectedStorage && <span>נפח: {item.selectedStorage}</span>}
-                      {item.selectedColor && <span>צבע: {item.selectedColor}</span>}
+              return (
+                <div key={index} className="p-4 sm:p-6 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-gray-50 rounded-2xl border flex items-center justify-center overflow-hidden shrink-0">
+                      {itemImg ? (
+                        <img src={itemImg} alt={item.name} className="w-full h-full object-contain" />
+                      ) : (
+                        <span>📦</span>
+                      )}
                     </div>
-                    <div className="text-sm font-black text-black mt-1">₪{item.price}</div>
+                    <div>
+                      <h3 className="font-black text-xs sm:text-sm text-gray-900">{item.name}</h3>
+                      <p className="text-xs text-orange-600 font-bold mt-1">₪{itemPrice} ליחידה</p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3 bg-gray-50 px-3 py-1.5 rounded-xl border">
-                    <button onClick={() => updateQuantity(index, -1)} className="text-gray-600 font-bold px-2">-</button>
-                    <span className="text-sm font-bold">{item.quantity || 1}</span>
-                    <button onClick={() => updateQuantity(index, 1)} className="text-gray-600 font-bold px-2">+</button>
+
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center border rounded-xl bg-gray-50 overflow-hidden">
+                      <button
+                        onClick={() => updateQuantity(index, -1)}
+                        className="px-3 py-1 text-xs font-bold hover:bg-gray-200 transition cursor-pointer"
+                      >
+                        -
+                      </button>
+                      <span className="px-3 py-1 text-xs font-black">{qty}</span>
+                      <button
+                        onClick={() => updateQuantity(index, 1)}
+                        className="px-3 py-1 text-xs font-bold hover:bg-gray-200 transition cursor-pointer"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={() => removeItem(index)}
+                      className="text-red-500 hover:text-red-700 text-xs font-bold p-2 cursor-pointer"
+                      title="הסר מוצר"
+                    >
+                      🗑️
+                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
+          </div>
 
-            <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4 h-fit">
-              <h3 className="text-lg font-bold text-gray-900 border-b pb-2">סיכום הזמנה</h3>
-              <div className="flex justify-between font-black text-lg">
-                <span>סה״כ לתשלום:</span>
-                <span>₪{calculateTotal()}</span>
-              </div>
-
-              <form onSubmit={handleCheckout} className="space-y-3 pt-2">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">שם מלא *</label>
-                  <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="ישראל ישראלי" className="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-black" required />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">טלפון נייד *</label>
-                  <input type="tel" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="050-0000000" className="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-black" required />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">כתובת למשלוח / איסוף עצמי</label>
-                  <input type="text" value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} placeholder="עיר, רחוב, מספר..." className="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-black" />
-                </div>
-                <button type="submit" className="w-full bg-black text-white py-4 rounded-2xl font-bold hover:bg-gray-800 transition shadow-lg text-base mt-4">
-                  אישור הזמנה ושלח 🚀
-                </button>
-              </form>
+          <div className="bg-white rounded-3xl border p-6 shadow-sm space-y-4">
+            <div className="flex justify-between items-center text-sm font-bold text-gray-700">
+              <span>סכום ביניים:</span>
+              <span className="text-lg font-black text-gray-900">₪{totalPrice}</span>
             </div>
+            <div className="flex justify-between items-center text-xs text-gray-500 border-t pt-3">
+              <span>משלוח מהיר עד הבית:</span>
+              <span className="font-bold text-green-600">חינם 🚚</span>
+            </div>
+            <div className="border-t pt-4 flex justify-between items-center">
+              <span className="text-base font-black text-gray-900">סה"כ לתשלום:</span>
+              <span className="text-xl font-black text-orange-600">₪{totalPrice}</span>
+            </div>
+            <button
+              onClick={() => alert('ההזמנה נקלטה בהצלחה! צוות החנות יצור איתך קשר בהקדם.')}
+              className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3.5 rounded-2xl text-sm font-black transition shadow-md cursor-pointer"
+            >
+              לתשלום והשלמת הזמנה ➔
+            </button>
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
