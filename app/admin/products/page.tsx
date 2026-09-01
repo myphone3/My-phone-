@@ -2,11 +2,11 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
-
 import Link from 'next/link';
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
+  const [storageFiles, setStorageFiles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [name, setName] = useState('');
@@ -20,8 +20,7 @@ export default function AdminProductsPage() {
   const [images, setImages] = useState<string[]>([]);
   const [variantsInput, setVariantsInput] = useState('');
   const [colors, setColors] = useState<{ name: string; hex: string; image: string }[]>([
-    { name: 'שחור', hex: '#000000', image: '' },
-    { name: 'לבן', hex: '#ffffff', image: '' }
+    { name: 'שחור', hex: '#000000', image: '' }
   ]);
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDesc, setSeoDesc] = useState('');
@@ -30,17 +29,28 @@ export default function AdminProductsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchProducts();
+    fetchData();
   }, []);
 
-  const fetchProducts = async () => {
+  const fetchData = async () => {
     setLoading(true);
-    const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false });
-    if (data) setProducts(data);
+    const [prodRes, storageRes] = await Promise.all([
+      supabase.from('products').select('*').order('created_at', { ascending: false }),
+      supabase.storage.from('products').list('products', { limit: 50 })
+    ]);
+
+    if (prodRes.data) setProducts(prodRes.data);
+    if (storageRes.data) {
+      const files = storageRes.data.map((f: any) => {
+        const { data } = supabase.storage.from('products').getPublicUrl(`products/${f.name}`);
+        return data.publicUrl;
+      });
+      setStorageFiles(files);
+    }
     setLoading(false);
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isColorIndex?: number) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -51,23 +61,16 @@ export default function AdminProductsPage() {
 
     const { error } = await supabase.storage.from('products').upload(filePath, file);
     if (error) {
-      alert('שגיאה בהעלאה: ' + error.message);
+      alert('שגיאה: ' + error.message);
       setUploading(false);
       return;
     }
 
     const { data } = supabase.storage.from('products').getPublicUrl(filePath);
-    const pubUrl = data.publicUrl;
-
-    if (typeof isColorIndex === 'number') {
-      const updated = [...colors];
-      updated[isColorIndex].image = pubUrl;
-      setColors(updated);
-    } else {
-      setImageUrl(pubUrl);
-      setImages((prev) => [...prev, pubUrl]);
-    }
+    setImageUrl(data.publicUrl);
+    setImages((prev) => [...prev, data.publicUrl]);
     setUploading(false);
+    fetchData();
   };
 
   const handleSaveProduct = async (e: React.FormEvent) => {
@@ -104,7 +107,7 @@ export default function AdminProductsPage() {
       else {
         alert('המוצר עודכן בהצלחה!');
         resetForm();
-        fetchProducts();
+        fetchData();
       }
     } else {
       const { error } = await supabase.from('products').insert([payload]);
@@ -112,7 +115,7 @@ export default function AdminProductsPage() {
       else {
         alert('המוצר נוסף בהצלחה!');
         resetForm();
-        fetchProducts();
+        fetchData();
       }
     }
   };
@@ -156,7 +159,7 @@ export default function AdminProductsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('האם למחוק מוצר זה?')) return;
     await supabase.from('products').delete().eq('id', id);
-    fetchProducts();
+    fetchData();
   };
 
   return (
@@ -164,11 +167,11 @@ export default function AdminProductsPage() {
       <div className="flex justify-between items-center border-b pb-4">
         <div>
           <h1 className="text-2xl font-black text-gray-900">פאנל ניהול מוצרים</h1>
-          <p className="text-xs text-gray-500 font-medium">הוספה ועריכה מתקדמת של מוצרים, צבעים, גרסאות ו-SEO.</p>
+          <p className="text-xs text-gray-500 font-medium">הוספת מוצרים, גרסאות אחסון, צבעים ושדות SEO.</p>
         </div>
         <div className="flex gap-2">
-          <Link href="/admin/banners" className="bg-orange-100 text-orange-800 hover:bg-orange-200 px-4 py-2 rounded-xl text-xs font-bold transition">
-            🖼️ מעבר לניהול באנרים
+          <Link href="/admin/banners" className="bg-orange-600 text-white hover:bg-orange-700 px-4 py-2 rounded-xl text-xs font-bold transition">
+            🖼️ ניהול באנרים
           </Link>
           <Link href="/" className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-xl text-xs font-bold transition">
             חזרה לחנות ➔
@@ -178,7 +181,7 @@ export default function AdminProductsPage() {
 
       <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-6">
         <h2 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">
-          {editingId ? 'עריכת מוצר' : 'הוספת מוצר חדש'}
+          {editingId ? 'עריכת מוצר קיים' : 'הוספת מוצר חדש לחנות'}
         </h2>
 
         <form onSubmit={handleSaveProduct} className="space-y-4">
@@ -214,24 +217,42 @@ export default function AdminProductsPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">העלאת תמונת מוצר ראשית</label>
-            <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e)} className="w-full bg-gray-50 border rounded-xl p-2 text-xs cursor-pointer" />
-            {imageUrl && <p className="text-[11px] text-green-600 mt-1">✓ תמונה נטענה בהצלחה</p>}
+            <label className="block text-xs font-bold text-gray-700 mb-1">תמונת מוצר (העלאה או בחירה מהמדיה)</label>
+            <input type="file" accept="image/*" onChange={handleImageUpload} className="w-full bg-gray-50 border rounded-xl p-2 text-xs mb-2 cursor-pointer" />
+            {uploading && <p className="text-[11px] text-orange-600">מעלה...</p>}
+
+            {storageFiles.length > 0 && (
+              <div>
+                <span className="text-[11px] font-bold text-gray-600 block mb-1">בחר מהמדיה הקיימת באתר:</span>
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {storageFiles.map((url, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => { setImageUrl(url); setImages((prev) => [...prev, url]); }}
+                      className={`w-12 h-12 rounded-lg border overflow-hidden shrink-0 transition cursor-pointer ${imageUrl === url ? 'border-orange-600 ring-2 ring-orange-600/30' : 'border-gray-200'}`}
+                    >
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">תיאור מלא</label>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="תיאור מפורט..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"></textarea>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="תיאור מלא..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"></textarea>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-4">
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">SEO Title (כותרת בגוגל)</label>
-              <input type="text" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} placeholder="כותרת לקידום אתרים..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
+              <input type="text" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} placeholder="כותרת SEO..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">SEO Description (תיאור בגוגל)</label>
-              <input type="text" value={seoDesc} onChange={(e) => setSeoDesc(e.target.value)} placeholder="תיאור לקידום אתרים..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
+              <input type="text" value={seoDesc} onChange={(e) => setSeoDesc(e.target.value)} placeholder="תיאור SEO..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
             </div>
           </div>
 
