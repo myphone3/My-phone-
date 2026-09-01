@@ -11,6 +11,7 @@ function StoreContent() {
   const [banners, setBanners] = useState<any[]>([]);
   const [currentBanner, setCurrentBanner] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedColors, setSelectedColors] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
@@ -68,10 +69,20 @@ function StoreContent() {
     }
   };
 
+  const filteredProducts = products.filter((p) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    const nameMatch = p.name?.toLowerCase().includes(query);
+    const brandMatch = p.brand?.toLowerCase().includes(query);
+    const categoryMatch = p.category?.toLowerCase().includes(query);
+    const descMatch = p.description?.toLowerCase().includes(query);
+    return nameMatch || brandMatch || categoryMatch || descMatch;
+  });
+
   const scrollingBrands = [...brands, ...brands, ...brands];
 
   return (
-    <div className="space-y-0 pb-12" dir="rtl">
+    <div className="space-y-0 pb-16" dir="rtl">
       
       <style jsx>{`
         @keyframes marquee {
@@ -88,9 +99,8 @@ function StoreContent() {
         }
       `}</style>
 
-      {/* מותגים נעים בגלילה שמובילים לעמוד נפרד לכל מותג */}
       {brands.length > 0 && (
-        <div className="w-full overflow-x-auto bg-gray-50/60 py-3 border-b scrollbar-none">
+        <div className="w-full overflow-x-auto bg-orange-50/40 py-3 border-b border-orange-100 scrollbar-none">
           <div className="animate-marquee flex items-center gap-12 px-4 cursor-grab">
             {scrollingBrands.map((brand, idx) => (
               brand.image_url && (
@@ -108,9 +118,9 @@ function StoreContent() {
       )}
 
       {banners.length > 0 && (
-        <div className="relative w-full bg-gradient-to-r from-gray-900 via-purple-950 to-black overflow-hidden shadow-lg text-white py-12 px-6 sm:px-16 transition-all duration-500">
+        <div className="relative w-full bg-gradient-to-r from-gray-950 via-orange-950 to-black overflow-hidden shadow-xl text-white py-14 px-6 sm:px-16 transition-all duration-500">
           <div className="max-w-7xl mx-auto space-y-4 relative z-10">
-            <span className="bg-white/25 backdrop-blur-md text-white px-3.5 py-1 rounded-full text-xs font-bold tracking-wide">
+            <span className="bg-orange-600/30 border border-orange-500/40 text-orange-300 px-3.5 py-1 rounded-full text-xs font-bold tracking-wide backdrop-blur-md">
               NEW PHONE מבצעים חמים ⚡
             </span>
             <h1 className="text-2xl sm:text-4xl font-black leading-tight">
@@ -122,7 +132,7 @@ function StoreContent() {
             {banners[currentBanner]?.link_product_id && (
               <Link 
                 href={`/product/${banners[currentBanner].link_product_id}`}
-                className="inline-block bg-white text-black hover:bg-gray-100 px-6 py-3 rounded-2xl text-xs font-bold transition shadow-lg cursor-pointer"
+                className="inline-block bg-orange-600 text-white hover:bg-orange-700 px-6 py-3 rounded-2xl text-xs font-bold transition shadow-lg cursor-pointer"
               >
                 לרכישת המוצר המשתתף במבצע ➔
               </Link>
@@ -134,19 +144,41 @@ function StoreContent() {
               <button
                 key={idx}
                 onClick={() => setCurrentBanner(idx)}
-                className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${currentBanner === idx ? 'w-8 bg-white' : 'w-2 bg-white/40'}`}
+                className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${currentBanner === idx ? 'w-8 bg-orange-500' : 'w-2 bg-white/40'}`}
               />
             ))}
           </div>
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 space-y-10 pt-10">
+      <div className="max-w-7xl mx-auto px-4 space-y-10 pt-8">
 
-        {/* קטגוריות מובילות שמובילות לעמוד נפרד לכל קטגוריה */}
+        {/* שורת חיפוש */}
+        <div className="relative max-w-2xl mx-auto">
+          <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-gray-400">
+            🔍
+          </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="חפש מכשיר, נגן, מותג או קטגוריה..."
+            className="w-full bg-white border-2 border-orange-500/20 focus:border-orange-600 rounded-2xl py-3.5 pr-11 pl-4 text-xs sm:text-sm font-medium shadow-sm outline-none transition"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute inset-y-0 left-0 pl-4 flex items-center text-xs font-bold text-gray-400 hover:text-gray-600 cursor-pointer"
+            >
+              ✕ ניקוי
+            </button>
+          )}
+        </div>
+
+        {/* קטגוריות מובילות עם מסגרת דקיקה בצבע הלוגו */}
         {categories.length > 0 && (
           <section className="space-y-4">
-            <h2 className="text-lg sm:text-xl font-black text-gray-900">קטגוריות מובילות</h2>
+            <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">קטגוריות מובילות</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
               {categories.map((cat) => (
                 <Link 
@@ -154,37 +186,42 @@ function StoreContent() {
                   href={`/category/${encodeURIComponent(cat.name)}`}
                   className="flex flex-col items-center text-center gap-2 cursor-pointer group"
                 >
-                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gray-50 flex items-center justify-center overflow-hidden group-hover:scale-105 transition shadow-xs border">
+                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-white flex items-center justify-center overflow-hidden group-hover:scale-105 transition shadow-xs border border-orange-500/30">
                     {cat.image_url ? (
                       <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover" />
                     ) : (
                       <span className="text-3xl">📦</span>
                     )}
                   </div>
-                  <span className="font-bold text-xs sm:text-sm text-gray-900">{cat.name}</span>
+                  <span className="font-bold text-xs sm:text-sm text-gray-900 group-hover:text-orange-600 transition">{cat.name}</span>
                 </Link>
               ))}
             </div>
           </section>
         )}
 
-        {/* כל המוצרים בחנות */}
+        {/* מוצרים */}
         <section className="space-y-6 pt-4 border-t">
           <div className="flex justify-between items-center">
-            <h2 className="text-lg sm:text-xl font-black text-gray-900">כל המוצרים בחנות</h2>
-            <span className="text-xs text-gray-500 font-bold">{products.length} מוצרים זמינים</span>
+            <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
+              {searchQuery ? `תוצאות חיפוש עבור: "${searchQuery}"` : 'כל המוצרים בחנות'}
+            </h2>
+            <span className="text-xs text-gray-500 font-bold">{filteredProducts.length} מוצרים זמינים</span>
           </div>
 
           {loading ? (
             <div className="text-center py-20 text-gray-500 font-medium">טוען את חנות NEW PHONE...</div>
-          ) : products.length === 0 ? (
+          ) : filteredProducts.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-3xl border p-8 space-y-3 shadow-sm">
-              <span className="text-4xl">📦</span>
-              <p className="text-gray-500 font-medium">אין מוצרים זמינים בחנות כרגע.</p>
+              <span className="text-4xl">🔍</span>
+              <p className="text-gray-500 font-medium">לא נמצאו מוצרים תחת חיפוש זה.</p>
+              <button onClick={() => setSearchQuery('')} className="inline-block bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-bold mt-2 cursor-pointer">
+                איפוס חיפוש
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
-              {products.map((product) => {
+              {filteredProducts.map((product) => {
                 const colors = product.product_colors || [];
                 const primaryImg = product.image_url || product.images?.[0] || '';
                 const secondaryImg = product.images?.[1] || primaryImg;
@@ -201,7 +238,7 @@ function StoreContent() {
                         <img 
                           src={activeImage} 
                           alt={product.name} 
-                          className={`w-full h-full object-contain transition duration-300 group-hover:scale-105 ${hasHoverImage ? 'group-hover:opacity-0' : ''}`} 
+                        className={`w-full h-full object-contain transition duration-300 group-hover:scale-105 ${hasHoverImage ? 'group-hover:opacity-0' : ''}`} 
                         />
                         {hasHoverImage && (
                           <img 
@@ -256,7 +293,7 @@ function StoreContent() {
                         </div>
                         <Link
                           href={`/product/${product.id}`}
-                          className="bg-black text-white px-3.5 py-2 rounded-xl text-[11px] font-bold hover:bg-gray-800 transition whitespace-nowrap cursor-pointer"
+                          className="bg-orange-600 text-white px-3.5 py-2 rounded-xl text-[11px] font-bold hover:bg-orange-700 transition whitespace-nowrap cursor-pointer shadow-sm"
                         >
                           לצפייה
                         </Link>
