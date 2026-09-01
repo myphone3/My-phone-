@@ -20,6 +20,7 @@ export default function AdminPage() {
   const [brand, setBrand] = useState('');
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [variantsInput, setVariantsInput] = useState(''); // שדה לניהול גרסאות (מופרדות בפסיקים)
   const [isPublished, setIsPublished] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -62,7 +63,6 @@ export default function AdminPage() {
     setLoading(false);
   };
 
-  // --- Product Image Upload ---
   const handleProductImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -85,7 +85,6 @@ export default function AdminPage() {
     setUploading(false);
   };
 
-  // --- Banner Image Upload ---
   const handleBannerImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -108,13 +107,17 @@ export default function AdminPage() {
     setBannerUploading(false);
   };
 
-  // --- Save Product ---
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !price) {
-      alert('נא למלא לפחות ששם מוצר ומחיר');
+      alert('נא למלא לפחות שם מוצר ומחיר');
       return;
     }
+
+    // המרת מחרוזת הגרסאות ממערך פסיקים למערך נתונים
+    const variantsArray = variantsInput
+      ? variantsInput.split(',').map((v) => v.trim()).filter(Boolean)
+      : [];
 
     const payload = {
       name,
@@ -124,6 +127,7 @@ export default function AdminPage() {
       brand,
       description,
       image_url: imageUrl,
+      product_variants: variantsArray,
       is_published: isPublished
     };
 
@@ -154,6 +158,7 @@ export default function AdminPage() {
     setBrand('');
     setDescription('');
     setImageUrl('');
+    setVariantsInput('');
     setIsPublished(true);
     setEditingId(null);
   };
@@ -167,6 +172,7 @@ export default function AdminPage() {
     setBrand(prod.brand || '');
     setDescription(prod.description || '');
     setImageUrl(prod.image_url || '');
+    setVariantsInput(prod.product_variants ? prod.product_variants.join(', ') : '');
     setIsPublished(prod.is_published ?? true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -177,7 +183,6 @@ export default function AdminPage() {
     fetchAllData();
   };
 
-  // --- Save Banner ---
   const handleAddBanner = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!bannerTitle) {
@@ -214,7 +219,6 @@ export default function AdminPage() {
     fetchAllData();
   };
 
-  // --- Save Announcement / Settings ---
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingSettings(true);
@@ -243,18 +247,16 @@ export default function AdminPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-8" dir="rtl">
       
-      {/* כותרת הפאנל */}
       <div className="flex justify-between items-center border-b pb-4">
         <div>
           <h1 className="text-2xl font-black text-gray-900">פאנל ניהול האתר</h1>
-          <p className="text-xs text-gray-500 font-medium">ניהול מלא של מוצרים, באנרים ומבצעי החנות.</p>
+          <p className="text-xs text-gray-500 font-medium">ניהול מלא של מוצרים, גרסאות, באנרים ומבצעי החנות.</p>
         </div>
         <Link href="/" className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-xl text-xs font-bold transition">
           חזרה לחנות ➔
         </Link>
       </div>
 
-      {/* טאבים לניווט בפאנל הניהול */}
       <div className="flex items-center gap-3">
         <button
           onClick={() => setActiveTab('products')}
@@ -273,7 +275,6 @@ export default function AdminPage() {
       {loading ? (
         <div className="text-center py-20 text-gray-500 font-medium">טוען נתונים...</div>
       ) : activeTab === 'products' ? (
-        /* ================= טאב ניהול מוצרים ================= */
         <div className="space-y-8">
           <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
             <h2 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">
@@ -336,6 +337,19 @@ export default function AdminPage() {
                 </div>
               </div>
 
+              {/* שדה הוספת גרסאות / נפחי אחסון */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">גרסאות / נפחי אחסון (מופרדים בפסיקים)</label>
+                <input
+                  type="text"
+                  value={variantsInput}
+                  onChange={(e) => setVariantsInput(e.target.value)}
+                  placeholder="לדוגמה: 64GB, 128GB, 256GB"
+                  className="w-full bg-gray-50 border rounded-xl p-3 text-xs font-medium outline-none focus:border-orange-600"
+                />
+                <p className="text-[10px] text-gray-400 mt-1">השאר ריק אם אין גרסאות מיוחדות למכשיר זה.</p>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">תמונת המוצר</label>
                 <input
@@ -390,7 +404,6 @@ export default function AdminPage() {
             </form>
           </div>
 
-          {/* רשימת מוצרים קיימים */}
           <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
             <h2 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">כל המוצרים בחנות ({products.length})</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -415,10 +428,7 @@ export default function AdminPage() {
           </div>
         </div>
       ) : (
-        /* ================= טאב ניהול באנרים והגדרות ================= */
         <div className="space-y-8">
-          
-          {/* ניהול פס מבצעים עליון */}
           <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
             <h2 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">ניהול פס מבצעים עליון וטיימר (שורה אחת)</h2>
             <form onSubmit={handleSaveSettings} className="space-y-4">
@@ -434,7 +444,7 @@ export default function AdminPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">תאריך ושעה לסיום המבצע (לפעלת הטיימר)</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">תאריך ושעה לסיום המבצע (להפעלת הטיימר)</label>
                   <input
                     type="datetime-local"
                     value={announcementEndTime}
@@ -453,7 +463,6 @@ export default function AdminPage() {
             </form>
           </div>
 
-          {/* הוספת באנר חדש */}
           <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-6">
             <div>
               <h2 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">הוספת באנר חדש</h2>
@@ -538,7 +547,6 @@ export default function AdminPage() {
             </form>
           </div>
 
-          {/* רשימת באנרים קיימים */}
           <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
             <h2 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">באנרים פעילים בחנות</h2>
             {banners.length === 0 ? (
@@ -572,7 +580,6 @@ export default function AdminPage() {
               </div>
             )}
           </div>
-
         </div>
       )}
 
