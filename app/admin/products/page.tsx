@@ -29,7 +29,6 @@ export default function AdminProductsPage() {
   const [description, setDescription] = useState('');
   const [specs, setSpecs] = useState('');
   
-  // תמונות מרובות
   const [images, setImages] = useState<string[]>([]);
   const [imageUrl, setImageUrl] = useState('');
   
@@ -43,7 +42,6 @@ export default function AdminProductsPage() {
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   
-  // תצוגות מקדימות נפרדות
   const [showPreviewShort, setShowPreviewShort] = useState(false);
   const [showPreviewFull, setShowPreviewFull] = useState(false);
   const [showPreviewSpecs, setShowPreviewSpecs] = useState(false);
@@ -60,18 +58,20 @@ export default function AdminProductsPage() {
     const prodRes = await supabase.from('products').select('*').order('created_at', { ascending: false });
     const brandRes = await supabase.from('brands').select('*');
     
-    let kosherRes: any = { data: [] };
-    try {
-      kosherRes = await supabase.from('kosher_types').select('*');
-      if (!kosherRes.data || kosherRes.data.length === 0) {
-        kosherRes = await supabase.from('kosher').select('*');
-      }
-    } catch (e) {
+    // שליפה חכמה לטבלת כשרות מכל שם אפשרי במסד הנתונים
+    let kosherData: any[] = [];
+    const possibleKosherTables = ['kosher', 'kosher_types', 'kosher_list', 'kosher_levels'];
+    for (const tableName of possibleKosherTables) {
       try {
-        kosherRes = await supabase.from('kosher').select('*');
-      } catch (err) {}
+        const res = await supabase.from(tableName).select('*');
+        if (res.data && res.data.length > 0) {
+          kosherData = res.data;
+          break;
+        }
+      } catch (e) {}
     }
-    
+    setKosherList(kosherData);
+
     let catRes: any = { data: [] };
     try {
       catRes = await supabase.from('categories').select('*');
@@ -82,21 +82,28 @@ export default function AdminProductsPage() {
       versionRes = await supabase.from('versions').select('*');
     } catch (e) {}
 
-    const storageRes = await supabase.storage.from('products').list('', { limit: 100 });
+    // שליפת תמונות מהאחסון (בודק גם ב-products וגם ב-media/public)
+    let filesList: string[] = [];
+    const possibleBuckets = ['products', 'media', 'public', 'images'];
+    for (const bucketName of possibleBuckets) {
+      try {
+        const storageRes = await supabase.storage.from(bucketName).list('', { limit: 100 });
+        if (storageRes.data && storageRes.data.length > 0) {
+          const mapped = storageRes.data.map((f: any) => {
+            const { data } = supabase.storage.from(bucketName).getPublicUrl(f.name);
+            return data.publicUrl;
+          });
+          filesList = [...filesList, ...mapped];
+        }
+      } catch (e) {}
+    }
 
     if (prodRes.data) setProducts(prodRes.data);
     if (brandRes.data) setBrandsList(brandRes.data);
-    if (kosherRes.data) setKosherList(kosherRes.data);
     if (catRes.data) setCategoriesList(catRes.data);
     if (versionRes.data) setVersionsList(versionRes.data);
+    setStorageFiles(filesList);
     
-    if (storageRes.data) {
-      const files = storageRes.data.map((f: any) => {
-        const { data } = supabase.storage.from('products').getPublicUrl(f.name);
-        return data.publicUrl;
-      });
-      setStorageFiles(files);
-    }
     setLoading(false);
   };
 
@@ -362,6 +369,7 @@ export default function AdminProductsPage() {
             <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="או הזן קישור לתמונת מותג..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
           </div>
 
+          {/* כשרות מהרשימה */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-gray-700">בחר רמת כשרות מתוך הרשימה</label>
             {kosherList.length > 0 ? (
@@ -379,11 +387,12 @@ export default function AdminProductsPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-gray-400">לא הוגדרו כשרויות בטאב "ניהול כשרות".</p>
+              <p className="text-xs text-gray-400">לא נמצאו כשרויות במסד הנתונים.</p>
             )}
             <input type="text" value={kosher} onChange={(e) => setKosher(e.target.value)} placeholder="או הזן כשרות ידנית..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
           </div>
 
+          {/* בחירת תמונות מרובות וגלריית המדיה הקיימת */}
           <div className="space-y-3 bg-gray-50 p-4 rounded-2xl border">
             <label className="block text-xs font-bold text-gray-700">תמונות המוצר (העלה מהמכשיר או בחר מהמדיה הקיימת)</label>
             <input type="file" accept="image/*" multiple onChange={handleMultipleImageUpload} className="bg-white border rounded-xl p-2 text-xs cursor-pointer w-full" />
@@ -409,9 +418,9 @@ export default function AdminProductsPage() {
               </div>
             )}
 
-            {storageFiles.length > 0 && (
-              <div className="space-y-1 pt-2 border-t">
-                <span className="text-[11px] font-bold text-gray-700 block">📁 בחר תמונות מתוך ספריית המדיה הקיימת באתר (לחץ להוספה):</span>
+            <div className="space-y-1 pt-2 border-t">
+              <span className="text-[11px] font-bold text-gray-700 block">📁 בחר תמונות מתוך ספריית המדיה הקיימת באתר (לחץ להוספה):</span>
+              {storageFiles.length > 0 ? (
                 <div className="grid grid-cols-5 sm:grid-cols-10 gap-2 max-h-40 overflow-y-auto p-1 bg-white rounded-xl border">
                   {storageFiles.map((url, idx) => {
                     const isSelected = images.includes(url);
@@ -436,8 +445,10 @@ export default function AdminProductsPage() {
                     );
                   })}
                 </div>
-              </div>
-            )}
+              ) : (
+                <p className="text-xs text-gray-400 py-2">לא נמצאו תמונות באחסון המדיה של האתר כרגע.</p>
+              )}
+            </div>
           </div>
 
           <div className="space-y-3 bg-gray-50 p-4 rounded-2xl border">
@@ -579,14 +590,11 @@ export default function AdminProductsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {products.map((p) => (
             <div key={p.id} className="border rounded-2xl p-4 flex justify-between items-center bg-gray-50/50 shadow-xs">
-              <div className="flex items-center gap-3">
-                <img src={p.image_url} alt="" className="w-12 h-12 object-contain bg-white rounded-xl border p-1" />
+              <div className="flex items-center gap-2">
+                <img src={p.image_url} alt="" className="w-10 h-10 object-contain bg-white rounded-xl border p-1" />
                 <div>
                   <h4 className="font-bold text-xs text-gray-900">{p.name}</h4>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-orange-600 font-black">₪{p.price}</span>
-                    {p.is_published === false && <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded">טיוטה</span>}
-                  </div>
+                  <span className="text-xs text-orange-600 font-black">₪{p.price}</span>
                 </div>
               </div>
               <div className="flex gap-2 text-xs">
