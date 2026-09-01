@@ -18,10 +18,10 @@ export default function AdminProductsPage() {
   const [category, setCategory] = useState('');
   const [brand, setBrand] = useState('');
   const [kosher, setKosher] = useState('');
-  const [storageVal, setStorageVal] = useState(''); // אחסון
-  const [selectedVersions, setSelectedVersions] = useState<string[]>([]); // גרסאות
-  const [stock, setStock] = useState('10'); // מלאי
-  const [isDraft, setIsDraft] = useState(false); // טיוטה
+  const [storageVal, setStorageVal] = useState('');
+  const [selectedVersions, setSelectedVersions] = useState<string[]>([]);
+  const [stock, setStock] = useState('10');
+  const [isDraft, setIsDraft] = useState(false);
 
   const [shortDesc, setShortDesc] = useState('');
   const [description, setDescription] = useState('');
@@ -29,7 +29,6 @@ export default function AdminProductsPage() {
   const [imageUrl, setImageUrl] = useState('');
   const [images, setImages] = useState<string[]>([]);
   
-  // צבעים עם תמונה לכל צבע
   const [colors, setColors] = useState<{ name: string; hex: string; image: string }[]>([
     { name: 'שחור', hex: '#000000', image: '' }
   ]);
@@ -48,18 +47,26 @@ export default function AdminProductsPage() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [prodRes, brandRes, kosherRes, versionRes, storageRes] = await Promise.all([
-      supabase.from('products').select('*').order('created_at', { ascending: false }),
-      supabase.from('brands').select('*'),
-      supabase.from('kosher_types').select('*'),
-      supabase.from('versions').select('*').catch(() => ({ data: [] })), // אם הטבלה קיימת
-      supabase.storage.from('products').list('', { limit: 100 })
-    ]);
+    
+    const prodRes = await supabase.from('products').select('*').order('created_at', { ascending: false });
+    const brandRes = await supabase.from('brands').select('*');
+    const kosherRes = await supabase.from('kosher_types').select('*');
+    
+    // שליפה בטוחה ללא שגיאת טיפוס
+    let versionRes: any = { data: [] };
+    try {
+      versionRes = await supabase.from('versions').select('*');
+    } catch (e) {
+      // אם הטבלה אינה קיימת עדיין
+    }
+
+    const storageRes = await supabase.storage.from('products').list('', { limit: 100 });
 
     if (prodRes.data) setProducts(prodRes.data);
     if (brandRes.data) setBrandsList(brandRes.data);
     if (kosherRes.data) setKosherList(kosherRes.data);
     if (versionRes.data) setVersionsList(versionRes.data);
+    
     if (storageRes.data) {
       const files = storageRes.data.map((f: any) => {
         const { data } = supabase.storage.from('products').getPublicUrl(f.name);
@@ -123,9 +130,9 @@ export default function AdminProductsPage() {
       brand,
       kosher,
       storage: storageVal,
-      product_variants: selectedVersions, // גרסאות כחובה
+      product_variants: selectedVersions,
       stock: Number(stock) || 0,
-      is_published: !isDraft, // טיוטה מנוהלת כאן
+      is_published: !isDraft,
       short_description: shortDesc,
       description,
       specs,
@@ -173,7 +180,7 @@ export default function AdminProductsPage() {
     setImages([]);
     setColors([{ name: 'שחור', hex: '#000000', image: '' }]);
     setSeoTitle('');
-    setSeoDesc('');
+    setseoDesc('');
     setEditingId(null);
   };
 
@@ -316,7 +323,7 @@ export default function AdminProductsPage() {
             <input type="checkbox" checked={isDraft} onChange={(e) => setIsDraft(e.target.checked)} className="w-5 h-5 accent-orange-600 cursor-pointer" />
           </div>
 
-          {/* בחירת גרסאות מתוך רשימת הגרסאות בניהול (שדה חובה בחנות) */}
+          {/* בחירת גרסאות מתוך רשימת הגרסאות בניהול */}
           <div className="space-y-2 bg-gray-50 p-4 rounded-2xl border">
             <label className="block text-xs font-bold text-gray-700">בחר גרסאות מותרות למוצר זה (חובה ללקוח לבחור אחת מהן בחנות):</label>
             {versionsList.length > 0 ? (
@@ -346,7 +353,7 @@ export default function AdminProductsPage() {
             )}
             <input
               type="text"
-              placeholder="או הזן גרסאות מופרדות בפסיקים (לדוגמה: גלובלי, כשר, מקורי)..."
+              placeholder="או הזן גרסאות מופרדות בפסיקים..."
               value={selectedVersions.join(', ')}
               onChange={(e) => setSelectedVersions(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
               className="w-full bg-white border rounded-xl p-3 text-xs outline-none focus:border-orange-600 mt-2"
@@ -462,7 +469,7 @@ export default function AdminProductsPage() {
                   />
                   <input
                     type="text"
-                    placeholder="קישור תמונה לצבע (או בחר מהמדיה למטה)"
+                    placeholder="קישור תמונה לצבע"
                     value={col.image}
                     onChange={(e) => {
                       const newCols = [...colors];
@@ -481,7 +488,7 @@ export default function AdminProductsPage() {
                       className="bg-gray-50 border rounded-xl p-2 text-xs outline-none"
                       defaultValue=""
                     >
-                      <option value="" disabled>בחר תמונה מהמדיה לצבע...</option>
+                      <option value="" disabled>בחר מהמדיה...</option>
                       {storageFiles.map((url, i) => (
                         <option key={i} value={url}>תמונה {i + 1}</option>
                       ))}
