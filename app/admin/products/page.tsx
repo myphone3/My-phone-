@@ -52,12 +52,11 @@ export default function AdminProductsPage() {
     const brandRes = await supabase.from('brands').select('*');
     const kosherRes = await supabase.from('kosher_types').select('*');
     
-    // שליפה בטוחה ללא שגיאת טיפוס
     let versionRes: any = { data: [] };
     try {
       versionRes = await supabase.from('versions').select('*');
     } catch (e) {
-      // אם הטבלה אינה קיימת עדיין
+      // טבלה אופציונלית
     }
 
     const storageRes = await supabase.storage.from('products').list('', { limit: 100 });
@@ -180,7 +179,7 @@ export default function AdminProductsPage() {
     setImages([]);
     setColors([{ name: 'שחור', hex: '#000000', image: '' }]);
     setSeoTitle('');
-    setseoDesc('');
+    setSeoDesc(''); // Fixed typo here (setSeoDesc with capital S)
     setEditingId(null);
   };
 
