@@ -93,14 +93,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="he" dir="rtl">
       <body className="bg-gray-50 min-h-screen text-gray-900">
         
-        {/* פס מבצעים דק במיוחד בשורה אחת בלבד */}
+        {/* פס מבצעים עליון בשורה אחת ללא חיתוך */}
         {announcement && (
-          <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white text-[11px] sm:text-xs font-bold py-1 px-3 flex items-center justify-between overflow-hidden whitespace-nowrap shadow-xs">
-            <div className="truncate flex-1 text-center sm:text-right px-2">
+          <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white text-[11px] font-bold py-1 px-4 flex items-center justify-between shadow-xs overflow-hidden">
+            <div className="truncate flex-1 text-center sm:text-right">
               <span>{announcement.text}</span>
             </div>
             {announcement.endTime && (
-              <div className="bg-black/25 backdrop-blur-sm px-2 py-0.5 rounded-md flex items-center gap-1 text-[10px] shrink-0 mr-2">
+              <div className="bg-black/25 backdrop-blur-sm px-2 py-0.5 rounded-md flex items-center gap-1 text-[10px] shrink-0 mr-3">
                 <span>⏱️</span>
                 <span className="font-black">{String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}</span>
               </div>
@@ -108,14 +108,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         )}
 
-        {/* תפריט עליון עם לוגו ענק ומרשים */}
+        {/* תפריט עליון ראשי */}
         <header className="bg-white border-b sticky top-0 z-40 shadow-xs">
-          <div className="max-w-7xl mx-auto px-4 h-24 sm:h-28 flex items-center justify-between">
+          <div className="max-w-7xl mx-auto px-4 h-20 sm:h-24 flex items-center justify-between">
+            {/* לוגו */}
             <Link href="/" className="flex items-center cursor-pointer group py-1">
-              <img src="/Logo.JPG" alt="NEW PHONE" className="h-20 sm:h-26 w-auto object-contain group-hover:scale-105 transition duration-300 drop-shadow-md" />
+              <img src="/Logo.JPG" alt="NEW PHONE" className="h-16 sm:h-20 w-auto object-contain group-hover:scale-105 transition duration-300 drop-shadow-sm" />
             </Link>
 
             <div className="flex items-center gap-2 sm:gap-3">
+              {/* כפתור עגלה חוזר */}
+              <Link
+                href="/cart"
+                className="relative bg-gray-50 border border-gray-200 hover:bg-gray-100 p-2 rounded-xl text-gray-800 transition flex items-center justify-center shadow-2xs cursor-pointer"
+                title="עגלת קניות"
+              >
+                🛒
+              </Link>
+
               {user ? (
                 <div className="relative">
                   <button
@@ -162,15 +172,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         )}
                       </div>
 
-                      <div className="border-t pt-2 space-y-1">
-                        {isAdmin && (
-                          <Link
-                            href="/admin/banners"
-                            className="block w-full text-right text-gray-900 hover:bg-gray-50 px-3 py-2 rounded-xl text-xs font-bold transition"
-                          >
-                            🖼️ ניהול באנרים והגדרות
-                          </Link>
-                        )}
+                      <div className="border-t pt-2">
                         <button
                           onClick={handleLogout}
                           className="w-full text-right text-red-600 hover:bg-red-50 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between cursor-pointer"
@@ -198,12 +200,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </button>
               )}
 
+              {/* כפתור ניהול מוקטן ודיסקרטי */}
               {isAdmin && (
                 <Link
                   href="/admin/products"
-                  className="bg-orange-600 text-white hover:bg-orange-700 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-xs"
+                  className="bg-orange-600 text-white hover:bg-orange-700 px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition flex items-center gap-1 shadow-2xs"
                 >
-                  ⚙️ פאנל ניהול
+                  ⚙️ ניהול
                 </Link>
               )}
             </div>
