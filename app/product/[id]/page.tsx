@@ -14,6 +14,7 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState('');
   const [selectedColor, setSelectedColor] = useState<any>(null);
+  const [selectedVariant, setSelectedVariant] = useState<any>(null);
   const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
@@ -24,7 +25,7 @@ export default function ProductDetailPage() {
 
   const fetchProduct = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('products')
       .select('*')
       .eq('id', productId)
@@ -39,6 +40,9 @@ export default function ProductDetailPage() {
           setSelectedImage(data.product_colors[0].image);
         }
       }
+      if (data.product_variants && data.product_variants.length > 0) {
+        setSelectedVariant(data.product_variants[0]);
+      }
     }
     setLoading(false);
   };
@@ -46,15 +50,32 @@ export default function ProductDetailPage() {
   const addToCart = () => {
     if (!product) return;
 
+    // בדיקת חובה לבחירת צבע אם קיימים צבעים למוצר
+    const colors = product.product_colors || [];
+    if (colors.length > 0 && !selectedColor) {
+      alert('נא לבחור צבע ממבחר הצבעים הזמינים');
+      return;
+    }
+
+    // בדיקת חובה לבחירת גרסה/נפח אחסון אם קיימות גרסאות למוצר
+    const variants = product.product_variants || [];
+    if (variants.length > 0 && !selectedVariant) {
+      alert('נא לבחור גרסה / נפח אחסון מבוקש');
+      return;
+    }
+
     const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
     const existingIndex = existingCart.findIndex((item: any) => 
-      item.id === product.id && item.selectedColor?.name === selectedColor?.name
+      item.id === product.id && 
+      item.selectedColor?.name === selectedColor?.name &&
+      item.selectedVariant === selectedVariant
     );
 
     const itemToAdd = {
       ...product,
       image_url: selectedImage || product.image_url,
       selectedColor: selectedColor || null,
+      selectedVariant: selectedVariant || null,
       quantity: quantity
     };
 
@@ -86,6 +107,7 @@ export default function ProductDetailPage() {
   const images = [product.image_url, ...(product.images || [])].filter(Boolean);
   const uniqueImages = Array.from(new Set(images));
   const colors = product.product_colors || [];
+  const variants = product.product_variants || [];
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-8" dir="rtl">
@@ -98,7 +120,7 @@ export default function ProductDetailPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white p-6 sm:p-8 rounded-3xl border shadow-sm">
-        {/* תמונות המוצר */}
+        {/* תמונות */}
         <div className="space-y-4">
           <div className="h-72 sm:h-96 w-full bg-gray-50 rounded-2xl border flex items-center justify-center overflow-hidden relative">
             <img src={selectedImage} alt={product.name} className="w-full h-full object-contain p-4" />
@@ -123,7 +145,7 @@ export default function ProductDetailPage() {
           )}
         </div>
 
-        {/* פרטי המוצר וכפתורי רכישה */}
+        {/* פרטי מוצר ובחירת גרסאות/צבעים */}
         <div className="space-y-6 flex flex-col justify-between">
           <div className="space-y-4">
             <div>
@@ -144,10 +166,33 @@ export default function ProductDetailPage() {
 
             <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{product.description || product.short_description}</p>
 
-            {/* בחירת צבעים */}
+            {/* בחירת גרסאות / נפח אחסון (חובה אם קיים) */}
+            {variants.length > 0 && (
+              <div className="space-y-2 pt-2 border-t">
+                <span className="text-xs font-bold text-gray-700">בחר גרסה / נפח אחסון <span className="text-red-500">*</span>: <span className="text-orange-600">{selectedVariant}</span></span>
+                <div className="flex flex-wrap gap-2">
+                  {variants.map((ver: string, idx: number) => {
+                    const isSelected = selectedVariant === ver;
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => setSelectedVariant(ver)}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                          isSelected ? 'border-orange-600 bg-orange-600 text-white shadow-xs' : 'border-gray-200 bg-white text-gray-800 hover:bg-gray-50'
+                        }`}
+                      >
+                        {ver}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* בחירת צבעים (חובה אם קיים) */}
             {colors.length > 0 && (
               <div className="space-y-2 pt-2 border-t">
-                <span className="text-xs font-bold text-gray-700">בחר צבע: <span className="text-orange-600">{selectedColor?.name}</span></span>
+                <span className="text-xs font-bold text-gray-700">בחר צבע <span className="text-red-500">*</span>: <span className="text-orange-600">{selectedColor?.name}</span></span>
                 <div className="flex items-center gap-2">
                   {colors.map((col: any, idx: number) => {
                     const isSelected = selectedColor?.name === col.name;
@@ -158,7 +203,7 @@ export default function ProductDetailPage() {
                           setSelectedColor(col);
                           if (col.image) setSelectedImage(col.image);
                         }}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition flex items-center gap-2 cursor-pointer ${
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition flex items-center gap-2 cursor-pointer ${
                           isSelected ? 'border-orange-600 bg-orange-50 text-orange-700 shadow-xs' : 'border-gray-200 bg-white hover:bg-gray-50'
                         }`}
                       >
