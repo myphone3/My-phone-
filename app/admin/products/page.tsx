@@ -7,6 +7,7 @@ export default function AdminProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [brandsList, setBrandsList] = useState<any[]>([]);
   const [kosherList, setKosherList] = useState<any[]>([]);
+  const [versionsList, setVersionsList] = useState<any[]>([]);
   const [storageFiles, setStorageFiles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -17,18 +18,24 @@ export default function AdminProductsPage() {
   const [category, setCategory] = useState('');
   const [brand, setBrand] = useState('');
   const [kosher, setKosher] = useState('');
+  const [storageVal, setStorageVal] = useState(''); // אחסון
+  const [selectedVersions, setSelectedVersions] = useState<string[]>([]); // גרסאות
+  const [stock, setStock] = useState('10'); // מלאי
+  const [isDraft, setIsDraft] = useState(false); // טיוטה
+
   const [shortDesc, setShortDesc] = useState('');
   const [description, setDescription] = useState('');
   const [specs, setSpecs] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [images, setImages] = useState<string[]>([]);
-  const [variantsInput, setVariantsInput] = useState('');
+  
+  // צבעים עם תמונה לכל צבע
   const [colors, setColors] = useState<{ name: string; hex: string; image: string }[]>([
     { name: 'שחור', hex: '#000000', image: '' }
   ]);
+
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDesc, setSeoDesc] = useState('');
-  const [isPublished, setIsPublished] = useState(true);
 
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -41,16 +48,18 @@ export default function AdminProductsPage() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [prodRes, brandRes, kosherRes, storageRes] = await Promise.all([
+    const [prodRes, brandRes, kosherRes, versionRes, storageRes] = await Promise.all([
       supabase.from('products').select('*').order('created_at', { ascending: false }),
       supabase.from('brands').select('*'),
       supabase.from('kosher_types').select('*'),
+      supabase.from('versions').select('*').catch(() => ({ data: [] })), // אם הטבלה קיימת
       supabase.storage.from('products').list('', { limit: 100 })
     ]);
 
     if (prodRes.data) setProducts(prodRes.data);
     if (brandRes.data) setBrandsList(brandRes.data);
     if (kosherRes.data) setKosherList(kosherRes.data);
+    if (versionRes.data) setVersionsList(versionRes.data);
     if (storageRes.data) {
       const files = storageRes.data.map((f: any) => {
         const { data } = supabase.storage.from('products').getPublicUrl(f.name);
@@ -61,7 +70,7 @@ export default function AdminProductsPage() {
     setLoading(false);
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, targetCallback: (url: string) => void) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -78,8 +87,7 @@ export default function AdminProductsPage() {
     }
 
     const { data } = supabase.storage.from('products').getPublicUrl(filePath);
-    setImageUrl(data.publicUrl);
-    setImages((prev) => [...prev, data.publicUrl]);
+    targetCallback(data.publicUrl);
     setUploading(false);
     fetchData();
   };
@@ -92,7 +100,7 @@ export default function AdminProductsPage() {
     setAiGenerating(true);
     setTimeout(() => {
       setShortDesc(`מכשיר איכותי ומתקדם דגם ${name}, בעל ביצועים עוצמתיים ואחריות מלאה.`);
-      setDescription(`הכירו את ${name}. מכשיר מושלם המשלב עיצוב חדשני, מסך איכותי ברזולוציה גבוהה, מעבד מהיר במיוחד וסוללה חזקה לאורך כל היום. מתאים במיוחד לשימוש יומיומי מתקדם.`);
+      setDescription(`הכירו את ${name}. מכשיר מושלם המשלב עיצוב חדשני, מסך איכותי ברזולוציה גבוהה, מעבד מהיר במיוחד וסוללה חזקה לאורך כל היום.`);
       setSpecs(`מסך: איכותי וחד\nמעבד: מתקדם ועוצמתי\nסוללה: קיבולת גבוהה\nאחריות: יבואן רשמי`);
       setSeoTitle(`${name} | מחיר מיוחד משלוח מהיר עד הבית`);
       setSeoDesc(`הזמינו כעת ${name} במחיר הטוב ביותר בחנות NEW PHONE. משלוח מהיר עד הבית ושירות מעולה.`);
@@ -107,10 +115,6 @@ export default function AdminProductsPage() {
       return;
     }
 
-    const variantsArray = variantsInput
-      ? variantsInput.split(',').map((v) => v.trim()).filter(Boolean)
-      : [];
-
     const payload = {
       name,
       price: Number(price),
@@ -118,16 +122,18 @@ export default function AdminProductsPage() {
       category,
       brand,
       kosher,
+      storage: storageVal,
+      product_variants: selectedVersions, // גרסאות כחובה
+      stock: Number(stock) || 0,
+      is_published: !isDraft, // טיוטה מנוהלת כאן
       short_description: shortDesc,
       description,
       specs,
       image_url: imageUrl || images[0] || '',
       images,
-      product_variants: variantsArray,
       product_colors: colors,
       seo_title: seoTitle,
-      seo_description: seoDesc,
-      is_published: isPublished
+      seo_description: seoDesc
     };
 
     if (editingId) {
@@ -156,16 +162,18 @@ export default function AdminProductsPage() {
     setCategory('');
     setBrand('');
     setKosher('');
+    setStorageVal('');
+    setSelectedVersions([]);
+    setStock('10');
+    setIsDraft(false);
     setShortDesc('');
     setDescription('');
     setSpecs('');
     setImageUrl('');
     setImages([]);
-    setVariantsInput('');
     setColors([{ name: 'שחור', hex: '#000000', image: '' }]);
     setSeoTitle('');
     setSeoDesc('');
-    setIsPublished(true);
     setEditingId(null);
   };
 
@@ -177,16 +185,18 @@ export default function AdminProductsPage() {
     setCategory(prod.category || '');
     setBrand(prod.brand || '');
     setKosher(prod.kosher || '');
+    setStorageVal(prod.storage || '');
+    setSelectedVersions(prod.product_variants || []);
+    setStock(prod.stock?.toString() || '10');
+    setIsDraft(prod.is_published === false);
     setShortDesc(prod.short_description || '');
     setDescription(prod.description || '');
     setSpecs(prod.specs || '');
     setImageUrl(prod.image_url || '');
     setImages(prod.images || []);
-    setVariantsInput(prod.product_variants ? prod.product_variants.join(', ') : '');
     setColors(prod.product_colors || [{ name: 'שחור', hex: '#000000', image: '' }]);
     setSeoTitle(prod.seo_title || '');
     setSeoDesc(prod.seo_description || '');
-    setIsPublished(prod.is_published ?? true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -205,21 +215,21 @@ export default function AdminProductsPage() {
           <h2 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">
             {editingId ? 'עריכת מוצר קיים' : 'הוספת מוצר חדש לחנות'}
           </h2>
-          <div className="flex gap-2 w-full sm:w-auto">
+          <div className="flex gap-2 w-full sm:w-auto flex-wrap">
             <button
               type="button"
               onClick={handleAiAssistant}
               disabled={aiGenerating}
-              className="flex-1 sm:flex-none bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer"
             >
-              ✨ {aiGenerating ? 'יוצר תוכן...' : 'סוכן AI למילוי אוטומטי'}
+              ✨ {aiGenerating ? 'יוצר תוכן...' : 'סוכן AI'}
             </button>
             <button
               type="button"
               onClick={() => setShowPreview(!showPreview)}
-              className="flex-1 sm:flex-none bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer"
+              className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer"
             >
-              👁️ {showPreview ? 'הסתר תצוגה מקדימה' : 'תצוגה מקדימה מלאה'}
+              👁️ {showPreview ? 'הסתר תצוגה מקדימה' : 'תצוגה מקדימה'}
             </button>
           </div>
         </div>
@@ -231,7 +241,7 @@ export default function AdminProductsPage() {
             <div className="bg-white p-6 rounded-2xl border shadow-xs space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="h-64 bg-gray-50 rounded-2xl border flex items-center justify-center overflow-hidden">
-                  {imageUrl ? <img src={imageUrl} alt="" className="w-full h-full object-contain p-2" /> : <span className="text-xs text-gray-400">אין תמונה נבחרת</span>}
+                  {imageUrl ? <img src={imageUrl} alt="" className="w-full h-full object-contain p-2" /> : <span className="text-xs text-gray-400">אין תמונה</span>}
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
@@ -243,7 +253,9 @@ export default function AdminProductsPage() {
                     <span className="text-2xl font-black text-orange-600">₪{salePrice || price || '0'}</span>
                     {salePrice && <span className="text-sm text-gray-400 line-through">₪{price}</span>}
                   </div>
-                  <p className="text-xs font-bold text-gray-700 bg-gray-50 p-3 rounded-xl border">{shortDesc || 'תיאור קצר יופיע כאן...'}</p>
+                  {storageVal && <p className="text-xs font-bold text-gray-600">אחסון: {storageVal}</p>}
+                  {selectedVersions.length > 0 && <p className="text-xs font-bold text-blue-600">גרסאות לבחירה: {selectedVersions.join(', ')}</p>}
+                  <p className="text-xs font-bold text-gray-700 bg-gray-50 p-3 rounded-xl border">{shortDesc || 'תיאור קצר...'}</p>
                 </div>
               </div>
 
@@ -265,7 +277,7 @@ export default function AdminProductsPage() {
         )}
 
         <form onSubmit={handleSaveProduct} className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">שם המוצר <span className="text-red-500">*</span></label>
               <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="שם המכשיר..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" required />
@@ -274,29 +286,77 @@ export default function AdminProductsPage() {
               <label className="block text-xs font-bold text-gray-700 mb-1">מחיר רגיל (₪) <span className="text-red-500">*</span></label>
               <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="999" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" required />
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">מחיר מבצע (₪)</label>
               <input type="number" value={salePrice} onChange={(e) => setSalePrice(e.target.value)} placeholder="799" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">קטגוריה</label>
               <input type="text" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="כגון: מכשירים כשרים" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">גרסאות / נפחי אחסון</label>
-              <input type="text" value={variantsInput} onChange={(e) => setVariantsInput(e.target.value)} placeholder="64GB, 128GB, 256GB" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
+              <label className="block text-xs font-bold text-gray-700 mb-1">נפח אחסון (לדוגמה: 128GB)</label>
+              <input type="text" value={storageVal} onChange={(e) => setStorageVal(e.target.value)} placeholder="128GB" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">מלאי (כמות יחידות)</label>
+              <input type="number" value={stock} onChange={(e) => setStock(e.target.value)} placeholder="10" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
             </div>
           </div>
 
-          {/* בחירת מותג מתוך טבלת מותגים קיימים */}
+          {/* טיוטה / פרסום */}
+          <div className="bg-orange-50/50 border border-orange-200 p-4 rounded-2xl flex items-center justify-between">
+            <div>
+              <span className="text-xs font-black text-gray-900 block">שמור כטיוטה (לא מפורסם בחנות)</span>
+              <span className="text-[11px] text-gray-500">מוצר במצב טיוטה לא יוצג ללקוחות באתר עד שתבטל את הסימון.</span>
+            </div>
+            <input type="checkbox" checked={isDraft} onChange={(e) => setIsDraft(e.target.checked)} className="w-5 h-5 accent-orange-600 cursor-pointer" />
+          </div>
+
+          {/* בחירת גרסאות מתוך רשימת הגרסאות בניהול (שדה חובה בחנות) */}
+          <div className="space-y-2 bg-gray-50 p-4 rounded-2xl border">
+            <label className="block text-xs font-bold text-gray-700">בחר גרסאות מותרות למוצר זה (חובה ללקוח לבחור אחת מהן בחנות):</label>
+            {versionsList.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {versionsList.map((ver) => {
+                  const isSelected = selectedVersions.includes(ver.name);
+                  return (
+                    <button
+                      key={ver.id}
+                      type="button"
+                      onClick={() => {
+                        if (isSelected) {
+                          setSelectedVersions(selectedVersions.filter(v => v !== ver.name));
+                        } else {
+                          setSelectedVersions([...selectedVersions, ver.name]);
+                        }
+                      }}
+                      className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${isSelected ? 'bg-orange-600 text-white border-orange-600' : 'bg-white text-gray-800 border-gray-200'}`}
+                    >
+                      {ver.name} {isSelected ? '✓' : ''}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400">לא הוגדרו גרסאות בטאב "ניהול גרסאות" בפאנל הניהול. תוכל להזין ידנית:</p>
+            )}
+            <input
+              type="text"
+              placeholder="או הזן גרסאות מופרדות בפסיקים (לדוגמה: גלובלי, כשר, מקורי)..."
+              value={selectedVersions.join(', ')}
+              onChange={(e) => setSelectedVersions(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+              className="w-full bg-white border rounded-xl p-3 text-xs outline-none focus:border-orange-600 mt-2"
+            />
+          </div>
+
+          {/* בחירת מותג מתוך הניהול */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-gray-700">בחר מותג מתוך הרשימה או הזן כתובת תמונה</label>
-            <div className="flex gap-2 items-center">
-              <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="קישור לתמונת מותג או בחירה מהרשימה" className="flex-1 bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
-            </div>
+            <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="קישור לתמונת מותג או בחירה מהרשימה..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
             {brandsList.length > 0 && (
               <div className="flex gap-2 overflow-x-auto pb-2">
                 {brandsList.map((b) => (
@@ -314,10 +374,10 @@ export default function AdminProductsPage() {
             )}
           </div>
 
-          {/* בחירת כשרות מתוך טבלת כשרויות קיימות */}
+          {/* בחירת כשרות מתוך הניהול */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-gray-700">בחר רמת כשרות מתוך הרשימה</label>
-            {kosherList.length > 0 ? (
+            {kosherList.length > 0 && (
               <div className="flex gap-2 overflow-x-auto pb-2">
                 {kosherList.map((k) => (
                   <button
@@ -331,17 +391,15 @@ export default function AdminProductsPage() {
                   </button>
                 ))}
               </div>
-            ) : (
-              <p className="text-[11px] text-gray-400">לא הוגדרו כשרויות בטאב "ניהול כשרות" עדיין.</p>
             )}
             <input type="text" value={kosher} onChange={(e) => setKosher(e.target.value)} placeholder="או הזן כשרות ידנית..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
           </div>
 
-          {/* העלאת קובץ תמונה ובחירה מהמדיה הקיימת */}
+          {/* תמונת מוצר ראשית + בחירה מהמדיה */}
           <div className="space-y-3 bg-gray-50 p-4 rounded-2xl border">
-            <label className="block text-xs font-bold text-gray-700">תמונת מוצר ראשית (העלאת קובץ או בחירה מהירה מספריית המדיה)</label>
+            <label className="block text-xs font-bold text-gray-700">תמונת מוצר ראשית (העלאה או בחירה מספריית המדיה)</label>
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-              <input type="file" accept="image/*" onChange={handleImageUpload} className="bg-white border rounded-xl p-2 text-xs cursor-pointer w-full sm:w-auto" />
+              <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (url) => { setImageUrl(url); setImages(prev => [...prev, url]); })} className="bg-white border rounded-xl p-2 text-xs cursor-pointer w-full sm:w-auto" />
               {uploading && <span className="text-xs text-orange-600 font-bold">מעלה קובץ...</span>}
               {imageUrl && <span className="text-xs text-green-600 font-bold">✓ תמונה נבחרה בהצלחה</span>}
             </div>
@@ -363,6 +421,84 @@ export default function AdminProductsPage() {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* בחירת צבעים ושיוך תמונה לכל צבע */}
+          <div className="space-y-3 bg-gray-50 p-4 rounded-2xl border">
+            <div className="flex justify-between items-center">
+              <label className="block text-xs font-bold text-gray-700">צבעי המוצר ושיוך תמונה לכל צבע</label>
+              <button
+                type="button"
+                onClick={() => setColors([...colors, { name: '', hex: '#000000', image: '' }])}
+                className="bg-black text-white px-3 py-1.5 rounded-xl text-[11px] font-bold cursor-pointer"
+              >
+                + הוסף צבע
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              {colors.map((col, index) => (
+                <div key={index} className="bg-white p-3 rounded-xl border flex flex-col sm:flex-row gap-3 items-center">
+                  <input
+                    type="text"
+                    placeholder="שם הצבע (לדוגמה: כחול)"
+                    value={col.name}
+                    onChange={(e) => {
+                      const newCols = [...colors];
+                      newCols[index].name = e.target.value;
+                      setColors(newCols);
+                    }}
+                    className="bg-gray-50 border rounded-xl p-2 text-xs w-full sm:w-1/3 outline-none"
+                  />
+                  <input
+                    type="color"
+                    value={col.hex}
+                    onChange={(e) => {
+                      const newCols = [...colors];
+                      newCols[index].hex = e.target.value;
+                      setColors(newCols);
+                    }}
+                    className="w-10 h-10 rounded-xl border cursor-pointer p-1 bg-white"
+                  />
+                  <input
+                    type="text"
+                    placeholder="קישור תמונה לצבע (או בחר מהמדיה למטה)"
+                    value={col.image}
+                    onChange={(e) => {
+                      const newCols = [...colors];
+                      newCols[index].image = e.target.value;
+                      setColors(newCols);
+                    }}
+                    className="bg-gray-50 border rounded-xl p-2 text-xs flex-1 outline-none"
+                  />
+                  {storageFiles.length > 0 && (
+                    <select
+                      onChange={(e) => {
+                        const newCols = [...colors];
+                        newCols[index].image = e.target.value;
+                        setColors(newCols);
+                      }}
+                      className="bg-gray-50 border rounded-xl p-2 text-xs outline-none"
+                      defaultValue=""
+                    >
+                      <option value="" disabled>בחר תמונה מהמדיה לצבע...</option>
+                      {storageFiles.map((url, i) => (
+                        <option key={i} value={url}>תמונה {i + 1}</option>
+                      ))}
+                    </select>
+                  )}
+                  {colors.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setColors(colors.filter((_, i) => i !== index))}
+                      className="text-red-500 font-bold text-xs px-2"
+                    >
+                      מחק
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
 
           <div>
@@ -413,7 +549,10 @@ export default function AdminProductsPage() {
                 <img src={p.image_url} alt="" className="w-12 h-12 object-contain bg-white rounded-xl border p-1" />
                 <div>
                   <h4 className="font-bold text-xs text-gray-900">{p.name}</h4>
-                  <span className="text-xs text-orange-600 font-black">₪{p.price}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-orange-600 font-black">₪{p.price}</span>
+                    {p.is_published === false && <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded">טיוטה</span>}
+                  </div>
                 </div>
               </div>
               <div className="flex gap-2 text-xs">
