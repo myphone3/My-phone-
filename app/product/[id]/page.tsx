@@ -126,7 +126,13 @@ export default function ProductDetailPage() {
               )}
             </div>
 
-            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{product.description || product.short_description}</p>
+            {product.short_description && (
+              <p className="text-xs font-bold text-gray-700 bg-gray-50 p-3 rounded-xl border">
+                {product.short_description}
+              </p>
+            )}
+
+            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{product.description}</p>
 
             {variants.length > 0 && (
               <div className="space-y-2 pt-2 border-t">
