@@ -28,7 +28,18 @@ export default function ProductDetailPage() {
       setProduct(data);
       setSelectedImage(data.image_url || data.images?.[0] || '');
       if (data.product_colors?.length > 0) setSelectedColor(data.product_colors[0]);
-      if (data.product_variants?.length > 0) setSelectedVariant(data.product_variants[0]);
+      
+      // שליפה חכמה של גרסאות מכל מבנה נתונים אפשרי
+      const rawVars = data.product_variants || data.variants || [];
+      const parsedVars = Array.isArray(rawVars) 
+        ? rawVars 
+        : typeof rawVars === 'string' 
+          ? rawVars.split(',').map((v: string) => v.trim()).filter(Boolean) 
+          : [];
+      
+      if (parsedVars.length > 0) {
+        setSelectedVariant(parsedVars[0]);
+      }
     }
     setLoading(false);
   };
@@ -40,8 +51,14 @@ export default function ProductDetailPage() {
       return;
     }
 
-    const variants = product.product_variants || [];
-    if (variants.length > 0 && !selectedVariant) {
+    const rawVars = product.product_variants || product.variants || [];
+    const parsedVars = Array.isArray(rawVars) 
+      ? rawVars 
+      : typeof rawVars === 'string' 
+        ? rawVars.split(',').map((v: string) => v.trim()).filter(Boolean) 
+        : [];
+
+    if (parsedVars.length > 0 && !selectedVariant) {
       alert('נא לבחור גרסה / נפח אחסון מבוקש');
       return;
     }
@@ -71,7 +88,13 @@ export default function ProductDetailPage() {
   const images = [product.image_url, ...(product.images || [])].filter(Boolean);
   const uniqueImages = Array.from(new Set(images));
   const colors = product.product_colors || [];
-  const variants = product.product_variants || [];
+  
+  const rawVars = product.product_variants || product.variants || [];
+  const variants = Array.isArray(rawVars) 
+    ? rawVars 
+    : typeof rawVars === 'string' 
+      ? rawVars.split(',').map((v: string) => v.trim()).filter(Boolean) 
+      : [];
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-8" dir="rtl">
@@ -111,7 +134,16 @@ export default function ProductDetailPage() {
         <div className="space-y-6 flex flex-col justify-between">
           <div className="space-y-4">
             <div>
-              <span className="text-xs font-bold text-orange-600 bg-orange-50 px-3 py-1 rounded-full">{product.brand || product.category}</span>
+              {/* הצגת תמונת המותג בלבד אם קיימת כתובת תמונה */}
+              {product.brand && (
+                <div className="mb-2">
+                  {product.brand.startsWith('http') ? (
+                    <img src={product.brand} alt="Brand" className="h-7 w-auto object-contain" />
+                  ) : (
+                    <span className="text-xs font-bold text-orange-600 bg-orange-50 px-3 py-1 rounded-full">{product.brand}</span>
+                  )}
+                </div>
+              )}
               <h1 className="text-xl sm:text-2xl font-black text-gray-900 mt-2">{product.name}</h1>
             </div>
 
@@ -134,6 +166,7 @@ export default function ProductDetailPage() {
 
             <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{product.description}</p>
 
+            {/* אזור בחירת גרסאות / נפח אחסון */}
             {variants.length > 0 && (
               <div className="space-y-2 pt-2 border-t">
                 <span className="text-xs font-bold text-gray-700">בחר גרסה / נפח אחסון <span className="text-red-500">*</span>: <span className="text-orange-600">{selectedVariant}</span></span>
@@ -173,15 +206,15 @@ export default function ProductDetailPage() {
           <div className="space-y-3 pt-4 border-t">
             <button
               onClick={() => handleAddToCart(false)}
-              className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3.5 rounded-2xl text-xs font-black transition cursor-pointer shadow-sm"
+              className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3.5 rounded-2xl text-sm font-black transition cursor-pointer shadow-sm"
             >
-              🛒 הוספה לעגלה
+              הוספה לעגלה
             </button>
             <button
               onClick={() => handleAddToCart(true)}
-              className="w-full bg-black hover:bg-gray-800 text-white py-3.5 rounded-2xl text-xs font-black transition cursor-pointer shadow-sm"
+              className="w-full bg-black hover:bg-gray-800 text-white py-3.5 rounded-2xl text-sm font-black transition cursor-pointer shadow-sm"
             >
-              ⚡ קניה ישירה ומהירה לתשלום
+               קניה ישירה ומהירה לתשלום
             </button>
           </div>
         </div>
