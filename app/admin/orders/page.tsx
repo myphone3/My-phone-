@@ -27,6 +27,7 @@ export default function AdminOrdersPage() {
   };
 
   const handleStatusChange = async (order: any, newStatus: string) => {
+    // 1. עדכון סטטוס במסד הנתונים
     const { error } = await supabase
       .from('orders')
       .update({ status: newStatus })
@@ -39,21 +40,38 @@ export default function AdminOrdersPage() {
 
     fetchOrders();
 
-    // ניסוח מדויק לבקשתך
-    let statusAction = `ההזמנה שלך התקבלה בהצלחה`;
-    if (newStatus === 'מחכה למשלוח') statusAction = 'ההזמנה שלך מחכה למשלוח';
-    else if (newStatus === 'מוכן לאיסוף') statusAction = 'ההזמנה שלך מוכנה לאיסוף';
-    else if (newStatus === 'נשלח') statusAction = 'ההזמנה שלך נשלחה אליך';
-    else if (newStatus === 'הושלם') statusAction = 'ההזמנה שלך הושלמה בהצלחה';
-    else if (newStatus === 'בטיפול') statusAction = 'ההזמנה שלך נמצאת בטיפול';
-
-    const message = `שלום ${order.customer_name || 'לקוח יקר'},\n\nNEW PHONE שמחים לעדכן אותך ש${statusAction}.\n\nתודה שקנית אצלנו!\nNEW PHONE`;
-
+    // 2. שליחת מייל אוטומטית ברקע לפי הניסוח המדויק שביקשת
     if (order.email) {
-      // פתיחת מייל לשליחה מהירה
-      window.open(`mailto:${order.email}?subject=${encodeURIComponent('עדכון סטטוס הזמנה - NEW PHONE')}&body=${encodeURIComponent(message)}`, '_blank');
+      let statusAction = `ההזמנה שלך התקבלה בהצלחה`;
+      if (newStatus === 'מחכה למשלוח') statusAction = 'ההזמנה שלך מחכה למשלוח';
+      else if (newStatus === 'מוכן לאיסוף') statusAction = 'ההזמנה שלך מוכנה לאיסוף';
+      else if (newStatus === 'נשלח') statusAction = 'ההזמנה שלך נשלחה אליך';
+      else if (newStatus === 'הושלם') statusAction = 'ההזמנה שלך הושלמה בהצלחה';
+      else if (newStatus === 'בטיפול') statusAction = 'ההזמנה שלך נמצאת בטיפול';
+
+      const message = `שלום ${order.customer_name || 'לקוח יקר'},\n\nNEW PHONE שמחים לעדכן אותך שההזמנה שלך ${newStatus === 'מוכן לאיסוף' ? 'מוכנה לאיסוף' : newStatus === 'מחכה למשלוח' ? 'מחכה למשלוח' : newStatus === 'נשלח' ? 'נשלחה אליך' : newStatus}.\n\nתודה שקנית אצלנו!\nNEW PHONE`;
+
+      try {
+        const res = await fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: order.email,
+            subject: 'עדכון סטטוס הזמנה - NEW PHONE',
+            message: message
+          })
+        });
+
+        if (res.ok) {
+          alert('הסטטוס עודכן והודעת מייל נשלחה בהצלחה ללקוח ברקע! ✉️');
+        } else {
+          alert('הסטטוס עודכן, אך שליחת המייל דרך השרת נכשלה. ודא שהגדרת מפתח RESEND_API_KEY ב-Vercel.');
+        }
+      } catch (err) {
+        console.error('Email send failed:', err);
+      }
     } else {
-      alert('סטטוס עודכן, אך ללקוח זה לא הוזן אימייל.');
+      alert('הסטטוס עודכן בהצלחה (ללקוח זה לא הוזן אימייל במערכת).');
     }
   };
 
