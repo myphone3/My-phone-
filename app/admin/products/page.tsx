@@ -19,6 +19,7 @@ export default function AdminProductsPage() {
   const [category, setCategory] = useState('');
   const [brand, setBrand] = useState('');
   const [brandSearch, setBrandSearch] = useState('');
+  const [productSearch, setProductSearch] = useState(''); // שורת חיפוש למוצרים קיימים
   const [kosher, setKosher] = useState('');
   const [storageVal, setStorageVal] = useState('');
   const [selectedVersions, setSelectedVersions] = useState<string[]>([]);
@@ -258,7 +259,6 @@ export default function AdminProductsPage() {
     fetchData();
   };
 
-  // פונקציית תצוגה מקדימה פנימית בניהול להמחשה מהירה
   const parseMarkdownPreview = (text: string) => {
     if (!text) return '';
     return text
@@ -269,6 +269,7 @@ export default function AdminProductsPage() {
   };
 
   const filteredBrands = brandsList.filter(b => b.name.toLowerCase().includes(brandSearch.toLowerCase()));
+  const filteredProducts = products.filter(p => p.name?.toLowerCase().includes(productSearch.toLowerCase()));
 
   if (loading) return <div className="text-center py-20 text-gray-500 font-medium">טוען מוצרים...</div>;
 
@@ -584,7 +585,7 @@ export default function AdminProductsPage() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
               <label className="block text-xs font-bold text-gray-700">תיאור קצר</label>
               <div className="flex flex-wrap gap-1.5">
-                <button type="button" onClick={() => setShortDesc(shortDesc + '\n## כותרת ראשית\n')} className="bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ כותרת (##)</button>
+                <button type="button" onClick={() => setShortDesc(shortDesc + '\n## כותרת ראשית\n')} className="bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ כותרת (##)</button>
                 <button type="button" onClick={() => setShortDesc(shortDesc + '**טקסט מודגש**')} className="bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ הדגשה (**)</button>
                 <button type="button" onClick={() => setShowPreviewShort(!showPreviewShort)} className="text-orange-600 text-xs font-bold px-2">👁️ תצוגה מקדימה</button>
               </div>
@@ -618,7 +619,7 @@ export default function AdminProductsPage() {
               <label className="block text-xs font-bold text-gray-700">מפרט טכני מלא</label>
               <div className="flex flex-wrap gap-1.5">
                 <button type="button" onClick={() => setSpecs(specs + '\n## כותרת ראשית\n')} className="bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ כותרת (##)</button>
-                <button type="button" onClick={() => setSpecs(specs + '**טקסט מודגש**')} className="bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ הדגשה (**)</button>
+                <button type="button" onClick={() => setSpecs(specs + '**טקסט מודגש**')} className="bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ הדגשה (**)</button>
                 <button type="button" onClick={() => setShowPreviewSpecs(!showPreviewSpecs)} className="text-orange-600 text-xs font-bold px-2">👁️ תצוגה מקדימה</button>
               </div>
             </div>
@@ -660,24 +661,41 @@ export default function AdminProductsPage() {
         </form>
       </div>
 
+      {/* אזור מוצרים קיימים הכולל שורת חיפוש חיה */}
       <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
-        <h2 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">מוצרים קיימים ({products.length})</h2>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4 gap-3">
+          <h2 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">
+            מוצרים קיימים ({filteredProducts.length} מתוך {products.length})
+          </h2>
+          <input
+            type="text"
+            placeholder="חפש מוצר קיים לפי שם..."
+            value={productSearch}
+            onChange={(e) => setProductSearch(e.target.value)}
+            className="w-full sm:w-64 bg-gray-50 border rounded-xl p-2.5 text-xs outline-none focus:border-orange-600"
+          />
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {products.map((p) => (
-            <div key={p.id} className="border rounded-2xl p-4 flex justify-between items-center bg-gray-50/50 shadow-xs">
-              <div className="flex items-center gap-2">
-                <img src={p.image_url} alt="" className="w-10 h-10 object-contain bg-white rounded-xl border p-1" />
-                <div>
-                  <h4 className="font-bold text-xs text-gray-900">{p.name}</h4>
-                  <span className="text-xs text-orange-600 font-black">₪{p.price}</span>
+          {filteredProducts.length > 0 ? (
+            filteredProducts.map((p) => (
+              <div key={p.id} className="border rounded-2xl p-4 flex justify-between items-center bg-gray-50/50 shadow-xs">
+                <div className="flex items-center gap-2">
+                  <img src={p.image_url} alt="" className="w-10 h-10 object-contain bg-white rounded-xl border p-1" />
+                  <div>
+                    <h4 className="font-bold text-xs text-gray-900">{p.name}</h4>
+                    <span className="text-xs text-orange-600 font-black">₪{p.price}</span>
+                  </div>
+                </div>
+                <div className="flex gap-2 text-xs">
+                  <button onClick={() => handleEdit(p)} className="text-blue-600 font-bold hover:underline cursor-pointer">עריכה</button>
+                  <button onClick={() => handleDelete(p.id)} className="text-red-500 font-bold hover:underline cursor-pointer">מחיקה</button>
                 </div>
               </div>
-              <div className="flex gap-2 text-xs">
-                <button onClick={() => handleEdit(p)} className="text-blue-600 font-bold hover:underline cursor-pointer">עריכה</button>
-                <button onClick={() => handleDelete(p.id)} className="text-red-500 font-bold hover:underline cursor-pointer">מחיקה</button>
-              </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            <p className="col-span-full text-center text-xs text-gray-400 py-8">לא נמצאו מוצרים התואמים את החיפוש.</p>
+          )}
         </div>
       </div>
     </div>
