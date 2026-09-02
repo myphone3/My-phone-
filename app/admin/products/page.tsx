@@ -69,7 +69,7 @@ export default function AdminProductsPage() {
         if (data && data.length > 0) {
           kosherData = data.map((item: any) => ({
             id: item.id,
-            name: item.name || item.title || item.label || item.kosher_type || item.type || Object.values(item).find(v => typeof v === 'string' && v.length > 1 && v !== item.id)
+            name: item.name || item.title || item.label || item.kosher_type || item.type
           })).filter((item: any) => item.name);
           if (kosherData.length > 0) break;
         }
@@ -660,7 +660,7 @@ export default function AdminProductsPage() {
               {editingId ? 'עדכן מוצר ➔' : '+ הוסף מוצר לחנות ➔'}
             </button>
             {editingId && (
-              <button type="button" onClick(resetForm) className="bg-gray-200 text-gray-800 px-6 py-3.5 rounded-2xl text-xs font-bold transition cursor-pointer">
+              <button type="button" onClick={resetForm} className="bg-gray-200 text-gray-800 px-6 py-3.5 rounded-2xl text-xs font-bold transition cursor-pointer">
                 ביטול
               </button>
             )}
