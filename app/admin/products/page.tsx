@@ -57,45 +57,36 @@ export default function AdminProductsPage() {
   const fetchData = async () => {
     setLoading(true);
     
+    // שליפה ישירה ונקייה בדיוק כמו קטגוריות ומותגים
     const prodRes = await supabase.from('products').select('*').order('created_at', { ascending: false });
     const brandRes = await supabase.from('brands').select('*');
+    const kosherRes = await supabase.from('kosher').select('*');
+    const catRes = await supabase.from('categories').select('*');
+    const versionRes = await supabase.from('versions').select('*');
 
-    // שליפה ישירה מטבלת הניהול של הכשרויות במסד הנתונים
-    let kosherData: any[] = [];
-    const kosherTables = ['kosher', 'kashrut', 'kosher_types', 'kosher_list', 'kashrus'];
-    for (const tbl of kosherTables) {
-      try {
-        const { data } = await supabase.from(tbl).select('*');
-        if (data && data.length > 0) {
-          const mapped = data.map((item: any) => ({
-            id: item.id,
-            name: item.name || item.title || item.label || item.kosher_name || item.type
-          })).filter((item: any) => item.name);
-          
-          if (mapped.length > 0) {
-            kosherData = mapped;
-            break;
-          }
-        }
-      } catch (e) {}
+    if (prodRes.data) setProducts(prodRes.data);
+    if (brandRes.data) setBrandsList(brandRes.data);
+
+    if (kosherRes.data) {
+      setKosherList(kosherRes.data.map((k: any) => ({
+        id: k.id,
+        name: k.name || k.title || k.label
+      })));
     }
-    setKosherList(kosherData);
 
-    let catRes: any = { data: [] };
-    try { 
-      const res = await supabase.from('categories').select('*');
-      if (res.data) {
-        catRes.data = res.data.map((c: any) => ({ id: c.id, name: c.name || c.title || c.label }));
-      }
-    } catch (e) {}
+    if (catRes.data) {
+      setCategoriesList(catRes.data.map((c: any) => ({
+        id: c.id,
+        name: c.name || c.title || c.label
+      })));
+    }
 
-    let versionRes: any = { data: [] };
-    try { 
-      const res = await supabase.from('versions').select('*');
-      if (res.data) {
-        versionRes.data = res.data.map((v: any) => ({ id: v.id, name: v.name || v.title || v.label }));
-      }
-    } catch (e) {}
+    if (versionRes.data) {
+      setVersionsList(versionRes.data.map((v: any) => ({
+        id: v.id,
+        name: v.name || v.title || v.label
+      })));
+    }
 
     // איסוף תמונות מהאחסון
     let filesList: string[] = [];
@@ -123,11 +114,6 @@ export default function AdminProductsPage() {
         }
       });
     }
-
-    if (prodRes.data) setProducts(prodRes.data);
-    if (brandRes.data) setBrandsList(brandRes.data);
-    if (catRes.data) setCategoriesList(catRes.data);
-    if (versionRes.data) setVersionsList(versionRes.data);
     setStorageFiles(filesList);
     
     setLoading(false);
@@ -314,20 +300,16 @@ export default function AdminProductsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">קטגוריה</label>
-              {categoriesList.length > 0 ? (
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
-                >
-                  <option value="">בחר קטגוריה מהרשימה...</option>
-                  {categoriesList.map((cat) => (
-                    <option key={cat.id} value={cat.name}>{cat.name}</option>
-                  ))}
-                </select>
-              ) : (
-                <input type="text" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="שם קטגוריה..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
-              )}
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
+              >
+                <option value="">בחר קטגוריה מהרשימה...</option>
+                {categoriesList.map((cat) => (
+                  <option key={cat.id} value={cat.name}>{cat.name}</option>
+                ))}
+              </select>
             </div>
 
             <div>
@@ -395,7 +377,7 @@ export default function AdminProductsPage() {
             <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="או הזן קישור לתמונת מותג..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
           </div>
 
-          {/* כשרות - תפריט נפתח (Select) קבוע ששואב את הנתונים מטבלת הניהול שלך */}
+          {/* כשרות בדיוק כמו קטגוריה - רשימה נפתחת ישירות מטבלת kosher */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-gray-700">בחר רמת כשרות מהרשימה</label>
             <select
@@ -405,7 +387,7 @@ export default function AdminProductsPage() {
             >
               <option value="">בחר רמת כשרות מהרשימה...</option>
               {kosherList.map((k) => (
-                <option key={k.id || k.name} value={k.name}>{k.name}</option>
+                <option key={k.id} value={k.name}>{k.name}</option>
               ))}
             </select>
           </div>
