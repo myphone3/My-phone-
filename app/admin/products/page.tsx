@@ -60,7 +60,7 @@ export default function AdminProductsPage() {
     const prodRes = await supabase.from('products').select('*').order('created_at', { ascending: false });
     const brandRes = await supabase.from('brands').select('*');
 
-    // שליפה ישירה אך ורק מתוך מסד הנתונים של ניהול הכשרויות
+    // שליפה חכמה וגמישה מטבלת הכשרויות במסד הנתונים
     let kosherData: any[] = [];
     const tablesToTry = ['kosher', 'kosher_types', 'kashrut', 'kosher_list'];
     for (const tbl of tablesToTry) {
@@ -69,9 +69,9 @@ export default function AdminProductsPage() {
         if (data && data.length > 0) {
           kosherData = data.map((item: any) => ({
             id: item.id,
-            name: item.name || item.title || item.label
+            name: item.name || item.title || item.label || item.kosher_type || item.type || Object.values(item).find(v => typeof v === 'string' && v.length > 1 && v !== item.id)
           })).filter((item: any) => item.name);
-          break;
+          if (kosherData.length > 0) break;
         }
       } catch (e) {}
     }
@@ -391,7 +391,7 @@ export default function AdminProductsPage() {
             <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="או הזן קישור לתמונת מותג..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
           </div>
 
-          {/* כשרות מנוהלת אך ורק מטבלת הניהול במסד הנתונים */}
+          {/* כשרות בדיוק כמו קטגוריה (תפריט נפתח עם גיבוי להקלדה חופשית) */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-gray-700">בחר רמת כשרות מהרשימה</label>
             {kosherList.length > 0 ? (
@@ -406,7 +406,13 @@ export default function AdminProductsPage() {
                 ))}
               </select>
             ) : (
-              <p className="text-xs text-gray-400">טרם הוגדרו כשרויות במסד הנתונים (הוסף דרך עמוד ניהול כשרות).</p>
+              <input 
+                type="text" 
+                value={kosher} 
+                onChange={(e) => setKosher(e.target.value)} 
+                placeholder="הזן רמת כשרות..." 
+                className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" 
+              />
             )}
           </div>
 
@@ -654,7 +660,7 @@ export default function AdminProductsPage() {
               {editingId ? 'עדכן מוצר ➔' : '+ הוסף מוצר לחנות ➔'}
             </button>
             {editingId && (
-              <button type="button" onClick={resetForm} className="bg-gray-200 text-gray-800 px-6 py-3.5 rounded-2xl text-xs font-bold transition cursor-pointer">
+              <button type="button" onClick(resetForm) className="bg-gray-200 text-gray-800 px-6 py-3.5 rounded-2xl text-xs font-bold transition cursor-pointer">
                 ביטול
               </button>
             )}
