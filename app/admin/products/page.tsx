@@ -60,7 +60,7 @@ export default function AdminProductsPage() {
     const prodRes = await supabase.from('products').select('*').order('created_at', { ascending: false });
     const brandRes = await supabase.from('brands').select('*');
 
-    // שליפה ישירה אך ורק מטבלת הניהול של הכשרויות (kosher) ללא שום ערכים מומצאים
+    // שליפה מטבלת הכשרויות במסד הנתונים בלבד
     let kosherData: any[] = [];
     try {
       const { data } = await supabase.from('kosher').select('*');
@@ -387,7 +387,7 @@ export default function AdminProductsPage() {
             <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="או הזן קישור לתמונת מותג..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
           </div>
 
-          {/* כשרות בדיוק כמו קטגוריה - שואב אך ורק מטבלת הניהול שלך */}
+          {/* כשרות - אם יש נתונים בטבלה יציג רשימה, ואם לא יציג שדה טקסט להזנה */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-gray-700">בחר רמת כשרות מהרשימה</label>
             {kosherList.length > 0 ? (
@@ -670,7 +670,7 @@ export default function AdminProductsPage() {
           {products.map((p) => (
             <div key={p.id} className="border rounded-2xl p-4 flex justify-between items-center bg-gray-50/50 shadow-xs">
               <div className="flex items-center gap-2">
-                <img src5={p.image_url} alt="" className="w-10 h-10 object-contain bg-white rounded-xl border p-1" />
+                <img src={p.image_url} alt="" className="w-10 h-10 object-contain bg-white rounded-xl border p-1" />
                 <div>
                   <h4 className="font-bold text-xs text-gray-900">{p.name}</h4>
                   <span className="text-xs text-orange-600 font-black">₪{p.price}</span>
