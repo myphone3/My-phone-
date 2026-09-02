@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import Link from 'next/link';
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -39,29 +40,21 @@ export default function AdminOrdersPage() {
 
     fetchOrders();
 
-    // ניסוח טבעי ומדויק לבקשתך
-    let statusText = `ההזמנה התקבלה בהצלחה`;
-    if (newStatus === 'מחכה למשלוח') statusText = 'ההזמנה מחכה למשלוח';
-    else if (newStatus === 'מוכן לאיסוף') statusText = 'ההזמנה מוכנה לאיסוף';
-    else if (newStatus === 'נשלח') statusText = 'ההזמנה נשלחה אליך';
-    else if (newStatus === 'הושלם') statusText = 'ההזמנה הושלמה בהצלחה';
-    else if (newStatus === 'בטיפול') statusText = 'ההזמנה נמצאת בטיפול';
+    // ניסוח מדויק לפי בקשתך
+    let statusAction = `ההזמנה שלך התקבלה בהצלחה`;
+    if (newStatus === 'מחכה למשלוח') statusAction = 'ההזמנה שלך מחכה למשלוח';
+    else if (newStatus === 'מוכן לאיסוף') statusAction = 'ההזמנה שלך מוכנה לאיסוף';
+    else if (newStatus === 'נשלח') statusAction = 'ההזמנה שלך נשלחה אליך';
+    else if (newStatus === 'הושלם') statusAction = 'ההזמנה שלך הושלמה בהצלחה';
+    else if (newStatus === 'בטיפול') statusAction = 'ההזמנה שלך נמצאת בטיפול';
 
-    const message = `שלום ${order.customer_name || 'לקוח יקר'}, מעדכנים אותך ש${statusText} בחנות NEW PHONE. תודה שקנית אצלנו! 📱`;
+    const message = `שלום ${order.customer_name || 'לקוח יקר'},\n\nNEW PHONE שמחים לעדכן אותך ש${statusAction}.\n\nתודה שקנית אצלנו!\nNEW PHONE`;
 
-    const phoneClean = order.phone?.replace(/\D/g, '') || '';
-    if (phoneClean) {
-      window.open(`https://wa.me/972${phoneClean.startsWith('0') ? phoneClean.slice(1) : phoneClean}?text=${encodeURIComponent(message)}`, '_blank');
+    if (order.email) {
+      window.open(`mailto:${order.email}?subject=${encodeURIComponent('עדכון סטטוס הזמנה - NEW PHONE')}&body=${encodeURIComponent(message)}`, '_blank');
+    } else {
+      alert('ללקוח זה לא הוזן כתובת אימייל במערכת.');
     }
-  };
-
-  const sendEmailUpdate = (order: any) => {
-    if (!order.email) {
-      alert('ללקוח זה לא הוזן כתובת אימייל');
-      return;
-    }
-    const message = `שלום ${order.customer_name || 'לקוח יקר'}, מעדכנים אותך שסטטוס ההזמנה שלך בחנות NEW PHONE הוא: ${order.status}. תודה שקנית אצלנו!`;
-    window.open(`mailto:${order.email}?subject=${encodeURIComponent('עדכון סטטוס הזמנה - NEW PHONE')}&body=${encodeURIComponent(message)}`, '_blank');
   };
 
   const deleteOrder = async (orderId: string) => {
@@ -174,12 +167,17 @@ export default function AdminOrdersPage() {
         <h1 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">
           ניהול הזמנות לקוחות ({orders.length})
         </h1>
-        <button
-          onClick={fetchOrders}
-          className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer"
-        >
-          🔄 רענן רשימה
-        </button>
+        <div className="flex gap-2">
+          <Link href="/admin/email" className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm">
+            ✉️ ניהול ושליחת מייל ללקוחות
+          </Link>
+          <button
+            onClick={fetchOrders}
+            className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer"
+          >
+            🔄 רענן רשימה
+          </button>
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -208,14 +206,6 @@ export default function AdminOrdersPage() {
                     <option value="נשלח">נשלח 🚚</option>
                     <option value="הושלם">הושלם ✓</option>
                   </select>
-
-                  <button
-                    onClick={() => sendEmailUpdate(order)}
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-xs"
-                    title="שלח אימייל ללקוח"
-                  >
-                    ✉️ שלח מייל
-                  </button>
 
                   <button
                     onClick={() => printOrderPdf(order)}
