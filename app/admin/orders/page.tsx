@@ -49,6 +49,88 @@ export default function AdminOrdersPage() {
     }
   };
 
+  const sendWhatsAppUpdate = (order: any) => {
+    const phoneClean = order.phone?.replace(/\D/g, '') || '';
+    const message = `שלום ${order.customer_name || 'לקוח יקר'}, מעדכנים אותך שההזמנה שלך בחנות NEW PHONE נמצאת כעת בסטטוס: *${order.status || 'חדש'}*. תודה שקנית אצלנו! 📱`;
+    window.open(`https://wa.me/972${phoneClean.startsWith('0') ? phoneClean.slice(1) : phoneClean}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
+  const printOrderPdf = (order: any) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const itemsHtml = (order.items || []).map((item: any, idx: number) => `
+      <tr style="border-bottom: 1px solid #ddd;">
+        <td style="padding: 10px;">${idx + 1}</td>
+        <td style="padding: 10px;">${item.name} ${item.selectedVariant ? `(${item.selectedVariant})` : ''} ${item.selectedColor ? `- ${item.selectedColor.name}` : ''}</td>
+        <td style="padding: 10px; text-align: center;">${item.quantity || 1}</td>
+        <td style="padding: 10px; text-align: left;">₪${(item.sale_price || item.price || 0) * (item.quantity || 1)}</td>
+      </tr>
+    `).join('');
+
+    printWindow.document.write(`
+      <html dir="rtl" lang="he">
+      <head>
+        <title>סיכום הזמנה #${order.id?.slice(0, 8)}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 30px; color: #333; direction: rtl; }
+          .header { display: flex; justify-content: space-between; border-bottom: 2px solid #ea580c; padding-bottom: 20px; margin-bottom: 20px; }
+          .title { font-size: 22px; font-weight: bold; color: #ea580c; }
+          .details { margin-bottom: 20px; font-size: 14px; line-height: 1.6; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th { background: #f97316; color: white; padding: 10px; text-align: right; }
+          .total { margin-top: 20px; text-align: left; font-size: 16px; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <div class="title">NEW PHONE - סיכום הזמנה</div>
+            <div>מספר הזמנה: #${order.id?.slice(0, 8)}</div>
+            <div>תאריך: ${order.created_at ? new Date(order.created_at).toLocaleString('he-IL') : ''}</div>
+          </div>
+          <div style="text-align: left;">
+            <strong>סטטוס:</strong> ${order.status || 'חדש'}
+          </div>
+        </div>
+
+        <div class="details">
+          <strong>פרטי לקוח:</strong><br>
+          שם: ${order.customer_name || 'לא צוין'}<br>
+          טלפון: ${order.phone || 'לא צוין'}<br>
+          אימייל: ${order.email || 'לא צוין'}<br>
+          כתובת למשלוח: עיר: ${order.city || ''}, רחוב: ${order.street || ''} ${order.building || ''}<br>
+          ${order.notes ? `<strong>הערות הלקוח:</strong> ${order.notes}` : ''}
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>שם המוצר</th>
+              <th style="text-align: center;">כמות</th>
+              <th style="text-align: left;">סכום</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+
+        <div class="total">
+          עלות משלוח: ₪${order.shipping_cost || 29}<br>
+          <span style="font-size: 20px; color: #ea580c;">סה"כ לתשלום: ₪${order.total_price || 0}</span>
+        </div>
+
+        <script>
+          window.print();
+        </script>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   if (loading) return <div className="text-center py-20 text-gray-500 font-medium">טוען הזמנות...</div>;
 
   return (
@@ -78,17 +160,35 @@ export default function AdminOrdersPage() {
                     תאריך: {order.created_at ? new Date(order.created_at).toLocaleString('he-IL') : 'לא ידוע'}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <select
                     value={order.status || 'חדש'}
                     onChange={(e) => updateOrderStatus(order.id, e.target.value)}
                     className="bg-orange-50 border border-orange-200 text-orange-800 text-xs font-bold rounded-xl px-3 py-1.5 outline-none cursor-pointer"
                   >
                     <option value="חדש">חדש 🆕</option>
-                    <option value="בטיפול">בטיפול ⏳</option>
+                    <option value="מחכה למשלוח">מחכה למשלוח ⏳</option>
+                    <option value="מוכן לאיסוף">מוכן לאיסוף 🛍️</option>
                     <option value="נשלח">נשלח 🚚</option>
                     <option value="הושלם">הושלם ✓</option>
                   </select>
+
+                  <button
+                    onClick={() => sendWhatsAppUpdate(order)}
+                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-xs"
+                    title="שלח עדכון סטטוס לווטסאפ של הלקוח"
+                  >
+                    💬 שלח עדכון בווטסאפ
+                  </button>
+
+                  <button
+                    onClick={() => printOrderPdf(order)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-xs"
+                    title="הדפס סיכום הזמנה / PDF"
+                  >
+                    🖨️ הדפס PDF
+                  </button>
+
                   <button
                     onClick={() => deleteOrder(order.id)}
                     className="text-red-500 hover:text-red-700 text-xs font-bold p-1.5 cursor-pointer"
@@ -101,13 +201,20 @@ export default function AdminOrdersPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-gray-700 bg-gray-50 p-4 rounded-2xl border">
                 <div>
-                  <span className="font-bold block mb-1 text-gray-900">פרטי התקשרות:</span>
+                  <span className="font-bold block mb-1 text-gray-900">פרטי התקשרות וכתובת:</span>
                   <p>📞 טלפון: <a href={`tel:${order.phone}`} className="text-blue-600 font-bold">{order.phone}</a></p>
-                  <p className="mt-1">📍 כתובת: {order.address}</p>
+                  <p className="mt-1">✉️ אימייל: {order.email || 'לא צוין'}</p>
+                  <p className="mt-1">📍 עיר: {order.city || 'לא צוין'} | רחוב: {order.street || ''} {order.building || ''}</p>
+                  {order.notes && <p className="mt-2 text-orange-700 bg-orange-50 p-2 rounded-lg border border-orange-200"><strong>הערות לקוח:</strong> {order.notes}</p>}
                 </div>
-                <div className="text-left sm:text-left">
-                  <span className="font-bold block mb-1 text-gray-900">סיכום תשלום:</span>
-                  <p className="text-sm font-black text-orange-600">₪{order.total_price || 0}</p>
+                <div className="text-left sm:text-left flex flex-col justify-between">
+                  <div>
+                    <span className="font-bold block mb-1 text-gray-900">סיכום תשלום:</span>
+                    <p className="text-xs text-gray-600">עלות משלוח: ₪{order.shipping_cost || 29}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-black text-orange-600 block mt-2">סה"כ לתשלום: ₪{order.total_price || 0}</span>
+                  </div>
                 </div>
               </div>
 
