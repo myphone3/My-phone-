@@ -27,7 +27,6 @@ export default function AdminOrdersPage() {
   };
 
   const handleStatusChange = async (order: any, newStatus: string) => {
-    // 1. עדכון ב-Supabase
     const { error } = await supabase
       .from('orders')
       .update({ status: newStatus })
@@ -38,10 +37,9 @@ export default function AdminOrdersPage() {
       return;
     }
 
-    // רענון רשימה מקומי
     fetchOrders();
 
-    // 2. בניית ניסוח הודעה טבעי לפי הסטטוס
+    // ניסוח טבעי ומדויק לבקשתך
     let statusText = `ההזמנה התקבלה בהצלחה`;
     if (newStatus === 'מחכה למשלוח') statusText = 'ההזמנה מחכה למשלוח';
     else if (newStatus === 'מוכן לאיסוף') statusText = 'ההזמנה מוכנה לאיסוף';
@@ -51,18 +49,19 @@ export default function AdminOrdersPage() {
 
     const message = `שלום ${order.customer_name || 'לקוח יקר'}, מעדכנים אותך ש${statusText} בחנות NEW PHONE. תודה שקנית אצלנו! 📱`;
 
-    // 3. שליחה אוטומטית ל-WhatsApp / SMS
     const phoneClean = order.phone?.replace(/\D/g, '') || '';
     if (phoneClean) {
       window.open(`https://wa.me/972${phoneClean.startsWith('0') ? phoneClean.slice(1) : phoneClean}?text=${encodeURIComponent(message)}`, '_blank');
     }
+  };
 
-    // 4. שליחה אוטומטית למייל (אם קיים אימייל)
-    if (order.email) {
-      const mailSubject = encodeURIComponent('עדכון סטטוס הזמנה - NEW PHONE');
-      const mailBody = encodeURIComponent(message);
-      window.open(`mailto:${order.email}?subject=${mailSubject}&body=${mailBody}`, '_blank');
+  const sendEmailUpdate = (order: any) => {
+    if (!order.email) {
+      alert('ללקוח זה לא הוזן כתובת אימייל');
+      return;
     }
+    const message = `שלום ${order.customer_name || 'לקוח יקר'}, מעדכנים אותך שסטטוס ההזמנה שלך בחנות NEW PHONE הוא: ${order.status}. תודה שקנית אצלנו!`;
+    window.open(`mailto:${order.email}?subject=${encodeURIComponent('עדכון סטטוס הזמנה - NEW PHONE')}&body=${encodeURIComponent(message)}`, '_blank');
   };
 
   const deleteOrder = async (orderId: string) => {
@@ -79,14 +78,24 @@ export default function AdminOrdersPage() {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    const itemsHtml = (order.items || []).map((item: any, idx: number) => `
-      <tr style="border-bottom: 1px solid #ddd;">
-        <td style="padding: 10px;">${idx + 1}</td>
-        <td style="padding: 10px;">${item.name} ${item.selectedVariant ? `(${item.selectedVariant})` : ''} ${item.selectedColor ? `- ${item.selectedColor.name}` : ''}</td>
-        <td style="padding: 10px; text-align: center;">${item.quantity || 1}</td>
-        <td style="padding: 10px; text-align: left;">₪${(item.sale_price || item.price || 0) * (item.quantity || 1)}</td>
+    const itemsHtml = [
+      ...(order.items || []).map((item: any, idx: number) => `
+        <tr style="border-bottom: 1px solid #ddd;">
+          <td style="padding: 10px;">${idx + 1}</td>
+          <td style="padding: 10px;">${item.name} ${item.selectedVariant ? `(${item.selectedVariant})` : ''} ${item.selectedColor ? `- ${item.selectedColor.name}` : ''}</td>
+          <td style="padding: 10px; text-align: center;">${item.quantity || 1}</td>
+          <td style="padding: 10px; text-align: left;">₪${(item.sale_price || item.price || 0) * (item.quantity || 1)}</td>
+        </tr>
+      `),
+      `
+      <tr style="border-bottom: 1px solid #ddd; background-color: #fff7ed;">
+        <td style="padding: 10px;">${(order.items || []).length + 1}</td>
+        <td style="padding: 10px;">משלוח מהיר עד הבית</td>
+        <td style="padding: 10px; text-align: center;">1</td>
+        <td style="padding: 10px; text-align: left;">₪${order.shipping_cost || 29}</td>
       </tr>
-    `).join('');
+      `
+    ].join('');
 
     printWindow.document.write(`
       <html dir="rtl" lang="he">
@@ -95,19 +104,25 @@ export default function AdminOrdersPage() {
         <style>
           body { font-family: Arial, sans-serif; padding: 30px; color: #333; direction: rtl; }
           .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ea580c; padding-bottom: 20px; margin-bottom: 20px; }
-          .logo { font-size: 26px; font-weight: 900; color: #ea580c; letter-spacing: 1px; }
-          .sub-logo { font-size: 11px; color: #666; font-weight: bold; }
-          .details { margin-bottom: 20px; font-size: 14px; line-height: 1.6; }
+          .logo-area { display: flex; align-items: center; gap: 12px; }
+          .logo-badge { background: #ea580c; color: white; width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; }
+          .logo-text { font-size: 24px; font-weight: 900; color: #111; letter-spacing: 0.5px; }
+          .logo-sub { font-size: 11px; color: #666; font-weight: bold; }
+          .details { margin-bottom: 20px; font-size: 13px; line-height: 1.6; }
           table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th { background: #ea580c; color: white; padding: 10px; text-align: right; }
-          .total { margin-top: 20px; text-align: left; font-size: 16px; font-weight: bold; }
+          th { background: #ea580c; color: white; padding: 10px; text-align: right; font-size: 13px; }
+          td { font-size: 13px; }
+          .total { margin-top: 20px; text-align: left; font-size: 18px; font-weight: bold; color: #ea580c; }
         </style>
       </head>
       <body>
         <div class="header">
-          <div>
-            <div class="logo">NEW PHONE</div>
-            <div class="sub-logo">חנות סלולר ואביזרים מתקדמים</div>
+          <div class="logo-area">
+            <div class="logo-badge">NP</div>
+            <div>
+              <div class="logo-text">NEW PHONE</div>
+              <div class="logo-sub">חנות סלולר ואביזרים מתקדמים</div>
+            </div>
           </div>
           <div style="text-align: left;">
             <div style="font-size: 14px; font-weight: bold;">מספר הזמנה: #${order.id?.slice(0, 8)}</div>
@@ -128,7 +143,7 @@ export default function AdminOrdersPage() {
           <thead>
             <tr>
               <th>#</th>
-              <th>שם המוצר</th>
+              <th>תיאור פריט</th>
               <th style="text-align: center;">כמות</th>
               <th style="text-align: left;">סכום</th>
             </tr>
@@ -139,8 +154,7 @@ export default function AdminOrdersPage() {
         </table>
 
         <div class="total">
-          עלות משלוח: ₪${order.shipping_cost || 29}<br>
-          <span style="font-size: 20px; color: #ea580c;">סה"כ לתשלום: ₪${order.total_price || 0}</span>
+          סה"כ לתשלום: ₪${order.total_price || 0}
         </div>
 
         <script>
@@ -194,6 +208,14 @@ export default function AdminOrdersPage() {
                     <option value="נשלח">נשלח 🚚</option>
                     <option value="הושלם">הושלם ✓</option>
                   </select>
+
+                  <button
+                    onClick={() => sendEmailUpdate(order)}
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-xs"
+                    title="שלח אימייל ללקוח"
+                  >
+                    ✉️ שלח מייל
+                  </button>
 
                   <button
                     onClick={() => printOrderPdf(order)}
@@ -252,6 +274,10 @@ export default function AdminOrdersPage() {
                       </div>
                     </div>
                   ))}
+                  <div className="flex items-center justify-between bg-orange-50/50 border border-orange-200 p-3 rounded-xl text-xs">
+                    <span className="font-bold text-gray-900">משלוח מהיר עד הבית</span>
+                    <span className="text-orange-600 font-black">₪{order.shipping_cost || 29}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -260,7 +286,7 @@ export default function AdminOrdersPage() {
           <div className="text-center py-20 bg-white rounded-3xl border p-8 space-y-3 shadow-sm">
             <span className="text-4xl">📦</span>
             <h3 className="font-black text-sm text-gray-900">אין הזמנות חדשות במערכת כרגע</h3>
-            <p className="text-xs text-gray-400">ברגע שקוח יבצע הזמנה בחנות, היא תופיע כאן מיד.</p>
+            <p className="text-xs text-gray-400">ברגע שלקוח יבצע הזמנה בחנות, היא תופיע כאן מיד.</p>
           </div>
         )}
       </div>
