@@ -29,7 +29,6 @@ export default function ProductDetailPage() {
       setSelectedImage(data.image_url || data.images?.[0] || '');
       if (data.product_colors?.length > 0) setSelectedColor(data.product_colors[0]);
       
-      // שליפה חכמה של גרסאות מכל מבנה נתונים אפשרי
       const rawVars = data.product_variants || data.variants || [];
       const parsedVars = Array.isArray(rawVars) 
         ? rawVars 
@@ -163,13 +162,12 @@ export default function ProductDetailPage() {
               </p>
             )}
 
-            {/* הצגת התיאור המלא כ-HTML מעוצב (כותרות, הדגשות וכו') */}
+            {/* כאן התיאור המלא הופך אוטומטית לעיצוב אמיתי */}
             <div 
               className="text-xs sm:text-sm text-gray-600 leading-relaxed space-y-2 [&_h1]:text-lg [&_h1]:font-black [&_h1]:text-gray-900 [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-gray-900 [&_strong]:font-bold"
               dangerouslySetInnerHTML={{ __html: product.description || '' }}
             />
 
-            {/* אזור בחירת גרסאות / נפח אחסון */}
             {variants.length > 0 && (
               <div className="space-y-2 pt-2 border-t">
                 <span className="text-xs font-bold text-gray-700">בחר גרסה / נפח אחסון <span className="text-red-500">*</span>: <span className="text-orange-600">{selectedVariant}</span></span>
