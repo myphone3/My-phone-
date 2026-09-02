@@ -57,10 +57,10 @@ export default function AdminProductsPage() {
   const fetchData = async () => {
     setLoading(true);
     
-    // שליפה ישירה ונקייה בדיוק כמו קטגוריות ומותגים
+    // שליפה ישירה מטבלת ה-kosher_options האמיתית שלך
     const prodRes = await supabase.from('products').select('*').order('created_at', { ascending: false });
     const brandRes = await supabase.from('brands').select('*');
-    const kosherRes = await supabase.from('kosher').select('*');
+    const kosherRes = await supabase.from('kosher_options').select('*');
     const catRes = await supabase.from('categories').select('*');
     const versionRes = await supabase.from('versions').select('*');
 
@@ -70,7 +70,7 @@ export default function AdminProductsPage() {
     if (kosherRes.data) {
       setKosherList(kosherRes.data.map((k: any) => ({
         id: k.id,
-        name: k.name || k.title || k.label
+        name: k.name || k.title || k.label || k.kosher_name
       })));
     }
 
@@ -115,7 +115,6 @@ export default function AdminProductsPage() {
       });
     }
     setStorageFiles(filesList);
-    
     setLoading(false);
   };
 
@@ -377,7 +376,7 @@ export default function AdminProductsPage() {
             <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="או הזן קישור לתמונת מותג..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
           </div>
 
-          {/* כשרות בדיוק כמו קטגוריה - רשימה נפתחת ישירות מטבלת kosher */}
+          {/* כשרות - שואב ישירות מטבלת kosher_options */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-gray-700">בחר רמת כשרות מהרשימה</label>
             <select
@@ -619,7 +618,7 @@ export default function AdminProductsPage() {
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">SEO Description (תיאור בגוגל)</label>
-              <input type="text" value={seoDesc} onChange={(e) => setSeoDesc(e.target.value)} placeholder="תיאור SEO..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
+              <input type="text" value={seoDesc} onChange={(e) => seoDesc} placeholder="תיאור SEO..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
             </div>
           </div>
 
