@@ -8,7 +8,11 @@ export default function CartPage() {
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
+  const [email, setEmail] = useState('');
+  const [city, setCity] = useState('');
+  const [street, setStreet] = useState('');
+  const [building, setBuilding] = useState('');
+  const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -38,26 +42,34 @@ export default function CartPage() {
     localStorage.setItem('cart', JSON.stringify(updated));
   };
 
-  const totalPrice = cartItems.reduce((sum, item) => {
+  const subtotalPrice = cartItems.reduce((sum, item) => {
     const price = item.sale_price || item.price || 0;
     return sum + price * (item.quantity || 1);
   }, 0);
 
+  const shippingCost = 29;
+  const totalPrice = subtotalPrice + shippingCost;
+
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !phone || !address) {
-      alert('נא למלא פרטי לקוח מלאים (שם, טלפון וכתובת)');
+    if (!name || !phone || !email || !city || !street || !building) {
+      alert('נא למלא את כל שדות חובה (שם, טלפון, מייל, עיר, רחוב ומספר בניין)');
       return;
     }
 
     setSubmitting(true);
     
-    // שליחה מדויקת לפי השדות התקניים במסד הנתונים
     const orderPayload = {
       customer_name: name,
       phone,
-      address,
+      email,
+      city,
+      street,
+      building,
+      address: `${city}, ${street} ${building}`,
+      notes,
       items: cartItems,
+      shipping_cost: shippingCost,
       total_price: totalPrice,
       status: 'חדש'
     };
@@ -152,10 +164,11 @@ export default function CartPage() {
           </div>
 
           <form onSubmit={handleCheckout} className="bg-white rounded-3xl border p-6 shadow-sm space-y-4">
-            <h3 className="font-black text-sm border-r-4 border-orange-600 pr-2">פרטי משלוח למשלוח מהיר עד הבית</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <h3 className="font-black text-sm border-r-4 border-orange-600 pr-2">פרטי לקוח וכתובת למשלוח</h3>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">שם מלא</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">שם מלא <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   value={name}
@@ -166,7 +179,7 @@ export default function CartPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">טלפון נייד</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">טלפון נייד <span className="text-red-500">*</span></label>
                 <input
                   type="tel"
                   value={phone}
@@ -176,30 +189,79 @@ export default function CartPage() {
                   required
                 />
               </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">כתובת אימייל <span className="text-red-500">*</span></label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@gmail.com"
+                  className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
+                  required
+                />
+              </div>
             </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">עיר <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="תל אביב"
+                  className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">רחוב <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  value={street}
+                  onChange={(e) => setStreet(e.target.value)}
+                  placeholder="הרצל"
+                  className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">מספר בניין <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  value={building}
+                  onChange={(e) => setBuilding(e.target.value)}
+                  placeholder="12"
+                  className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
+                  required
+                />
+              </div>
+            </div>
+
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">כתובת מלאה למשלוח</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">הערות להזמנה (אופציונלי)</label>
               <textarea
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="עיר, רחוב, מספר דירה..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="הערות לשליח, קוד כניסה לבניין וכו'..."
                 rows={2}
                 className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
-                required
               ></textarea>
             </div>
 
-            <div className="border-t pt-4 flex justify-between items-center text-sm font-bold text-gray-700">
-              <span>סכום ביניים:</span>
-              <span className="text-lg font-black text-gray-900">₪{totalPrice}</span>
-            </div>
-            <div className="flex justify-between items-center text-xs text-gray-500">
-              <span>משלוח מהיר עד הבית:</span>
-              <span className="font-bold text-green-600">חינם 🚚</span>
-            </div>
-            <div className="border-t pt-4 flex justify-between items-center">
-              <span className="text-base font-black text-gray-900">סה"כ לתשלום:</span>
-              <span className="text-xl font-black text-orange-600">₪{totalPrice}</span>
+            <div className="border-t pt-4 space-y-2 text-xs">
+              <div className="flex justify-between items-center text-gray-700">
+                <span>סכום ביניים מוצרים:</span>
+                <span className="font-bold text-gray-900">₪{subtotalPrice}</span>
+              </div>
+              <div className="flex justify-between items-center text-gray-700">
+                <span>עלות משלוח מהיר עד הבית:</span>
+                <span className="font-bold text-gray-900">₪{shippingCost}</span>
+              </div>
+              <div className="border-t pt-2 flex justify-between items-center text-base font-black">
+                <span className="text-gray-900">סה"כ לתשלום:</span>
+                <span className="text-orange-600 text-lg">₪{totalPrice}</span>
+              </div>
             </div>
 
             <button
