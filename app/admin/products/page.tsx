@@ -32,7 +32,6 @@ export default function AdminProductsPage() {
   const [images, setImages] = useState<string[]>([]);
   const [imageUrl, setImageUrl] = useState('');
   
-  // פתיחת גלריית המדיה
   const [showMediaModal, setShowMediaModal] = useState(false);
   
   const [colors, setColors] = useState<{ name: string; hex: string; image: string }[]>([
@@ -61,22 +60,11 @@ export default function AdminProductsPage() {
     const prodRes = await supabase.from('products').select('*').order('created_at', { ascending: false });
     const brandRes = await supabase.from('brands').select('*');
 
-    // סנכרון חכם ומקיף לטבלת הכשרות מכל שם אפשרי במסד הנתונים
-    let kosherData: any[] = [];
-    const tablesToTry = ['kosher', 'kosher_types', 'kosher_list', 'kosher_levels'];
-    for (const tbl of tablesToTry) {
-      try {
-        const { data, error } = await supabase.from(tbl).select('*');
-        if (data && data.length > 0) {
-          kosherData = data;
-          break;
-        }
-        if (error) {
-          console.log(`שגיאה בשליפת טבלה ${tbl}:`, error.message);
-        }
-      } catch (e) {}
+    // שליפה ישירה מטבלת kosher המדויקת
+    const kosherRes = await supabase.from('kosher').select('*');
+    if (kosherRes.data) {
+      setKosherList(kosherRes.data);
     }
-    setKosherList(kosherData);
 
     let catRes: any = { data: [] };
     try { catRes = await supabase.from('categories').select('*'); } catch (e) {}
@@ -382,7 +370,7 @@ export default function AdminProductsPage() {
             <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="או הזן קישור לתמונת מותג..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
           </div>
 
-          {/* כשרות מתוך ניהול הכשרויות */}
+          {/* כשרות מסונכרנת ישירות מטבלת kosher */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-gray-700">בחר רמת כשרות מתוך הרשימה</label>
             {kosherList.length > 0 ? (
@@ -400,7 +388,7 @@ export default function AdminProductsPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-gray-400">טרם הוגדרו כשרויות בעמוד "ניהול כשרות".</p>
+              <p className="text-xs text-gray-400">טרם הוגדרו כשרויות בעמוד "ניהול כשרות" (טבלת kosher).</p>
             )}
             <input type="text" value={kosher} onChange={(e) => setKosher(e.target.value)} placeholder="או הזן כשרות ידנית..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
           </div>
@@ -500,7 +488,7 @@ export default function AdminProductsPage() {
             </div>
           )}
 
-          {/* בחירת צבעים ושיוך תמונה מתוך תמונות המוצר עם תצוגה חזותית */}
+          {/* בחירת צבעים עם תצוגה חזותית מתוך תמונות המוצר */}
           <div className="space-y-3 bg-gray-50 p-4 rounded-2xl border">
             <div className="flex justify-between items-center">
               <label className="block text-xs font-bold text-gray-700">צבעי המוצר ושיוך תמונה חזותית לכל צבע</label>
@@ -552,7 +540,7 @@ export default function AdminProductsPage() {
                     )}
                   </div>
 
-                  {/* תצוגה חזותית של תמונות המוצר לבחירת התמונה של הצבע */}
+                  {/* תצוגה חזותית (Thumbnails) לבחירת תמונת הצבע מתוך תמונות המוצר */}
                   {images.length > 0 ? (
                     <div className="space-y-1">
                       <span className="text-[11px] font-bold text-gray-600 block">בחר תמונה לצבע זה מתוך תמונות המוצר:</span>
