@@ -60,17 +60,21 @@ export default function AdminProductsPage() {
     const prodRes = await supabase.from('products').select('*').order('created_at', { ascending: false });
     const brandRes = await supabase.from('brands').select('*');
 
-    // שליפה מטבלת הכשרויות במסד הנתונים בלבד
+    // שליפה חכמה ומקיפה אך ורק מתוך טבלאות הניהול של הכשרויות במסד הנתונים
     let kosherData: any[] = [];
-    try {
-      const { data } = await supabase.from('kosher').select('*');
-      if (data && data.length > 0) {
-        kosherData = data.map((item: any) => ({
-          id: item.id,
-          name: item.name || item.title || item.label || item.kosher_type || item.type
-        })).filter((item: any) => item.name);
-      }
-    } catch (e) {}
+    const tablesToTry = ['kosher', 'kashrut', 'kosher_types', 'kosher_list'];
+    for (const tbl of tablesToTry) {
+      try {
+        const { data } = await supabase.from(tbl).select('*');
+        if (data && data.length > 0) {
+          kosherData = data.map((item: any) => ({
+            id: item.id,
+            name: item.name || item.title || item.label || item.kosher_name || item.type
+          })).filter((item: any) => item.name);
+          if (kosherData.length > 0) break;
+        }
+      } catch (e) {}
+    }
     setKosherList(kosherData);
 
     let catRes: any = { data: [] };
@@ -387,7 +391,7 @@ export default function AdminProductsPage() {
             <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="או הזן קישור לתמונת מותג..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
           </div>
 
-          {/* כשרות - אם יש נתונים בטבלה יציג רשימה, ואם לא יציג שדה טקסט להזנה */}
+          {/* כשרות בדיוק כמו קטגוריה - תפריט נפתח ששואב את הנתונים מטבלת הניהול שלך */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-gray-700">בחר רמת כשרות מהרשימה</label>
             {kosherList.length > 0 ? (
