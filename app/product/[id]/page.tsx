@@ -81,6 +81,16 @@ export default function ProductDetailPage() {
     }
   };
 
+  // פונקציה פנימית שממירה כוכביות וסולמיות לעיצוב אמיתי באתר
+  const parseMarkdown = (text: string) => {
+    if (!text) return '';
+    return text
+      .replace(/^## (.*$)/gm, '<h2 class="text-base font-black text-gray-900 mt-3 mb-1">$1</h2>')
+      .replace(/^### (.*$)/gm, '<h3 class="text-sm font-bold text-gray-800 mt-2 mb-1">$1</h3>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br />');
+  };
+
   if (loading) return <div className="text-center py-20 font-bold text-sm text-gray-600">טוען מוצר...</div>;
   if (!product) return <div className="text-center py-20 font-medium">המוצר לא נמצא</div>;
 
@@ -162,10 +172,10 @@ export default function ProductDetailPage() {
               </p>
             )}
 
-            {/* כאן התיאור המלא הופך אוטומטית לעיצוב אמיתי */}
+            {/* הצגת התיאור המלא המעובד */}
             <div 
-              className="text-xs sm:text-sm text-gray-600 leading-relaxed space-y-2 [&_h1]:text-lg [&_h1]:font-black [&_h1]:text-gray-900 [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-gray-900 [&_strong]:font-bold"
-              dangerouslySetInnerHTML={{ __html: product.description || '' }}
+              className="text-xs sm:text-sm text-gray-600 leading-relaxed space-y-2"
+              dangerouslySetInnerHTML={{ __html: parseMarkdown(product.description || '') }}
             />
 
             {variants.length > 0 && (
