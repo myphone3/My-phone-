@@ -151,8 +151,8 @@ export default function AdminProductsPage() {
     }
     setAiGenerating(true);
     setTimeout(() => {
-      setShortDesc(`<strong>מכשיר איכותי ומתקדם</strong> דגם <em>${name}</em>, בעל ביצועים עוצמתיים ואחריות מלאה.`);
-      setDescription(`<h2>סקירה כללית</h2><p>הכירו את <strong>${name}</strong>.</p><br><p>מכשיר מושלם המשלב עיצוב חדשני ומסך איכותי.</p>`);
+      setShortDesc(`**מכשיר איכותי ומתקדם** דגם *${name}*, בעל ביצועים עוצמתיים ואחריות מלאה.`);
+      setDescription(`## סקירה כללית\nהכירו את **${name}**.\n\nמכשיר מושלם המשלב עיצוב חדשני ומסך איכותי.`);
       setSpecs(`• מסך: איכותי וחד\n• מעבד: מתקדם ועוצמתי\n• סוללה: קיבולת גבוהה\n• אחריות: יבואן רשמי`);
       setSeoTitle(`${name} | מחיר מיוחד משלוח מהיר עד הבית`);
       setSeoDesc(`הזמינו כעת ${name} במחיר הטוב ביותר בחנות NEW PHONE. משלוח מהיר עד הבית ושירות מעולה.`);
@@ -573,43 +573,28 @@ export default function AdminProductsPage() {
             <div className="flex justify-between items-center">
               <label className="block text-xs font-bold text-gray-700">תיאור קצר</label>
               <div className="flex gap-2">
-                <button type="button" onClick={() => setShortDesc(shortDesc + '<strong>כותרת/טקסט מודגש</strong>')} className="bg-gray-100 px-2 py-1 rounded text-[11px] font-bold">הדגשה</button>
-                <button type="button" onClick={() => setShowPreviewShort(!showPreviewShort)} className="text-orange-600 text-xs font-bold">👁️ תצוגה מקדימה</button>
+                <button type="button" onClick={() => setShortDesc(shortDesc + '**טקסט מודגש**')} className="bg-gray-100 px-2 py-1 rounded text-[11px] font-bold">הדגשה (**)</button>
               </div>
             </div>
             <input type="text" value={shortDesc} onChange={(e) => setShortDesc(e.target.value)} placeholder="משפט סיכום קצר..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
-            {showPreviewShort && (
-              <div className="bg-orange-50 border p-3 rounded-xl text-xs" dangerouslySetInnerHTML={{ __html: shortDesc || 'אין תוכן' }}></div>
-            )}
           </div>
 
-          {/* תיאור מלא עם כפתורי עיצוב מהירים וברורים בעברית */}
+          {/* תיאור מלא עם כפתורי עיצוב מהירים בשיטת סולמיות וכוכביות */}
           <div className="space-y-2">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-              <label className="block text-xs font-bold text-gray-700">תיאור מלא (כולל כפתורי עיצוב מהירים):</label>
+              <label className="block text-xs font-bold text-gray-700">תיאור מלא (השתמש ב-## לכותרת ו-** להדגשה):</label>
               <div className="flex flex-wrap gap-1.5">
-                <button type="button" onClick={() => setDescription(description + '<h1>כותרת ראשית</h1>')} className="bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ כותרת ראשית</button>
-                <button type="button" onClick={() => setDescription(description + '<h2>כותרת משנית</h2>')} className="bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ כותרת משנית</button>
-                <button type="button" onClick={() => setDescription(description + '<strong>טקסט מודגש</strong>')} className="bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ הדגשה</button>
-                <button type="button" onClick={() => setDescription(description + '<br>')} className="bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ שורה חדשה</button>
-                <button type="button" onClick={() => setShowPreviewFull(!showPreviewFull)} className="text-orange-600 text-xs font-bold px-2">👁️ תצוגה מקדימה</button>
+                <button type="button" onClick={() => setDescription(description + '\n## כותרת ראשית\n')} className="bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ כותרת ראשית (##)</button>
+                <button type="button" onClick={() => setDescription(description + '\n### כותרת משנית\n')} className="bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ כותרת משנית (###)</button>
+                <button type="button" onClick={() => setDescription(description + '**טקסט מודגש**')} className="bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ הדגשה (**)</button>
               </div>
             </div>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="תיאור מפורט..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"></textarea>
-            {showPreviewFull && (
-              <div className="bg-orange-50 border p-3 rounded-xl text-xs whitespace-pre-line" dangerouslySetInnerHTML={{ __html: description || 'אין תוכן' }}></div>
-            )}
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="תיאור מפורט... (למשל: ## כותרת או **טקסט מודגש**)" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"></textarea>
           </div>
 
           <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <label className="block text-xs font-bold text-gray-700">מפרט טכני מלא</label>
-              <button type="button" onClick={() => setShowPreviewSpecs(!showPreviewSpecs)} className="text-orange-600 text-xs font-bold">👁️ תצוגה מקדימה</button>
-            </div>
+            <label className="block text-xs font-bold text-gray-700">מפרט טכני מלא</label>
             <textarea value={specs} onChange={(e) => setSpecs(e.target.value)} rows={3} placeholder="הזן נתוני מפרט טכני..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"></textarea>
-            {showPreviewSpecs && (
-              <div className="bg-orange-50 border p-3 rounded-xl text-xs font-mono whitespace-pre-line">{specs || 'אין תוכן'}</div>
-            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-4">
