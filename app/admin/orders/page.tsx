@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import Link from 'next/link';
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -40,7 +39,7 @@ export default function AdminOrdersPage() {
 
     fetchOrders();
 
-    // ניסוח מדויק לפי בקשתך
+    // ניסוח מדויק לבקשתך
     let statusAction = `ההזמנה שלך התקבלה בהצלחה`;
     if (newStatus === 'מחכה למשלוח') statusAction = 'ההזמנה שלך מחכה למשלוח';
     else if (newStatus === 'מוכן לאיסוף') statusAction = 'ההזמנה שלך מוכנה לאיסוף';
@@ -51,9 +50,10 @@ export default function AdminOrdersPage() {
     const message = `שלום ${order.customer_name || 'לקוח יקר'},\n\nNEW PHONE שמחים לעדכן אותך ש${statusAction}.\n\nתודה שקנית אצלנו!\nNEW PHONE`;
 
     if (order.email) {
+      // פתיחת מייל לשליחה מהירה
       window.open(`mailto:${order.email}?subject=${encodeURIComponent('עדכון סטטוס הזמנה - NEW PHONE')}&body=${encodeURIComponent(message)}`, '_blank');
     } else {
-      alert('ללקוח זה לא הוזן כתובת אימייל במערכת.');
+      alert('סטטוס עודכן, אך ללקוח זה לא הוזן אימייל.');
     }
   };
 
@@ -97,10 +97,10 @@ export default function AdminOrdersPage() {
         <style>
           body { font-family: Arial, sans-serif; padding: 30px; color: #333; direction: rtl; }
           .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ea580c; padding-bottom: 20px; margin-bottom: 20px; }
-          .logo-area { display: flex; align-items: center; gap: 12px; }
-          .logo-badge { background: #ea580c; color: white; width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; }
-          .logo-text { font-size: 24px; font-weight: 900; color: #111; letter-spacing: 0.5px; }
-          .logo-sub { font-size: 11px; color: #666; font-weight: bold; }
+          .logo-box { display: flex; align-items: center; gap: 10px; }
+          .logo-icon { width: 40px; height: 40px; background: linear-gradient(135deg, #f97316, #a855f7); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px; }
+          .logo-title { font-size: 22px; font-weight: 900; color: #111; }
+          .logo-sub { font-size: 10px; color: #666; font-weight: bold; }
           .details { margin-bottom: 20px; font-size: 13px; line-height: 1.6; }
           table { width: 100%; border-collapse: collapse; margin-top: 20px; }
           th { background: #ea580c; color: white; padding: 10px; text-align: right; font-size: 13px; }
@@ -110,11 +110,11 @@ export default function AdminOrdersPage() {
       </head>
       <body>
         <div class="header">
-          <div class="logo-area">
-            <div class="logo-badge">NP</div>
+          <div class="logo-box">
+            <div class="logo-icon">📱</div>
             <div>
-              <div class="logo-text">NEW PHONE</div>
-              <div class="logo-sub">חנות סלולר ואביזרים מתקדמים</div>
+              <div class="logo-title">NEW PHONE</div>
+              <div class="logo-sub">סלולר חדש אלף</div>
             </div>
           </div>
           <div style="text-align: left;">
@@ -163,21 +163,16 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      <div className="flex justify-between items-center bg-white p-6 rounded-3xl border shadow-sm">
+      <div className="bg-white p-6 rounded-3xl border shadow-sm flex justify-between items-center">
         <h1 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">
           ניהול הזמנות לקוחות ({orders.length})
         </h1>
-        <div className="flex gap-2">
-          <Link href="/admin/email" className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm">
-            ✉️ ניהול ושליחת מייל ללקוחות
-          </Link>
-          <button
-            onClick={fetchOrders}
-            className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer"
-          >
-            🔄 רענן רשימה
-          </button>
-        </div>
+        <button
+          onClick={fetchOrders}
+          className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer"
+        >
+          🔄 רענן רשימה
+        </button>
       </div>
 
       <div className="space-y-4">
@@ -244,7 +239,7 @@ export default function AdminOrdersPage() {
                 </div>
               </div>
 
-              {/* רשימת המוצרים בהזמנה */}
+              {/* רשימת המוצרים בהזמנה כולל שורת משלוח */}
               <div className="space-y-2">
                 <span className="text-xs font-bold text-gray-700 block">מוצרים בהזמנה:</span>
                 <div className="space-y-2">
