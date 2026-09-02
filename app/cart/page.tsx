@@ -51,24 +51,31 @@ export default function CartPage() {
     }
 
     setSubmitting(true);
-    const { error } = await supabase.from('orders').insert([
-      {
-        customer_name: name,
-        phone,
-        address,
-        items: cartItems,
-        total_price: totalPrice,
-        status: 'חדש'
-      }
-    ]);
+    
+    // שליחה ל-Supabase עם גיבוי לשמות עמודות שונים
+    const orderPayload = {
+      customer_name: name,
+      name: name,
+      phone,
+      address,
+      items: cartItems,
+      total_price: totalPrice,
+      price: totalPrice,
+      status: 'חדש'
+    };
+
+    const { data, error } = await supabase.from('orders').insert([orderPayload]).select();
 
     setSubmitting(false);
+
     if (error) {
-      alert('שגיאה בשליחת ההזמנה: ' + error.message);
+      console.error('Supabase error:', error);
+      alert('שגיאה בשליחת ההזמנה לשרת: ' + error.message);
     } else {
       alert('ההזמנה בוצעה בהצלחה! צוות NEW PHONE יצור איתך קשר בהקדם.');
       localStorage.removeItem('cart');
       setCartItems([]);
+      window.location.href = '/';
     }
   };
 
@@ -116,6 +123,7 @@ export default function CartPage() {
                   <div className="flex items-center gap-4">
                     <div className="flex items-center border rounded-xl bg-gray-50 overflow-hidden">
                       <button
+                        type="button"
                         onClick={() => updateQuantity(index, -1)}
                         className="px-3 py-1 text-xs font-bold hover:bg-gray-200 transition cursor-pointer"
                       >
@@ -123,6 +131,7 @@ export default function CartPage() {
                       </button>
                       <span className="px-3 py-1 text-xs font-black">{qty}</span>
                       <button
+                        type="button"
                         onClick={() => updateQuantity(index, 1)}
                         className="px-3 py-1 text-xs font-bold hover:bg-gray-200 transition cursor-pointer"
                       >
@@ -131,6 +140,7 @@ export default function CartPage() {
                     </div>
 
                     <button
+                      type="button"
                       onClick={() => removeItem(index)}
                       className="text-red-500 hover:text-red-700 text-xs font-bold p-2 cursor-pointer"
                       title="הסר מוצר"
