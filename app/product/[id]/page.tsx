@@ -134,7 +134,6 @@ export default function ProductDetailPage() {
         <div className="space-y-6 flex flex-col justify-between">
           <div className="space-y-4">
             <div>
-              {/* הצגת תמונת המותג בלבד אם קיימת כתובת תמונה */}
               {product.brand && (
                 <div className="mb-2">
                   {product.brand.startsWith('http') ? (
@@ -164,7 +163,11 @@ export default function ProductDetailPage() {
               </p>
             )}
 
-            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{product.description}</p>
+            {/* הצגת התיאור המלא כ-HTML מעוצב (כותרות, הדגשות וכו') */}
+            <div 
+              className="text-xs sm:text-sm text-gray-600 leading-relaxed space-y-2 [&_h1]:text-lg [&_h1]:font-black [&_h1]:text-gray-900 [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-gray-900 [&_strong]:font-bold"
+              dangerouslySetInnerHTML={{ __html: product.description || '' }}
+            />
 
             {/* אזור בחירת גרסאות / נפח אחסון */}
             {variants.length > 0 && (
