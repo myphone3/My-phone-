@@ -26,16 +26,42 @@ export default function AdminOrdersPage() {
     setLoading(false);
   };
 
-  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+  const handleStatusChange = async (order: any, newStatus: string) => {
+    // 1. עדכון ב-Supabase
     const { error } = await supabase
       .from('orders')
       .update({ status: newStatus })
-      .eq('id', orderId);
+      .eq('id', order.id);
 
     if (error) {
       alert('שגיאה בעדכון סטטוס: ' + error.message);
-    } else {
-      fetchOrders();
+      return;
+    }
+
+    // רענון רשימה מקומי
+    fetchOrders();
+
+    // 2. בניית ניסוח הודעה טבעי לפי הסטטוס
+    let statusText = `ההזמנה התקבלה בהצלחה`;
+    if (newStatus === 'מחכה למשלוח') statusText = 'ההזמנה מחכה למשלוח';
+    else if (newStatus === 'מוכן לאיסוף') statusText = 'ההזמנה מוכנה לאיסוף';
+    else if (newStatus === 'נשלח') statusText = 'ההזמנה נשלחה אליך';
+    else if (newStatus === 'הושלם') statusText = 'ההזמנה הושלמה בהצלחה';
+    else if (newStatus === 'בטיפול') statusText = 'ההזמנה נמצאת בטיפול';
+
+    const message = `שלום ${order.customer_name || 'לקוח יקר'}, מעדכנים אותך ש${statusText} בחנות NEW PHONE. תודה שקנית אצלנו! 📱`;
+
+    // 3. שליחה אוטומטית ל-WhatsApp / SMS
+    const phoneClean = order.phone?.replace(/\D/g, '') || '';
+    if (phoneClean) {
+      window.open(`https://wa.me/972${phoneClean.startsWith('0') ? phoneClean.slice(1) : phoneClean}?text=${encodeURIComponent(message)}`, '_blank');
+    }
+
+    // 4. שליחה אוטומטית למייל (אם קיים אימייל)
+    if (order.email) {
+      const mailSubject = encodeURIComponent('עדכון סטטוס הזמנה - NEW PHONE');
+      const mailBody = encodeURIComponent(message);
+      window.open(`mailto:${order.email}?subject=${mailSubject}&body=${mailBody}`, '_blank');
     }
   };
 
@@ -47,12 +73,6 @@ export default function AdminOrdersPage() {
     } else {
       fetchOrders();
     }
-  };
-
-  const sendWhatsAppUpdate = (order: any) => {
-    const phoneClean = order.phone?.replace(/\D/g, '') || '';
-    const message = `שלום ${order.customer_name || 'לקוח יקר'}, מעדכנים אותך שההזמנה שלך בחנות NEW PHONE נמצאת כעת בסטטוס: *${order.status || 'חדש'}*. תודה שקנית אצלנו! 📱`;
-    window.open(`https://wa.me/972${phoneClean.startsWith('0') ? phoneClean.slice(1) : phoneClean}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const printOrderPdf = (order: any) => {
@@ -74,23 +94,24 @@ export default function AdminOrdersPage() {
         <title>סיכום הזמנה #${order.id?.slice(0, 8)}</title>
         <style>
           body { font-family: Arial, sans-serif; padding: 30px; color: #333; direction: rtl; }
-          .header { display: flex; justify-content: space-between; border-bottom: 2px solid #ea580c; padding-bottom: 20px; margin-bottom: 20px; }
-          .title { font-size: 22px; font-weight: bold; color: #ea580c; }
+          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ea580c; padding-bottom: 20px; margin-bottom: 20px; }
+          .logo { font-size: 26px; font-weight: 900; color: #ea580c; letter-spacing: 1px; }
+          .sub-logo { font-size: 11px; color: #666; font-weight: bold; }
           .details { margin-bottom: 20px; font-size: 14px; line-height: 1.6; }
           table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th { background: #f97316; color: white; padding: 10px; text-align: right; }
+          th { background: #ea580c; color: white; padding: 10px; text-align: right; }
           .total { margin-top: 20px; text-align: left; font-size: 16px; font-weight: bold; }
         </style>
       </head>
       <body>
         <div class="header">
           <div>
-            <div class="title">NEW PHONE - סיכום הזמנה</div>
-            <div>מספר הזמנה: #${order.id?.slice(0, 8)}</div>
-            <div>תאריך: ${order.created_at ? new Date(order.created_at).toLocaleString('he-IL') : ''}</div>
+            <div class="logo">NEW PHONE</div>
+            <div class="sub-logo">חנות סלולר ואביזרים מתקדמים</div>
           </div>
           <div style="text-align: left;">
-            <strong>סטטוס:</strong> ${order.status || 'חדש'}
+            <div style="font-size: 14px; font-weight: bold;">מספר הזמנה: #${order.id?.slice(0, 8)}</div>
+            <div style="font-size: 12px; color: #666;">תאריך: ${order.created_at ? new Date(order.created_at).toLocaleString('he-IL') : ''}</div>
           </div>
         </div>
 
@@ -163,23 +184,16 @@ export default function AdminOrdersPage() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <select
                     value={order.status || 'חדש'}
-                    onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                    onChange={(e) => handleStatusChange(order, e.target.value)}
                     className="bg-orange-50 border border-orange-200 text-orange-800 text-xs font-bold rounded-xl px-3 py-1.5 outline-none cursor-pointer"
                   >
                     <option value="חדש">חדש 🆕</option>
-                    <option value="מחכה למשלוח">מחכה למשלוח ⏳</option>
+                    <option value="בטיפול">בטיפול ⏳</option>
+                    <option value="מחכה למשלוח">מחכה למשלוח 📦</option>
                     <option value="מוכן לאיסוף">מוכן לאיסוף 🛍️</option>
                     <option value="נשלח">נשלח 🚚</option>
                     <option value="הושלם">הושלם ✓</option>
                   </select>
-
-                  <button
-                    onClick={() => sendWhatsAppUpdate(order)}
-                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-xs"
-                    title="שלח עדכון סטטוס לווטסאפ של הלקוח"
-                  >
-                    💬 שלח עדכון בווטסאפ
-                  </button>
 
                   <button
                     onClick={() => printOrderPdf(order)}
