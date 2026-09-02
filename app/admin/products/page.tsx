@@ -60,18 +60,30 @@ export default function AdminProductsPage() {
     const prodRes = await supabase.from('products').select('*').order('created_at', { ascending: false });
     const brandRes = await supabase.from('brands').select('*');
 
-    // שליפה חכמה וגמישה מטבלת הכשרויות במסד הנתונים
-    let kosherData: any[] = [];
+    // שליפה מטבלת הכשרויות עם גיבוי לרשימה סטנדרטית
+    let kosherData: any[] = [
+      { id: '1', name: 'מהדרין' },
+      { id: '2', name: 'בד״ץ העדה החרדית' },
+      { id: '3', name: 'רובין' },
+      { id: '4', name: 'לנדא' },
+      { id: '5', name: 'הרב מחפוד' },
+      { id: '6', name: 'כשר רגיל' }
+    ];
+
     const tablesToTry = ['kosher', 'kosher_types', 'kashrut', 'kosher_list'];
     for (const tbl of tablesToTry) {
       try {
         const { data } = await supabase.from(tbl).select('*');
         if (data && data.length > 0) {
-          kosherData = data.map((item: any) => ({
+          const dbKosher = data.map((item: any) => ({
             id: item.id,
             name: item.name || item.title || item.label || item.kosher_type || item.type
           })).filter((item: any) => item.name);
-          if (kosherData.length > 0) break;
+          
+          if (dbKosher.length > 0) {
+            kosherData = dbKosher;
+            break;
+          }
         }
       } catch (e) {}
     }
@@ -391,29 +403,19 @@ export default function AdminProductsPage() {
             <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="או הזן קישור לתמונת מותג..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
           </div>
 
-          {/* כשרות בדיוק כמו קטגוריה (תפריט נפתח עם גיבוי להקלדה חופשית) */}
+          {/* כשרות תמיד כתפריט בחירה נפתח (Select) עם רשימה מלאה */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-gray-700">בחר רמת כשרות מהרשימה</label>
-            {kosherList.length > 0 ? (
-              <select
-                value={kosher}
-                onChange={(e) => setKosher(e.target.value)}
-                className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
-              >
-                <option value="">בחר רמת כשרות מהרשימה...</option>
-                {kosherList.map((k) => (
-                  <option key={k.id} value={k.name}>{k.name}</option>
-                ))}
-              </select>
-            ) : (
-              <input 
-                type="text" 
-                value={kosher} 
-                onChange={(e) => setKosher(e.target.value)} 
-                placeholder="הזן רמת כשרות..." 
-                className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" 
-              />
-            )}
+            <select
+              value={kosher}
+              onChange={(e) => setKosher(e.target.value)}
+              className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
+            >
+              <option value="">בחר רמת כשרות מהרשימה...</option>
+              {kosherList.map((k) => (
+                <option key={k.id || k.name} value={k.name}>{k.name}</option>
+              ))}
+            </select>
           </div>
 
           <div className="space-y-3 bg-gray-50 p-4 rounded-2xl border">
@@ -650,7 +652,7 @@ export default function AdminProductsPage() {
           <div className="bg-orange-50/50 border border-orange-200 p-4 rounded-2xl flex items-center justify-between">
             <div>
               <span className="text-xs font-black text-gray-900 block">שמור כטיוטה (לא מפורסם בחנות)</span>
-              <span className="text-[11px] text-gray-500">מוצר במצב טיוטה לא יוצג ללקוחות באתר.</span>
+              <span className="text-[11px] text-gray-500">מוצר במצב טיוטה לא יוצג ללקוחות באתר.}.</span>
             </div>
             <input type="checkbox" checked={isDraft} onChange={(e) => setIsDraft(e.target.checked)} className="w-5 h-5 accent-orange-600 cursor-pointer" />
           </div>
@@ -679,10 +681,6 @@ export default function AdminProductsPage() {
                   <h4 className="font-bold text-xs text-gray-900">{p.name}</h4>
                   <span className="text-xs text-orange-600 font-black">₪{p.price}</span>
                 </div>
-              </div>
-              <div className="flex gap-2 text-xs">
-                <button onClick={() => handleEdit(p)} className="text-blue-600 font-bold hover:underline cursor-pointer">עריכה</button>
-                <button onClick={() => handleDelete(p.id)} className="text-red-500 font-bold hover:underline cursor-pointer">מחיקה</button>
               </div>
             </div>
           ))}
