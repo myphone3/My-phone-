@@ -153,7 +153,7 @@ export default function AdminProductsPage() {
     setTimeout(() => {
       setShortDesc(`**מכשיר איכותי ומתקדם** דגם *${name}*, בעל ביצועים עוצמתיים ואחריות מלאה.`);
       setDescription(`## סקירה כללית\nהכירו את **${name}**.\n\nמכשיר מושלם המשלב עיצוב חדשני ומסך איכותי.`);
-      setSpecs(`• מסך: איכותי וחד\n• מעבד: מתקדם ועוצמתי\n• סוללה: קיבולת גבוהה\n• אחריות: יבואן רשמי`);
+      setSpecs(`## מפרט טכני\n• **מסך:** איכותי וחד\n• **מעבד:** מתקדם ועוצמתי\n• **סוללה:** קיבולת גבוהה\n• **אחריות:** יבואן רשמי`);
       setSeoTitle(`${name} | מחיר מיוחד משלוח מהיר עד הבית`);
       setSeoDesc(`הזמינו כעת ${name} במחיר הטוב ביותר בחנות NEW PHONE. משלוח מהיר עד הבית ושירות מעולה.`);
       setAiGenerating(false);
@@ -256,6 +256,16 @@ export default function AdminProductsPage() {
     if (!confirm('האם למחוק מוצר זה?')) return;
     await supabase.from('products').delete().eq('id', id);
     fetchData();
+  };
+
+  // פונקציית תצוגה מקדימה פנימית בניהול להמחשה מהירה
+  const parseMarkdownPreview = (text: string) => {
+    if (!text) return '';
+    return text
+      .replace(/^## (.*$)/gm, '<h2 class="text-sm font-black text-gray-900 mt-2 mb-1">$1</h2>')
+      .replace(/^### (.*$)/gm, '<h3 class="text-xs font-bold text-gray-800 mt-1 mb-1">$1</h3>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br />');
   };
 
   const filteredBrands = brandsList.filter(b => b.name.toLowerCase().includes(brandSearch.toLowerCase()));
@@ -569,17 +579,23 @@ export default function AdminProductsPage() {
             </div>
           </div>
 
+          {/* תיאור קצר עם כפתורי עיצוב ותצוגה מקדימה */}
           <div className="space-y-2">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
               <label className="block text-xs font-bold text-gray-700">תיאור קצר</label>
-              <div className="flex gap-2">
-                <button type="button" onClick={() => setShortDesc(shortDesc + '**טקסט מודגש**')} className="bg-gray-100 px-2 py-1 rounded text-[11px] font-bold">הדגשה (**)</button>
+              <div className="flex flex-wrap gap-1.5">
+                <button type="button" onClick={() => setShortDesc(shortDesc + '\n## כותרת ראשית\n')} className="bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ כותרת (##)</button>
+                <button type="button" onClick={() => setShortDesc(shortDesc + '**טקסט מודגש**')} className="bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ הדגשה (**)</button>
+                <button type="button" onClick={() => setShowPreviewShort(!showPreviewShort)} className="text-orange-600 text-xs font-bold px-2">👁️ תצוגה מקדימה</button>
               </div>
             </div>
             <input type="text" value={shortDesc} onChange={(e) => setShortDesc(e.target.value)} placeholder="משפט סיכום קצר..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
+            {showPreviewShort && (
+              <div className="bg-orange-50 border p-3 rounded-xl text-xs" dangerouslySetInnerHTML={{ __html: parseMarkdownPreview(shortDesc || 'אין תוכן') }}></div>
+            )}
           </div>
 
-          {/* תיאור מלא עם כפתורי עיצוב מהירים בשיטת סולמיות וכוכביות */}
+          {/* תיאור מלא עם כפתורי עיצוב ותצוגה מקדימה */}
           <div className="space-y-2">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
               <label className="block text-xs font-bold text-gray-700">תיאור מלא (השתמש ב-## לכותרת ו-** להדגשה):</label>
@@ -587,14 +603,29 @@ export default function AdminProductsPage() {
                 <button type="button" onClick={() => setDescription(description + '\n## כותרת ראשית\n')} className="bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ כותרת ראשית (##)</button>
                 <button type="button" onClick={() => setDescription(description + '\n### כותרת משנית\n')} className="bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ כותרת משנית (###)</button>
                 <button type="button" onClick={() => setDescription(description + '**טקסט מודגש**')} className="bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ הדגשה (**)</button>
+                <button type="button" onClick={() => setShowPreviewFull(!showPreviewFull)} className="text-orange-600 text-xs font-bold px-2">👁️ תצוגה מקדימה</button>
               </div>
             </div>
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="תיאור מפורט... (למשל: ## כותרת או **טקסט מודגש**)" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"></textarea>
+            {showPreviewFull && (
+              <div className="bg-orange-50 border p-3 rounded-xl text-xs whitespace-pre-line" dangerouslySetInnerHTML={{ __html: parseMarkdownPreview(description || 'אין תוכן') }}></div>
+            )}
           </div>
 
+          {/* מפרט טכני מלא עם כפתורי עיצוב ותצוגה מקדימה */}
           <div className="space-y-2">
-            <label className="block text-xs font-bold text-gray-700">מפרט טכני מלא</label>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+              <label className="block text-xs font-bold text-gray-700">מפרט טכני מלא</label>
+              <div className="flex flex-wrap gap-1.5">
+                <button type="button" onClick={() => setSpecs(specs + '\n## כותרת ראשית\n')} className="bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ כותרת (##)</button>
+                <button type="button" onClick={() => setSpecs(specs + '**טקסט מודגש**')} className="bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ הדגשה (**)</button>
+                <button type="button" onClick={() => setShowPreviewSpecs(!showPreviewSpecs)} className="text-orange-600 text-xs font-bold px-2">👁️ תצוגה מקדימה</button>
+              </div>
+            </div>
             <textarea value={specs} onChange={(e) => setSpecs(e.target.value)} rows={3} placeholder="הזן נתוני מפרט טכני..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"></textarea>
+            {showPreviewSpecs && (
+              <div className="bg-orange-50 border p-3 rounded-xl text-xs whitespace-pre-line" dangerouslySetInnerHTML={{ __html: parseMarkdownPreview(specs || 'אין תוכן') }}></div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-4">
@@ -604,7 +635,7 @@ export default function AdminProductsPage() {
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">SEO Description (תיאור בגוגל)</label>
-              <input type="text" value={seoDesc} onChange={(e) => setSeoDesc(e.target.value)} placeholder="תיאור SEO..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
+              <input type="text" value={seoDesc} onChange={(e) => setseoDesc(e.target.value)} placeholder="תיאור SEO..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
             </div>
           </div>
 
