@@ -52,19 +52,17 @@ export default function CartPage() {
 
     setSubmitting(true);
     
-    // שליחה ל-Supabase עם גיבוי לשמות עמודות שונים
+    // שליחה מדויקת לפי השדות התקניים במסד הנתונים
     const orderPayload = {
       customer_name: name,
-      name: name,
       phone,
       address,
       items: cartItems,
       total_price: totalPrice,
-      price: totalPrice,
       status: 'חדש'
     };
 
-    const { data, error } = await supabase.from('orders').insert([orderPayload]).select();
+    const { error } = await supabase.from('orders').insert([orderPayload]);
 
     setSubmitting(false);
 
