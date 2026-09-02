@@ -635,11 +635,11 @@ export default function AdminProductsPage() {
             <button type="submit" className="bg-orange-600 text-white px-6 py-3.5 rounded-2xl text-xs font-black hover:bg-orange-700 transition shadow-md cursor-pointer">
               {editingId ? 'עדכן מוצר ➔' : '+ הוסף מוצר לחנות ➔'}
             </button>
-            {editingId &&,
+            {editingId && (
               <button type="button" onClick={resetForm} className="bg-gray-200 text-gray-800 px-6 py-3.5 rounded-2xl text-xs font-bold transition cursor-pointer">
                 ביטול
               </button>
-            }
+            )}
           </div>
         </form>
       </div>
