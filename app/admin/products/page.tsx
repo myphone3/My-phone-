@@ -19,7 +19,7 @@ export default function AdminProductsPage() {
   const [category, setCategory] = useState('');
   const [brand, setBrand] = useState('');
   const [brandSearch, setBrandSearch] = useState('');
-  const [productSearch, setProductSearch] = useState(''); // שורת חיפוש למוצרים קיימים
+  const [productSearch, setProductSearch] = useState('');
   const [kosher, setKosher] = useState('');
   const [storageVal, setStorageVal] = useState('');
   const [selectedVersions, setSelectedVersions] = useState<string[]>([]);
@@ -38,6 +38,9 @@ export default function AdminProductsPage() {
   const [colors, setColors] = useState<{ name: string; hex: string; image: string }[]>([
     { name: 'שחור', hex: '#000000', image: '' }
   ]);
+
+  // מוצרים שתמיד באים יחד
+  const [bundledItems, setBundledItems] = useState<{ name: string; price: string }[]>([]);
 
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDesc, setSeoDesc] = useState('');
@@ -88,7 +91,6 @@ export default function AdminProductsPage() {
       })));
     }
 
-    // איסוף תמונות מהאחסון
     let filesList: string[] = [];
     const bucketsToTry = ['products', 'media', 'public', 'images', 'uploads'];
     for (const bucket of bucketsToTry) {
@@ -185,6 +187,7 @@ export default function AdminProductsPage() {
       image_url: imageUrl || images[0] || '',
       images,
       product_colors: colors,
+      frequently_bought_together: bundledItems,
       seo_title: seoTitle,
       seo_description: seoDesc
     };
@@ -225,6 +228,7 @@ export default function AdminProductsPage() {
     setImageUrl('');
     setImages([]);
     setColors([{ name: 'שחור', hex: '#000000', image: '' }]);
+    setBundledItems([]);
     setSeoTitle('');
     setSeoDesc('');
     setEditingId(null);
@@ -248,6 +252,7 @@ export default function AdminProductsPage() {
     setImageUrl(prod.image_url || '');
     setImages(prod.images || (prod.image_url ? [prod.image_url] : []));
     setColors(prod.product_colors || [{ name: 'שחור', hex: '#000000', image: '' }]);
+    setBundledItems(prod.frequently_bought_together || []);
     setSeoTitle(prod.seo_title || '');
     setSeoDesc(prod.seo_description || '');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -359,6 +364,55 @@ export default function AdminProductsPage() {
             ) : (
               <p className="text-xs text-gray-400">לא הוגדרו גרסאות בטאב "ניהול גרסאות".</p>
             )}
+          </div>
+
+          {/* מוצרים שתמיד באים יחד */}
+          <div className="space-y-3 bg-gray-50 p-4 rounded-2xl border">
+            <div className="flex justify-between items-center">
+              <label className="block text-xs font-bold text-gray-700">מוצרים שתמיד באים יחד (אופציונלי)</label>
+              <button
+                type="button"
+                onClick={() => setBundledItems([...bundledItems, { name: '', price: '' }])}
+                className="bg-black text-white px-3 py-1.5 rounded-xl text-[11px] font-bold cursor-pointer"
+              >
+                + הוסף מוצר נלווה
+              </button>
+            </div>
+            <div className="space-y-2">
+              {bundledItems.map((bundle, idx) => (
+                <div key={idx} className="flex gap-2 items-center bg-white p-3 rounded-xl border">
+                  <input
+                    type="text"
+                    placeholder="שם המוצר הנלווה (לדוגמה: מגן זכוכית)"
+                    value={bundle.name}
+                    onChange={(e) => {
+                      const updated = [...bundledItems];
+                      updated[idx].name = e.target.value;
+                      setBundledItems(updated);
+                    }}
+                    className="bg-gray-50 border rounded-lg p-2 text-xs flex-1 outline-none"
+                  />
+                  <input
+                    type="number"
+                    placeholder="מחיר (₪)"
+                    value={bundle.price}
+                    onChange={(e) => {
+                      const updated = [...bundledItems];
+                      updated[idx].price = e.target.value;
+                      setBundledItems(updated);
+                    }}
+                    className="bg-gray-50 border rounded-lg p-2 text-xs w-28 outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setBundledItems(bundledItems.filter((_, i) => i !== idx))}
+                    className="text-red-500 font-bold text-xs px-2"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -586,7 +640,7 @@ export default function AdminProductsPage() {
               <label className="block text-xs font-bold text-gray-700">תיאור קצר</label>
               <div className="flex flex-wrap gap-1.5">
                 <button type="button" onClick={() => setShortDesc(shortDesc + '\n## כותרת ראשית\n')} className="bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ כותרת (##)</button>
-                <button type="button" onClick={() => setShortDesc(shortDesc + '**טקסט מודגש**')} className="bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ הדגשה (**)</button>
+                <button type="button" onClick={() => setShortDesc(shortDesc + '**טקסט מודגש**')} className="bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ הדגשה (**)</button>
                 <button type="button" onClick={() => setShowPreviewShort(!showPreviewShort)} className="text-orange-600 text-xs font-bold px-2">👁️ תצוגה מקדימה</button>
               </div>
             </div>
@@ -619,7 +673,7 @@ export default function AdminProductsPage() {
               <label className="block text-xs font-bold text-gray-700">מפרט טכני מלא</label>
               <div className="flex flex-wrap gap-1.5">
                 <button type="button" onClick={() => setSpecs(specs + '\n## כותרת ראשית\n')} className="bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ כותרת (##)</button>
-                <button type="button" onClick={() => setSpecs(specs + '**טקסט מודגש**')} className="bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ הדגשה (**)</button>
+                <button type="button" onClick={() => setSpecs(specs + '**טקסט מודגש**')} className="bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ הדגשה (**)</button>
                 <button type="button" onClick={() => setShowPreviewSpecs(!showPreviewSpecs)} className="text-orange-600 text-xs font-bold px-2">👁️ תצוגה מקדימה</button>
               </div>
             </div>
