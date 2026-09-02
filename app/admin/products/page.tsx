@@ -60,18 +60,16 @@ export default function AdminProductsPage() {
     const prodRes = await supabase.from('products').select('*').order('created_at', { ascending: false });
     const brandRes = await supabase.from('brands').select('*');
 
-    // שליפה חכמה וגמישה בדיוק כמו במותגים ובקטגוריות (סריקת כל הטבלאות והשדות האפשריים)
+    // שליפה רחבה ומדויקת לכל שמות הטבלאות האפשריים של כשרויות
     let kosherData: any[] = [];
     const tablesToTry = ['kosher', 'kosher_types', 'kashrut', 'kosher_list'];
     for (const tbl of tablesToTry) {
       try {
-        const { data, error } = await supabase.from(tbl).select('*');
+        const { data } = await supabase.from(tbl).select('*');
         if (data && data.length > 0) {
-          // המרה אחידה כך שתמיד יהיה שדה .name (תומך גם ב-title או label אם קיימים)
           kosherData = data.map((item: any) => ({
             id: item.id,
-            name: item.name || item.title || item.label || String(item),
-            image_url: item.image_url || item.img || ''
+            name: item.name || item.title || item.label || String(item)
           }));
           break;
         }
@@ -393,27 +391,23 @@ export default function AdminProductsPage() {
             <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="או הזן קישור לתמונת מותג..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
           </div>
 
-          {/* כשרות מסונכרנת בדיוק כמו מותגים וקטגוריות */}
+          {/* כשרות בתפריט בחירה נפתח (Select) בדיוק כמו קטגוריה */}
           <div className="space-y-2">
-            <label className="block text-xs font-bold text-gray-700">בחר רמת כשרות מתוך הרשימה</label>
+            <label className="block text-xs font-bold text-gray-700">בחר רמת כשרות מהרשימה</label>
             {kosherList.length > 0 ? (
-              <div className="flex gap-2 overflow-x-auto pb-2">
+              <select
+                value={kosher}
+                onChange={(e) => setKosher(e.target.value)}
+                className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
+              >
+                <option value="">בחר רמת כשרות מהרשימה...</option>
                 {kosherList.map((k) => (
-                  <button
-                    key={k.id}
-                    type="button"
-                    onClick={() => setKosher(k.name)}
-                    className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-2 shrink-0 bg-white cursor-pointer ${kosher === k.name ? 'border-orange-600 bg-orange-50' : 'border-gray-200'}`}
-                  >
-                    {k.image_url && <img src={k.image_url} alt="" className="h-4 object-contain" />}
-                    <span>{k.name}</span>
-                  </button>
+                  <option key={k.id} value={k.name}>{k.name}</option>
                 ))}
-              </div>
+              </select>
             ) : (
-              <p className="text-xs text-gray-400">טרם הוגדרו כשרויות בעמוד "ניהול כשרות".</p>
+              <input type="text" value={kosher} onChange={(e) => setKosher(e.target.value)} placeholder="הזן רמת כשרות..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
             )}
-            <input type="text" value={kosher} onChange={(e) => setKosher(e.target.value)} placeholder="או הזן כשרות ידנית..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
           </div>
 
           <div className="space-y-3 bg-gray-50 p-4 rounded-2xl border">
