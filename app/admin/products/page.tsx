@@ -652,7 +652,7 @@ export default function AdminProductsPage() {
           <div className="bg-orange-50/50 border border-orange-200 p-4 rounded-2xl flex items-center justify-between">
             <div>
               <span className="text-xs font-black text-gray-900 block">שמור כטיוטה (לא מפורסם בחנות)</span>
-              <span className="text-[11px] text-gray-500">מוצר במצב טיוטה לא יוצג ללקוחות באתר.}.</span>
+              <span className="text-[11px] text-gray-500">מוצר במצב טיוטה לא יוצג ללקוחות באתר.</span>
             </div>
             <input type="checkbox" checked={isDraft} onChange={(e) => setIsDraft(e.target.checked)} className="w-5 h-5 accent-orange-600 cursor-pointer" />
           </div>
@@ -681,6 +681,10 @@ export default function AdminProductsPage() {
                   <h4 className="font-bold text-xs text-gray-900">{p.name}</h4>
                   <span className="text-xs text-orange-600 font-black">₪{p.price}</span>
                 </div>
+              </div>
+              <div className="flex gap-2 text-xs">
+                <button onClick={() => handleEdit(p)} className="text-blue-600 font-bold hover:underline cursor-pointer">עריכה</button>
+                <button onClick={() => handleDelete(p.id)} className="text-red-500 font-bold hover:underline cursor-pointer">מחיקה</button>
               </div>
             </div>
           ))}
