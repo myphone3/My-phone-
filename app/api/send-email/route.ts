@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { Resend } from 'resend';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import nodemailer from 'nodemailer';
 
 export async function POST(request: Request) {
   try {
@@ -11,9 +9,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const data = await resend.emails.send({
-      from: 'NEW PHONE <onboarding@resend.dev>',
-      to: [to],
+    // הגדרת חיבור לג'ימייל החינמי
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.GMAIL_USER, // כתובת המייל של החנות
+        pass: process.env.GMAIL_PASS, // סיסמת האפליקציה של גוגל
+      },
+    });
+
+    await transporter.sendMail({
+      from: `"NEW PHONE" <${process.env.GMAIL_USER}>`,
+      to: to,
       subject: subject,
       text: message,
       html: `
@@ -28,9 +35,9 @@ export async function POST(request: Request) {
       `,
     });
 
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('Email API Error:', error);
+    console.error('Gmail API Error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
