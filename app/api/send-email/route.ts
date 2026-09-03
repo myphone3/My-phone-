@@ -17,9 +17,7 @@ export async function POST(request: Request) {
       },
     });
 
-    // כתובת ציבורית ישירה או שימוש בלוגו מעוצב ויציב
-    const domain = process.env.VERCEL_URL || 'my-phone-iota.vercel.app';
-    const logoUrl = `https://${domain}/Logo.JPG`;
+    const logoUrl = 'https://iiaxizrezhczgutqijbe.supabase.co/storage/v1/object/public/product-images/logo.png.jpeg';
 
     await transporter.sendMail({
       from: `"NEW PHONE" <${process.env.GMAIL_USER}>`,
