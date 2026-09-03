@@ -119,17 +119,17 @@ function StoreContent() {
         </div>
       )}
 
-      {/* באנרים */}
+      {/* באנרים - מיושר לאמצע (text-center) */}
       {banners.length > 0 && (
         <div className="relative w-full bg-gradient-to-r from-gray-950 via-orange-950 to-black overflow-hidden shadow-xl text-white py-14 px-6 sm:px-16 transition-all duration-500">
-          <div className="max-w-7xl mx-auto space-y-4 relative z-10 text-right">
+          <div className="max-w-7xl mx-auto space-y-4 relative z-10 text-center flex flex-col items-center">
             <span className="inline-block bg-orange-600/35 border border-orange-500/40 text-orange-300 px-3.5 py-1 rounded-full text-xs font-bold tracking-wide backdrop-blur-md">
               NEW PHONE מבצעים חמים ⚡
             </span>
-            <h1 className="text-xl sm:text-3xl md:text-4xl font-black leading-normal sm:leading-snug break-words">
+            <h1 className="text-xl sm:text-3xl md:text-4xl font-black leading-normal sm:leading-snug break-words max-w-3xl">
               {banners[currentBanner]?.title}
             </h1>
-            <p className="text-gray-300 text-xs sm:text-sm font-medium">
+            <p className="text-gray-300 text-xs sm:text-sm font-medium max-w-xl">
               {banners[currentBanner]?.subtitle}
             </p>
             {banners[currentBanner]?.link_product_id && (
@@ -142,7 +142,7 @@ function StoreContent() {
             )}
           </div>
 
-          <div className="absolute bottom-4 left-6 flex gap-2 z-20">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-25">
             {banners.map((_, idx) => (
               <button
                 key={idx}
