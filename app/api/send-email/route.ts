@@ -17,6 +17,7 @@ export async function POST(request: Request) {
       },
     });
 
+    // כתובת ציבורית ישירה או שימוש בלוגו מעוצב ויציב
     const domain = process.env.VERCEL_URL || 'my-phone-iota.vercel.app';
     const logoUrl = `https://${domain}/Logo.JPG`;
 
@@ -27,7 +28,9 @@ export async function POST(request: Request) {
       text: message,
       html: `
         <div dir="rtl" style="font-family: Arial, sans-serif; padding: 30px; color: #333; background-color: #f9fafb; border-radius: 16px; text-align: center; max-width: 600px; margin: auto; border: 1px solid #e5e7eb;">
-          <img src="${logoUrl}" alt="NEW PHONE" style="width: 80px; height: 80px; object-fit: contain; border-radius: 50%; margin-bottom: 10px;" />
+          <div style="margin-bottom: 12px; display: inline-block; background: white; padding: 8px; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+            <img src="${logoUrl}" alt="NEW PHONE" style="width: 75px; height: 75px; object-fit: contain; border-radius: 50%; display: block;" />
+          </div>
           <h2 style="color: #ea580c; margin: 0; font-size: 24px; font-weight: 900;">NEW PHONE</h2>
           <p style="font-size: 11px; color: #666; margin-top: 4px; font-weight: bold; letter-spacing: 0.5px;">הפלאפון החדש שלך</p>
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
