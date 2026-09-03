@@ -11,7 +11,6 @@ export default function AdminBrands() {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   
-  // מצבים לבחירת תמונה קיימת מהאחסון
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [showGallery, setShowGallery] = useState(false);
   const [loadingGallery, setLoadingGallery] = useState(false);
@@ -128,27 +127,30 @@ export default function AdminBrands() {
             <label className="block text-xs font-bold text-gray-700 mb-1">לוגו מותג</label>
             
             <div className="flex gap-2 mb-2">
-              <input type="file" accept="image/*" onChange={handleFileUpload} className="w-full border rounded-xl p-2 text-xs bg-gray-50 cursor-pointer" />
+              <input type="file" accept="image/*" onChange={handleFileUpload} className="w-full border rounded-xl p-2.5 text-xs bg-gray-50 cursor-pointer" />
               <button
                 type="button"
                 onClick={() => {
                   if (!showGallery) fetchExistingImages();
                   setShowGallery(!showGallery);
                 }}
-                className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer shadow-xs"
+                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer shadow-xs"
               >
                 {showGallery ? 'סגור גלריה ✕' : 'בחר מתמונות קיימות 🖼️'}
               </button>
             </div>
 
-            {/* גלריית בחירת תמונות קיימות מהאחסון */}
+            {/* גלריית תמונות גדולה וברורה במיוחד */}
             {showGallery && (
-              <div className="bg-gray-50 border p-3 rounded-xl mb-3 space-y-2">
-                <p className="text-xs font-bold text-gray-700">בחר תמונה קיימת מתוך האחסון של האתר:</p>
+              <div className="bg-gray-50 border-2 border-orange-200 p-4 rounded-2xl mb-3 space-y-3 shadow-inner">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-black text-gray-900">בחר תמונה ברורה וגדולה מתוך האחסון:</span>
+                  <button type="button" onClick={() => setShowGallery(false)} className="text-xs text-gray-500 font-bold hover:text-red-600">סגור [X]</button>
+                </div>
                 {loadingGallery ? (
-                  <p className="text-xs text-gray-500 py-3 text-center">טוען תמונות קיימות...</p>
+                  <p className="text-xs text-gray-500 py-6 text-center font-bold">טוען תמונות בגודל מלא...</p>
                 ) : existingImages.length > 0 ? (
-                  <div className="grid grid-cols-5 gap-2 max-h-44 overflow-y-auto p-1 bg-white border rounded-lg">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-72 overflow-y-auto p-2 bg-white border rounded-xl shadow-xs">
                     {existingImages.map((url, idx) => (
                       <div
                         key={idx}
@@ -156,26 +158,29 @@ export default function AdminBrands() {
                           setImageUrl(url);
                           setShowGallery(false);
                         }}
-                        className={`cursor-pointer border-2 rounded-lg overflow-hidden bg-white hover:border-orange-500 transition aspect-square flex items-center justify-center p-1 ${imageUrl === url ? 'border-orange-600 ring-2 ring-orange-400' : 'border-gray-200'}`}
+                        className={`cursor-pointer border-2 rounded-xl overflow-hidden bg-white hover:border-orange-600 transition flex flex-col items-center justify-between p-2 group shadow-xs ${imageUrl === url ? 'border-orange-600 ring-4 ring-orange-200 bg-orange-50/30' : 'border-gray-200'}`}
                       >
-                        <img src={url} alt="" className="w-full h-full object-contain rounded" />
+                        <div className="w-full h-24 flex items-center justify-center bg-gray-50 rounded-lg p-1 overflow-hidden">
+                          <img src={url} alt="" className="w-full h-full object-contain group-hover:scale-105 transition duration-200" />
+                        </div>
+                        <span className="text-[10px] font-bold text-gray-600 mt-2 text-center truncate w-full">בחר תמונה זו ✓</span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-gray-400 text-center py-3">לא נמצאו תמונות באחסון.</p>
+                  <p className="text-xs text-gray-400 text-center py-6">לא נמצאו תמונות באחסון.</p>
                 )}
               </div>
             )}
 
-            {uploading && <p className="text-xs text-blue-600 mt-1">מעלה קובץ לאחסון...</p>}
+            {uploading && <p className="text-xs text-blue-600 mt-1 font-bold">מעלה קובץ לאחסון...</p>}
             
             {imageUrl && (
-              <div className="mt-2 flex items-center gap-3 bg-gray-50 p-2.5 rounded-xl border">
-                <img src={imageUrl} alt="" className="w-12 h-12 object-contain bg-white rounded-lg border p-0.5" />
+              <div className="mt-2 flex items-center gap-4 bg-orange-50/60 p-3 rounded-2xl border border-orange-200">
+                <img src={imageUrl} alt="" className="w-16 h-16 object-contain bg-white rounded-xl border p-1 shadow-sm" />
                 <div className="overflow-hidden">
-                  <span className="text-xs text-green-600 font-semibold block">לוגו נבחר בהצלחה ✓</span>
-                  <span className="text-[10px] text-gray-400 truncate block max-w-xs">{imageUrl}</span>
+                  <span className="text-xs text-orange-800 font-black block">הלוגו נבחר בהצלחה ותצוגה מקדימה פעילה ✓</span>
+                  <span className="text-[11px] text-gray-500 truncate block max-w-xs mt-0.5">{imageUrl}</span>
                 </div>
               </div>
             )}
@@ -198,15 +203,15 @@ export default function AdminBrands() {
             <div key={b.id} className="flex justify-between items-center p-3.5 bg-gray-50 rounded-xl border">
               <div className="flex items-center gap-3">
                 {b.image_url ? (
-                  <img src={b.image_url} alt="" className="w-12 h-12 rounded-lg object-contain border bg-white p-0.5" />
+                  <img src={b.image_url} alt="" className="w-14 h-14 rounded-xl object-contain border bg-white p-1 shadow-xs" />
                 ) : (
-                  <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center text-xs">🏷️</div>
+                  <div className="w-14 h-14 rounded-xl bg-gray-200 flex items-center justify-center text-xs">🏷️</div>
                 )}
                 <span className="font-semibold text-gray-800 text-lg">{b.name}</span>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => handleEdit(b)} className="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer">ערוך ✏️</button>
-                <button onClick={() => handleDelete(b.id)} className="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer">מחק 🗑️</button>
+                <button onClick={() => handleEdit(b)} className="bg-blue-50 text-blue-600 px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-blue-100 transition">ערוך ✏️</button>
+                <button onClick={() => handleDelete(b.id)} className="bg-red-50 text-red-600 px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-red-100 transition">מחק 🗑️</button>
               </div>
             </div>
           ))}
