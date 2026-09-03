@@ -47,7 +47,8 @@ export default function AdminOrdersPage() {
       else if (newStatus === 'הושלם') statusAction = 'ההזמנה שלך הושלמה בהצלחה';
       else if (newStatus === 'בטיפול') statusAction = 'ההזמנה שלך נמצאת בטיפול';
 
-      const message = `שלום ${order.customer_name || 'לקוח יקר'},\n\nNEW PHONE שמחים לעדכן אותך ש${statusAction}.\n\nתודה שקנית אצלנו!\nNEW PHONE`;
+      const orderShortId = order.id ? order.id.slice(0, 8) : '';
+      const message = `שלום ${order.customer_name || 'לקוח יקר'},\n\nNEW PHONE שמחים לעדכן אותך שההזמנה שלך (#${orderShortId}) ${statusAction}.\n\nתודה שקנית אצלנו!\nNEW PHONE`;
 
       try {
         const res = await fetch('/api/send-email', {
@@ -55,13 +56,13 @@ export default function AdminOrdersPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             to: order.email,
-            subject: 'עדכון סטטוס הזמנה - NEW PHONE',
+            subject: `עדכון סטטוס הזמנה #${orderShortId} - NEW PHONE`,
             message: message
           })
         });
 
         if (res.ok) {
-          alert('הסטטוס עודכן והודעת מייל עם הלוגו נשלחה בהצלחה ללקוח ברקע! ✉️');
+          alert('הסטטוס עודכן והודעת מייל עם מספר ההזמנה נשלחה בהצלחה ללקוח! ✉️');
         } else {
           alert('הסטטוס עודכן, אך שליחת המייל נכשלה.');
         }
@@ -87,7 +88,7 @@ export default function AdminOrdersPage() {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    const logoUrl = window.location.origin + '/Logo.JPG';
+    const logoUrl = 'https://iiaxizrezhczgutqijbe.supabase.co/storage/v1/object/public/product-images/IMG_6252.jpeg';
 
     const itemsHtml = [
       ...(order.items || []).map((item: any, idx: number) => `
@@ -199,9 +200,14 @@ export default function AdminOrdersPage() {
             <div key={order.id} className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-3 gap-2">
                 <div>
-                  <span className="text-xs font-black text-gray-900 block">
-                    הזמנה מאת: {order.customer_name || 'ללא שם'}
-                  </span>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="bg-orange-100 text-orange-800 text-[11px] font-black px-2.5 py-0.5 rounded-md">
+                      הזמנה #{order.id ? order.id.slice(0, 8) : ''}
+                    </span>
+                    <span className="text-xs font-black text-gray-900">
+                      מאת: {order.customer_name || 'ללא שם'}
+                    </span>
+                  </div>
                   <span className="text-[11px] text-gray-500">
                     תאריך: {order.created_at ? new Date(order.created_at).toLocaleString('he-IL') : 'לא ידוע'}
                   </span>
