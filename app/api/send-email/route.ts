@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     });
 
     const domain = process.env.VERCEL_URL || 'my-phone-iota.vercel.app';
-    const logoUrl = `https://${domain}/logo.png`;
+    const logoUrl = `https://${domain}/Logo.JPG`;
 
     await transporter.sendMail({
       from: `"NEW PHONE" <${process.env.GMAIL_USER}>`,
