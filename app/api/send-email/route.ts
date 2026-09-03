@@ -17,6 +17,9 @@ export async function POST(request: Request) {
       },
     });
 
+    const domain = process.env.VERCEL_URL || 'my-phone-iota.vercel.app';
+    const logoUrl = `https://${domain}/logo.png`;
+
     await transporter.sendMail({
       from: `"NEW PHONE" <${process.env.GMAIL_USER}>`,
       to: to,
@@ -24,7 +27,7 @@ export async function POST(request: Request) {
       text: message,
       html: `
         <div dir="rtl" style="font-family: Arial, sans-serif; padding: 30px; color: #333; background-color: #f9fafb; border-radius: 16px; text-align: center; max-width: 600px; margin: auto; border: 1px solid #e5e7eb;">
-          <div style="background: linear-gradient(135deg, #f97316, #a855f7); width: 60px; height: 60px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: white; font-size: 26px; margin-bottom: 10px;">📱</div>
+          <img src="${logoUrl}" alt="NEW PHONE" style="width: 80px; height: 80px; object-fit: contain; border-radius: 50%; margin-bottom: 10px;" />
           <h2 style="color: #ea580c; margin: 0; font-size: 24px; font-weight: 900;">NEW PHONE</h2>
           <p style="font-size: 11px; color: #666; margin-top: 4px; font-weight: bold; letter-spacing: 0.5px;">הפלאפון החדש שלך</p>
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
