@@ -20,7 +20,7 @@ export default function AdminKosher() {
   }, []);
 
   const fetchKosher = async () => {
-    const { data } = await supabase.from('kosher').select('*').order('created_at', { ascending: false });
+    const { data } = await supabase.from('kosher_options').select('*').order('created_at', { ascending: false });
     if (data) setKosherList(data);
   };
 
@@ -70,7 +70,7 @@ export default function AdminKosher() {
     setLoading(true);
 
     if (editingId) {
-      const { error } = await supabase.from('kosher').update({ name, image_url: imageUrl }).eq('id', editingId);
+      const { error } = await supabase.from('kosher_options').update({ name, image_url: imageUrl }).eq('id', editingId);
       if (error) alert('שגיאה: ' + error.message);
       else {
         alert('הכשרות עודכנה בהצלחה! 🎉');
@@ -78,7 +78,7 @@ export default function AdminKosher() {
         fetchKosher();
       }
     } else {
-      const { error } = await supabase.from('kosher').insert([{ name, image_url: imageUrl }]);
+      const { error } = await supabase.from('kosher_options').insert([{ name, image_url: imageUrl }]);
       if (error) alert('שגיאה: ' + error.message);
       else {
         alert('הכשרות נוספה בהצלחה! 🚀');
@@ -98,7 +98,7 @@ export default function AdminKosher() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('האם למחוק כשרות זו?')) return;
-    const { error } = await supabase.from('kosher').delete().eq('id', id);
+    const { error } = await supabase.from('kosher_options').delete().eq('id', id);
     if (error) alert('שגיאה: ' + error.message);
     else fetchKosher();
   };
