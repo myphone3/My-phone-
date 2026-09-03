@@ -119,17 +119,17 @@ function StoreContent() {
         </div>
       )}
 
-      {/* באנרים - מותאם רספונסיבית כך שכל המלל יוצג במלואו */}
+      {/* באנרים - מותאם באופן מושלם לטלפון ולרוחב */}
       {banners.length > 0 && (
-        <div className="relative w-full bg-gradient-to-r from-gray-950 via-orange-950 to-black overflow-hidden shadow-xl text-white py-12 px-4 sm:px-12 transition-all duration-500">
-          <div className="w-full max-w-5xl mx-auto space-y-3 relative z-10 text-center flex flex-col items-center">
+        <div className="relative w-full bg-gradient-to-r from-gray-950 via-orange-950 to-black overflow-hidden shadow-xl text-white py-10 px-4 sm:px-16 transition-all duration-500">
+          <div className="max-w-5xl mx-auto space-y-3 relative z-10 text-right sm:text-center flex flex-col items-start sm:items-center">
             <span className="inline-block bg-orange-600/35 border border-orange-500/40 text-orange-300 px-3 py-1 rounded-full text-[11px] sm:text-xs font-bold tracking-wide backdrop-blur-md">
               NEW PHONE מבצעים חמים ⚡
             </span>
-            <h1 className="w-full text-lg sm:text-2xl md:text-4xl font-black leading-snug sm:leading-tight px-2 break-words">
+            <h1 className="w-full text-base sm:text-2xl md:text-3xl font-black leading-snug sm:leading-tight break-words">
               {banners[currentBanner]?.title}
             </h1>
-            <p className="w-full text-gray-300 text-xs sm:text-sm font-medium px-2 max-w-2xl leading-relaxed">
+            <p className="w-full text-gray-300 text-xs sm:text-sm font-medium leading-relaxed">
               {banners[currentBanner]?.subtitle}
             </p>
             {banners[currentBanner]?.link_product_id && (
@@ -142,7 +142,7 @@ function StoreContent() {
             )}
           </div>
 
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-25">
+          <div className="absolute bottom-3 left-4 sm:left-1/2 sm:-translate-x-1/2 flex gap-1.5 z-25">
             {banners.map((_, idx) => (
               <button
                 key={idx}
@@ -154,8 +154,8 @@ function StoreContent() {
         </div>
       )}
 
-      {/* שורת חיפוש צפה (Sticky) שתיצמד למעלה מתחת לשורת הלוגו והעגלה */}
-      <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-md py-3 px-4 shadow-sm border-b border-gray-100">
+      {/* שורת חיפוש צפה (Sticky) שתישמד למעלה אבל מתחת להדר הראשי (top-16 או מתחת לפס העליון) */}
+      <div className="sticky top-14 sm:top-16 z-30 bg-white/95 backdrop-blur-md py-3 px-4 shadow-sm border-b border-gray-100">
         <div className="max-w-2xl mx-auto relative">
           <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-gray-400">
             🔍
