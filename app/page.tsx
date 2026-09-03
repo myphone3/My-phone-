@@ -122,11 +122,11 @@ function StoreContent() {
       {/* באנרים */}
       {banners.length > 0 && (
         <div className="relative w-full bg-gradient-to-r from-gray-950 via-orange-950 to-black overflow-hidden shadow-xl text-white py-14 px-6 sm:px-16 transition-all duration-500">
-          <div className="max-w-7xl mx-auto space-y-4 relative z-10">
-            <span className="bg-orange-600/35 border border-orange-500/40 text-orange-300 px-3.5 py-1 rounded-full text-xs font-bold tracking-wide backdrop-blur-md">
+          <div className="max-w-7xl mx-auto space-y-4 relative z-10 text-right">
+            <span className="inline-block bg-orange-600/35 border border-orange-500/40 text-orange-300 px-3.5 py-1 rounded-full text-xs font-bold tracking-wide backdrop-blur-md">
               NEW PHONE מבצעים חמים ⚡
             </span>
-            <h1 className="text-2xl sm:text-4xl font-black leading-tight">
+            <h1 className="text-xl sm:text-3xl md:text-4xl font-black leading-normal sm:leading-snug break-words">
               {banners[currentBanner]?.title}
             </h1>
             <p className="text-gray-300 text-xs sm:text-sm font-medium">
@@ -156,63 +156,65 @@ function StoreContent() {
 
       <div className="max-w-7xl mx-auto px-4 space-y-10 pt-8">
 
-        {/* שורת חיפוש עם תפריט הצעות נפתח (Autocomplete Dropdown) */}
-        <div className="relative max-w-2xl mx-auto z-30">
-          <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-gray-400">
-            🔍
-          </div>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onFocus={() => setIsSearchFocused(true)}
-            onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-            placeholder="חפש מכשיר, נגן, מותג או קטגוריה..."
-            className="w-full bg-white border-2 border-orange-500/20 focus:border-orange-600 rounded-2xl py-3.5 pr-11 pl-4 text-xs sm:text-sm font-medium shadow-sm outline-none transition"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute inset-y-0 left-0 pl-4 flex items-center text-xs font-bold text-gray-400 hover:text-gray-600 cursor-pointer"
-            >
-              ✕ ניקוי
-            </button>
-          )}
-
-          {/* תפריט השלמה אוטומטית נפתח */}
-          {isSearchFocused && searchQuery.trim().length > 0 && (
-            <div className="absolute top-full mt-2 w-full bg-white border border-gray-100 rounded-2xl shadow-2xl max-h-80 overflow-y-auto z-50 p-2 space-y-1">
-              {filteredProducts.length === 0 ? (
-                <div className="p-3 text-xs text-gray-500 text-center font-medium">לא נמצאו תוצאות תואמות</div>
-              ) : (
-                filteredProducts.map((prod) => {
-                  const img = prod.image_url || prod.images?.[0] || '';
-                  return (
-                    <Link
-                      key={prod.id}
-                      href={`/product/${prod.id}`}
-                      className="flex items-center gap-3 p-2.5 hover:bg-orange-50/60 rounded-xl transition group cursor-pointer"
-                    >
-                      <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border">
-                        {img ? (
-                          <img src={img} alt={prod.name} className="w-full h-full object-contain" />
-                        ) : (
-                          <span>📦</span>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-xs font-black text-gray-900 truncate group-hover:text-orange-600 transition">{prod.name}</h4>
-                        <p className="text-[10px] text-gray-400 truncate">{prod.brand || prod.category || 'מוצר בחנות'}</p>
-                      </div>
-                      <span className="text-xs font-black text-orange-600 shrink-0">
-                        ₪{prod.sale_price || prod.price}
-                      </span>
-                    </Link>
-                  );
-                })
-              )}
+        {/* שורת חיפוש צפה (Sticky) שתישאר תמיד למעלה בגלילה אל המוצרים */}
+        <div className="sticky top-4 z-40 max-w-2xl mx-auto bg-white/90 backdrop-blur-md p-2 rounded-2xl shadow-md border border-orange-500/20">
+          <div className="relative">
+            <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-gray-400">
+              🔍
             </div>
-          )}
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+              placeholder="חפש מכשיר, נגן, מותג או קטגוריה..."
+              className="w-full bg-white border-2 border-orange-500/20 focus:border-orange-600 rounded-xl py-3 pr-11 pl-4 text-xs sm:text-sm font-medium shadow-xs outline-none transition"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute inset-y-0 left-0 pl-4 flex items-center text-xs font-bold text-gray-400 hover:text-gray-600 cursor-pointer"
+              >
+                ✕ ניקוי
+              </button>
+            )}
+
+            {/* תפריט השלמה אוטומטית נפתח */}
+            {isSearchFocused && searchQuery.trim().length > 0 && (
+              <div className="absolute top-full mt-2 w-full bg-white border border-gray-100 rounded-2xl shadow-2xl max-h-80 overflow-y-auto z-50 p-2 space-y-1">
+                {filteredProducts.length === 0 ? (
+                  <div className="p-3 text-xs text-gray-500 text-center font-medium">לא נמצאו תוצאות תואמות</div>
+                ) : (
+                  filteredProducts.map((prod) => {
+                    const img = prod.image_url || prod.images?.[0] || '';
+                    return (
+                      <Link
+                        key={prod.id}
+                        href={`/product/${prod.id}`}
+                        className="flex items-center gap-3 p-2.5 hover:bg-orange-50/60 rounded-xl transition group cursor-pointer"
+                      >
+                        <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border">
+                          {img ? (
+                            <img src={img} alt={prod.name} className="w-full h-full object-contain" />
+                          ) : (
+                            <span>📦</span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-xs font-black text-gray-900 truncate group-hover:text-orange-600 transition">{prod.name}</h4>
+                          <p className="text-[10px] text-gray-400 truncate">{prod.brand || prod.category || 'מוצר בחנות'}</p>
+                        </div>
+                        <span className="text-xs font-black text-orange-600 shrink-0">
+                          ₪{prod.sale_price || prod.price}
+                        </span>
+                      </Link>
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* קטגוריות מובילות */}
