@@ -17,7 +17,7 @@ export async function POST(request: Request) {
       },
     });
 
-    const logoUrl = 'https://iiaxizrezhczgutqijbe.supabase.co/storage/v1/object/public/product-images/logo.png.jpeg';
+    const logoUrl = 'https://iiaxizrezhczgutqijbe.supabase.co/storage/v1/object/public/product-images/IMG_6252.jpeg';
 
     await transporter.sendMail({
       from: `"NEW PHONE" <${process.env.GMAIL_USER}>`,
