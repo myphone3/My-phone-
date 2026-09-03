@@ -61,9 +61,9 @@ export default function AdminOrdersPage() {
         });
 
         if (res.ok) {
-          alert('הסטטוס עודכן והודעת מייל נשלחה בהצלחה ללקוח ברקע דרך Gmail! ✉️');
+          alert('הסטטוס עודכן והודעת מייל עם הלוגו נשלחה בהצלחה ללקוח ברקע! ✉️');
         } else {
-          alert('הסטטוס עודכן, אך שליחת המייל נכשלה. ודא שהגדרת נכון את GMAIL_USER ו-GMAIL_PASS ב-Vercel.');
+          alert('הסטטוס עודכן, אך שליחת המייל נכשלה. ודא שהגדרת את GMAIL_USER ו-GMAIL_PASS ב-Vercel.');
         }
       } catch (err) {
         console.error('Email send failed:', err);
@@ -86,6 +86,8 @@ export default function AdminOrdersPage() {
   const printOrderPdf = (order: any) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
+
+    const logoUrl = window.location.origin + '/logo.png';
 
     const itemsHtml = [
       ...(order.items || []).map((item: any, idx: number) => `
@@ -113,8 +115,8 @@ export default function AdminOrdersPage() {
         <style>
           body { font-family: Arial, sans-serif; padding: 30px; color: #333; direction: rtl; }
           .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ea580c; padding-bottom: 20px; margin-bottom: 20px; }
-          .logo-box { display: flex; align-items: center; gap: 10px; }
-          .logo-icon { width: 40px; height: 40px; background: linear-gradient(135deg, #f97316, #a855f7); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px; }
+          .logo-box { display: flex; align-items: center; gap: 12px; }
+          .logo-img { width: 55px; height: 55px; object-fit: contain; }
           .logo-title { font-size: 22px; font-weight: 900; color: #111; }
           .logo-sub { font-size: 10px; color: #666; font-weight: bold; }
           .details { margin-bottom: 20px; font-size: 13px; line-height: 1.6; }
@@ -127,10 +129,10 @@ export default function AdminOrdersPage() {
       <body>
         <div class="header">
           <div class="logo-box">
-            <div class="logo-icon">📱</div>
+            <img src="${logoUrl}" alt="NEW PHONE" class="logo-img" />
             <div>
               <div class="logo-title">NEW PHONE</div>
-              <div class="logo-sub">סלולר חדש אלף</div>
+              <div class="logo-sub">הפלאפון החדש שלך</div>
             </div>
           </div>
           <div style="text-align: left;">
