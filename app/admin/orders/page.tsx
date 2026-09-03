@@ -27,7 +27,6 @@ export default function AdminOrdersPage() {
   };
 
   const handleStatusChange = async (order: any, newStatus: string) => {
-    // 1. עדכון סטטוס במסד הנתונים
     const { error } = await supabase
       .from('orders')
       .update({ status: newStatus })
@@ -40,7 +39,6 @@ export default function AdminOrdersPage() {
 
     fetchOrders();
 
-    // 2. שליחת מייל אוטומטית ברקע לפי הניסוח המדויק שביקשת
     if (order.email) {
       let statusAction = `ההזמנה שלך התקבלה בהצלחה`;
       if (newStatus === 'מחכה למשלוח') statusAction = 'ההזמנה שלך מחכה למשלוח';
@@ -49,7 +47,7 @@ export default function AdminOrdersPage() {
       else if (newStatus === 'הושלם') statusAction = 'ההזמנה שלך הושלמה בהצלחה';
       else if (newStatus === 'בטיפול') statusAction = 'ההזמנה שלך נמצאת בטיפול';
 
-      const message = `שלום ${order.customer_name || 'לקוח יקר'},\n\nNEW PHONE שמחים לעדכן אותך שההזמנה שלך ${newStatus === 'מוכן לאיסוף' ? 'מוכנה לאיסוף' : newStatus === 'מחכה למשלוח' ? 'מחכה למשלוח' : newStatus === 'נשלח' ? 'נשלחה אליך' : newStatus}.\n\nתודה שקנית אצלנו!\nNEW PHONE`;
+      const message = `שלום ${order.customer_name || 'לקוח יקר'},\n\nNEW PHONE שמחים לעדכן אותך ש${statusAction}.\n\nתודה שקנית אצלנו!\nNEW PHONE`;
 
       try {
         const res = await fetch('/api/send-email', {
@@ -63,15 +61,15 @@ export default function AdminOrdersPage() {
         });
 
         if (res.ok) {
-          alert('הסטטוס עודכן והודעת מייל נשלחה בהצלחה ללקוח ברקע! ✉️');
+          alert('הסטטוס עודכן והודעת מייל נשלחה בהצלחה ללקוח ברקע דרך Gmail! ✉️');
         } else {
-          alert('הסטטוס עודכן, אך שליחת המייל דרך השרת נכשלה. ודא שהגדרת מפתח RESEND_API_KEY ב-Vercel.');
+          alert('הסטטוס עודכן, אך שליחת המייל נכשלה. ודא שהגדרת נכון את GMAIL_USER ו-GMAIL_PASS ב-Vercel.');
         }
       } catch (err) {
         console.error('Email send failed:', err);
       }
     } else {
-      alert('הסטטוס עודכן בהצלחה (ללקוח זה לא הוזן אימייל במערכת).');
+      alert('הסטטוס עודכן בהצלחה (ללקוח זה לא הוזן אימייל).');
     }
   };
 
