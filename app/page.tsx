@@ -123,15 +123,15 @@ function StoreContent() {
         }
       `}</style>
 
-      {/* פס מבצעים עליון */}
+      {/* פס מבצעים עליון בשורה אחת בלבד */}
       {settings?.announcement_text && timeLeft && !timeLeft.isExpired && (
-        <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2 text-xs sm:text-sm font-bold flex flex-wrap items-center justify-between gap-2 shadow-sm z-50">
+        <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2 text-xs sm:text-sm font-bold flex items-center justify-between gap-4 shadow-sm z-50 whitespace-nowrap overflow-hidden">
           <div className="flex items-center gap-2 shrink-0">
             <span className="bg-black/30 px-2.5 py-1 rounded-lg text-xs font-mono tracking-wider">
               {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')} ⏱️
             </span>
           </div>
-          <div className="flex-1 text-right text-[11px] sm:text-xs leading-normal">
+          <div className="text-right text-[11px] sm:text-xs truncate">
             {settings.announcement_text}
           </div>
         </div>
@@ -156,9 +156,9 @@ function StoreContent() {
         </div>
       )}
 
-      {/* אזור הבאנר הדומיננטי */}
+      {/* באנר גדול ללא מסגרת */}
       {banners.length > 0 && (
-        <div className="relative w-full overflow-hidden shadow-2xl bg-black border-y border-orange-500/20">
+        <div className="relative w-full overflow-hidden bg-black">
           {banners[currentBanner]?.desktop_image_url || banners[currentBanner]?.mobile_image_url || banners[currentBanner]?.image_url ? (
             <div className="relative w-full">
               {/* תמונת מחשב */}
@@ -166,7 +166,7 @@ function StoreContent() {
                 <img 
                   src={banners[currentBanner].desktop_image_url} 
                   alt={banners[currentBanner]?.title || ''} 
-                  className={`w-full h-auto object-cover max-h-[500px] ${banners[currentBanner]?.mobile_image_url ? 'hidden sm:block' : 'block'}`}
+                  className={`w-full h-auto object-cover max-h-[600px] ${banners[currentBanner]?.mobile_image_url ? 'hidden sm:block' : 'block'}`}
                 />
               )}
               {/* תמונת פלאפון */}
@@ -174,7 +174,7 @@ function StoreContent() {
                 <img 
                   src={banners[currentBanner].mobile_image_url} 
                   alt={banners[currentBanner]?.title || ''} 
-                  className="w-full h-auto object-cover max-h-[450px] block sm:hidden"
+                  className="w-full h-auto object-cover max-h-[500px] block sm:hidden"
                 />
               )}
               {/* גיבוי לתמונה ישנה */}
@@ -182,7 +182,7 @@ function StoreContent() {
                 <img 
                   src={banners[currentBanner].image_url} 
                   alt={banners[currentBanner]?.title || ''} 
-                  className="w-full h-auto object-cover max-h-[500px]"
+                  className="w-full h-auto object-cover max-h-[600px]"
                 />
               )}
 
@@ -195,7 +195,7 @@ function StoreContent() {
               )}
             </div>
           ) : (
-            <div className="relative w-full bg-gradient-to-r from-gray-950 via-orange-950 to-black text-white py-14 px-4 sm:px-16">
+            <div className="relative w-full bg-gradient-to-r from-gray-950 via-orange-950 to-black text-white py-16 px-4 sm:px-16">
               <div className="max-w-5xl mx-auto space-y-3 relative z-10 text-right sm:text-center flex flex-col items-start sm:items-center">
                 <span className="inline-block bg-orange-600/35 border border-orange-500/40 text-orange-300 px-3 py-1 rounded-full text-[11px] sm:text-xs font-bold tracking-wide backdrop-blur-md">
                   NEW PHONE מבצעים חמים ⚡
@@ -233,9 +233,9 @@ function StoreContent() {
         </div>
       )}
 
-      {/* שורת חיפוש ממוקמת מתחת לבאנר */}
-      <div className="max-w-2xl mx-auto px-4 pt-6">
-        <div className="relative">
+      {/* שורת חיפוש צפה מתחת לבאנר שתישאר תמיד בגלילה */}
+      <div className="sticky top-16 sm:top-20 z-40 bg-white/95 backdrop-blur-md py-3 px-4 shadow-md border-b border-gray-100">
+        <div className="max-w-2xl mx-auto relative">
           <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-gray-400">
             🔍
           </div>
@@ -246,7 +246,7 @@ function StoreContent() {
             onFocus={() => setIsSearchFocused(true)}
             onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
             placeholder="חפש מכשיר, נגן, מותג או קטגוריה..."
-            className="w-full bg-white border-2 border-orange-500/30 focus:border-orange-600 rounded-2xl py-3.5 pr-11 pl-4 text-xs sm:text-sm font-medium shadow-sm outline-none transition"
+            className="w-full bg-gray-50 border-2 border-orange-500/30 focus:border-orange-600 rounded-2xl py-3.5 pr-11 pl-4 text-xs sm:text-sm font-medium shadow-xs outline-none transition"
           />
           {searchQuery && (
             <button
