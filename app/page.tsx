@@ -128,7 +128,7 @@ function StoreContent() {
         </div>
       )}
 
-      {/* שורת מותגים גדולה יותר בגודל מקורי שעה ימינה ברציפות */}
+      {/* שורת מותגים בגודל מקורי שעה ימינה ברציפות */}
       {brands.length > 0 && (
         <div className="w-full overflow-hidden bg-orange-50/40 py-3 border-b border-orange-100">
           <div className="animate-marquee-brands-right flex items-center gap-8 px-4">
