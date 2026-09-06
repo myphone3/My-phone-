@@ -91,13 +91,13 @@ function StoreContent() {
     }
   };
 
-  const scrollingBrands = [...brands, ...brands, ...brands, ...brands];
+  // שכפול רב של המותגים כך שהרשימה ארוכה מספיק ורצה ברציפות מלאה
+  const scrollingBrands = [...brands, ...brands, ...brands, ...brands, ...brands, ...brands, ...brands, ...brands];
 
   return (
     <div className="space-y-0 pb-16" dir="rtl">
       
       <style jsx>{`
-        /* מותגים גודל מקורי נעים ברציפות לכיוון ימין */
         @keyframes marqueeBrandsRight {
           0% { transform: translateX(-50%); }
           100% { transform: translateX(0%); }
@@ -105,7 +105,7 @@ function StoreContent() {
         .animate-marquee-brands-right {
           display: flex;
           width: max-content;
-          animation: marqueeBrandsRight 25s linear infinite;
+          animation: marqueeBrandsRight 35s linear infinite;
         }
         .animate-marquee-brands-right:hover {
           animation-play-state: paused;
@@ -128,10 +128,10 @@ function StoreContent() {
         </div>
       )}
 
-      {/* שורת מותגים בגודל מקורי שעה ימינה ברציפות */}
+      {/* שורת מותגים נעה ימינה ברציפות מלאה */}
       {brands.length > 0 && (
         <div className="w-full overflow-hidden bg-orange-50/40 py-3 border-b border-orange-100">
-          <div className="animate-marquee-brands-right flex items-center gap-8 px-4">
+          <div className="animate-marquee-brands-right flex items-center gap-10 px-4">
             {scrollingBrands.map((brand, idx) => (
               brand.image_url && (
                 <Link 
