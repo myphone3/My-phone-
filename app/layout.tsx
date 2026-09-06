@@ -2,7 +2,7 @@
 
 import './globals.css';
 import Link from 'next/link';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 
 export default function RootLayout({
@@ -13,9 +13,20 @@ export default function RootLayout({
   const [cartCount, setCartCount] = useState(0);
   const [user, setUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userAvatar, setUserAvatar] = useState<string>('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     checkUserAndCart();
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const checkUserAndCart = async () => {
@@ -24,6 +35,10 @@ export default function RootLayout({
     setUser(currentUser);
 
     if (currentUser) {
+      // שליפת תמונת פרופיל מ-Google או מתת-נתונים
+      const avatar = currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.picture || '';
+      setUserAvatar(avatar);
+
       const { data: profile } = await supabase
         .from('profiles')
         .select('*')
@@ -61,26 +76,68 @@ export default function RootLayout({
         <header className="bg-white border-b sticky top-0 z-50 shadow-xs">
           <div className="max-w-7xl mx-auto px-4 py-3 grid grid-cols-3 items-center">
             
-            {/* צד ימין: התחברות עם גוגל או כפתור ניהול */}
-            <div className="flex items-center justify-start gap-2">
+            {/* צד ימין: תמונת פרופיל עם תפריט נפתח או כפתור התחברות */}
+            <div className="flex items-center justify-start relative" ref={dropdownRef}>
               {user ? (
-                <div className="flex items-center gap-2">
-                  {isAdmin && (
-                    <Link href="/admin" className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-2 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1 cursor-pointer">
-                      ⚙️ ניהול
-                    </Link>
-                  )}
-                  <button 
-                    onClick={async () => { await supabase.auth.signOut(); window.location.reload(); }}
-                    className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer"
+                <div>
+                  <button
+                    onClick={() => setShowDropdown(!showDropdown)}
+                    className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 p-1.5 rounded-2xl border transition cursor-pointer"
                   >
-                    התנתק 🚪
+                    {userAvatar ? (
+                      <img src={userAvatar} alt="Profile" className="w-9 h-9 rounded-full object-cover border" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-orange-600 text-white font-bold flex items-center justify-center text-sm">
+                        {user.email?.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <span className="text-xs font-bold text-gray-700 hidden sm:inline truncate max-w-[100px]">
+                      {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                    </span>
                   </button>
+
+                  {/* תפריט נפתח (Dropdown) */}
+                  {showDropdown && (
+                    <div className="absolute top-full right-0 mt-2 w-52 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 z-50 space-y-1">
+                      <div className="px-4 py-2 border-b text-[11px] text-gray-500 truncate">
+                        מחובר בתור:<br />
+                        <span className="font-bold text-gray-900">{user.email}</span>
+                      </div>
+
+                      {isAdmin && (
+                        <Link 
+                          href="/admin" 
+                          onClick={() => setShowDropdown(false)}
+                          className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-orange-600 hover:bg-orange-50 transition"
+                        >
+                          ⚙️ לוח בקרה וניהול
+                        </Link>
+                      )}
+
+                      <Link 
+                        href="/profile" 
+                        onClick={() => setShowDropdown(false)}
+                        className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 transition"
+                      >
+                        🔔 התראות ועדכונים
+                      </Link>
+
+                      <button
+                        onClick={async () => {
+                          await supabase.auth.signOut();
+                          window.location.reload();
+                        }}
+                        className="w-full text-right flex items-center gap-2 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 transition border-t pt-2"
+                      >
+                        🚪 התנתק מהמערכת
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <button
                   onClick={handleGoogleLogin}
-                  className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                  className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
                 >
                   <span>🌐</span> התחברות עם גוגל
                 </button>
