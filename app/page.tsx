@@ -14,6 +14,8 @@ function StoreContent() {
   
   const [currentBanner, setCurrentBanner] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [selectedColors, setSelectedColors] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
@@ -91,6 +93,16 @@ function StoreContent() {
     }
   };
 
+  const filteredProducts = products.filter((p) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    const nameMatch = p.name?.toLowerCase().includes(query);
+    const brandMatch = p.brand?.toLowerCase().includes(query);
+    const categoryMatch = p.category?.toLowerCase().includes(query);
+    const descMatch = p.description?.toLowerCase().includes(query);
+    return nameMatch || brandMatch || categoryMatch || descMatch;
+  });
+
   const scrollingBrands = [...brands, ...brands];
 
   return (
@@ -144,9 +156,9 @@ function StoreContent() {
         </div>
       )}
 
-      {/* אזור הבאנרים - תצוגת תמונות אמיתיות למחשב ולפלאפון */}
+      {/* אזור הבאנר הדומיננטי */}
       {banners.length > 0 && (
-        <div className="relative w-full overflow-hidden shadow-xl bg-black">
+        <div className="relative w-full overflow-hidden shadow-2xl bg-black border-y border-orange-500/20">
           {banners[currentBanner]?.desktop_image_url || banners[currentBanner]?.mobile_image_url || banners[currentBanner]?.image_url ? (
             <div className="relative w-full">
               {/* תמונת מחשב */}
@@ -154,7 +166,7 @@ function StoreContent() {
                 <img 
                   src={banners[currentBanner].desktop_image_url} 
                   alt={banners[currentBanner]?.title || ''} 
-                  className={`w-full h-auto object-cover max-h-[450px] ${banners[currentBanner]?.mobile_image_url ? 'hidden sm:block' : 'block'}`}
+                  className={`w-full h-auto object-cover max-h-[500px] ${banners[currentBanner]?.mobile_image_url ? 'hidden sm:block' : 'block'}`}
                 />
               )}
               {/* תמונת פלאפון */}
@@ -162,7 +174,7 @@ function StoreContent() {
                 <img 
                   src={banners[currentBanner].mobile_image_url} 
                   alt={banners[currentBanner]?.title || ''} 
-                  className="w-full h-auto object-cover max-h-[400px] block sm:hidden"
+                  className="w-full h-auto object-cover max-h-[450px] block sm:hidden"
                 />
               )}
               {/* גיבוי לתמונה ישנה */}
@@ -170,7 +182,7 @@ function StoreContent() {
                 <img 
                   src={banners[currentBanner].image_url} 
                   alt={banners[currentBanner]?.title || ''} 
-                  className="w-full h-auto object-cover max-h-[450px]"
+                  className="w-full h-auto object-cover max-h-[500px]"
                 />
               )}
 
@@ -183,13 +195,12 @@ function StoreContent() {
               )}
             </div>
           ) : (
-            /* עיצוב טקסט בררת מחדל אם לא הועלתה תמונה */
-            <div className="relative w-full bg-gradient-to-r from-gray-950 via-orange-950 to-black text-white py-10 px-4 sm:px-16">
+            <div className="relative w-full bg-gradient-to-r from-gray-950 via-orange-950 to-black text-white py-14 px-4 sm:px-16">
               <div className="max-w-5xl mx-auto space-y-3 relative z-10 text-right sm:text-center flex flex-col items-start sm:items-center">
                 <span className="inline-block bg-orange-600/35 border border-orange-500/40 text-orange-300 px-3 py-1 rounded-full text-[11px] sm:text-xs font-bold tracking-wide backdrop-blur-md">
                   NEW PHONE מבצעים חמים ⚡
                 </span>
-                <h1 className="w-full text-base sm:text-2xl md:text-3xl font-black leading-snug sm:leading-tight break-words">
+                <h1 className="w-full text-lg sm:text-3xl md:text-4xl font-black leading-snug sm:leading-tight break-words">
                   {banners[currentBanner]?.title}
                 </h1>
                 <p className="w-full text-gray-300 text-xs sm:text-sm font-medium leading-relaxed">
@@ -209,7 +220,7 @@ function StoreContent() {
 
           {/* כפתורי נקודות למעבר בין באנרים */}
           {banners.length > 1 && (
-            <div className="absolute bottom-3 left-4 sm:left-1/2 sm:-translate-x-1/2 flex gap-1.5 z-20">
+            <div className="absolute bottom-4 left-4 sm:left-1/2 sm:-translate-x-1/2 flex gap-1.5 z-20">
               {banners.map((_, idx) => (
                 <button
                   key={idx}
@@ -222,7 +233,68 @@ function StoreContent() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 space-y-10 pt-8">
+      {/* שורת חיפוש ממוקמת מתחת לבאנר */}
+      <div className="max-w-2xl mx-auto px-4 pt-6">
+        <div className="relative">
+          <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-gray-400">
+            🔍
+          </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+            placeholder="חפש מכשיר, נגן, מותג או קטגוריה..."
+            className="w-full bg-white border-2 border-orange-500/30 focus:border-orange-600 rounded-2xl py-3.5 pr-11 pl-4 text-xs sm:text-sm font-medium shadow-sm outline-none transition"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute inset-y-0 left-0 pl-4 flex items-center text-xs font-bold text-gray-400 hover:text-gray-600 cursor-pointer"
+            >
+              ✕ ניקוי
+            </button>
+          )}
+
+          {/* תפריט השלמה אוטומטית נפתח */}
+          {isSearchFocused && searchQuery.trim().length > 0 && (
+            <div className="absolute top-full mt-2 w-full bg-white border border-gray-100 rounded-2xl shadow-2xl max-h-80 overflow-y-auto z-50 p-2 space-y-1">
+              {filteredProducts.length === 0 ? (
+                <div className="p-3 text-xs text-gray-500 text-center font-medium">לא נמצאו תוצאות תואמות</div>
+              ) : (
+                filteredProducts.map((prod) => {
+                  const img = prod.image_url || prod.images?.[0] || '';
+                  return (
+                    <Link
+                      key={prod.id}
+                      href={`/product/${prod.id}`}
+                      className="flex items-center gap-3 p-2.5 hover:bg-orange-50/60 rounded-xl transition group cursor-pointer"
+                    >
+                      <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border">
+                        {img ? (
+                          <img src={img} alt={prod.name} className="w-full h-full object-contain" />
+                        ) : (
+                          <span>📦</span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-xs font-black text-gray-900 truncate group-hover:text-orange-600 transition">{prod.name}</h4>
+                        <p className="text-[10px] text-gray-400 truncate">{prod.brand || prod.category || 'מוצר בחנות'}</p>
+                      </div>
+                      <span className="text-xs font-black text-orange-600 shrink-0">
+                        ₪{prod.sale_price || prod.price}
+                      </span>
+                    </Link>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 space-y-10 pt-6">
 
         {/* קטגוריות מובילות */}
         {categories.length > 0 && (
@@ -253,21 +325,24 @@ function StoreContent() {
         <section className="space-y-6 pt-4 border-t">
           <div className="flex justify-between items-center">
             <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
-              כל המוצרים בחנות
+              {searchQuery ? `תוצאות חיפוש עבור: "${searchQuery}"` : 'כל המוצרים בחנות'}
             </h2>
-            <span className="text-xs text-gray-500 font-bold">{products.length} מוצרים זמינים</span>
+            <span className="text-xs text-gray-500 font-bold">{filteredProducts.length} מוצרים זמינים</span>
           </div>
 
           {loading ? (
             <div className="text-center py-20 text-gray-500 font-medium">טוען את חנות NEW PHONE...</div>
-          ) : products.length === 0 ? (
+          ) : filteredProducts.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-3xl border p-8 space-y-3 shadow-sm">
-              <span className="text-4xl">📦</span>
-              <p className="text-gray-500 font-medium">אין מוצרים זמינים כרגע בחנות.</p>
+              <span className="text-4xl">🔍</span>
+              <p className="text-gray-500 font-medium">לא נמצאו מוצרים תחת חיפוש זה.</p>
+              <button onClick={() => setSearchQuery('')} className="inline-block bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-bold mt-2 cursor-pointer">
+                איפוס חיפוש
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
-              {products.map((product) => {
+              {filteredProducts.map((product) => {
                 const colors = product.product_colors || [];
                 const primaryImg = product.image_url || product.images?.[0] || '';
                 const secondaryImg = product.images?.[1] || primaryImg;
