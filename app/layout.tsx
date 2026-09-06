@@ -60,11 +60,11 @@ export default function RootLayout({
     <html lang="he" dir="rtl">
       <body className="bg-gray-50 text-gray-900 font-sans antialiased">
         
-        {/* הדר ראשי גלובלי - ללא שורת חיפוש (שורת החיפוש עברה מתחת לבאנר בעמוד הבית) */}
-        <header className="bg-white border-b sticky top-0 z-50 shadow-xs">
+        {/* הדר ראשי גלובלי צף שכולל את הלוגו, הפרופיל, העגלה וגם את שורת החיפוש שתישאר תמיד בגלילה */}
+        <header className="bg-white border-b sticky top-0 z-50 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 py-3 grid grid-cols-3 items-center">
             
-            {/* צד ימין: תמונת פרופיל עם מסגרת בצבע האתר כמו בקטגוריות */}
+            {/* צד ימין: תמונת פרופיל עם מסגרת בצבע האתר */}
             <div className="flex items-center justify-start relative" ref={dropdownRef}>
               {user ? (
                 <div>
@@ -89,7 +89,6 @@ export default function RootLayout({
                         <span className="font-bold text-gray-900">{user.email}</span>
                       </div>
 
-                      {/* התראות ועדכונים */}
                       <div className="px-4 py-2 bg-orange-50/50 rounded-xl mx-2 border border-orange-100 space-y-1">
                         <div className="flex items-center gap-1.5 text-xs font-black text-orange-800">
                           <span>🔔</span> התראות ועדכונים
@@ -99,7 +98,6 @@ export default function RootLayout({
                         </p>
                       </div>
 
-                      {/* כפתור מעבר לניהול */}
                       <Link 
                         href="/admin" 
                         onClick={() => setShowDropdown(false)}
@@ -133,11 +131,11 @@ export default function RootLayout({
             {/* מרכז: לוגו גדול ובולט ללא מסגרת */}
             <div className="flex justify-center">
               <Link href="/" className="flex items-center group cursor-pointer">
-                <img src="/Logo.JPG" alt="NEW PHONE" className="w-24 h-24 sm:w-32 sm:h-32 object-contain bg-transparent group-hover:scale-105 transition" />
+                <img src="/Logo.JPG" alt="NEW PHONE" className="w-20 h-20 sm:w-28 sm:h-28 object-contain bg-transparent group-hover:scale-105 transition" />
               </Link>
             </div>
 
-            {/* צד שמאל: כפתור עגלה מעוצב ותואם לצבעי האתר */}
+            {/* צד שמאל: כפתור עגלה מעוצב */}
             <div className="flex items-center justify-end">
               <Link href="/cart" className="relative bg-orange-500/10 hover:bg-orange-500/20 border-2 border-orange-500/40 text-orange-900 p-2.5 sm:px-4 sm:py-2 rounded-2xl text-xs font-bold transition flex items-center gap-2 shadow-xs cursor-pointer">
                 <span className="text-base">🛒</span>
@@ -150,6 +148,23 @@ export default function RootLayout({
               </Link>
             </div>
 
+          </div>
+
+          {/* שורת חיפוש גלובלית וצפה שתישאר בראש המסך תמיד בגלילה */}
+          <div className="bg-white/95 backdrop-blur-md px-4 py-2.5 border-t border-gray-100">
+            <div className="max-w-2xl mx-auto relative">
+              <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-gray-400">
+                🔍
+              </div>
+              <form action="/search" method="GET">
+                <input
+                  type="text"
+                  name="q"
+                  placeholder="חיפוש מוצרים, מכשירים, נגנים או קטגוריות..."
+                  className="w-full bg-gray-50 border-2 border-orange-500/30 focus:border-orange-600 rounded-xl py-2.5 pr-10 pl-4 text-xs sm:text-sm font-medium shadow-xs outline-none transition"
+                />
+              </form>
+            </div>
           </div>
         </header>
 
