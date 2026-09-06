@@ -102,14 +102,14 @@ function StoreContent() {
     return nameMatch || brandMatch || categoryMatch || descMatch;
   });
 
-  // כפילות מורחבת של מותגים להבטחת רציפות מלאה בלי שום רווח ריק
-  const scrollingBrands = [...brands, ...brands, ...brands, ...brands];
+  // שכפול מורחב מאוד של מותגים להבטחת רציפות מוחלטת בלי שום רווח
+  const scrollingBrands = [...brands, ...brands, ...brands, ...brands, ...brands, ...brands];
 
   return (
     <div className="space-y-0 pb-16" dir="rtl">
       
       <style jsx>{`
-        /* מותגים נעים שמאלה ברציפות */
+        /* מותגים נעים שמאלה ברציפות מושלמת */
         @keyframes marqueeLeft {
           0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }
@@ -117,13 +117,13 @@ function StoreContent() {
         .animate-marquee-left {
           display: flex;
           width: max-content;
-          animation: marqueeLeft 25s linear infinite;
+          animation: marqueeLeft 30s linear infinite;
         }
         .animate-marquee-left:hover {
           animation-play-state: paused;
         }
 
-        /* שורת מבצעים עליונה נעה ימינה ברציפות */
+        /* שורת מבצעים עליונה נעה ימינה ברציפות מושלמת */
         @keyframes marqueeRight {
           0% { transform: translateX(-50%); }
           100% { transform: translateX(0%); }
@@ -138,7 +138,7 @@ function StoreContent() {
         }
       `}</style>
 
-      {/* פס מבצעים עליון נע ימינה ברציפות בלי הפסקות */}
+      {/* פס מבצעים עליון נע ימינה ברציפות ללא הפסקות */}
       {settings?.announcement_text && timeLeft && !timeLeft.isExpired && (
         <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2 text-xs sm:text-sm font-bold flex items-center justify-between gap-4 shadow-sm z-50 overflow-hidden">
           <div className="flex items-center gap-2 shrink-0 z-10 bg-orange-600 pl-2">
@@ -149,23 +149,23 @@ function StoreContent() {
           <div className="overflow-hidden relative flex-1">
             <div className="animate-marquee-right text-right text-xs">
               <span>
-                {settings.announcement_text} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {settings.announcement_text} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {settings.announcement_text}
+                {settings.announcement_text} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {settings.announcement_text} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {settings.announcement_text} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {settings.announcement_text}
               </span>
             </div>
           </div>
         </div>
       )}
 
-      {/* מותגים צפופים נעים שמאלה ברציפות */}
+      {/* מותגים צפופים מאוד נעים שמאלה ברציפות */}
       {brands.length > 0 && (
-        <div className="w-full overflow-hidden bg-orange-50/40 py-2.5 border-b border-orange-100">
-          <div className="animate-marquee-left flex items-center gap-6 px-4">
+        <div className="w-full overflow-hidden bg-orange-50/40 py-2 border-b border-orange-100">
+          <div className="animate-marquee-left flex items-center gap-4 px-2">
             {scrollingBrands.map((brand, idx) => (
               brand.image_url && (
                 <Link 
                   key={`${brand.id}-${idx}`} 
                   href={`/brand/${encodeURIComponent(brand.name)}`}
-                  className="w-20 h-10 flex items-center justify-center flex-shrink-0 opacity-85 hover:opacity-100 hover:scale-110 transition cursor-pointer"
+                  className="w-16 h-9 flex items-center justify-center flex-shrink-0 opacity-85 hover:opacity-100 hover:scale-110 transition cursor-pointer px-1"
                 >
                   <img src={brand.image_url} alt={brand.name} className="max-h-full max-w-full object-contain" />
                 </Link>
@@ -180,7 +180,7 @@ function StoreContent() {
         <div className="relative w-full overflow-hidden bg-black">
           {banners[currentBanner]?.desktop_image_url || banners[currentBanner]?.mobile_image_url || banners[currentBanner]?.image_url ? (
             <div className="relative w-full">
-              {/* תמונת מחשב מוגדלת מעט */}
+              {/* תמונת מחשב מוגדלת */}
               {banners[currentBanner]?.desktop_image_url && (
                 <img 
                   src={banners[currentBanner].desktop_image_url} 
@@ -188,7 +188,7 @@ function StoreContent() {
                   className={`w-full h-auto object-cover max-h-[460px] min-h-[260px] ${banners[currentBanner]?.mobile_image_url ? 'hidden sm:block' : 'block'}`}
                 />
               )}
-              {/* תמונת פלאפון מוגדלת מעט */}
+              {/* תמונת פלאפון מוגדלת */}
               {banners[currentBanner]?.mobile_image_url && (
                 <img 
                   src={banners[currentBanner].mobile_image_url} 
