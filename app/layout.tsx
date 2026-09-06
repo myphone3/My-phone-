@@ -3,7 +3,7 @@
 import './globals.css';
 import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
-import { supabase } from './lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export default function RootLayout({
   children,
@@ -19,13 +19,11 @@ export default function RootLayout({
   }, []);
 
   const checkUserAndCart = async () => {
-    // בדיקת משתמש מחובר
     const { data: { session } } = await supabase.auth.getSession();
     const currentUser = session?.user || null;
     setUser(currentUser);
 
     if (currentUser) {
-      // בדיקה האם הוא מנהל (לפי טבלת פרופילים או מייל)
       const { data: profile } = await supabase
         .from('profiles')
         .select('*')
@@ -37,7 +35,6 @@ export default function RootLayout({
       }
     }
 
-    // ספירת פריטים בעגלה (מלוקאל סטורג' או סאפבייס)
     try {
       const localCart = JSON.parse(localStorage.getItem('cart') || '[]');
       const totalItems = localCart.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
