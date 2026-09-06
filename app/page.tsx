@@ -64,7 +64,9 @@ function StoreContent() {
 
     if (prodRes.data) setProducts(prodRes.data);
     if (catRes.data) setCategories(catRes.data);
-    if (brandRes.data) setBrands(brandRes.data);
+    if (brandRes.data) {
+      setBrands(brandRes.data);
+    }
     if (settingsRes.data) setSettings(settingsRes.data);
 
     if (bannerRes.data && bannerRes.data.length > 0) {
@@ -91,23 +93,23 @@ function StoreContent() {
     }
   };
 
-  // שכפול רב של המותגים כך שהרשימה ארוכה מספיק ורצה ברציפות מלאה
-  const scrollingBrands = [...brands, ...brands, ...brands, ...brands, ...brands, ...brands, ...brands, ...brands];
+  // כפילות נקייה ויציבה לרציפות חלקה של המותגים
+  const scrollingBrands = [...brands, ...brands, ...brands, ...brands];
 
   return (
     <div className="space-y-0 pb-16" dir="rtl">
       
       <style jsx>{`
-        @keyframes marqueeBrandsRight {
-          0% { transform: translateX(-50%); }
-          100% { transform: translateX(0%); }
+        @keyframes marqueeRight {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(50%); }
         }
-        .animate-marquee-brands-right {
+        .animate-marquee-right {
           display: flex;
           width: max-content;
-          animation: marqueeBrandsRight 35s linear infinite;
+          animation: marqueeRight 25s linear infinite;
         }
-        .animate-marquee-brands-right:hover {
+        .animate-marquee-right:hover {
           animation-play-state: paused;
         }
       `}</style>
@@ -128,10 +130,10 @@ function StoreContent() {
         </div>
       )}
 
-      {/* שורת מותגים נעה ימינה ברציפות מלאה */}
+      {/* שורת מותגים פעילה ויציבה */}
       {brands.length > 0 && (
         <div className="w-full overflow-hidden bg-orange-50/40 py-3 border-b border-orange-100">
-          <div className="animate-marquee-brands-right flex items-center gap-10 px-4">
+          <div className="animate-marquee-right flex items-center gap-8 px-4">
             {scrollingBrands.map((brand, idx) => (
               brand.image_url && (
                 <Link 
