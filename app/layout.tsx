@@ -12,7 +12,6 @@ export default function RootLayout({
 }) {
   const [cartCount, setCartCount] = useState(0);
   const [user, setUser] = useState<any>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [userAvatar, setUserAvatar] = useState<string>('');
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -37,16 +36,6 @@ export default function RootLayout({
     if (currentUser) {
       const avatar = currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.picture || '';
       setUserAvatar(avatar);
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', currentUser.id)
-        .single();
-      
-      if (profile?.is_admin || currentUser.email?.includes('admin')) {
-        setIsAdmin(true);
-      }
     }
 
     try {
@@ -100,7 +89,7 @@ export default function RootLayout({
                         <span className="font-bold text-gray-900">{user.email}</span>
                       </div>
 
-                      {/* התראות ועדכונים מוצגים ישירות בחלון */}
+                      {/* התראות ועדכונים */}
                       <div className="px-4 py-2 bg-orange-50/50 rounded-xl mx-2 border border-orange-100 space-y-1">
                         <div className="flex items-center gap-1.5 text-xs font-black text-orange-800">
                           <span>🔔</span> התראות ועדכונים
@@ -110,16 +99,14 @@ export default function RootLayout({
                         </p>
                       </div>
 
-                      {/* כפתור מעבר לניהול (רק למנהלים) */}
-                      {isAdmin && (
-                        <Link 
-                          href="/admin" 
-                          onClick={() => setShowDropdown(false)}
-                          className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 rounded-xl mx-2 transition text-center justify-center shadow-xs"
-                        >
-                          ⚙️ מעבר לאתר ניהול
-                        </Link>
-                      )}
+                      {/* כפתור מעבר לניהול */}
+                      <Link 
+                        href="/admin" 
+                        onClick={() => setShowDropdown(false)}
+                        className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 rounded-xl mx-2 transition text-center justify-center shadow-xs"
+                      >
+                        ⚙️ מעבר לאתר ניהול
+                      </Link>
 
                       <button
                         onClick={async () => {
@@ -150,13 +137,13 @@ export default function RootLayout({
               </Link>
             </div>
 
-            {/* צד שמאל: עגלת קניות */}
+            {/* צד שמאל: עגלת קניות בצבעי הכתום של האתר */}
             <div className="flex items-center justify-end">
-              <Link href="/cart" className="relative bg-gray-900 hover:bg-black text-white p-2.5 sm:px-4 sm:py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm cursor-pointer">
+              <Link href="/cart" className="relative bg-orange-600 hover:bg-orange-700 text-white p-2.5 sm:px-4 sm:py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm cursor-pointer">
                 <span className="text-base">🛒</span>
                 <span className="hidden sm:inline">עגלה</span>
                 {cartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-orange-600 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow">
+                  <span className="absolute -top-2 -right-2 bg-black text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow">
                     {cartCount}
                   </span>
                 )}
