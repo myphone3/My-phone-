@@ -77,13 +77,6 @@ function StoreContent() {
           subtitle: 'הנחות מיוחדות לשבוע הקרוב בלבד | משלוח מהיר עד הבית',
           image_url: '',
           link_product_id: ''
-        },
-        {
-          id: '2',
-          title: '🎧 מגוון נגנים ואביזרים איכותיים',
-          subtitle: 'הציוד הטוב ביותר במחירים שלא תמצאו בשום מקום אחר',
-          image_url: '',
-          link_product_id: ''
         }
       ]);
     }
@@ -151,38 +144,81 @@ function StoreContent() {
         </div>
       )}
 
-      {/* באנרים */}
+      {/* אזור הבאנרים - תצוגת תמונות אמיתיות למחשב ולפלאפון */}
       {banners.length > 0 && (
-        <div className="relative w-full bg-gradient-to-r from-gray-950 via-orange-950 to-black overflow-hidden shadow-xl text-white py-10 px-4 sm:px-16 transition-all duration-500">
-          <div className="max-w-5xl mx-auto space-y-3 relative z-10 text-right sm:text-center flex flex-col items-start sm:items-center">
-            <span className="inline-block bg-orange-600/35 border border-orange-500/40 text-orange-300 px-3 py-1 rounded-full text-[11px] sm:text-xs font-bold tracking-wide backdrop-blur-md">
-              NEW PHONE מבצעים חמים ⚡
-            </span>
-            <h1 className="w-full text-base sm:text-2xl md:text-3xl font-black leading-snug sm:leading-tight break-words">
-              {banners[currentBanner]?.title}
-            </h1>
-            <p className="w-full text-gray-300 text-xs sm:text-sm font-medium leading-relaxed">
-              {banners[currentBanner]?.subtitle}
-            </p>
-            {banners[currentBanner]?.link_product_id && (
-              <Link 
-                href={`/product/${banners[currentBanner].link_product_id}`}
-                className="inline-block bg-orange-600 text-white hover:bg-orange-700 px-5 py-2.5 rounded-2xl text-xs font-bold transition shadow-lg cursor-pointer mt-1"
-              >
-                לרכישת המוצר המשתתף במבצע ➔
-              </Link>
-            )}
-          </div>
+        <div className="relative w-full overflow-hidden shadow-xl bg-black">
+          {banners[currentBanner]?.desktop_image_url || banners[currentBanner]?.mobile_image_url || banners[currentBanner]?.image_url ? (
+            <div className="relative w-full">
+              {/* תמונת מחשב */}
+              {banners[currentBanner]?.desktop_image_url && (
+                <img 
+                  src={banners[currentBanner].desktop_image_url} 
+                  alt={banners[currentBanner]?.title || ''} 
+                  className={`w-full h-auto object-cover max-h-[450px] ${banners[currentBanner]?.mobile_image_url ? 'hidden sm:block' : 'block'}`}
+                />
+              )}
+              {/* תמונת פלאפון */}
+              {banners[currentBanner]?.mobile_image_url && (
+                <img 
+                  src={banners[currentBanner].mobile_image_url} 
+                  alt={banners[currentBanner]?.title || ''} 
+                  className="w-full h-auto object-cover max-h-[400px] block sm:hidden"
+                />
+              )}
+              {/* גיבוי לתמונה ישנה */}
+              {!banners[currentBanner]?.desktop_image_url && !banners[currentBanner]?.mobile_image_url && banners[currentBanner]?.image_url && (
+                <img 
+                  src={banners[currentBanner].image_url} 
+                  alt={banners[currentBanner]?.title || ''} 
+                  className="w-full h-auto object-cover max-h-[450px]"
+                />
+              )}
 
-          <div className="absolute bottom-3 left-4 sm:left-1/2 sm:-translate-x-1/2 flex gap-1.5 z-25">
-            {banners.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentBanner(idx)}
-                className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${currentBanner === idx ? 'w-6 bg-orange-500' : 'w-2 bg-white/40'}`}
-              />
-            ))}
-          </div>
+              {/* קישור למוצר בלחיצה על הבאנר אם הוגדר */}
+              {banners[currentBanner]?.link_product_id && (
+                <Link 
+                  href={`/product/${banners[currentBanner].link_product_id}`}
+                  className="absolute inset-0 z-10 cursor-pointer"
+                />
+              )}
+            </div>
+          ) : (
+            /* עיצוב טקסט בררת מחדל אם לא הועלתה תמונה */
+            <div className="relative w-full bg-gradient-to-r from-gray-950 via-orange-950 to-black text-white py-10 px-4 sm:px-16">
+              <div className="max-w-5xl mx-auto space-y-3 relative z-10 text-right sm:text-center flex flex-col items-start sm:items-center">
+                <span className="inline-block bg-orange-600/35 border border-orange-500/40 text-orange-300 px-3 py-1 rounded-full text-[11px] sm:text-xs font-bold tracking-wide backdrop-blur-md">
+                  NEW PHONE מבצעים חמים ⚡
+                </span>
+                <h1 className="w-full text-base sm:text-2xl md:text-3xl font-black leading-snug sm:leading-tight break-words">
+                  {banners[currentBanner]?.title}
+                </h1>
+                <p className="w-full text-gray-300 text-xs sm:text-sm font-medium leading-relaxed">
+                  {banners[currentBanner]?.subtitle}
+                </p>
+                {banners[currentBanner]?.link_product_id && (
+                  <Link 
+                    href={`/product/${banners[currentBanner].link_product_id}`}
+                    className="inline-block bg-orange-600 text-white hover:bg-orange-700 px-5 py-2.5 rounded-2xl text-xs font-bold transition shadow-lg cursor-pointer mt-1"
+                  >
+                    לרכישת המוצר המשתתף במבצע ➔
+                  </Link>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* כפתורי נקודות למעבר בין באנרים */}
+          {banners.length > 1 && (
+            <div className="absolute bottom-3 left-4 sm:left-1/2 sm:-translate-x-1/2 flex gap-1.5 z-20">
+              {banners.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentBanner(idx)}
+                  className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${currentBanner === idx ? 'w-6 bg-orange-500' : 'w-2 bg-white/40'}`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
