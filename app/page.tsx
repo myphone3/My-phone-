@@ -15,7 +15,6 @@ function StoreContent() {
   const [currentBanner, setCurrentBanner] = useState(0);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [selectedColors, setSelectedColors] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
@@ -109,34 +108,36 @@ function StoreContent() {
     <div className="space-y-0 pb-16" dir="rtl">
       
       <style jsx>{`
-        @keyframes marquee {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(50%); }
-        }
-        .animate-marquee {
-          display: flex;
-          width: max-content;
-          animation: marquee 20s linear infinite;
-        }
-        .animate-marquee:hover {
-          animation-play-state: paused;
-        }
-
-        @keyframes textScroll {
+        /* מותגים נעים שמאלה (-50%) */
+        @keyframes marqueeLeft {
           0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }
         }
-        .animate-text-scroll {
+        .animate-marquee-left {
+          display: flex;
+          width: max-content;
+          animation: marqueeLeft 20s linear infinite;
+        }
+        .animate-marquee-left:hover {
+          animation-play-state: paused;
+        }
+
+        /* שורת מבצעים עליונה נעה ימינה ברציפות */
+        @keyframes marqueeRight {
+          0% { transform: translateX(-50%); }
+          100% { transform: translateX(0%); }
+        }
+        .animate-marquee-right {
           display: inline-block;
           white-space: nowrap;
-          animation: textScroll 18s linear infinite;
+          animation: marqueeRight 18s linear infinite;
         }
-        .animate-text-scroll:hover {
+        .animate-marquee-right:hover {
           animation-play-state: paused;
         }
       `}</style>
 
-      {/* פס מבצעים עליון עם גלילת מלל חלקה כך שכל הטקסט תמיד נראה במלואו */}
+      {/* פס מבצעים עליון נע ימינה ברציפות */}
       {settings?.announcement_text && timeLeft && !timeLeft.isExpired && (
         <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2 text-xs sm:text-sm font-bold flex items-center justify-between gap-4 shadow-sm z-50 overflow-hidden">
           <div className="flex items-center gap-2 shrink-0 z-10 bg-orange-600 pl-2">
@@ -145,17 +146,17 @@ function StoreContent() {
             </span>
           </div>
           <div className="overflow-hidden relative flex-1">
-            <div className="animate-text-scroll text-right text-xs">
-              <span>{settings.announcement_text} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {settings.announcement_text}</span>
+            <div className="animate-marquee-right text-right text-xs">
+              <span>{settings.announcement_text} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {settings.announcement_text}</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* מותגים צפופים ונעים */}
+      {/* מותגים צפופים נעים שמאלה */}
       {brands.length > 0 && (
         <div className="w-full overflow-hidden bg-orange-50/40 py-2.5 border-b border-orange-100">
-          <div className="animate-marquee flex items-center gap-6 px-4">
+          <div className="animate-marquee-left flex items-center gap-6 px-4">
             {scrollingBrands.map((brand, idx) => (
               brand.image_url && (
                 <Link 
@@ -171,25 +172,25 @@ function StoreContent() {
         </div>
       )}
 
-      {/* באנר דומיננטי וגדול יותר */}
+      {/* באנר מלבני קטן יותר ללא מסגרת (מידות מומלצות: 1920x500 למחשב, 1000x600 לפלאפון) */}
       {banners.length > 0 && (
         <div className="relative w-full overflow-hidden bg-black">
           {banners[currentBanner]?.desktop_image_url || banners[currentBanner]?.mobile_image_url || banners[currentBanner]?.image_url ? (
             <div className="relative w-full">
-              {/* תמונת מחשב מוגדלת */}
+              {/* תמונת מחשב */}
               {banners[currentBanner]?.desktop_image_url && (
                 <img 
                   src={banners[currentBanner].desktop_image_url} 
                   alt={banners[currentBanner]?.title || ''} 
-                  className={`w-full h-auto object-cover max-h-[650px] min-h-[350px] ${banners[currentBanner]?.mobile_image_url ? 'hidden sm:block' : 'block'}`}
+                  className={`w-full h-auto object-cover max-h-[380px] min-h-[220px] ${banners[currentBanner]?.mobile_image_url ? 'hidden sm:block' : 'block'}`}
                 />
               )}
-              {/* תמונת פלאפון מוגדלת */}
+              {/* תמונת פלאפון */}
               {banners[currentBanner]?.mobile_image_url && (
                 <img 
                   src={banners[currentBanner].mobile_image_url} 
                   alt={banners[currentBanner]?.title || ''} 
-                  className="w-full h-auto object-cover max-h-[550px] min-h-[350px] block sm:hidden"
+                  className="w-full h-auto object-cover max-h-[300px] min-h-[200px] block sm:hidden"
                 />
               )}
               {/* גיבוי לתמונה ישנה */}
@@ -197,7 +198,7 @@ function StoreContent() {
                 <img 
                   src={banners[currentBanner].image_url} 
                   alt={banners[currentBanner]?.title || ''} 
-                  className="w-full h-auto object-cover max-h-[650px] min-h-[350px]"
+                  className="w-full h-auto object-cover max-h-[380px] min-h-[220px]"
                 />
               )}
 
@@ -210,21 +211,21 @@ function StoreContent() {
               )}
             </div>
           ) : (
-            <div className="relative w-full bg-gradient-to-r from-gray-950 via-orange-950 to-black text-white py-20 px-4 sm:px-16">
+            <div className="relative w-full bg-gradient-to-r from-gray-950 via-orange-950 to-black text-white py-12 px-4 sm:px-16">
               <div className="max-w-5xl mx-auto space-y-3 relative z-10 text-right sm:text-center flex flex-col items-start sm:items-center">
                 <span className="inline-block bg-orange-600/35 border border-orange-500/40 text-orange-300 px-3 py-1 rounded-full text-[11px] sm:text-xs font-bold tracking-wide backdrop-blur-md">
                   NEW PHONE מבצעים חמים ⚡
                 </span>
-                <h1 className="w-full text-lg sm:text-3xl md:text-5xl font-black leading-snug sm:leading-tight break-words">
+                <h1 className="w-full text-lg sm:text-2xl md:text-3xl font-black leading-snug sm:leading-tight break-words">
                   {banners[currentBanner]?.title}
                 </h1>
-                <p className="w-full text-gray-300 text-xs sm:text-sm md:text-base font-medium leading-relaxed">
+                <p className="w-full text-gray-300 text-xs sm:text-sm font-medium leading-relaxed">
                   {banners[currentBanner]?.subtitle}
                 </p>
                 {banners[currentBanner]?.link_product_id && (
                   <Link 
                     href={`/product/${banners[currentBanner].link_product_id}`}
-                    className="inline-block bg-orange-600 text-white hover:bg-orange-700 px-6 py-3 rounded-2xl text-xs font-bold transition shadow-lg cursor-pointer mt-2"
+                    className="inline-block bg-orange-600 text-white hover:bg-orange-700 px-5 py-2.5 rounded-2xl text-xs font-bold transition shadow-lg cursor-pointer mt-1"
                   >
                     לרכישת המוצר המשתתף במבצע ➔
                   </Link>
@@ -235,7 +236,7 @@ function StoreContent() {
 
           {/* כפתורי נקודות למעבר בין באנרים */}
           {banners.length > 1 && (
-            <div className="absolute bottom-4 left-4 sm:left-1/2 sm:-translate-x-1/2 flex gap-1.5 z-20">
+            <div className="absolute bottom-3 left-4 sm:left-1/2 sm:-translate-x-1/2 flex gap-1.5 z-20">
               {banners.map((_, idx) => (
                 <button
                   key={idx}
@@ -248,68 +249,7 @@ function StoreContent() {
         </div>
       )}
 
-      {/* שורת חיפוש צפה מתחת לבאנר שתישאר תמיד בראש המסך בזמן גלילה */}
-      <div className="sticky top-16 sm:top-20 z-40 bg-white/95 backdrop-blur-md py-3 px-4 shadow-md border-b border-gray-100">
-        <div className="max-w-2xl mx-auto relative">
-          <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-gray-400">
-            🔍
-          </div>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onFocus={() => setIsSearchFocused(true)}
-            onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-            placeholder="חפש מכשיר, נגן, מותג או קטגוריה..."
-            className="w-full bg-gray-50 border-2 border-orange-500/30 focus:border-orange-600 rounded-2xl py-3.5 pr-11 pl-4 text-xs sm:text-sm font-medium shadow-sm outline-none transition"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute inset-y-0 left-0 pl-4 flex items-center text-xs font-bold text-gray-400 hover:text-gray-600 cursor-pointer"
-            >
-              ✕ ניקוי
-            </button>
-          )}
-
-          {/* תפריט השלמה אוטומטית נפתח */}
-          {isSearchFocused && searchQuery.trim().length > 0 && (
-            <div className="absolute top-full mt-2 w-full bg-white border border-gray-100 rounded-2xl shadow-2xl max-h-80 overflow-y-auto z-50 p-2 space-y-1">
-              {filteredProducts.length === 0 ? (
-                <div className="p-3 text-xs text-gray-500 text-center font-medium">לא נמצאו תוצאות תואמות</div>
-              ) : (
-                filteredProducts.map((prod) => {
-                  const img = prod.image_url || prod.images?.[0] || '';
-                  return (
-                    <Link
-                      key={prod.id}
-                      href={`/product/${prod.id}`}
-                      className="flex items-center gap-3 p-2.5 hover:bg-orange-50/60 rounded-xl transition group cursor-pointer"
-                    >
-                      <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border">
-                        {img ? (
-                          <img src={img} alt={prod.name} className="w-full h-full object-contain" />
-                        ) : (
-                          <span>📦</span>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-xs font-black text-gray-900 truncate group-hover:text-orange-600 transition">{prod.name}</h4>
-                        <p className="text-[10px] text-gray-400 truncate">{prod.brand || prod.category || 'מוצר בחנות'}</p>
-                      </div>
-                      <span className="text-xs font-black text-orange-600 shrink-0">
-                        ₪{prod.sale_price || prod.price}
-                      </span>
-                    </Link>
-                  );
-                })
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 space-y-10 pt-6">
+      <div className="max-w-7xl mx-auto px-4 space-y-10 pt-8">
 
         {/* קטגוריות מובילות */}
         {categories.length > 0 && (
