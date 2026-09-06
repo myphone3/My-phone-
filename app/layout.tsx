@@ -44,15 +44,24 @@ export default function RootLayout({
     }
   };
 
+  const handleGoogleLogin = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+  };
+
   return (
     <html lang="he" dir="rtl">
       <body className="bg-gray-50 text-gray-900 font-sans antialiased">
         
-        {/* הדר ראשי גלובלי - לוגו גדול במרכז, עגלה בצד אחד והתחברות/ניהול בצד השני */}
+        {/* הדר ראשי גלובלי */}
         <header className="bg-white border-b sticky top-0 z-50 shadow-xs">
           <div className="max-w-7xl mx-auto px-4 py-3 grid grid-cols-3 items-center">
             
-            {/* צד ימין: התחברות / אזור אישי או ניהול */}
+            {/* צד ימין: התחברות עם גוגל או כפתור ניהול */}
             <div className="flex items-center justify-start gap-2">
               {user ? (
                 <div className="flex items-center gap-2">
@@ -61,21 +70,27 @@ export default function RootLayout({
                       ⚙️ ניהול
                     </Link>
                   )}
-                  <Link href="/profile" className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer">
-                    👤 אזור אישי
-                  </Link>
+                  <button 
+                    onClick={async () => { await supabase.auth.signOut(); window.location.reload(); }}
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer"
+                  >
+                    התנתק 🚪
+                  </button>
                 </div>
               ) : (
-                <Link href="/login" className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
-                  👤 התחברות
-                </Link>
+                <button
+                  onClick={handleGoogleLogin}
+                  className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                >
+                  <span>🌐</span> התחברות עם גוגל
+                </button>
               )}
             </div>
 
-            {/* מרכז: לוגו גדול ובולט */}
+            {/* מרכז: לוגו גדול בלי מסגרת */}
             <div className="flex justify-center">
-              <Link href="/" className="flex flex-col items-center group cursor-pointer">
-                <img src="/Logo.JPG" alt="NEW PHONE" className="w-14 h-14 sm:w-16 sm:h-16 object-contain rounded-2xl border p-0.5 shadow-xs bg-white group-hover:scale-105 transition" />
+              <Link href="/" className="flex items-center group cursor-pointer">
+                <img src="/Logo.JPG" alt="NEW PHONE" className="w-16 h-16 sm:w-20 sm:h-20 object-contain bg-transparent group-hover:scale-105 transition" />
               </Link>
             </div>
 
