@@ -1,248 +1,307 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import Link from 'next/link';
 
-export default function AdminBannersPage() {
+export default function AdminBanners() {
   const [banners, setBanners] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
-  const [storageFiles, setStorageFiles] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
+  const [desktopImageUrl, setDesktopImageUrl] = useState('');
+  const [mobileImageUrl, setMobileImageUrl] = useState('');
   const [linkProductId, setLinkProductId] = useState('');
   const [isActive, setIsActive] = useState(true);
-  const [uploading, setUploading] = useState(false);
+  
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [uploadingDesktop, setUploadingDesktop] = useState(false);
+  const [uploadingMobile, setUploadingMobile] = useState(false);
 
-  const [announcementText, setAnnouncementText] = useState('');
-  const [announcementEndTime, setAnnouncementEndTime] = useState('');
-  const [savingSettings, setSavingSettings] = useState(false);
+  // גלריית תמונות קיימות באחסון
+  const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [showGalleryFor, setShowGalleryFor] = useState<'desktop' | 'mobile' | null>(null);
+  const [loadingGallery, setLoadingGallery] = useState(false);
 
   useEffect(() => {
-    fetchData();
+    fetchBanners();
   }, []);
 
-  const fetchData = async () => {
-    setLoading(true);
-    const [bannerRes, prodRes, storageRes, settingsRes] = await Promise.all([
-      supabase.from('banners').select('*').order('created_at', { ascending: false }),
-      supabase.from('products').select('id, name').or('is_published.is.null,is_published.eq.true'),
-      supabase.storage.from('products').list('banners', { limit: 50 }),
-      supabase.from('settings').select('*').single()
-    ]);
+  const fetchBanners = async () => {
+    const { data } = await supabase.from('banners').select('*').order('created_at', { ascending: false });
+    if (data) setBanners(data);
+  };
 
-    if (bannerRes.data) setBanners(bannerRes.data);
-    if (prodRes.data) setProducts(prodRes.data);
-    if (storageRes.data) {
-      const files = storageRes.data.map((f: any) => {
-        const { data } = supabase.storage.from('products').getPublicUrl(`banners/${f.name}`);
-        return data.publicUrl;
-      });
-      setStorageFiles(files);
+  const fetchExistingImages = async () => {
+    try {
+      setLoadingGallery(true);
+      const { data, error } = await supabase.storage.from('product-images').list();
+      if (error) throw error;
+      if (data) {
+        const urls = data
+          .filter(file => file.name && file.name !== '.gitkeep')
+          .map((file) => {
+            const { data: pub } = supabase.storage.from('product-images').getPublicUrl(file.name);
+            return pub.publicUrl;
+          });
+        setExistingImages(urls);
+      }
+    } catch (err: any) {
+      console.error('Error fetching existing images:', err.message);
+    } finally {
+      setLoadingGallery(false);
     }
-    if (settingsRes.data) {
-      setAnnouncementText(settingsRes.data.announcement_text || '');
-      setAnnouncementEndTime(settingsRes.data.announcement_end_time ? new Date(settingsRes.data.announcement_end_time).toISOString().slice(0, 16) : '');
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'desktop' | 'mobile') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      if (type === 'desktop') setUploadingDesktop(true);
+      else setUploadingMobile(true);
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `banner_${type}_${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from('product-images').upload(fileName, file);
+      if (uploadError) throw uploadError;
+
+      const { data: pubData } = supabase.storage.from('product-images').getPublicUrl(fileName);
+      if (pubData) {
+        if (type === 'desktop') setDesktopImageUrl(pubData.publicUrl);
+        else setMobileImageUrl(pubData.publicUrl);
+      }
+    } catch (err: any) {
+      alert('שגיאה בהעלאה: ' + err.message);
+    } finally {
+      if (type === 'desktop') setUploadingDesktop(false);
+      else setUploadingMobile(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+    setLoading(true);
+
+    const bannerData = {
+      title,
+      subtitle,
+      desktop_image_url: desktopImageUrl,
+      mobile_image_url: mobileImageUrl,
+      image_url: desktopImageUrl, // גיבוי לתאימות אחורית
+      link_product_id: linkProductId,
+      is_active: isActive
+    };
+
+    if (editingId) {
+      const { error } = await supabase.from('banners').update(bannerData).eq('id', editingId);
+      if (error) alert('שגיאה: ' + error.message);
+      else {
+        alert('הבאנר עודכן בהצלחה! 🎉');
+        resetForm();
+        fetchBanners();
+      }
+    } else {
+      const { error } = await supabase.from('banners').insert([bannerData]);
+      if (error) alert('שגיאה: ' + error.message);
+      else {
+        alert('הבאנר נוסף בהצלחה! 🚀');
+        resetForm();
+        fetchBanners();
+      }
     }
     setLoading(false);
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}.${fileExt}`;
-    const filePath = `banners/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage.from('products').upload(filePath, file);
-    if (uploadError) {
-      alert('שגיאה בהעלאת התמונה: ' + uploadError.message);
-      setUploading(false);
-      return;
-    }
-
-    const { data } = supabase.storage.from('products').getPublicUrl(filePath);
-    setImageUrl(data.publicUrl);
-    setUploading(false);
-    fetchData();
+  const handleEdit = (b: any) => {
+    setEditingId(b.id);
+    setTitle(b.title || '');
+    setSubtitle(b.subtitle || '');
+    setDesktopImageUrl(b.desktop_image_url || b.image_url || '');
+    setMobileImageUrl(b.mobile_image_url || '');
+    setLinkProductId(b.link_product_id || '');
+    setIsActive(b.is_active ?? true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleAddBanner = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title) {
-      alert('נא להזין כותרת לבאנר');
-      return;
-    }
-
-    const { error } = await supabase.from('banners').insert([
-      {
-        title,
-        subtitle,
-        image_url: imageUrl,
-        link_product_id: linkProductId || null,
-        is_active: isActive
-      }
-    ]);
-
-    if (error) {
-      alert('שגיאה בשמירת הבאנר: ' + error.message);
-    } else {
-      setTitle('');
-      setSubtitle('');
-      setImageUrl('');
-      setLinkProductId('');
-      setIsActive(true);
-      fetchData();
-      alert('הבאנר נוסף בהצלחה!');
-    }
-  };
-
-  const handleDeleteBanner = async (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('האם למחוק באנר זה?')) return;
-    await supabase.from('banners').delete().eq('id', id);
-    fetchData();
+    const { error } = await supabase.from('banners').delete().eq('id', id);
+    if (error) alert('שגיאה: ' + error.message);
+    else fetchBanners();
   };
 
-  const handleSaveSettings = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSavingSettings(true);
-
-    const { data: existing } = await supabase.from('settings').select('*').limit(1);
-
-    let error;
-    const payload = {
-      announcement_text: announcementText,
-      announcement_end_time: announcementEndTime ? new Date(announcementEndTime).toISOString() : null
-    };
-
-    if (existing && existing.length > 0) {
-      const res = await supabase.from('settings').update(payload).eq('id', existing[0].id);
-      error = res.error;
-    } else {
-      const res = await supabase.from('settings').insert([payload]);
-      error = res.error;
-    }
-
-    setSavingSettings(false);
-    if (error) alert('שגיאה בשמירת ההגדרות: ' + error.message);
-    else alert('הגדרות פס המבצעים עודכנו בהצלחה!');
+  const resetForm = () => {
+    setEditingId(null);
+    setTitle('');
+    setSubtitle('');
+    setDesktopImageUrl('');
+    setMobileImageUrl('');
+    setLinkProductId('');
+    setIsActive(true);
+    setShowGalleryFor(null);
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8" dir="rtl">
-      <div className="flex justify-between items-center border-b pb-4">
-        <div>
-          <h1 className="text-2xl font-black text-gray-900">ניהול באנרים והגדרות עמוד הבית</h1>
-          <p className="text-xs text-gray-500 font-medium">ניהול באנרים מתחלפים ופס מבצעים עליון.</p>
+    <div className="space-y-6" dir="rtl">
+      <h1 className="text-2xl font-bold text-gray-900">ניהול באנרים שיווקיים</h1>
+
+      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
+        <h2 className="text-lg font-bold text-gray-800 border-b pb-2">
+          {editingId ? 'עריכת באנר ✏️' : 'הוספת באנר חדש ➕'}
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">כותרת הבאנר</label>
+            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="למשל: 🔥 מבצעי ענק על מכשירים כשרים..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black text-xs sm:text-sm" required />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">כותרת משנה</label>
+            <input type="text" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="למשל: הנחות מיוחדות לשבוע הקרוב בלבד..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black text-xs sm:text-sm" />
+          </div>
         </div>
-        <Link href="/admin/products" className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-xl text-xs font-bold transition">
-          ← חזרה לפאנל ניהול מוצרים
-        </Link>
-      </div>
 
-      <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
-        <h2 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">ניהול פס מבצעים עליון וטיימר</h2>
-        <form onSubmit={handleSaveSettings} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">טקסט הפס העליון</label>
-              <input
-                type="text"
-                value={announcementText}
-                onChange={(e) => setAnnouncementText(e.target.value)}
-                placeholder="לדוגמה: 🚚 משלוח מהיר עד הבית!"
-                className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
-              />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t">
+          
+          {/* באנר למחשב */}
+          <div className="space-y-2 bg-gray-50 p-4 rounded-2xl border">
+            <div className="flex justify-between items-center">
+              <label className="text-xs font-black text-gray-900">תמונת באנר למחשב (Desktop)</label>
+              <span className="text-[10px] bg-orange-100 text-orange-800 font-bold px-2 py-0.5 rounded-md">מידות מומלצות: 1920x600 px</span>
             </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">שעת סיום מבצע (לשם טיימר)</label>
-              <input
-                type="datetime-local"
-                value={announcementEndTime}
-                onChange={(e) => setAnnouncementEndTime(e.target.value)}
-                className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
-              />
-            </div>
-          </div>
-          <button type="submit" disabled={savingSettings} className="bg-orange-600 text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-orange-700 transition cursor-pointer">
-            {savingSettings ? 'שומר...' : 'שמור הגדרות פס מבצעים'}
-          </button>
-        </form>
-      </div>
-
-      <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-6">
-        <h2 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">הוספת באנר חדש</h2>
-        <form onSubmit={handleAddBanner} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">כותרת ראשית</label>
-              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="כותרת הבאנר..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">כותרת משנה</label>
-              <input type="text" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="כותרת משנה..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">העלאת קובץ חדש או בחירה מהמדיה</label>
-              <input type="file" accept="image/*" onChange={handleFileUpload} className="w-full bg-gray-50 border rounded-xl p-2 text-xs mb-2 cursor-pointer" />
-              {uploading && <p className="text-[11px] text-orange-600">מעלה...</p>}
-
-              {storageFiles.length > 0 && (
-                <div>
-                  <span className="text-[11px] font-bold text-gray-600 block mb-1">או בחר תמונה קיימת מהמדיה:</span>
-                  <div className="flex gap-2 overflow-x-auto pb-2">
-                    {storageFiles.map((url, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setImageUrl(url)}
-                        className={`w-12 h-12 rounded-lg border overflow-hidden shrink-0 transition cursor-pointer ${imageUrl === url ? 'border-orange-600 ring-2 ring-orange-600/30' : 'border-gray-200'}`}
-                      >
-                        <img src={url} alt="" className="w-full h-full object-cover" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">קישור למוצר ספציפי</label>
-              <select value={linkProductId} onChange={(e) => setLinkProductId(e.target.value)} className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600">
-                <option value="">-- ללא קישור --</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <button type="submit" className="bg-black text-white px-6 py-3 rounded-xl text-xs font-bold hover:bg-gray-800 transition cursor-pointer shadow-sm">
-            + הוסף באנר חדש
-          </button>
-        </form>
-      </div>
-
-      <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
-        <h2 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">באנרים קיימים</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {banners.map((b) => (
-            <div key={b.id} className="border rounded-2xl p-4 flex justify-between items-center bg-gray-50/50">
-              <div>
-                <h3 className="font-black text-sm">{b.title}</h3>
-                <p className="text-xs text-gray-500">{b.subtitle}</p>
-              </div>
-              <button onClick={() => handleDeleteBanner(b.id)} className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer">
-                מחיקה 🗑️
+            <div className="flex gap-2">
+              <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'desktop')} className="w-full border rounded-xl p-2 text-xs bg-white cursor-pointer" />
+              <button
+                type="button"
+                onClick={() => {
+                  if (showGalleryFor !== 'desktop') fetchExistingImages();
+                  setShowGalleryFor(showGalleryFor === 'desktop' ? null : 'desktop');
+                }}
+                className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer"
+              >
+                {showGalleryFor === 'desktop' ? 'סגור ✕' : 'בחר מהאחסון 🖼️'}
               </button>
+            </div>
+            {uploadingDesktop && <p className="text-xs text-blue-600 font-bold">מעלה תמונת מחשב...</p>}
+            {desktopImageUrl && (
+              <div className="flex items-center gap-3 bg-white p-2 rounded-xl border">
+                <img src={desktopImageUrl} alt="" className="w-16 h-10 object-cover rounded border" />
+                <span className="text-[10px] text-green-600 font-bold truncate">נבחרה תמונת מחשב ✓</span>
+              </div>
+            )}
+          </div>
+
+          {/* באנר לפלאפון */}
+          <div className="space-y-2 bg-gray-50 p-4 rounded-2xl border">
+            <div className="flex justify-between items-center">
+              <label className="text-xs font-black text-gray-900">תמונת באנר לפלאפון (Mobile)</label>
+              <span className="text-[10px] bg-orange-100 text-orange-800 font-bold px-2 py-0.5 rounded-md">מידות מומלצות: 800x800 px</span>
+            </div>
+            <div className="flex gap-2">
+              <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'mobile')} className="w-full border rounded-xl p-2 text-xs bg-white cursor-pointer" />
+              <button
+                type="button"
+                onClick={() => {
+                  if (showGalleryFor !== 'mobile') fetchExistingImages();
+                  setShowGalleryFor(showGalleryFor === 'mobile' ? null : 'mobile');
+                }}
+                className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer"
+              >
+                {showGalleryFor === 'mobile' ? 'סגור ✕' : 'בחר מהאחסון 🖼️'}
+              </button>
+            </div>
+            {uploadingMobile && <p className="text-xs text-blue-600 font-bold">מעלה תמונת פלאפון...</p>}
+            {mobileImageUrl && (
+              <div className="flex items-center gap-3 bg-white p-2 rounded-xl border">
+                <img src={mobileImageUrl} alt="" className="w-16 h-10 object-cover rounded border" />
+                <span className="text-[10px] text-green-600 font-bold truncate">נבחרה תמונת פלאפון ✓</span>
+              </div>
+            )}
+          </div>
+
+        </div>
+
+        {/* גלריית בחירת תמונות קיימות מהאחסון */}
+        {showGalleryFor && (
+          <div className="bg-orange-50 border-2 border-orange-200 p-4 rounded-2xl space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-black text-gray-900">
+                בחר תמונה עבור {showGalleryFor === 'desktop' ? 'מחשב' : 'פלאפון'} מתוך האחסון:
+              </span>
+              <button type="button" onClick={() => setShowGalleryFor(null)} className="text-xs text-gray-500 font-bold hover:text-red-600">סגור [X]</button>
+            </div>
+            {loadingGallery ? (
+              <p className="text-xs text-gray-500 py-4 text-center font-bold">טוען תמונות...</p>
+            ) : existingImages.length > 0 ? (
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 max-h-52 overflow-y-auto p-2 bg-white border rounded-xl">
+                {existingImages.map((url, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => {
+                      if (showGalleryFor === 'desktop') setDesktopImageUrl(url);
+                      else setMobileImageUrl(url);
+                      setShowGalleryFor(null);
+                    }}
+                    className="cursor-pointer border-2 rounded-lg overflow-hidden bg-white hover:border-orange-600 transition aspect-video flex items-center justify-center p-1"
+                  >
+                    <img src={url} alt="" className="w-full h-full object-cover rounded" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400 text-center py-4">לא נמצאו תמונות באחסון.</p>
+            )}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t">
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">קישור למזהה מוצר (אופציונלי)</label>
+            <input type="text" value={linkProductId} onChange={(e) => setLinkProductId(e.target.value)} placeholder="השאר ריק או הכנס מזהה מוצר..." className="w-full border rounded-xl p-3 outline-none text-xs sm:text-sm" />
+          </div>
+          <div className="flex items-center gap-3 pt-6">
+            <label className="flex items-center gap-2 cursor-pointer font-bold text-xs">
+              <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="w-4 h-4 accent-orange-600 rounded" />
+              באנר פעיל באתר
+            </label>
+          </div>
+        </div>
+
+        <div className="flex gap-2 pt-2">
+          <button type="submit" disabled={loading || uploadingDesktop || uploadingMobile} className="bg-black text-white px-6 py-3 rounded-xl font-bold hover:bg-gray-800 transition shadow-md cursor-pointer">
+            {editingId ? 'עדכן באנר 💾' : 'הוסף באנר 🚀'}
+          </button>
+          {editingId && (
+            <button type="button" onClick={resetForm} className="bg-gray-200 text-gray-800 px-6 py-3 rounded-xl font-bold cursor-pointer">ביטול ❌</button>
+          )}
+        </div>
+      </form>
+
+      <div className="bg-white p-6 rounded-2xl shadow-sm border space-y-3">
+        <h2 className="text-lg font-bold text-gray-800">באנרים קיימים ({banners.length})</h2>
+        <div className="space-y-3">
+          {banners.map((b) => (
+            <div key={b.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-gray-50 rounded-2xl border gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-20 h-12 rounded-xl bg-gray-200 overflow-hidden shrink-0 border">
+                  {(b.desktop_image_url || b.mobile_image_url || b.image_url) ? (
+                    <img src={b.desktop_image_url || b.mobile_image_url || b.image_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="flex items-center justify-center h-full text-xs">🖼️</span>
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 text-sm">{b.title}</h3>
+                  <p className="text-xs text-gray-500 line-clamp-1">{b.subtitle}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 self-end sm:self-center">
+                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${b.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
+                  {b.is_active ? 'פעיל' : 'מוסתר'}
+                </span>
+                <button onClick={() => handleEdit(b)} className="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer hover:bg-blue-100">ערוך ✏️</button>
+                <button onClick={() => handleDelete(b.id)} className="bg-red-50 text-red-600 px-3.5 py-1.5 rounded-lg text-xs font-bold cursor-pointer hover:bg-red-100">מחק 🗑️</button>
+              </div>
             </div>
           ))}
         </div>
