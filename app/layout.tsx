@@ -60,11 +60,11 @@ export default function RootLayout({
     <html lang="he" dir="rtl">
       <body className="bg-gray-50 text-gray-900 font-sans antialiased">
         
-        {/* הדר ראשי גלובלי צף שכולל את הלוגו, הפרופיל, העגלה וגם את שורת החיפוש שתישאר תמיד בגלילה */}
+        {/* הדר ראשי צף הכולל לוגו, עגלה, פרופיל ושורת חיפוש קבועה */}
         <header className="bg-white border-b sticky top-0 z-50 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 py-3 grid grid-cols-3 items-center">
             
-            {/* צד ימין: תמונת פרופיל עם מסגרת בצבע האתר */}
+            {/* צד ימין: פרופיל */}
             <div className="flex items-center justify-start relative" ref={dropdownRef}>
               {user ? (
                 <div>
@@ -81,7 +81,6 @@ export default function RootLayout({
                     )}
                   </button>
 
-                  {/* חלון נפתח פרופיל */}
                   {showDropdown && (
                     <div className="absolute top-full right-0 mt-2 w-64 bg-white border border-gray-100 rounded-2xl shadow-2xl py-3 z-50 space-y-2">
                       <div className="px-4 py-1.5 border-b text-[11px] text-gray-500 truncate">
@@ -128,14 +127,14 @@ export default function RootLayout({
               )}
             </div>
 
-            {/* מרכז: לוגו גדול ובולט ללא מסגרת */}
+            {/* מרכז: לוגו גדול */}
             <div className="flex justify-center">
               <Link href="/" className="flex items-center group cursor-pointer">
                 <img src="/Logo.JPG" alt="NEW PHONE" className="w-20 h-20 sm:w-28 sm:h-28 object-contain bg-transparent group-hover:scale-105 transition" />
               </Link>
             </div>
 
-            {/* צד שמאל: כפתור עגלה מעוצב */}
+            {/* צד שמאל: עגלה */}
             <div className="flex items-center justify-end">
               <Link href="/cart" className="relative bg-orange-500/10 hover:bg-orange-500/20 border-2 border-orange-500/40 text-orange-900 p-2.5 sm:px-4 sm:py-2 rounded-2xl text-xs font-bold transition flex items-center gap-2 shadow-xs cursor-pointer">
                 <span className="text-base">🛒</span>
@@ -150,7 +149,7 @@ export default function RootLayout({
 
           </div>
 
-          {/* שורת חיפוש גלובלית וצפה שתישאר בראש המסך תמיד בגלילה */}
+          {/* שורת חיפוש צפה וקבועה בראש המסך בגלילה */}
           <div className="bg-white/95 backdrop-blur-md px-4 py-2.5 border-t border-gray-100">
             <div className="max-w-2xl mx-auto relative">
               <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-gray-400">
@@ -168,12 +167,10 @@ export default function RootLayout({
           </div>
         </header>
 
-        {/* תוכן העמודים המשתנה */}
         <main className="min-h-screen">
           {children}
         </main>
 
-        {/* פוטר תחתון */}
         <footer className="bg-gray-900 text-white py-8 px-4 text-center text-xs space-y-2 mt-16">
           <p className="font-bold text-orange-400">NEW PHONE - כל הזכויות שמורות © 2026</p>
           <p className="text-gray-400">החנות המובילה למכשירים כשרים, סלולר ונגנים באיכות הגבוהה ביותר.</p>
