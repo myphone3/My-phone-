@@ -35,7 +35,6 @@ export default function RootLayout({
     setUser(currentUser);
 
     if (currentUser) {
-      // שליפת תמונת פרופיל מ-Google או מתת-נתונים
       const avatar = currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.picture || '';
       setUserAvatar(avatar);
 
@@ -76,58 +75,58 @@ export default function RootLayout({
         <header className="bg-white border-b sticky top-0 z-50 shadow-xs">
           <div className="max-w-7xl mx-auto px-4 py-3 grid grid-cols-3 items-center">
             
-            {/* צד ימין: תמונת פרופיל עם תפריט נפתח או כפתור התחברות */}
+            {/* צד ימין: תמונת פרופיל ללא מסגרת עם תפריט נפתח */}
             <div className="flex items-center justify-start relative" ref={dropdownRef}>
               {user ? (
                 <div>
                   <button
                     onClick={() => setShowDropdown(!showDropdown)}
-                    className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 p-1.5 rounded-2xl border transition cursor-pointer"
+                    className="flex items-center gap-2 p-0.5 rounded-full hover:opacity-85 transition cursor-pointer"
                   >
                     {userAvatar ? (
-                      <img src={userAvatar} alt="Profile" className="w-9 h-9 rounded-full object-cover border" />
+                      <img src={userAvatar} alt="Profile" className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover" />
                     ) : (
-                      <div className="w-9 h-9 rounded-full bg-orange-600 text-white font-bold flex items-center justify-center text-sm">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-orange-600 text-white font-bold flex items-center justify-center text-sm">
                         {user.email?.charAt(0).toUpperCase()}
                       </div>
                     )}
-                    <span className="text-xs font-bold text-gray-700 hidden sm:inline truncate max-w-[100px]">
-                      {user.user_metadata?.full_name || user.email?.split('@')[0]}
-                    </span>
                   </button>
 
-                  {/* תפריט נפתח (Dropdown) */}
+                  {/* חלון נפתח פרופיל */}
                   {showDropdown && (
-                    <div className="absolute top-full right-0 mt-2 w-52 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 z-50 space-y-1">
-                      <div className="px-4 py-2 border-b text-[11px] text-gray-500 truncate">
+                    <div className="absolute top-full right-0 mt-2 w-64 bg-white border border-gray-100 rounded-2xl shadow-2xl py-3 z-50 space-y-2">
+                      <div className="px-4 py-1.5 border-b text-[11px] text-gray-500 truncate">
                         מחובר בתור:<br />
                         <span className="font-bold text-gray-900">{user.email}</span>
                       </div>
 
+                      {/* התראות ועדכונים מוצגים ישירות בחלון */}
+                      <div className="px-4 py-2 bg-orange-50/50 rounded-xl mx-2 border border-orange-100 space-y-1">
+                        <div className="flex items-center gap-1.5 text-xs font-black text-orange-800">
+                          <span>🔔</span> התראות ועדכונים
+                        </div>
+                        <p className="text-[11px] text-gray-600 leading-snug">
+                          ברוך הבא לחנות NEW PHONE! אין התראות חדשות כרגע.
+                        </p>
+                      </div>
+
+                      {/* כפתור מעבר לניהול (רק למנהלים) */}
                       {isAdmin && (
                         <Link 
                           href="/admin" 
                           onClick={() => setShowDropdown(false)}
-                          className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-orange-600 hover:bg-orange-50 transition"
+                          className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 rounded-xl mx-2 transition text-center justify-center shadow-xs"
                         >
-                          ⚙️ לוח בקרה וניהול
+                          ⚙️ מעבר לאתר ניהול
                         </Link>
                       )}
-
-                      <Link 
-                        href="/profile" 
-                        onClick={() => setShowDropdown(false)}
-                        className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 transition"
-                      >
-                        🔔 התראות ועדכונים
-                      </Link>
 
                       <button
                         onClick={async () => {
                           await supabase.auth.signOut();
                           window.location.reload();
                         }}
-                        className="w-full text-right flex items-center gap-2 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 transition border-t pt-2"
+                        className="w-full text-right flex items-center gap-2 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 transition border-t pt-2 mt-1"
                       >
                         🚪 התנתק מהמערכת
                       </button>
@@ -144,10 +143,10 @@ export default function RootLayout({
               )}
             </div>
 
-            {/* מרכז: לוגו גדול בלי מסגרת */}
+            {/* מרכז: לוגו גדול מאד ובולט ללא מסגרת */}
             <div className="flex justify-center">
               <Link href="/" className="flex items-center group cursor-pointer">
-                <img src="/Logo.JPG" alt="NEW PHONE" className="w-16 h-16 sm:w-20 sm:h-20 object-contain bg-transparent group-hover:scale-105 transition" />
+                <img src="/Logo.JPG" alt="NEW PHONE" className="w-24 h-24 sm:w-32 sm:h-32 object-contain bg-transparent group-hover:scale-105 transition" />
               </Link>
             </div>
 
