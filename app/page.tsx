@@ -14,7 +14,6 @@ function StoreContent() {
   
   const [currentBanner, setCurrentBanner] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedColors, setSelectedColors] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
@@ -92,23 +91,13 @@ function StoreContent() {
     }
   };
 
-  const filteredProducts = products.filter((p) => {
-    if (!searchQuery.trim()) return true;
-    const query = searchQuery.toLowerCase();
-    const nameMatch = p.name?.toLowerCase().includes(query);
-    const brandMatch = p.brand?.toLowerCase().includes(query);
-    const categoryMatch = p.category?.toLowerCase().includes(query);
-    const descMatch = p.description?.toLowerCase().includes(query);
-    return nameMatch || brandMatch || categoryMatch || descMatch;
-  });
-
   const scrollingBrands = [...brands, ...brands, ...brands, ...brands];
 
   return (
     <div className="space-y-0 pb-16" dir="rtl">
       
       <style jsx>{`
-        /* מותגים נעים ימינה ברציפות בגודל המקורי */
+        /* מותגים גודל מקורי נעים ברציפות לכיוון ימין */
         @keyframes marqueeBrandsRight {
           0% { transform: translateX(-50%); }
           100% { transform: translateX(0%); }
@@ -124,20 +113,22 @@ function StoreContent() {
       `}</style>
 
       {/* פס מבצעים עליון סטטי עם טיימר */}
-      {settings?.announcement_text && timeLeft && !timeLeft.isExpired && (
+      {settings?.announcement_text && (
         <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2.5 text-xs sm:text-sm font-bold flex items-center justify-between gap-4 shadow-sm z-50">
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="bg-black/30 px-2.5 py-1 rounded-lg text-xs font-mono tracking-wider">
-              {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')} ⏱️
-            </span>
-          </div>
+          {timeLeft && !timeLeft.isExpired && (
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="bg-black/30 px-2.5 py-1 rounded-lg text-xs font-mono tracking-wider">
+                {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')} ⏱️
+              </span>
+            </div>
+          )}
           <div className="flex-1 text-right text-xs sm:text-sm truncate">
             {settings.announcement_text}
           </div>
         </div>
       )}
 
-      {/* שורת מותגים נעה ימינה ברציפות */}
+      {/* שורת מותגים גדולה יותר בגודל מקורי שעה ימינה ברציפות */}
       {brands.length > 0 && (
         <div className="w-full overflow-hidden bg-orange-50/40 py-3 border-b border-orange-100">
           <div className="animate-marquee-brands-right flex items-center gap-8 px-4">
@@ -156,7 +147,7 @@ function StoreContent() {
         </div>
       )}
 
-      {/* באנר מלבני דומיננטי */}
+      {/* באנר מלבני דומיננטי ללא מסגרת */}
       {banners.length > 0 && (
         <div className="relative w-full overflow-hidden bg-black">
           {banners[currentBanner]?.desktop_image_url || banners[currentBanner]?.mobile_image_url || banners[currentBanner]?.image_url ? (
@@ -257,24 +248,21 @@ function StoreContent() {
         <section className="space-y-6 pt-4 border-t">
           <div className="flex justify-between items-center">
             <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
-              {searchQuery ? `תוצאות חיפוש עבור: "${searchQuery}"` : 'כל המוצרים בחנות'}
+              כל המוצרים בחנות
             </h2>
-            <span className="text-xs text-gray-500 font-bold">{filteredProducts.length} מוצרים זמינים</span>
+            <span className="text-xs text-gray-500 font-bold">{products.length} מוצרים זמינים</span>
           </div>
 
           {loading ? (
             <div className="text-center py-20 text-gray-500 font-medium">טוען את חנות NEW PHONE...</div>
-          ) : filteredProducts.length === 0 ? (
+          ) : products.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-3xl border p-8 space-y-3 shadow-sm">
-              <span className="text-4xl">🔍</span>
-              <p className="text-gray-500 font-medium">לא נמצאו מוצרים תחת חיפוש זה.</p>
-              <button onClick={() => setSearchQuery('')} className="inline-block bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-bold mt-2 cursor-pointer">
-                איפוס חיפוש
-              </button>
+              <span className="text-4xl">📦</span>
+              <p className="text-gray-500 font-medium">אין מוצרים זמינים כרגע בחנות.</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
-              {filteredProducts.map((product) => {
+              {products.map((product) => {
                 const colors = product.product_colors || [];
                 const primaryImg = product.image_url || product.images?.[0] || '';
                 const secondaryImg = product.images?.[1] || primaryImg;
