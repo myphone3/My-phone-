@@ -22,9 +22,9 @@ export default function AdminBanners() {
   const [uploadingDesktop, setUploadingDesktop] = useState(false);
   const [uploadingMobile, setUploadingMobile] = useState(false);
 
-  // גלריית תמונות ענקית וברורה
+  // גלריית תמונות בחלון צף (Modal) כמו בניהול מוצרים
   const [existingImages, setExistingImages] = useState<string[]>([]);
-  const [showGalleryFor, setShowGalleryFor] = useState<'desktop' | 'mobile' | null>(null);
+  const [showGalleryModal, setShowGalleryModal] = useState<'desktop' | 'mobile' | null>(null);
   const [loadingGallery, setLoadingGallery] = useState(false);
 
   useEffect(() => {
@@ -166,7 +166,7 @@ export default function AdminBanners() {
     setMobileImageUrl('');
     setLinkProductId('');
     setIsActive(true);
-    setShowGalleryFor(null);
+    setShowGalleryModal(null);
   };
 
   return (
@@ -221,12 +221,12 @@ export default function AdminBanners() {
               <button
                 type="button"
                 onClick={() => {
-                  if (showGalleryFor !== 'desktop') fetchExistingImages();
-                  setShowGalleryFor(showGalleryFor === 'desktop' ? null : 'desktop');
+                  fetchExistingImages();
+                  setShowGalleryModal('desktop');
                 }}
                 className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer shadow-xs"
               >
-                {showGalleryFor === 'desktop' ? 'סגור ✕' : 'בחר מהאחסון 🖼️'}
+                בחר מהגלריה 🖼️
               </button>
             </div>
             {uploadingDesktop && <p className="text-xs text-blue-600 font-bold">מעלה תמונת מחשב...</p>}
@@ -249,12 +249,12 @@ export default function AdminBanners() {
               <button
                 type="button"
                 onClick={() => {
-                  if (showGalleryFor !== 'mobile') fetchExistingImages();
-                  setShowGalleryFor(showGalleryFor === 'mobile' ? null : 'mobile');
+                  fetchExistingImages();
+                  setShowGalleryModal('mobile');
                 }}
                 className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer shadow-xs"
               >
-                {showGalleryFor === 'mobile' ? 'סגור ✕' : 'בחר מהאחסון 🖼️'}
+                בחר מהגלריה 🖼️
               </button>
             </div>
             {uploadingMobile && <p className="text-xs text-blue-600 font-bold">מעלה תמונת פלאפון...</p>}
@@ -268,41 +268,72 @@ export default function AdminBanners() {
 
         </div>
 
-        {/* גלריית תמונות ענקית, רחבה וברורה ללא עמודות צרות */}
-        {showGalleryFor && (
-          <div className="bg-orange-50 border-2 border-orange-200 p-6 rounded-3xl space-y-4 shadow-lg w-full">
-            <div className="flex justify-between items-center border-b pb-3">
-              <span className="text-sm font-black text-gray-900">
-                🖼️ בחר תמונה רחבה וברורה עבור {showGalleryFor === 'desktop' ? 'מחשב' : 'פלאפון'} מתוך האחסון:
-              </span>
-              <button type="button" onClick={() => setShowGalleryFor(null)} className="text-xs text-gray-600 font-black hover:bg-red-100 hover:text-red-600 px-3 py-1.5 rounded-xl bg-white border transition">סגור [X]</button>
-            </div>
-            {loadingGallery ? (
-              <p className="text-sm text-gray-500 py-12 text-center font-bold">טוען תמונות בגודל מלא...</p>
-            ) : existingImages.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-h-[450px] overflow-y-auto p-2 bg-white border-2 rounded-2xl shadow-inner">
-                {existingImages.map((url, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => {
-                      if (showGalleryFor === 'desktop') setDesktopImageUrl(url);
-                      else setMobileImageUrl(url);
-                      setShowGalleryFor(null);
-                    }}
-                    className="cursor-pointer border-2 rounded-2xl overflow-hidden bg-white hover:border-orange-600 hover:shadow-md transition flex flex-col items-center p-2.5 group border-gray-200"
-                  >
-                    <div className="w-full h-36 flex items-center justify-center bg-gray-50 rounded-xl overflow-hidden mb-2">
-                      <img src={url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
-                    </div>
-                    <span className="text-xs font-bold text-gray-800 bg-orange-50 group-hover:bg-orange-600 group-hover:text-white px-3 py-1 rounded-lg w-full text-center transition">
-                      בחר תמונה זו ✓
-                    </span>
-                  </div>
-                ))}
+        {/* חלון גלריית תמונות צף (Modal) בדיוק כמו בניהול מוצרים */}
+        {showGalleryModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full max-h-[85vh] flex flex-col p-6 animate-in fade-in zoom-in duration-200">
+              
+              {/* כותרת החלון */}
+              <div className="flex justify-between items-center border-b pb-4 mb-4">
+                <h3 className="text-base sm:text-lg font-black text-gray-900">
+                  בחר תמונות מתוך ספריית המדיה של האתר ({showGalleryModal === 'desktop' ? 'עבור מחשב' : 'עבור פלאפון'})
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowGalleryModal(null)}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-2xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                >
+                  סגור ✕
+                </button>
               </div>
-            ) : (
-              <p className="text-xs text-gray-400 text-center py-8">לא נמצאו תמונות באחסון.</p>
-            )}
+
+              {/* רשת התמונות בגלריה */}
+              <div className="flex-1 overflow-y-auto p-2">
+                {loadingGallery ? (
+                  <p className="text-center py-20 text-gray-500 font-bold">טוען תמונות מהמדיה...</p>
+                ) : existingImages.length === 0 ? (
+                  <p className="text-center py-20 text-gray-400 font-medium">אין תמונות זמינות במדיה כרגע.</p>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {existingImages.map((url, idx) => {
+                      const isSelected = showGalleryModal === 'desktop' ? desktopImageUrl === url : mobileImageUrl === url;
+                      return (
+                        <div
+                          key={idx}
+                          onClick={() => {
+                            if (showGalleryModal === 'desktop') setDesktopImageUrl(url);
+                            else setMobileImageUrl(url);
+                            setShowGalleryModal(null);
+                          }}
+                          className={`cursor-pointer border-2 rounded-2xl overflow-hidden bg-gray-50 transition aspect-square flex flex-col items-center justify-center p-2 group relative shadow-xs ${
+                            isSelected ? 'border-orange-600 ring-2 ring-orange-600' : 'border-gray-200 hover:border-orange-400'
+                          }`}
+                        >
+                          <img src={url} alt="" className="w-full h-full object-contain rounded-xl group-hover:scale-105 transition" />
+                          {isSelected && (
+                            <span className="absolute top-2 right-2 bg-orange-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow">
+                              נבחר ✓
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* תחתית החלון */}
+              <div className="border-t pt-4 mt-4 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowGalleryModal(null)}
+                  className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2.5 rounded-2xl text-xs font-bold transition shadow-md cursor-pointer"
+                >
+                  סגור וחזור
+                </button>
+              </div>
+
+            </div>
           </div>
         )}
 
