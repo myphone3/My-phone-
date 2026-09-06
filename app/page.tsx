@@ -22,7 +22,7 @@ function StoreContent() {
     fetchData();
   }, []);
 
-  // ניהול טיימר השעון לפס העליון
+  // ניהול טיימר מדויק - הסרה אוטומטית כשהזמן מגיע לאפס
   useEffect(() => {
     if (!settings?.announcement_end_time) return;
 
@@ -111,8 +111,8 @@ function StoreContent() {
     return nameMatch || brandMatch || categoryMatch || descMatch;
   });
 
-  // שכפול רב של המותגים כך שתמיד תהיה תנועה חלקה ורציפה בלי שום רווח ריק
-  const scrollingBrands = [...brands, ...brands, ...brands, ...brands];
+  // יצירת מערך כפול ומכופל להבטחת תנועה אינסופית חלקה בלי רווחים ריקים
+  const scrollingBrands = [...brands, ...brands, ...brands, ...brands, ...brands];
 
   return (
     <div className="space-y-0 pb-16" dir="rtl">
@@ -125,28 +125,28 @@ function StoreContent() {
         .animate-marquee {
           display: flex;
           width: max-content;
-          animation: marquee 25s linear infinite;
+          animation: marquee 20s linear infinite;
         }
         .animate-marquee:hover {
           animation-play-state: paused;
         }
       `}</style>
 
-      {/* פס מבצעים עליון עם טיימר דינמי שנעלם אוטומטית כשהזמן נגמר */}
-      {settings?.announcement_text && (!timeLeft || !timeLeft.isExpired) && (
-        <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2.5 text-xs sm:text-sm font-bold flex flex-wrap items-center justify-between gap-2 shadow-sm z-50">
-          <div className="flex items-center gap-2">
+      {/* פס מבצעים עליון עם טיימר - נעלם אוטומטית כשהזמן נגמר */}
+      {settings?.announcement_text && timeLeft && !timeLeft.isExpired && (
+        <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2 text-xs sm:text-sm font-bold flex flex-wrap items-center justify-between gap-2 shadow-sm z-50">
+          <div className="flex items-center gap-2 shrink-0">
             <span className="bg-black/30 px-2.5 py-1 rounded-lg text-xs font-mono tracking-wider">
-              {timeLeft ? `${String(timeLeft.hours).padStart(2, '0')}:${String(timeLeft.minutes).padStart(2, '0')}:${String(timeLeft.seconds).padStart(2, '0')}` : 'טעון...'} ⏱️
+              {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')} ⏱️
             </span>
           </div>
-          <div className="flex-1 text-right truncate">
+          <div className="flex-1 text-right truncate text-[11px] sm:text-xs">
             {settings.announcement_text}
           </div>
         </div>
       )}
 
-      {/* מותגים נעים בלולאה רציפה מושלמת */}
+      {/* מותגים נעים בלולאה אינסופית ללא הפסקות או קטעים ריקים */}
       {brands.length > 0 && (
         <div className="w-full overflow-hidden bg-orange-50/40 py-3 border-b border-orange-100">
           <div className="animate-marquee flex items-center gap-12 px-6">
@@ -200,9 +200,9 @@ function StoreContent() {
         </div>
       )}
 
-      {/* שורת חיפוש צפה (Sticky) שיושבת מושלם מתחת להדר בלי שום חיתוך */}
-      <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-md py-3 px-4 shadow-md border-b border-gray-100">
-        <div className="max-w-2xl mx-auto relative">
+      {/* שורת חיפוש רגילה ויציבה (לא צפה) מתחת לבאנר כך שלא תסתיר שום דבר לעולם */}
+      <div className="max-w-2xl mx-auto px-4 pt-6 pb-2">
+        <div className="relative">
           <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-gray-400">
             🔍
           </div>
@@ -213,7 +213,7 @@ function StoreContent() {
             onFocus={() => setIsSearchFocused(true)}
             onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
             placeholder="חפש מכשיר, נגן, מותג או קטגוריה..."
-            className="w-full bg-gray-50 border-2 border-orange-500/20 focus:border-orange-600 rounded-xl py-3 pr-11 pl-4 text-xs sm:text-sm font-medium shadow-xs outline-none transition"
+            className="w-full bg-white border-2 border-orange-500/20 focus:border-orange-600 rounded-2xl py-3.5 pr-11 pl-4 text-xs sm:text-sm font-medium shadow-sm outline-none transition"
           />
           {searchQuery && (
             <button
@@ -261,7 +261,7 @@ function StoreContent() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 space-y-10 pt-8">
+      <div className="max-w-7xl mx-auto px-4 space-y-10 pt-4">
 
         {/* קטגוריות מובילות */}
         {categories.length > 0 && (
