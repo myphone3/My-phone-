@@ -108,7 +108,7 @@ function StoreContent() {
     <div className="space-y-0 pb-16" dir="rtl">
       
       <style jsx>{`
-        /* מותגים נעים ימינה ברציפות בגודל מקורי נוח */
+        /* מותגים נעים ימינה ברציפות בגודל המקורי */
         @keyframes marqueeBrandsRight {
           0% { transform: translateX(-50%); }
           100% { transform: translateX(0%); }
@@ -123,7 +123,7 @@ function StoreContent() {
         }
       `}</style>
 
-      {/* פס מבצעים עליון סטטי (לא נוסע) עם הגבלת שורה נקייה */}
+      {/* פס מבצעים עליון סטטי עם טיימר */}
       {settings?.announcement_text && timeLeft && !timeLeft.isExpired && (
         <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2.5 text-xs sm:text-sm font-bold flex items-center justify-between gap-4 shadow-sm z-50">
           <div className="flex items-center gap-2 shrink-0">
@@ -137,7 +137,7 @@ function StoreContent() {
         </div>
       )}
 
-      {/* מותגים גדולים יותר בגודל המקורי שנעים ברציפות לכיוון ימין */}
+      {/* שורת מותגים נעה ימינה ברציפות */}
       {brands.length > 0 && (
         <div className="w-full overflow-hidden bg-orange-50/40 py-3 border-b border-orange-100">
           <div className="animate-marquee-brands-right flex items-center gap-8 px-4">
@@ -156,7 +156,7 @@ function StoreContent() {
         </div>
       )}
 
-      {/* באנר מלבני דומיננטי ללא מסגרת */}
+      {/* באנר מלבני דומיננטי */}
       {banners.length > 0 && (
         <div className="relative w-full overflow-hidden bg-black">
           {banners[currentBanner]?.desktop_image_url || banners[currentBanner]?.mobile_image_url || banners[currentBanner]?.image_url ? (
