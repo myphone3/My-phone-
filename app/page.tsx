@@ -102,13 +102,14 @@ function StoreContent() {
     return nameMatch || brandMatch || categoryMatch || descMatch;
   });
 
-  const scrollingBrands = [...brands, ...brands];
+  // כפילות מורחבת של מותגים להבטחת רציפות מלאה בלי שום רווח ריק
+  const scrollingBrands = [...brands, ...brands, ...brands, ...brands];
 
   return (
     <div className="space-y-0 pb-16" dir="rtl">
       
       <style jsx>{`
-        /* מותגים נעים שמאלה (-50%) */
+        /* מותגים נעים שמאלה ברציפות */
         @keyframes marqueeLeft {
           0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }
@@ -116,7 +117,7 @@ function StoreContent() {
         .animate-marquee-left {
           display: flex;
           width: max-content;
-          animation: marqueeLeft 20s linear infinite;
+          animation: marqueeLeft 25s linear infinite;
         }
         .animate-marquee-left:hover {
           animation-play-state: paused;
@@ -130,14 +131,14 @@ function StoreContent() {
         .animate-marquee-right {
           display: inline-block;
           white-space: nowrap;
-          animation: marqueeRight 18s linear infinite;
+          animation: marqueeRight 25s linear infinite;
         }
         .animate-marquee-right:hover {
           animation-play-state: paused;
         }
       `}</style>
 
-      {/* פס מבצעים עליון נע ימינה ברציפות */}
+      {/* פס מבצעים עליון נע ימינה ברציפות בלי הפסקות */}
       {settings?.announcement_text && timeLeft && !timeLeft.isExpired && (
         <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2 text-xs sm:text-sm font-bold flex items-center justify-between gap-4 shadow-sm z-50 overflow-hidden">
           <div className="flex items-center gap-2 shrink-0 z-10 bg-orange-600 pl-2">
@@ -147,13 +148,15 @@ function StoreContent() {
           </div>
           <div className="overflow-hidden relative flex-1">
             <div className="animate-marquee-right text-right text-xs">
-              <span>{settings.announcement_text} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {settings.announcement_text}</span>
+              <span>
+                {settings.announcement_text} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {settings.announcement_text} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {settings.announcement_text}
+              </span>
             </div>
           </div>
         </div>
       )}
 
-      {/* מותגים צפופים נעים שמאלה */}
+      {/* מותגים צפופים נעים שמאלה ברציפות */}
       {brands.length > 0 && (
         <div className="w-full overflow-hidden bg-orange-50/40 py-2.5 border-b border-orange-100">
           <div className="animate-marquee-left flex items-center gap-6 px-4">
@@ -172,25 +175,25 @@ function StoreContent() {
         </div>
       )}
 
-      {/* באנר מלבני קטן יותר ללא מסגרת (מידות מומלצות: 1920x500 למחשב, 1000x600 לפלאפון) */}
+      {/* באנר מלבני מוגדל ודומיננטי ללא מסגרת */}
       {banners.length > 0 && (
         <div className="relative w-full overflow-hidden bg-black">
           {banners[currentBanner]?.desktop_image_url || banners[currentBanner]?.mobile_image_url || banners[currentBanner]?.image_url ? (
             <div className="relative w-full">
-              {/* תמונת מחשב */}
+              {/* תמונת מחשב מוגדלת מעט */}
               {banners[currentBanner]?.desktop_image_url && (
                 <img 
                   src={banners[currentBanner].desktop_image_url} 
                   alt={banners[currentBanner]?.title || ''} 
-                  className={`w-full h-auto object-cover max-h-[380px] min-h-[220px] ${banners[currentBanner]?.mobile_image_url ? 'hidden sm:block' : 'block'}`}
+                  className={`w-full h-auto object-cover max-h-[460px] min-h-[260px] ${banners[currentBanner]?.mobile_image_url ? 'hidden sm:block' : 'block'}`}
                 />
               )}
-              {/* תמונת פלאפון */}
+              {/* תמונת פלאפון מוגדלת מעט */}
               {banners[currentBanner]?.mobile_image_url && (
                 <img 
                   src={banners[currentBanner].mobile_image_url} 
                   alt={banners[currentBanner]?.title || ''} 
-                  className="w-full h-auto object-cover max-h-[300px] min-h-[200px] block sm:hidden"
+                  className="w-full h-auto object-cover max-h-[380px] min-h-[220px] block sm:hidden"
                 />
               )}
               {/* גיבוי לתמונה ישנה */}
@@ -198,7 +201,7 @@ function StoreContent() {
                 <img 
                   src={banners[currentBanner].image_url} 
                   alt={banners[currentBanner]?.title || ''} 
-                  className="w-full h-auto object-cover max-h-[380px] min-h-[220px]"
+                  className="w-full h-auto object-cover max-h-[460px] min-h-[260px]"
                 />
               )}
 
@@ -211,12 +214,12 @@ function StoreContent() {
               )}
             </div>
           ) : (
-            <div className="relative w-full bg-gradient-to-r from-gray-950 via-orange-950 to-black text-white py-12 px-4 sm:px-16">
+            <div className="relative w-full bg-gradient-to-r from-gray-950 via-orange-950 to-black text-white py-14 px-4 sm:px-16">
               <div className="max-w-5xl mx-auto space-y-3 relative z-10 text-right sm:text-center flex flex-col items-start sm:items-center">
                 <span className="inline-block bg-orange-600/35 border border-orange-500/40 text-orange-300 px-3 py-1 rounded-full text-[11px] sm:text-xs font-bold tracking-wide backdrop-blur-md">
                   NEW PHONE מבצעים חמים ⚡
                 </span>
-                <h1 className="w-full text-lg sm:text-2xl md:text-3xl font-black leading-snug sm:leading-tight break-words">
+                <h1 className="w-full text-lg sm:text-3xl md:text-4xl font-black leading-snug sm:leading-tight break-words">
                   {banners[currentBanner]?.title}
                 </h1>
                 <p className="w-full text-gray-300 text-xs sm:text-sm font-medium leading-relaxed">
