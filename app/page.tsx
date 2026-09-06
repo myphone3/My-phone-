@@ -20,7 +20,6 @@ function StoreContent() {
     fetchData();
   }, []);
 
-  // ניהול טיימר - הסרה מלאה ואוטומטית כשהזמן מגיע לאפס
   useEffect(() => {
     if (!settings?.announcement_end_time) return;
 
@@ -99,7 +98,6 @@ function StoreContent() {
     }
   };
 
-  // כפילות כפולה מדויקת ללולאה אינסופית רציפה בלי שום רווח ריק
   const scrollingBrands = [...brands, ...brands];
 
   return (
@@ -120,7 +118,7 @@ function StoreContent() {
         }
       `}</style>
 
-      {/* פס מבצעים עליון - נעלם אוטומטית כשהזמן מגיע לאפס */}
+      {/* פס מבצעים עליון */}
       {settings?.announcement_text && timeLeft && !timeLeft.isExpired && (
         <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2 text-xs sm:text-sm font-bold flex flex-wrap items-center justify-between gap-2 shadow-sm z-50">
           <div className="flex items-center gap-2 shrink-0">
@@ -134,16 +132,16 @@ function StoreContent() {
         </div>
       )}
 
-      {/* מותגים נעים בלולאה חלק ורציפה */}
+      {/* מותגים צפופים ונעים */}
       {brands.length > 0 && (
-        <div className="w-full overflow-hidden bg-orange-50/40 py-3 border-b border-orange-100">
-          <div className="animate-marquee flex items-center gap-12 px-6">
+        <div className="w-full overflow-hidden bg-orange-50/40 py-2.5 border-b border-orange-100">
+          <div className="animate-marquee flex items-center gap-6 px-4">
             {scrollingBrands.map((brand, idx) => (
               brand.image_url && (
                 <Link 
                   key={`${brand.id}-${idx}`} 
                   href={`/brand/${encodeURIComponent(brand.name)}`}
-                  className="w-24 h-12 flex items-center justify-center flex-shrink-0 opacity-85 hover:opacity-100 hover:scale-110 transition cursor-pointer"
+                  className="w-20 h-10 flex items-center justify-center flex-shrink-0 opacity-85 hover:opacity-100 hover:scale-110 transition cursor-pointer"
                 >
                   <img src={brand.image_url} alt={brand.name} className="max-h-full max-w-full object-contain" />
                 </Link>
