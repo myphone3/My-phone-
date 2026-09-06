@@ -15,23 +15,16 @@ export default function RootLayout({
     <html lang="he" dir="rtl">
       <body className="bg-gray-50 text-gray-900 font-sans antialiased">
         
-        {/* הדר ראשי גלובלי עם לוגו ועגלה */}
+        {/* הדר ראשי גלובלי עם לוגו מוגדל נקי ללא מלל נפרד, וקישורי ניהול ועגלה בלבד */}
         <header className="bg-white border-b sticky top-0 z-50 shadow-xs">
-          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-3 group cursor-pointer">
-              <img src="/Logo.JPG" alt="NEW PHONE" className="w-11 h-11 object-contain rounded-full border p-0.5 shadow-xs" />
-              <div>
-                <span className="text-base sm:text-lg font-black text-orange-600 block leading-tight">NEW PHONE</span>
-                <span className="text-[10px] text-gray-500 font-bold tracking-wider">הפלאפון החדש שלך</span>
-              </div>
+          <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between">
+            <Link href="/" className="flex items-center group cursor-pointer">
+              <img src="/Logo.JPG" alt="NEW PHONE" className="w-14 h-14 sm:w-16 sm:h-16 object-contain rounded-2xl border p-0.5 shadow-xs bg-white" />
             </Link>
 
             <div className="flex items-center gap-2">
               <Link href="/admin" className="bg-orange-600 hover:bg-orange-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer">
                 ⚙️ ניהול
-              </Link>
-              <Link href="/profile" className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
-                👤 אזור אישי
               </Link>
               <Link href="/cart" className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer">
                 🛒 עגלה
@@ -39,7 +32,7 @@ export default function RootLayout({
             </div>
           </div>
 
-          {/* שורת חיפוש גלובלית וצפה שמופיעה תמיד בכל עמוד (חנות, מוצר, קטגוריה) מתחת ללוגו */}
+          {/* שורת חיפוש גלובלית וצפה מתחת ללוגו */}
           <div className="bg-white/95 backdrop-blur-md px-4 py-2.5 border-t border-gray-100">
             <div className="max-w-2xl mx-auto relative">
               <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-gray-400">
