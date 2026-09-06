@@ -14,15 +14,13 @@ function StoreContent() {
   
   const [currentBanner, setCurrentBanner] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [selectedColors, setSelectedColors] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  // ניהול טיימר מדויק - הסרה אוטומטית כשהזמן מגיע לאפס
+  // ניהול טיימר - הסרה מלאה ואוטומטית כשהזמן מגיע לאפס
   useEffect(() => {
     if (!settings?.announcement_end_time) return;
 
@@ -101,18 +99,8 @@ function StoreContent() {
     }
   };
 
-  const filteredProducts = products.filter((p) => {
-    if (!searchQuery.trim()) return true;
-    const query = searchQuery.toLowerCase();
-    const nameMatch = p.name?.toLowerCase().includes(query);
-    const brandMatch = p.brand?.toLowerCase().includes(query);
-    const categoryMatch = p.category?.toLowerCase().includes(query);
-    const descMatch = p.description?.toLowerCase().includes(query);
-    return nameMatch || brandMatch || categoryMatch || descMatch;
-  });
-
-  // יצירת מערך כפול ומכופל להבטחת תנועה אינסופית חלקה בלי רווחים ריקים
-  const scrollingBrands = [...brands, ...brands, ...brands, ...brands, ...brands];
+  // כפילות כפולה מדויקת ללולאה אינסופית רציפה בלי שום רווח ריק
+  const scrollingBrands = [...brands, ...brands];
 
   return (
     <div className="space-y-0 pb-16" dir="rtl">
@@ -120,7 +108,7 @@ function StoreContent() {
       <style jsx>{`
         @keyframes marquee {
           0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
+          100% { transform: translateX(50%); }
         }
         .animate-marquee {
           display: flex;
@@ -132,7 +120,7 @@ function StoreContent() {
         }
       `}</style>
 
-      {/* פס מבצעים עליון עם טיימר - נעלם אוטומטית כשהזמן נגמר */}
+      {/* פס מבצעים עליון - נעלם אוטומטית כשהזמן מגיע לאפס */}
       {settings?.announcement_text && timeLeft && !timeLeft.isExpired && (
         <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2 text-xs sm:text-sm font-bold flex flex-wrap items-center justify-between gap-2 shadow-sm z-50">
           <div className="flex items-center gap-2 shrink-0">
@@ -140,13 +128,13 @@ function StoreContent() {
               {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')} ⏱️
             </span>
           </div>
-          <div className="flex-1 text-right truncate text-[11px] sm:text-xs">
+          <div className="flex-1 text-right text-[11px] sm:text-xs leading-normal">
             {settings.announcement_text}
           </div>
         </div>
       )}
 
-      {/* מותגים נעים בלולאה אינסופית ללא הפסקות או קטעים ריקים */}
+      {/* מותגים נעים בלולאה חלק ורציפה */}
       {brands.length > 0 && (
         <div className="w-full overflow-hidden bg-orange-50/40 py-3 border-b border-orange-100">
           <div className="animate-marquee flex items-center gap-12 px-6">
@@ -200,68 +188,7 @@ function StoreContent() {
         </div>
       )}
 
-      {/* שורת חיפוש רגילה ויציבה (לא צפה) מתחת לבאנר כך שלא תסתיר שום דבר לעולם */}
-      <div className="max-w-2xl mx-auto px-4 pt-6 pb-2">
-        <div className="relative">
-          <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-gray-400">
-            🔍
-          </div>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onFocus={() => setIsSearchFocused(true)}
-            onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-            placeholder="חפש מכשיר, נגן, מותג או קטגוריה..."
-            className="w-full bg-white border-2 border-orange-500/20 focus:border-orange-600 rounded-2xl py-3.5 pr-11 pl-4 text-xs sm:text-sm font-medium shadow-sm outline-none transition"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute inset-y-0 left-0 pl-4 flex items-center text-xs font-bold text-gray-400 hover:text-gray-600 cursor-pointer"
-            >
-              ✕ ניקוי
-            </button>
-          )}
-
-          {/* תפריט השלמה אוטומטית נפתח */}
-          {isSearchFocused && searchQuery.trim().length > 0 && (
-            <div className="absolute top-full mt-2 w-full bg-white border border-gray-100 rounded-2xl shadow-2xl max-h-80 overflow-y-auto z-50 p-2 space-y-1">
-              {filteredProducts.length === 0 ? (
-                <div className="p-3 text-xs text-gray-500 text-center font-medium">לא נמצאו תוצאות תואמות</div>
-              ) : (
-                filteredProducts.map((prod) => {
-                  const img = prod.image_url || prod.images?.[0] || '';
-                  return (
-                    <Link
-                      key={prod.id}
-                      href={`/product/${prod.id}`}
-                      className="flex items-center gap-3 p-2.5 hover:bg-orange-50/60 rounded-xl transition group cursor-pointer"
-                    >
-                      <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border">
-                        {img ? (
-                          <img src={img} alt={prod.name} className="w-full h-full object-contain" />
-                        ) : (
-                          <span>📦</span>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-xs font-black text-gray-900 truncate group-hover:text-orange-600 transition">{prod.name}</h4>
-                        <p className="text-[10px] text-gray-400 truncate">{prod.brand || prod.category || 'מוצר בחנות'}</p>
-                      </div>
-                      <span className="text-xs font-black text-orange-600 shrink-0">
-                        ₪{prod.sale_price || prod.price}
-                      </span>
-                    </Link>
-                  );
-                })
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 space-y-10 pt-4">
+      <div className="max-w-7xl mx-auto px-4 space-y-10 pt-8">
 
         {/* קטגוריות מובילות */}
         {categories.length > 0 && (
@@ -292,24 +219,21 @@ function StoreContent() {
         <section className="space-y-6 pt-4 border-t">
           <div className="flex justify-between items-center">
             <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
-              {searchQuery ? `תוצאות חיפוש עבור: "${searchQuery}"` : 'כל המוצרים בחנות'}
+              כל המוצרים בחנות
             </h2>
-            <span className="text-xs text-gray-500 font-bold">{filteredProducts.length} מוצרים זמינים</span>
+            <span className="text-xs text-gray-500 font-bold">{products.length} מוצרים זמינים</span>
           </div>
 
           {loading ? (
             <div className="text-center py-20 text-gray-500 font-medium">טוען את חנות NEW PHONE...</div>
-          ) : filteredProducts.length === 0 ? (
+          ) : products.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-3xl border p-8 space-y-3 shadow-sm">
-              <span className="text-4xl">🔍</span>
-              <p className="text-gray-500 font-medium">לא נמצאו מוצרים תחת חיפוש זה.</p>
-              <button onClick={() => setSearchQuery('')} className="inline-block bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-bold mt-2 cursor-pointer">
-                איפוס חיפוש
-              </button>
+              <span className="text-4xl">📦</span>
+              <p className="text-gray-500 font-medium">אין מוצרים זמינים כרגע בחנות.</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
-              {filteredProducts.map((product) => {
+              {products.map((product) => {
                 const colors = product.product_colors || [];
                 const primaryImg = product.image_url || product.images?.[0] || '';
                 const secondaryImg = product.images?.[1] || primaryImg;
