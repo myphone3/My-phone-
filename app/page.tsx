@@ -102,70 +102,51 @@ function StoreContent() {
     return nameMatch || brandMatch || categoryMatch || descMatch;
   });
 
-  // שכפול מורחב מאוד של מותגים להבטחת רציפות מוחלטת בלי שום רווח
-  const scrollingBrands = [...brands, ...brands, ...brands, ...brands, ...brands, ...brands];
+  const scrollingBrands = [...brands, ...brands, ...brands, ...brands];
 
   return (
     <div className="space-y-0 pb-16" dir="rtl">
       
       <style jsx>{`
-        /* מותגים נעים שמאלה ברציפות מושלמת */
-        @keyframes marqueeLeft {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        .animate-marquee-left {
-          display: flex;
-          width: max-content;
-          animation: marqueeLeft 30s linear infinite;
-        }
-        .animate-marquee-left:hover {
-          animation-play-state: paused;
-        }
-
-        /* שורת מבצעים עליונה נעה ימינה ברציפות מושלמת */
-        @keyframes marqueeRight {
+        /* מותגים נעים ימינה ברציפות בגודל מקורי נוח */
+        @keyframes marqueeBrandsRight {
           0% { transform: translateX(-50%); }
           100% { transform: translateX(0%); }
         }
-        .animate-marquee-right {
-          display: inline-block;
-          white-space: nowrap;
-          animation: marqueeRight 25s linear infinite;
+        .animate-marquee-brands-right {
+          display: flex;
+          width: max-content;
+          animation: marqueeBrandsRight 25s linear infinite;
         }
-        .animate-marquee-right:hover {
+        .animate-marquee-brands-right:hover {
           animation-play-state: paused;
         }
       `}</style>
 
-      {/* פס מבצעים עליון נע ימינה ברציפות ללא הפסקות */}
+      {/* פס מבצעים עליון סטטי (לא נוסע) עם הגבלת שורה נקייה */}
       {settings?.announcement_text && timeLeft && !timeLeft.isExpired && (
-        <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2 text-xs sm:text-sm font-bold flex items-center justify-between gap-4 shadow-sm z-50 overflow-hidden">
-          <div className="flex items-center gap-2 shrink-0 z-10 bg-orange-600 pl-2">
+        <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2.5 text-xs sm:text-sm font-bold flex items-center justify-between gap-4 shadow-sm z-50">
+          <div className="flex items-center gap-2 shrink-0">
             <span className="bg-black/30 px-2.5 py-1 rounded-lg text-xs font-mono tracking-wider">
               {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')} ⏱️
             </span>
           </div>
-          <div className="overflow-hidden relative flex-1">
-            <div className="animate-marquee-right text-right text-xs">
-              <span>
-                {settings.announcement_text} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {settings.announcement_text} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {settings.announcement_text} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {settings.announcement_text}
-              </span>
-            </div>
+          <div className="flex-1 text-right text-xs sm:text-sm truncate">
+            {settings.announcement_text}
           </div>
         </div>
       )}
 
-      {/* מותגים צפופים מאוד נעים שמאלה ברציפות */}
+      {/* מותגים גדולים יותר בגודל המקורי שנעים ברציפות לכיוון ימין */}
       {brands.length > 0 && (
-        <div className="w-full overflow-hidden bg-orange-50/40 py-2 border-b border-orange-100">
-          <div className="animate-marquee-left flex items-center gap-4 px-2">
+        <div className="w-full overflow-hidden bg-orange-50/40 py-3 border-b border-orange-100">
+          <div className="animate-marquee-brands-right flex items-center gap-8 px-4">
             {scrollingBrands.map((brand, idx) => (
               brand.image_url && (
                 <Link 
                   key={`${brand.id}-${idx}`} 
                   href={`/brand/${encodeURIComponent(brand.name)}`}
-                  className="w-16 h-9 flex items-center justify-center flex-shrink-0 opacity-85 hover:opacity-100 hover:scale-110 transition cursor-pointer px-1"
+                  className="w-24 h-12 flex items-center justify-center flex-shrink-0 opacity-85 hover:opacity-100 hover:scale-110 transition cursor-pointer"
                 >
                   <img src={brand.image_url} alt={brand.name} className="max-h-full max-w-full object-contain" />
                 </Link>
@@ -175,12 +156,11 @@ function StoreContent() {
         </div>
       )}
 
-      {/* באנר מלבני מוגדל ודומיננטי ללא מסגרת */}
+      {/* באנר מלבני דומיננטי ללא מסגרת */}
       {banners.length > 0 && (
         <div className="relative w-full overflow-hidden bg-black">
           {banners[currentBanner]?.desktop_image_url || banners[currentBanner]?.mobile_image_url || banners[currentBanner]?.image_url ? (
             <div className="relative w-full">
-              {/* תמונת מחשב מוגדלת */}
               {banners[currentBanner]?.desktop_image_url && (
                 <img 
                   src={banners[currentBanner].desktop_image_url} 
@@ -188,7 +168,6 @@ function StoreContent() {
                   className={`w-full h-auto object-cover max-h-[460px] min-h-[260px] ${banners[currentBanner]?.mobile_image_url ? 'hidden sm:block' : 'block'}`}
                 />
               )}
-              {/* תמונת פלאפון מוגדלת */}
               {banners[currentBanner]?.mobile_image_url && (
                 <img 
                   src={banners[currentBanner].mobile_image_url} 
@@ -196,7 +175,6 @@ function StoreContent() {
                   className="w-full h-auto object-cover max-h-[380px] min-h-[220px] block sm:hidden"
                 />
               )}
-              {/* גיבוי לתמונה ישנה */}
               {!banners[currentBanner]?.desktop_image_url && !banners[currentBanner]?.mobile_image_url && banners[currentBanner]?.image_url && (
                 <img 
                   src={banners[currentBanner].image_url} 
@@ -205,7 +183,6 @@ function StoreContent() {
                 />
               )}
 
-              {/* קישור למוצר בלחיצה על הבאנר אם הוגדר */}
               {banners[currentBanner]?.link_product_id && (
                 <Link 
                   href={`/product/${banners[currentBanner].link_product_id}`}
@@ -237,7 +214,6 @@ function StoreContent() {
             </div>
           )}
 
-          {/* כפתורי נקודות למעבר בין באנרים */}
           {banners.length > 1 && (
             <div className="absolute bottom-3 left-4 sm:left-1/2 sm:-translate-x-1/2 flex gap-1.5 z-20">
               {banners.map((_, idx) => (
@@ -254,7 +230,6 @@ function StoreContent() {
 
       <div className="max-w-7xl mx-auto px-4 space-y-10 pt-8">
 
-        {/* קטגוריות מובילות */}
         {categories.length > 0 && (
           <section className="space-y-4">
             <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">קטגוריות מובילות</h2>
@@ -279,7 +254,6 @@ function StoreContent() {
           </section>
         )}
 
-        {/* רשימת המוצרים הראשית למטה */}
         <section className="space-y-6 pt-4 border-t">
           <div className="flex justify-between items-center">
             <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
