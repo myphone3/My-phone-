@@ -12,7 +12,6 @@ export default function AdminBanners() {
   const [linkProductId, setLinkProductId] = useState('');
   const [isActive, setIsActive] = useState(true);
 
-  // הגדרות פס מבצעים עליון וטיימר
   const [announcementText, setAnnouncementText] = useState('');
   const [announcementEndTime, setAnnouncementEndTime] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
@@ -22,7 +21,6 @@ export default function AdminBanners() {
   const [uploadingDesktop, setUploadingDesktop] = useState(false);
   const [uploadingMobile, setUploadingMobile] = useState(false);
 
-  // גלריית תמונות בחלון צף (Modal) כמו בניהול מוצרים
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [showGalleryModal, setShowGalleryModal] = useState<'desktop' | 'mobile' | null>(null);
   const [loadingGallery, setLoadingGallery] = useState(false);
@@ -173,13 +171,21 @@ export default function AdminBanners() {
     <div className="space-y-8" dir="rtl">
       <h1 className="text-2xl font-bold text-gray-900">ניהול באנרים ופס עליון</h1>
 
-      {/* ניהול פס מבצעים עליון וטיימר */}
+      {/* ניהול פס מבצעים עליון עם הגבלת תווים לשורה */}
       <form onSubmit={handleSaveSettings} className="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
         <h2 className="text-lg font-bold text-gray-800 border-b pb-2">ניהול פס מבצעים עליון וטיימר ⏱️</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">טקסט הפס העליון</label>
-            <input type="text" value={announcementText} onChange={(e) => setAnnouncementText(e.target.value)} placeholder="למשל: מבצע ל-24 שעות בלבד!! משלוח חינם בקניה מעל 399₪" className="w-full border rounded-xl p-3 outline-none text-xs sm:text-sm" />
+            <label className="block text-xs font-bold text-gray-700 mb-1">טקסט הפס העליון (עד 60 תווים מומלץ)</label>
+            <input 
+              type="text" 
+              maxLength={60}
+              value={announcementText} 
+              onChange={(e) => setAnnouncementText(e.target.value)} 
+              placeholder="למשל: מבצע ל-24 שעות בלבד!! משלוח חינם בקניה מעל 399₪" 
+              className="w-full border rounded-xl p-3 outline-none text-xs sm:text-sm" 
+            />
+            <span className="text-[10px] text-gray-500 mt-1 block">מוגבל ל-60 תווים כדי שיישאר בשורה אחת ברורה.</span>
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">שעת סיום מבצע (לשם טיימר)</label>
@@ -210,11 +216,10 @@ export default function AdminBanners() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t">
           
-          {/* באנר למחשב */}
           <div className="space-y-2 bg-gray-50 p-4 rounded-2xl border">
             <div className="flex justify-between items-center">
               <label className="text-xs font-black text-gray-900">תמונת באנר למחשב (Desktop)</label>
-              <span className="text-[10px] bg-orange-100 text-orange-800 font-bold px-2 py-0.5 rounded-md">מידות מומלצות: 1920x600 px</span>
+              <span className="text-[10px] bg-orange-100 text-orange-800 font-bold px-2 py-0.5 rounded-md">מידות מומלצות: 1920x500 px</span>
             </div>
             <div className="flex gap-2">
               <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'desktop')} className="w-full border rounded-xl p-2.5 text-xs bg-white cursor-pointer" />
@@ -238,11 +243,10 @@ export default function AdminBanners() {
             )}
           </div>
 
-          {/* באנר לפלאפון */}
           <div className="space-y-2 bg-gray-50 p-4 rounded-2xl border">
             <div className="flex justify-between items-center">
               <label className="text-xs font-black text-gray-900">תמונת באנר לפלאפון (Mobile)</label>
-              <span className="text-[10px] bg-orange-100 text-orange-800 font-bold px-2 py-0.5 rounded-md">מידות מומלצות: 800x800 px</span>
+              <span className="text-[10px] bg-orange-100 text-orange-800 font-bold px-2 py-0.5 rounded-md">מידות מומלצות: 1000x600 px</span>
             </div>
             <div className="flex gap-2">
               <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'mobile')} className="w-full border rounded-xl p-2.5 text-xs bg-white cursor-pointer" />
@@ -268,12 +272,10 @@ export default function AdminBanners() {
 
         </div>
 
-        {/* חלון גלריית תמונות צף (Modal) בדיוק כמו בניהול מוצרים */}
         {showGalleryModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full max-h-[85vh] flex flex-col p-6 animate-in fade-in zoom-in duration-200">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full max-h-[85vh] flex flex-col p-6">
               
-              {/* כותרת החלון */}
               <div className="flex justify-between items-center border-b pb-4 mb-4">
                 <h3 className="text-base sm:text-lg font-black text-gray-900">
                   בחר תמונות מתוך ספריית המדיה של האתר ({showGalleryModal === 'desktop' ? 'עבור מחשב' : 'עבור פלאפון'})
@@ -287,7 +289,6 @@ export default function AdminBanners() {
                 </button>
               </div>
 
-              {/* רשת התמונות בגלריה */}
               <div className="flex-1 overflow-y-auto p-2">
                 {loadingGallery ? (
                   <p className="text-center py-20 text-gray-500 font-bold">טוען תמונות מהמדיה...</p>
@@ -322,7 +323,6 @@ export default function AdminBanners() {
                 )}
               </div>
 
-              {/* תחתית החלון */}
               <div className="border-t pt-4 mt-4 flex justify-end">
                 <button
                   type="button"
@@ -360,7 +360,6 @@ export default function AdminBanners() {
         </div>
       </form>
 
-      {/* רשימת באנרים קיימים */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border space-y-3">
         <h2 className="text-lg font-bold text-gray-800">באנרים קיימים ({banners.length})</h2>
         <div className="space-y-3">
