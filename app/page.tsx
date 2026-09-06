@@ -9,6 +9,9 @@ function StoreContent() {
   const [categories, setCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
   const [banners, setBanners] = useState<any[]>([]);
+  const [settings, setSettings] = useState<any>(null);
+  const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number; isExpired: boolean } | null>(null);
+  
   const [currentBanner, setCurrentBanner] = useState(0);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -18,6 +21,31 @@ function StoreContent() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // ניהול טיימר השעון לפס העליון
+  useEffect(() => {
+    if (!settings?.announcement_end_time) return;
+
+    const targetTime = new Date(settings.announcement_end_time).getTime();
+
+    const updateTimer = () => {
+      const now = new Date().getTime();
+      const difference = targetTime - now;
+
+      if (difference <= 0) {
+        setTimeLeft({ hours: 0, minutes: 0, seconds: 0, isExpired: true });
+      } else {
+        const hours = Math.floor(difference / (1000 * 60 * 60));
+        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+        setTimeLeft({ hours, minutes, seconds, isExpired: false });
+      }
+    };
+
+    updateTimer();
+    const timerInterval = setInterval(updateTimer, 1000);
+    return () => clearInterval(timerInterval);
+  }, [settings]);
 
   useEffect(() => {
     if (banners.length <= 1) return;
@@ -29,16 +57,19 @@ function StoreContent() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [prodRes, catRes, brandRes, bannerRes] = await Promise.all([
+    const [prodRes, catRes, brandRes, bannerRes, settingsRes] = await Promise.all([
       supabase.from('products').select('*').or('is_published.is.null,is_published.eq.true').order('created_at', { ascending: false }),
       supabase.from('categories').select('*'),
       supabase.from('brands').select('*'),
       supabase.from('banners').select('*').eq('is_active', true),
+      supabase.from('settings').select('*').single(),
     ]);
 
     if (prodRes.data) setProducts(prodRes.data);
     if (catRes.data) setCategories(catRes.data);
     if (brandRes.data) setBrands(brandRes.data);
+    if (settingsRes.data) setSettings(settingsRes.data);
+
     if (bannerRes.data && bannerRes.data.length > 0) {
       setBanners(bannerRes.data);
     } else {
@@ -80,7 +111,8 @@ function StoreContent() {
     return nameMatch || brandMatch || categoryMatch || descMatch;
   });
 
-  const scrollingBrands = [...brands, ...brands, ...brands];
+  // שכפול רב של המותגים כך שתמיד תהיה תנועה חלקה ורציפה בלי שום רווח ריק
+  const scrollingBrands = [...brands, ...brands, ...brands, ...brands];
 
   return (
     <div className="space-y-0 pb-16" dir="rtl">
@@ -88,22 +120,36 @@ function StoreContent() {
       <style jsx>{`
         @keyframes marquee {
           0% { transform: translateX(0); }
-          100% { transform: translateX(-33.333%); }
+          100% { transform: translateX(-50%); }
         }
         .animate-marquee {
           display: flex;
           width: max-content;
-          animation: marquee 30s linear infinite;
+          animation: marquee 25s linear infinite;
         }
         .animate-marquee:hover {
           animation-play-state: paused;
         }
       `}</style>
 
-      {/* מותגים נעים */}
+      {/* פס מבצעים עליון עם טיימר דינמי שנעלם אוטומטית כשהזמן נגמר */}
+      {settings?.announcement_text && (!timeLeft || !timeLeft.isExpired) && (
+        <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2.5 text-xs sm:text-sm font-bold flex flex-wrap items-center justify-between gap-2 shadow-sm z-50">
+          <div className="flex items-center gap-2">
+            <span className="bg-black/30 px-2.5 py-1 rounded-lg text-xs font-mono tracking-wider">
+              {timeLeft ? `${String(timeLeft.hours).padStart(2, '0')}:${String(timeLeft.minutes).padStart(2, '0')}:${String(timeLeft.seconds).padStart(2, '0')}` : 'טעון...'} ⏱️
+            </span>
+          </div>
+          <div className="flex-1 text-right truncate">
+            {settings.announcement_text}
+          </div>
+        </div>
+      )}
+
+      {/* מותגים נעים בלולאה רציפה מושלמת */}
       {brands.length > 0 && (
-        <div className="w-full overflow-x-auto bg-orange-50/40 py-3 border-b border-orange-100 scrollbar-none">
-          <div className="animate-marquee flex items-center gap-12 px-4 cursor-grab">
+        <div className="w-full overflow-hidden bg-orange-50/40 py-3 border-b border-orange-100">
+          <div className="animate-marquee flex items-center gap-12 px-6">
             {scrollingBrands.map((brand, idx) => (
               brand.image_url && (
                 <Link 
@@ -119,7 +165,7 @@ function StoreContent() {
         </div>
       )}
 
-      {/* באנרים - מותאם באופן מושלם לטלפון ולרוחב */}
+      {/* באנרים */}
       {banners.length > 0 && (
         <div className="relative w-full bg-gradient-to-r from-gray-950 via-orange-950 to-black overflow-hidden shadow-xl text-white py-10 px-4 sm:px-16 transition-all duration-500">
           <div className="max-w-5xl mx-auto space-y-3 relative z-10 text-right sm:text-center flex flex-col items-start sm:items-center">
@@ -154,8 +200,8 @@ function StoreContent() {
         </div>
       )}
 
-      {/* שורת חיפוש צפה (Sticky) שתישמד למעלה אבל מתחת להדר הראשי (top-16 או מתחת לפס העליון) */}
-      <div className="sticky top-14 sm:top-16 z-30 bg-white/95 backdrop-blur-md py-3 px-4 shadow-sm border-b border-gray-100">
+      {/* שורת חיפוש צפה (Sticky) שיושבת מושלם מתחת להדר בלי שום חיתוך */}
+      <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-md py-3 px-4 shadow-md border-b border-gray-100">
         <div className="max-w-2xl mx-auto relative">
           <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-gray-400">
             🔍
