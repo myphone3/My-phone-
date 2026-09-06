@@ -22,7 +22,7 @@ export default function AdminBanners() {
   const [uploadingDesktop, setUploadingDesktop] = useState(false);
   const [uploadingMobile, setUploadingMobile] = useState(false);
 
-  // גלריית תמונות גדולה וברורה
+  // גלריית תמונות ענקית וברורה
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [showGalleryFor, setShowGalleryFor] = useState<'desktop' | 'mobile' | null>(null);
   const [loadingGallery, setLoadingGallery] = useState(false);
@@ -268,19 +268,19 @@ export default function AdminBanners() {
 
         </div>
 
-        {/* גלריית תמונות גדולה, רחבה וברורה במיוחד */}
+        {/* גלריית תמונות ענקית, רחבה וברורה ללא עמודות צרות */}
         {showGalleryFor && (
-          <div className="bg-orange-50 border-2 border-orange-200 p-5 rounded-2xl space-y-3 shadow-inner">
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-black text-gray-900">
-                בחר תמונה ברורה וגדולה עבור {showGalleryFor === 'desktop' ? 'מחשב' : 'פלאפון'} מתוך האחסון:
+          <div className="bg-orange-50 border-2 border-orange-200 p-6 rounded-3xl space-y-4 shadow-lg w-full">
+            <div className="flex justify-between items-center border-b pb-3">
+              <span className="text-sm font-black text-gray-900">
+                🖼️ בחר תמונה רחבה וברורה עבור {showGalleryFor === 'desktop' ? 'מחשב' : 'פלאפון'} מתוך האחסון:
               </span>
-              <button type="button" onClick={() => setShowGalleryFor(null)} className="text-xs text-gray-500 font-bold hover:text-red-600">סגור [X]</button>
+              <button type="button" onClick={() => setShowGalleryFor(null)} className="text-xs text-gray-600 font-black hover:bg-red-100 hover:text-red-600 px-3 py-1.5 rounded-xl bg-white border transition">סגור [X]</button>
             </div>
             {loadingGallery ? (
-              <p className="text-xs text-gray-500 py-8 text-center font-bold">טוען תמונות בגודל מלא...</p>
+              <p className="text-sm text-gray-500 py-12 text-center font-bold">טוען תמונות בגודל מלא...</p>
             ) : existingImages.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-h-80 overflow-y-auto p-3 bg-white border rounded-xl shadow-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-h-[450px] overflow-y-auto p-2 bg-white border-2 rounded-2xl shadow-inner">
                 {existingImages.map((url, idx) => (
                   <div
                     key={idx}
@@ -289,17 +289,19 @@ export default function AdminBanners() {
                       else setMobileImageUrl(url);
                       setShowGalleryFor(null);
                     }}
-                    className="cursor-pointer border-2 rounded-xl overflow-hidden bg-white hover:border-orange-600 transition aspect-video flex flex-col items-center justify-between p-2 group shadow-xs border-gray-200"
+                    className="cursor-pointer border-2 rounded-2xl overflow-hidden bg-white hover:border-orange-600 hover:shadow-md transition flex flex-col items-center p-2.5 group border-gray-200"
                   >
-                    <div className="w-full h-24 flex items-center justify-center bg-gray-50 rounded-lg overflow-hidden">
-                      <img src={url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition duration-200" />
+                    <div className="w-full h-36 flex items-center justify-center bg-gray-50 rounded-xl overflow-hidden mb-2">
+                      <img src={url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
                     </div>
-                    <span className="text-[10px] font-bold text-gray-600 mt-2 text-center w-full">בחר תמונה זו ✓</span>
+                    <span className="text-xs font-bold text-gray-800 bg-orange-50 group-hover:bg-orange-600 group-hover:text-white px-3 py-1 rounded-lg w-full text-center transition">
+                      בחר תמונה זו ✓
+                    </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-gray-400 text-center py-6">לא נמצאו תמונות באחסון.</p>
+              <p className="text-xs text-gray-400 text-center py-8">לא נמצאו תמונות באחסון.</p>
             )}
           </div>
         )}
