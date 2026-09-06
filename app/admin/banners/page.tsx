@@ -11,24 +11,52 @@ export default function AdminBanners() {
   const [mobileImageUrl, setMobileImageUrl] = useState('');
   const [linkProductId, setLinkProductId] = useState('');
   const [isActive, setIsActive] = useState(true);
-  
+
+  // הגדרות פס מבצעים עליון וטיימר
+  const [announcementText, setAnnouncementText] = useState('');
+  const [announcementEndTime, setAnnouncementEndTime] = useState('');
+  const [savingSettings, setSavingSettings] = useState(false);
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [uploadingDesktop, setUploadingDesktop] = useState(false);
   const [uploadingMobile, setUploadingMobile] = useState(false);
 
-  // גלריית תמונות קיימות באחסון
+  // גלריית תמונות גדולה וברורה
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [showGalleryFor, setShowGalleryFor] = useState<'desktop' | 'mobile' | null>(null);
   const [loadingGallery, setLoadingGallery] = useState(false);
 
   useEffect(() => {
     fetchBanners();
+    fetchSettings();
   }, []);
 
   const fetchBanners = async () => {
     const { data } = await supabase.from('banners').select('*').order('created_at', { ascending: false });
     if (data) setBanners(data);
+  };
+
+  const fetchSettings = async () => {
+    const { data } = await supabase.from('settings').select('*').single();
+    if (data) {
+      setAnnouncementText(data.announcement_text || '');
+      setAnnouncementEndTime(data.announcement_end_time || '');
+    }
+  };
+
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingSettings(true);
+    const { error } = await supabase.from('settings').upsert({
+      id: 1,
+      announcement_text: announcementText,
+      announcement_end_time: announcementEndTime,
+    });
+
+    if (error) alert('שגיאה בשמירת הפס העליון: ' + error.message);
+    else alert('הפס העליון והטיימר עודכנו בהצלחה! 🚀');
+    setSavingSettings(false);
   };
 
   const fetchExistingImages = async () => {
@@ -87,7 +115,7 @@ export default function AdminBanners() {
       subtitle,
       desktop_image_url: desktopImageUrl,
       mobile_image_url: mobileImageUrl,
-      image_url: desktopImageUrl, // גיבוי לתאימות אחורית
+      image_url: desktopImageUrl,
       link_product_id: linkProductId,
       is_active: isActive
     };
@@ -142,9 +170,28 @@ export default function AdminBanners() {
   };
 
   return (
-    <div className="space-y-6" dir="rtl">
-      <h1 className="text-2xl font-bold text-gray-900">ניהול באנרים שיווקיים</h1>
+    <div className="space-y-8" dir="rtl">
+      <h1 className="text-2xl font-bold text-gray-900">ניהול באנרים ופס עליון</h1>
 
+      {/* ניהול פס מבצעים עליון וטיימר */}
+      <form onSubmit={handleSaveSettings} className="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
+        <h2 className="text-lg font-bold text-gray-800 border-b pb-2">ניהול פס מבצעים עליון וטיימר ⏱️</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">טקסט הפס העליון</label>
+            <input type="text" value={announcementText} onChange={(e) => setAnnouncementText(e.target.value)} placeholder="למשל: מבצע ל-24 שעות בלבד!! משלוח חינם בקניה מעל 399₪" className="w-full border rounded-xl p-3 outline-none text-xs sm:text-sm" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">שעת סיום מבצע (לשם טיימר)</label>
+            <input type="datetime-local" value={announcementEndTime} onChange={(e) => setAnnouncementEndTime(e.target.value)} className="w-full border rounded-xl p-3 outline-none text-xs sm:text-sm bg-gray-50 cursor-pointer" />
+          </div>
+        </div>
+        <button type="submit" disabled={savingSettings} className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-xl font-bold transition shadow-md cursor-pointer text-xs">
+          {savingSettings ? 'שומר...' : 'שמור הגדרות פס עליון 💾'}
+        </button>
+      </form>
+
+      {/* טופס הוספה / עריכת באנר */}
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
         <h2 className="text-lg font-bold text-gray-800 border-b pb-2">
           {editingId ? 'עריכת באנר ✏️' : 'הוספת באנר חדש ➕'}
@@ -153,11 +200,11 @@ export default function AdminBanners() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">כותרת הבאנר</label>
-            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="למשל: 🔥 מבצעי ענק על מכשירים כשרים..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black text-xs sm:text-sm" required />
+            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="למשל: 🔥 מבצעי ענק על מכשירים כשרים..." className="w-full border rounded-xl p-3 outline-none text-xs sm:text-sm" required />
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">כותרת משנה</label>
-            <input type="text" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="למשל: הנחות מיוחדות לשבוע הקרוב בלבד..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black text-xs sm:text-sm" />
+            <input type="text" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="למשל: הנחות מיוחדות לשבוע הקרוב בלבד..." className="w-full border rounded-xl p-3 outline-none text-xs sm:text-sm" />
           </div>
         </div>
 
@@ -170,23 +217,23 @@ export default function AdminBanners() {
               <span className="text-[10px] bg-orange-100 text-orange-800 font-bold px-2 py-0.5 rounded-md">מידות מומלצות: 1920x600 px</span>
             </div>
             <div className="flex gap-2">
-              <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'desktop')} className="w-full border rounded-xl p-2 text-xs bg-white cursor-pointer" />
+              <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'desktop')} className="w-full border rounded-xl p-2.5 text-xs bg-white cursor-pointer" />
               <button
                 type="button"
                 onClick={() => {
                   if (showGalleryFor !== 'desktop') fetchExistingImages();
                   setShowGalleryFor(showGalleryFor === 'desktop' ? null : 'desktop');
                 }}
-                className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer"
+                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer shadow-xs"
               >
                 {showGalleryFor === 'desktop' ? 'סגור ✕' : 'בחר מהאחסון 🖼️'}
               </button>
             </div>
             {uploadingDesktop && <p className="text-xs text-blue-600 font-bold">מעלה תמונת מחשב...</p>}
             {desktopImageUrl && (
-              <div className="flex items-center gap-3 bg-white p-2 rounded-xl border">
-                <img src={desktopImageUrl} alt="" className="w-16 h-10 object-cover rounded border" />
-                <span className="text-[10px] text-green-600 font-bold truncate">נבחרה תמונת מחשב ✓</span>
+              <div className="flex items-center gap-3 bg-white p-2.5 rounded-xl border">
+                <img src={desktopImageUrl} alt="" className="w-20 h-12 object-cover rounded-lg border" />
+                <span className="text-xs text-green-600 font-bold truncate">נבחרה תמונת מחשב ✓</span>
               </div>
             )}
           </div>
@@ -198,42 +245,42 @@ export default function AdminBanners() {
               <span className="text-[10px] bg-orange-100 text-orange-800 font-bold px-2 py-0.5 rounded-md">מידות מומלצות: 800x800 px</span>
             </div>
             <div className="flex gap-2">
-              <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'mobile')} className="w-full border rounded-xl p-2 text-xs bg-white cursor-pointer" />
+              <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'mobile')} className="w-full border rounded-xl p-2.5 text-xs bg-white cursor-pointer" />
               <button
                 type="button"
                 onClick={() => {
                   if (showGalleryFor !== 'mobile') fetchExistingImages();
                   setShowGalleryFor(showGalleryFor === 'mobile' ? null : 'mobile');
                 }}
-                className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer"
+                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer shadow-xs"
               >
                 {showGalleryFor === 'mobile' ? 'סגור ✕' : 'בחר מהאחסון 🖼️'}
               </button>
             </div>
             {uploadingMobile && <p className="text-xs text-blue-600 font-bold">מעלה תמונת פלאפון...</p>}
             {mobileImageUrl && (
-              <div className="flex items-center gap-3 bg-white p-2 rounded-xl border">
-                <img src={mobileImageUrl} alt="" className="w-16 h-10 object-cover rounded border" />
-                <span className="text-[10px] text-green-600 font-bold truncate">נבחרה תמונת פלאפון ✓</span>
+              <div className="flex items-center gap-3 bg-white p-2.5 rounded-xl border">
+                <img src={mobileImageUrl} alt="" className="w-20 h-12 object-cover rounded-lg border" />
+                <span className="text-xs text-green-600 font-bold truncate">נבחרה תמונת פלאפון ✓</span>
               </div>
             )}
           </div>
 
         </div>
 
-        {/* גלריית בחירת תמונות קיימות מהאחסון */}
+        {/* גלריית תמונות גדולה, רחבה וברורה במיוחד */}
         {showGalleryFor && (
-          <div className="bg-orange-50 border-2 border-orange-200 p-4 rounded-2xl space-y-2">
+          <div className="bg-orange-50 border-2 border-orange-200 p-5 rounded-2xl space-y-3 shadow-inner">
             <div className="flex justify-between items-center">
               <span className="text-xs font-black text-gray-900">
-                בחר תמונה עבור {showGalleryFor === 'desktop' ? 'מחשב' : 'פלאפון'} מתוך האחסון:
+                בחר תמונה ברורה וגדולה עבור {showGalleryFor === 'desktop' ? 'מחשב' : 'פלאפון'} מתוך האחסון:
               </span>
               <button type="button" onClick={() => setShowGalleryFor(null)} className="text-xs text-gray-500 font-bold hover:text-red-600">סגור [X]</button>
             </div>
             {loadingGallery ? (
-              <p className="text-xs text-gray-500 py-4 text-center font-bold">טוען תמונות...</p>
+              <p className="text-xs text-gray-500 py-8 text-center font-bold">טוען תמונות בגודל מלא...</p>
             ) : existingImages.length > 0 ? (
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 max-h-52 overflow-y-auto p-2 bg-white border rounded-xl">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-h-80 overflow-y-auto p-3 bg-white border rounded-xl shadow-xs">
                 {existingImages.map((url, idx) => (
                   <div
                     key={idx}
@@ -242,14 +289,17 @@ export default function AdminBanners() {
                       else setMobileImageUrl(url);
                       setShowGalleryFor(null);
                     }}
-                    className="cursor-pointer border-2 rounded-lg overflow-hidden bg-white hover:border-orange-600 transition aspect-video flex items-center justify-center p-1"
+                    className="cursor-pointer border-2 rounded-xl overflow-hidden bg-white hover:border-orange-600 transition aspect-video flex flex-col items-center justify-between p-2 group shadow-xs border-gray-200"
                   >
-                    <img src={url} alt="" className="w-full h-full object-cover rounded" />
+                    <div className="w-full h-24 flex items-center justify-center bg-gray-50 rounded-lg overflow-hidden">
+                      <img src={url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition duration-200" />
+                    </div>
+                    <span className="text-[10px] font-bold text-gray-600 mt-2 text-center w-full">בחר תמונה זו ✓</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-gray-400 text-center py-4">לא נמצאו תמונות באחסון.</p>
+              <p className="text-xs text-gray-400 text-center py-6">לא נמצאו תמונות באחסון.</p>
             )}
           </div>
         )}
@@ -277,6 +327,7 @@ export default function AdminBanners() {
         </div>
       </form>
 
+      {/* רשימת באנרים קיימים */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border space-y-3">
         <h2 className="text-lg font-bold text-gray-800">באנרים קיימים ({banners.length})</h2>
         <div className="space-y-3">
