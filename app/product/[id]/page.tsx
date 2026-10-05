@@ -2,24 +2,25 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function ProductPage() {
   const params = useParams();
+  const router = useRouter();
   const productId = params?.id;
 
   const [product, setProduct] = useState<any>(null);
   const [brands, setBrands] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Selection states
   const [selectedImage, setSelectedImage] = useState<string>('');
   const [selectedColor, setSelectedColor] = useState<any>(null);
   const [selectedVersion, setSelectedVersion] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'description' | 'specs'>('description');
   const [addedAnimation, setAddedAnimation] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [copied, setCopied] = useState(false);
 
   const tabsRef = useRef<HTMLDivElement>(null);
 
@@ -45,10 +46,19 @@ export default function ProductPage() {
         setSelectedImage(primaryImg);
 
         const colors = parseArray(p.product_colors);
-        if (colors.length > 0) setSelectedColor(colors[0]);
+        // אם יש רק צבע אחד, נבחר אותו אוטומטית. אם יש יותר, נשאיר ריק כדי שיהיה חובה לבחור.
+        if (colors.length === 1) {
+          setSelectedColor(colors[0]);
+        } else {
+          setSelectedColor(null);
+        }
 
         const versions = parseArray(p.versions || p.product_versions);
-        if (versions.length > 0) setSelectedVersion(versions[0]);
+        if (versions.length === 1) {
+          setSelectedVersion(versions[0]);
+        } else {
+          setSelectedVersion(null);
+        }
       }
       if (brandRes.data) {
         setBrands(brandRes.data);
@@ -60,7 +70,6 @@ export default function ProductPage() {
     }
   };
 
-  // פונקציית עזר בטוחה המונעת קריסה אם הנתונים במסד אינם מערך תקין
   const parseArray = (field: any) => {
     if (!field) return [];
     if (Array.isArray(field)) return field;
@@ -75,20 +84,31 @@ export default function ProductPage() {
     return [];
   };
 
-  const scrollToTabs = () => {
+  const scrollToTabs = (tab: 'description' | 'specs' = 'description') => {
+    setActiveTab(tab);
     tabsRef.current?.scrollIntoView({ behavior: 'smooth' });
-    setActiveTab('description');
   };
 
-  const handleAddToCart = () => {
+  const validateSelections = () => {
     setErrorMessage('');
-    if (!product) return;
-
+    const colorsList = parseArray(product.product_colors);
     const versionsList = parseArray(product.versions || product.product_versions);
+
+    if (colorsList.length > 1 && !selectedColor) {
+      setErrorMessage('חובה לבחור צבע לפני הוספה לעגלה');
+      return false;
+    }
+
     if (versionsList.length > 0 && !selectedVersion) {
       setErrorMessage('חובה לבחור גרסה לפני הוספה לעגלה');
-      return;
+      return false;
     }
+
+    return true;
+  };
+
+  const handleAddToCart = (redirectAfter = false) => {
+    if (!validateSelections()) return;
 
     try {
       const cart = JSON.parse(localStorage.getItem('cart') || '[]');
@@ -116,11 +136,27 @@ export default function ProductPage() {
       }
 
       localStorage.setItem('cart', JSON.stringify(cart));
-      setAddedAnimation(true);
-      setTimeout(() => setAddedAnimation(false), 2500);
+      
+      if (redirectAfter) {
+        router.push('/cart');
+      } else {
+        setAddedAnimation(true);
+        setTimeout(() => setAddedAnimation(false), 2500);
+      }
     } catch (err) {
       console.error('Error adding to cart:', err);
     }
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleWhatsAppShare = () => {
+    const text = encodeURIComponent(`היי, ראיתי את המוצר הזה ב-NEW PHONE: ${window.location.href}`);
+    window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
   if (loading) {
@@ -149,6 +185,7 @@ export default function ProductPage() {
   const colorsList = parseArray(product.product_colors);
   const versionsList = parseArray(product.versions || product.product_versions);
   const hasSpecs = Boolean(product.specifications && product.specifications.trim() !== '');
+  const hasFullDesc = Boolean(product.full_description || product.description);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-8" dir="rtl">
@@ -191,7 +228,7 @@ export default function ProductPage() {
 
         {/* פרטי המוצר */}
         <div className="flex flex-col justify-between space-y-6">
-          <div className="space-y-3">
+          <div className="space-y-4">
             
             {/* לוגו מותג ולוגו כשרות */}
             <div className="flex items-center gap-3">
@@ -231,13 +268,49 @@ export default function ProductPage() {
               {product.short_description || product.description}
             </p>
 
-            {/* כפתור מעבר מהיר ללשונית תיאור מלא */}
-            <div>
+            {/* כפתורי מעבר מעוצבים לתיאור ומפרט */}
+            <div className="flex gap-2">
+              {hasFullDesc && (
+                <button
+                  onClick={() => scrollToTabs('description')}
+                  className="flex-1 bg-gray-100 hover:bg-orange-50 hover:text-orange-700 text-gray-800 py-2.5 px-4 rounded-xl text-xs font-bold border border-gray-200 transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+                >
+                  <span>📖</span> תיאור מלא על המוצר
+                </button>
+              )}
+              {hasSpecs && (
+                <button
+                  onClick={() => scrollToTabs('specs')}
+                  className="flex-1 bg-gray-100 hover:bg-orange-50 hover:text-orange-700 text-gray-800 py-2.5 px-4 rounded-xl text-xs font-bold border border-gray-200 transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+                >
+                  <span>⚙️</span> מעבר למפרט מלא
+                </button>
+              )}
+            </div>
+
+            {/* כפתורי שיתוף והעתקת קישור */}
+            <div className="flex items-center gap-2 pt-1">
+              <span className="text-xs font-bold text-gray-500">שיתוף מוצר:</span>
               <button
-                onClick={scrollToTabs}
-                className="text-xs font-bold text-orange-600 hover:text-orange-700 hover:underline flex items-center gap-1 cursor-pointer"
+                onClick={handleWhatsAppShare}
+                title="שתף בוואטסאפ"
+                className="w-9 h-9 rounded-full bg-green-500 hover:bg-green-600 text-white flex items-center justify-center transition shadow-sm cursor-pointer"
               >
-                <span>📖</span> תיאור מלא על המוצר ומפרט טכני
+                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                </svg>
+              </button>
+              <button
+                onClick={handleCopyLink}
+                title="העתק קישור"
+                className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center transition shadow-sm cursor-pointer relative"
+              >
+                🔗
+                {copied && (
+                  <span className="absolute -top-8 bg-black text-white text-[10px] px-2 py-0.5 rounded shadow">
+                    הועתק!
+                  </span>
+                )}
               </button>
             </div>
 
@@ -274,10 +347,12 @@ export default function ProductPage() {
               </div>
             )}
 
-            {/* בחירת צבע (עיגולי צבע בלבד) */}
+            {/* בחירת צבע (חובה אם יש יותר מצבע אחד) */}
             {colorsList.length > 0 && (
               <div className="space-y-2">
-                <label className="block text-xs font-bold text-gray-800">בחר צבע</label>
+                <label className="block text-xs font-bold text-gray-800">
+                  בחר צבע {colorsList.length > 1 && <span className="text-red-500">*</span>}
+                </label>
                 <div className="flex items-center gap-3">
                   {colorsList.map((col: any, idx: number) => {
                     const colHex = typeof col === 'object' ? col.hex : '#000000';
@@ -301,24 +376,33 @@ export default function ProductPage() {
               </div>
             )}
 
-            {/* הודעת שגיאה במידה ולא נבחרה גרסה */}
+            {/* הודעת שגיאה במידה וחסרה בחירה */}
             {errorMessage && (
-              <p className="text-xs font-bold text-red-600 bg-red-50 p-2 rounded-xl text-center">
+              <p className="text-xs font-bold text-red-600 bg-red-50 p-2.5 rounded-xl text-center border border-red-100">
                 {errorMessage}
               </p>
             )}
 
-            {/* כפתור הוספה לעגלה */}
-            <button
-              onClick={handleAddToCart}
-              className={`w-full py-3.5 rounded-2xl text-xs sm:text-sm font-black transition shadow-md cursor-pointer ${
-                addedAnimation 
-                  ? 'bg-green-600 text-white' 
-                  : 'bg-orange-600 hover:bg-orange-700 text-white'
-              }`}
-            >
-              {addedAnimation ? '✓ נוסף בהצלחה לעגלה!' : 'הוספה לעגלה 🛒'}
-            </button>
+            {/* כפתורי הוספה לעגלה וקנה עכשיו בהשראת ההשראה שצורפה */}
+            <div className="space-y-2.5 pt-2">
+              <button
+                onClick={() => handleAddToCart(false)}
+                className={`w-full py-3.5 rounded-2xl text-xs sm:text-sm font-black transition shadow-md cursor-pointer flex items-center justify-center gap-2 ${
+                  addedAnimation 
+                    ? 'bg-green-600 text-white' 
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+              >
+                <span>🛒</span> {addedAnimation ? '✓ נוסף בהצלחה לעגלה!' : 'הוסף לעגלה'}
+              </button>
+
+              <button
+                onClick={() => handleAddToCart(true)}
+                className="w-full py-3.5 rounded-2xl text-xs sm:text-sm font-black transition shadow-md cursor-pointer bg-green-600 hover:bg-green-700 text-white flex items-center justify-center gap-2"
+              >
+                <span>⚡</span> קנה עכשיו
+              </button>
+            </div>
 
           </div>
         </div>
@@ -328,14 +412,16 @@ export default function ProductPage() {
       {/* לשוניות תיאור מלא ומפרט מלא */}
       <div className="bg-white p-6 sm:p-8 rounded-3xl border shadow-xs space-y-6" ref={tabsRef}>
         <div className="flex border-b gap-6">
-          <button
-            onClick={() => setActiveTab('description')}
-            className={`pb-3 text-xs sm:text-sm font-black border-b-2 transition cursor-pointer ${
-              activeTab === 'description' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            תיאור מלא
-          </button>
+          {hasFullDesc && (
+            <button
+              onClick={() => setActiveTab('description')}
+              className={`pb-3 text-xs sm:text-sm font-black border-b-2 transition cursor-pointer ${
+                activeTab === 'description' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              תיאור מלא
+            </button>
+          )}
           
           {hasSpecs && (
             <button
@@ -356,7 +442,7 @@ export default function ProductPage() {
             </div>
           ) : (
             <div className="whitespace-pre-line space-y-2">
-              {product.specifications}
+              {product.specifications || 'אין מפרט טכני זמין עבור מוצר זה.'}
             </div>
           )}
         </div>
