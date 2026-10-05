@@ -1,0 +1,16 @@
+{
+  "name": "NEW PHONE",
+  "short_name": "NEW PHONE",
+  "description": "הפלאפון החדש שלך - מכשירים כשרים וסלולר",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#f97316",
+  "icons": [
+    {
+      "src": "/Logo.JPG",
+      "sizes": "192x192 512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
