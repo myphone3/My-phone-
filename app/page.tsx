@@ -132,9 +132,9 @@ function StoreContent() {
         </div>
       )}
 
-      {/* שורת מותגים פעילה ויציבה */}
+      {/* שורת מותגים פעילה ויציבה ברקע לבן חלק */}
       {brands.length > 0 && (
-        <div className="w-full overflow-hidden bg-orange-50/40 py-3 border-b border-orange-100">
+        <div className="w-full overflow-hidden bg-white py-3 border-b border-gray-100">
           <div className="animate-marquee-right flex items-center gap-8 px-4">
             {scrollingBrands.map((brand, idx) => (
               brand.image_url && (
