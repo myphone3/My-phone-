@@ -214,7 +214,7 @@ export default function ProductPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white p-6 sm:p-8 rounded-3xl border shadow-xs">
         
-        {/* תמונות המוצר */}
+        {/* תמונות המוצר עם תגיות לוגו מותג וכשרות */}
         <div className="space-y-4">
           <div className="h-72 sm:h-96 w-full bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden border p-2 relative">
             <img 
@@ -222,8 +222,23 @@ export default function ProductPage() {
               alt={product.name || ''} 
               className="w-full h-full object-contain"
             />
+
+            {/* לוגו מותג ולוגו כשרות בצד התמונה */}
+            <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
+              {brandLogo && (
+                <div className="w-10 h-10 bg-white/90 backdrop-blur-sm rounded-2xl p-1.5 shadow border border-gray-100 flex items-center justify-center">
+                  <img src={brandLogo} alt="" className="w-full h-full object-contain" />
+                </div>
+              )}
+              {product.kosher_image && (
+                <div className="w-10 h-10 bg-white/90 backdrop-blur-sm rounded-2xl p-1.5 shadow border border-gray-100 flex items-center justify-center">
+                  <img src={product.kosher_image} alt="" className="w-full h-full object-contain" />
+                </div>
+              )}
+            </div>
+
             {product.sale_price && (
-              <span className="absolute top-3 right-3 bg-red-500 text-white text-xs font-black px-3 py-1 rounded-full shadow">
+              <span className="absolute top-3 left-3 bg-red-500 text-white text-xs font-black px-3 py-1 rounded-full shadow">
                 מבצע ⚡
               </span>
             )}
@@ -248,28 +263,12 @@ export default function ProductPage() {
         <div className="flex flex-col justify-between space-y-6">
           <div className="space-y-4">
             
-            {/* לוגו מותג, קטגוריה, כשרות ואחריות */}
+            {/* קטגוריה ואחריות */}
             <div className="flex items-center gap-2 flex-wrap">
-              {brandLogo ? (
-                <div className="h-8 max-w-[100px] flex items-center">
-                  <img src={brandLogo} alt={product.brand || 'Brand'} className="max-h-full max-w-full object-contain" />
-                </div>
-              ) : product.brand ? (
-                <span className="text-xs font-bold bg-orange-50 text-orange-800 px-3 py-1 rounded-full border border-orange-200">
-                  {product.brand}
-                </span>
-              ) : null}
-
               {product.category && (
                 <span className="text-xs font-bold bg-gray-100 text-gray-700 px-3 py-1 rounded-full">
                   {product.category}
                 </span>
-              )}
-
-              {product.kosher_image && (
-                <div className="h-8 max-w-[90px] flex items-center" title="כשרות">
-                  <img src={product.kosher_image} alt="כשרות" className="max-h-full max-w-full object-contain" />
-                </div>
               )}
 
               {product.warranty && (
@@ -298,7 +297,7 @@ export default function ProductPage() {
               {product.short_description || product.description}
             </p>
 
-            {/* כפתורי מעבר מעוצבים לתיאור ומפרט */}
+            {/* כפתורי מעבר לתיאור ומפרט */}
             <div className="flex gap-2">
               {hasFullDesc && (
                 <button
@@ -318,7 +317,7 @@ export default function ProductPage() {
               )}
             </div>
 
-            {/* שיתוף מוצר - הכיתוב מעל האייקונים */}
+            {/* שיתוף מוצר */}
             <div className="space-y-1.5 pt-1">
               <span className="text-xs font-bold text-gray-500 block">שיתוף מוצר:</span>
               <div className="flex items-center gap-2">
@@ -350,7 +349,7 @@ export default function ProductPage() {
 
           <div className="space-y-4 pt-4 border-t">
             
-            {/* בחירת גרסה (חובה) */}
+            {/* בחירת גרסה */}
             {versionsList.length > 0 && (
               <div className="space-y-2">
                 <label className="block text-xs font-bold text-gray-800">
@@ -379,7 +378,7 @@ export default function ProductPage() {
               </div>
             )}
 
-            {/* בחירת צבע (חובה אם יש יותר מצבע אחד) */}
+            {/* בחירת צבע */}
             {colorsList.length > 0 && (
               <div className="space-y-2">
                 <label className="block text-xs font-bold text-gray-800">
@@ -408,7 +407,7 @@ export default function ProductPage() {
               </div>
             )}
 
-            {/* כפתור כמות */}
+            {/* בחירת כמות */}
             <div className="space-y-2">
               <label className="block text-xs font-bold text-gray-800">כמות</label>
               <div className="flex items-center justify-between border border-gray-200 rounded-2xl p-2 bg-gray-50/50 max-w-[140px]">
@@ -430,7 +429,6 @@ export default function ProductPage() {
               </div>
             </div>
 
-            {/* הודעת שגיאה במידה וחסרה בחירה */}
             {errorMessage && (
               <p className="text-xs font-bold text-red-600 bg-red-50 p-2.5 rounded-xl text-center border border-red-100">
                 {errorMessage}
