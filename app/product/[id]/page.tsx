@@ -2,12 +2,11 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 
 export default function ProductPage() {
   const params = useParams();
-  const router = useRouter();
   const productId = params?.id;
 
   const [product, setProduct] = useState<any>(null);
@@ -18,12 +17,10 @@ export default function ProductPage() {
   const [selectedImage, setSelectedImage] = useState<string>('');
   const [selectedColor, setSelectedColor] = useState<any>(null);
   const [selectedVersion, setSelectedVersion] = useState<any>(null);
-  const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'description' | 'specs'>('description');
   const [addedAnimation, setAddedAnimation] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Ref for scrolling to tabs
   const tabsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -41,18 +38,17 @@ export default function ProductPage() {
       ]);
 
       if (prodRes.data) {
-        setProduct(prodRes.data);
-        const primaryImg = prodRes.data.image_url || prodRes.data.images?.[0] || '';
+        const p = prodRes.data;
+        setProduct(p);
+        
+        const primaryImg = p.image_url || (Array.isArray(p.images) ? p.images[0] : '') || '';
         setSelectedImage(primaryImg);
 
-        // בחירת צבע ברירת מחדל אם קיים
-        if (prodRes.data.product_colors?.length > 0) {
-          setSelectedColor(prodRes.data.product_colors[0]);
-        }
-        // בחירת גרסה ראשונה ברירת מחדל אם קיימת
-        if (prodRes.data.versions?.length > 0) {
-          setSelectedVersion(prodRes.data.versions[0]);
-        }
+        const colors = parseArray(p.product_colors);
+        if (colors.length > 0) setSelectedColor(colors[0]);
+
+        const versions = parseArray(p.versions || p.product_versions);
+        if (versions.length > 0) setSelectedVersion(versions[0]);
       }
       if (brandRes.data) {
         setBrands(brandRes.data);
@@ -64,6 +60,21 @@ export default function ProductPage() {
     }
   };
 
+  // פונקציית עזר בטוחה המונעת קריסה אם הנתונים במסד אינם מערך תקין
+  const parseArray = (field: any) => {
+    if (!field) return [];
+    if (Array.isArray(field)) return field;
+    if (typeof field === 'string') {
+      try {
+        const parsed = JSON.parse(field);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
   const scrollToTabs = () => {
     tabsRef.current?.scrollIntoView({ behavior: 'smooth' });
     setActiveTab('description');
@@ -71,9 +82,9 @@ export default function ProductPage() {
 
   const handleAddToCart = () => {
     setErrorMessage('');
+    if (!product) return;
 
-    // בדיקת חובת בחירת גרסה אם קיימות גרסאות למוצר
-    const versionsList = product.versions || product.product_versions || [];
+    const versionsList = parseArray(product.versions || product.product_versions);
     if (versionsList.length > 0 && !selectedVersion) {
       setErrorMessage('חובה לבחור גרסה לפני הוספה לעגלה');
       return;
@@ -82,7 +93,7 @@ export default function ProductPage() {
     try {
       const cart = JSON.parse(localStorage.getItem('cart') || '[]');
       
-      const finalPrice = product.sale_price || product.price;
+      const finalPrice = product.sale_price || product.price || 0;
       const versionExtra = selectedVersion?.price_add || selectedVersion?.price || 0;
       const unitPrice = Number(finalPrice) + Number(versionExtra);
 
@@ -93,13 +104,13 @@ export default function ProductPage() {
         price: unitPrice,
         image: selectedColor?.image || selectedImage,
         color: selectedColor?.name || '',
-        version: selectedVersion?.name || '',
-        quantity: quantity
+        version: typeof selectedVersion === 'object' ? selectedVersion?.name : selectedVersion || '',
+        quantity: 1
       };
 
       const existingIndex = cart.findIndex((item: any) => item.id === cartItem.id);
       if (existingIndex > -1) {
-        cart[existingIndex].quantity += quantity;
+        cart[existingIndex].quantity += 1;
       } else {
         cart.push(cartItem);
       }
@@ -127,19 +138,21 @@ export default function ProductPage() {
     );
   }
 
-  // מציאת לוגו המותג מתוך טבלת המותגים לפי שם המותג של המוצר
   const currentBrandObj = brands.find(b => b.name?.trim().toLowerCase() === product.brand?.trim().toLowerCase());
   const brandLogo = currentBrandObj?.image_url;
 
-  const imagesList = product.images?.length > 0 ? product.images : [product.image_url].filter(Boolean);
-  const colorsList = product.product_colors || [];
-  const versionsList = product.versions || product.product_versions || [];
+  const imagesList = parseArray(product.images);
+  if (imagesList.length === 0 && product.image_url) {
+    imagesList.push(product.image_url);
+  }
+
+  const colorsList = parseArray(product.product_colors);
+  const versionsList = parseArray(product.versions || product.product_versions);
   const hasSpecs = Boolean(product.specifications && product.specifications.trim() !== '');
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-8" dir="rtl">
       
-      {/* כפתור חזרה */}
       <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-orange-600 transition">
         <span>➔</span> חזרה לחנות
       </Link>
@@ -151,7 +164,7 @@ export default function ProductPage() {
           <div className="h-72 sm:h-96 w-full bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden border p-2 relative">
             <img 
               src={selectedColor?.image || selectedImage} 
-              alt={product.name} 
+              alt={product.name || ''} 
               className="w-full h-full object-contain"
             />
             {product.sale_price && (
@@ -240,8 +253,8 @@ export default function ProductPage() {
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {versionsList.map((ver: any, idx: number) => {
-                    const verName = typeof ver === 'string' ? ver : ver.name;
-                    const isSelected = selectedVersion?.name === verName || selectedVersion === ver;
+                    const verName = typeof ver === 'string' ? ver : ver?.name;
+                    const isSelected = selectedVersion === ver || selectedVersion?.name === verName;
                     return (
                       <button
                         key={idx}
@@ -269,7 +282,7 @@ export default function ProductPage() {
                   {colorsList.map((col: any, idx: number) => {
                     const colHex = typeof col === 'object' ? col.hex : '#000000';
                     const colName = typeof col === 'object' ? col.name : col;
-                    const isSelected = selectedColor?.name === colName || selectedColor === col;
+                    const isSelected = selectedColor === col || selectedColor?.name === colName;
 
                     return (
                       <button
