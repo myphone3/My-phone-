@@ -96,6 +96,7 @@ function StoreContent() {
     }
   };
 
+  // בדיקת כל שמות האפשריים לשדה הכשרות במסד הנתונים
   const getKosherImg = (p: any) => p?.kosher_image || p?.kosher || p?.kosher_logo || p?.kosher_badge || p?.kosher_img || '';
 
   const handleQuickAddToCart = (product: any, e: React.MouseEvent) => {
@@ -115,7 +116,9 @@ function StoreContent() {
 
       const colorName = typeof firstColor === 'object' ? firstColor?.name : firstColor || '';
       const versionName = typeof firstVersion === 'object' ? firstVersion?.name : firstVersion || '';
-      const activeImg = selectedColors[product.id] || (typeof firstColor === 'object' ? firstColor?.image : null) || product.image_url || product.images?.[0] || '';
+      
+      // תמונת המוצר הנכונה שתוצג בעגלה
+      const activeImg = selectedColors[product.id] || (typeof firstColor === 'object' ? firstColor?.image : null) || product.image_url || (Array.isArray(product.images) ? product.images[0] : '') || '';
 
       const cartItem = {
         id: `${product.id}-${colorName}-${versionName}`,
@@ -179,7 +182,7 @@ function StoreContent() {
         </div>
       )}
 
-      {/* שורת מותגים פעילה ברקע לבן חלק */}
+      {/* שורת מותגים פעילה */}
       {brands.length > 0 && (
         <div className="w-full overflow-hidden bg-white py-3 border-b border-gray-100">
           <div className="animate-marquee-right flex items-center gap-8 px-4">
@@ -198,7 +201,7 @@ function StoreContent() {
         </div>
       )}
 
-      {/* באנר מלבני דומיננטי */}
+      {/* באנר ראשי */}
       {banners.length > 0 && (
         <div className="relative w-full overflow-hidden bg-black">
           {banners[currentBanner]?.desktop_image_url || banners[currentBanner]?.mobile_image_url || banners[currentBanner]?.image_url ? (
@@ -244,14 +247,6 @@ function StoreContent() {
                 <p className="w-full text-gray-300 text-xs sm:text-sm font-medium leading-relaxed">
                   {banners[currentBanner]?.subtitle}
                 </p>
-                {banners[currentBanner]?.link_product_id && (
-                  <Link 
-                    href={`/product/${banners[currentBanner].link_product_id}`}
-                    className="inline-block bg-orange-600 text-white hover:bg-orange-700 px-5 py-2.5 rounded-2xl text-xs font-bold transition shadow-lg cursor-pointer mt-1"
-                  >
-                    לרכישת המוצר המשתתף במבצע ➔
-                  </Link>
-                )}
               </div>
             </div>
           )}
@@ -328,10 +323,10 @@ function StoreContent() {
                 return (
                   <div 
                     key={product.id} 
-                    className="bg-white rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between hover:shadow-xl transition-all duration-300 p-4"
+                    className="bg-white rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between p-4 hover:shadow-xl transition-all duration-300"
                   >
-                    <Link href={`/product/${product.id}`} className="block">
-                      <div className="h-40 sm:h-52 w-full bg-gray-50 rounded-2xl mb-3 flex items-center justify-center relative overflow-hidden group">
+                    <Link href={`/product/${product.id}`} className="block space-y-3">
+                      <div className="h-40 sm:h-52 w-full bg-gray-50 rounded-2xl flex items-center justify-center relative overflow-hidden group">
                         <img 
                           src={activeImage} 
                           alt={product.name} 
@@ -345,7 +340,7 @@ function StoreContent() {
                           />
                         )}
 
-                        {/* תגיות לוגו מותג ולוגו כשרות על גבי התמונה */}
+                        {/* תגיות לוגו מותג ולוגו כשרות */}
                         <div className="absolute top-2 right-2 flex flex-col gap-1.5 z-10">
                           {brandLogo && (
                             <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center">
@@ -392,20 +387,20 @@ function StoreContent() {
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between gap-1 pt-1">
-                        <div className="flex items-baseline gap-1.5">
+                      <div className="flex items-center justify-between gap-1">
+                        <div className="flex items-baseline gap-1">
                           {product.sale_price ? (
                             <>
-                              <span className="text-sm sm:text-base font-black text-red-600">₪{product.sale_price}</span>
-                              <span className="text-[10px] text-gray-400 line-through">₪{product.price}</span>
+                              <span className="text-xs sm:text-sm font-black text-red-600">₪{product.sale_price}</span>
+                              <span className="text-[9px] text-gray-400 line-through">₪{product.price}</span>
                             </>
                           ) : (
-                            <span className="text-sm sm:text-base font-black text-gray-900">₪{product.price}</span>
+                            <span className="text-xs sm:text-sm font-black text-gray-900">₪{product.price}</span>
                           )}
                         </div>
                         <button
                           onClick={(e) => handleQuickAddToCart(product, e)}
-                          className="bg-orange-600 text-white px-3.5 py-2 rounded-xl text-[11px] font-bold hover:bg-orange-700 transition whitespace-nowrap cursor-pointer shadow-sm"
+                          className="bg-orange-600 text-white px-2.5 py-2 rounded-xl text-[10px] sm:text-[11px] font-bold hover:bg-orange-700 transition whitespace-nowrap cursor-pointer shadow-sm"
                         >
                           הוספה לעגלה
                         </button>
