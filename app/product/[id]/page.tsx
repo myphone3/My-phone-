@@ -17,6 +17,7 @@ export default function ProductPage() {
   const [selectedImage, setSelectedImage] = useState<string>('');
   const [selectedColor, setSelectedColor] = useState<any>(null);
   const [selectedVersion, setSelectedVersion] = useState<any>(null);
+  const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'description' | 'specs'>('description');
   const [addedAnimation, setAddedAnimation] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -45,15 +46,14 @@ export default function ProductPage() {
         const primaryImg = p.image_url || (Array.isArray(p.images) ? p.images[0] : '') || '';
         setSelectedImage(primaryImg);
 
-        const colors = parseArray(p.product_colors);
-        // אם יש רק צבע אחד, נבחר אותו אוטומטית. אם יש יותר, נשאיר ריק כדי שיהיה חובה לבחור.
+        const colors = parseArray(p.product_colors || p.colors);
         if (colors.length === 1) {
           setSelectedColor(colors[0]);
         } else {
           setSelectedColor(null);
         }
 
-        const versions = parseArray(p.versions || p.product_versions);
+        const versions = parseVersions(p);
         if (versions.length === 1) {
           setSelectedVersion(versions[0]);
         } else {
@@ -78,7 +78,22 @@ export default function ProductPage() {
         const parsed = JSON.parse(field);
         return Array.isArray(parsed) ? parsed : [];
       } catch {
-        return [];
+        return field.split(',').map((s: string) => s.trim()).filter(Boolean);
+      }
+    }
+    return [];
+  };
+
+  const parseVersions = (prod: any) => {
+    const raw = prod.versions || prod.product_versions || prod.version_list || prod.options;
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === 'string') {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        return raw.split(',').map((s: string) => s.trim()).filter(Boolean);
       }
     }
     return [];
@@ -91,8 +106,8 @@ export default function ProductPage() {
 
   const validateSelections = () => {
     setErrorMessage('');
-    const colorsList = parseArray(product.product_colors);
-    const versionsList = parseArray(product.versions || product.product_versions);
+    const colorsList = parseArray(product.product_colors || product.colors);
+    const versionsList = parseVersions(product);
 
     if (colorsList.length > 1 && !selectedColor) {
       setErrorMessage('חובה לבחור צבע לפני הוספה לעגלה');
@@ -114,23 +129,26 @@ export default function ProductPage() {
       const cart = JSON.parse(localStorage.getItem('cart') || '[]');
       
       const finalPrice = product.sale_price || product.price || 0;
-      const versionExtra = selectedVersion?.price_add || selectedVersion?.price || 0;
+      const versionExtra = typeof selectedVersion === 'object' ? (selectedVersion?.price_add || selectedVersion?.price || 0) : 0;
       const unitPrice = Number(finalPrice) + Number(versionExtra);
 
+      const colorName = typeof selectedColor === 'object' ? selectedColor?.name : selectedColor || '';
+      const versionName = typeof selectedVersion === 'object' ? selectedVersion?.name : selectedVersion || '';
+
       const cartItem = {
-        id: `${product.id}-${selectedColor?.name || 'default'}-${selectedVersion?.name || 'default'}`,
+        id: `${product.id}-${colorName}-${versionName}`,
         productId: product.id,
         name: product.name,
         price: unitPrice,
-        image: selectedColor?.image || selectedImage,
-        color: selectedColor?.name || '',
-        version: typeof selectedVersion === 'object' ? selectedVersion?.name : selectedVersion || '',
-        quantity: 1
+        image: (typeof selectedColor === 'object' ? selectedColor?.image : null) || selectedImage,
+        color: colorName,
+        version: versionName,
+        quantity: quantity
       };
 
       const existingIndex = cart.findIndex((item: any) => item.id === cartItem.id);
       if (existingIndex > -1) {
-        cart[existingIndex].quantity += 1;
+        cart[existingIndex].quantity += quantity;
       } else {
         cart.push(cartItem);
       }
@@ -182,8 +200,8 @@ export default function ProductPage() {
     imagesList.push(product.image_url);
   }
 
-  const colorsList = parseArray(product.product_colors);
-  const versionsList = parseArray(product.versions || product.product_versions);
+  const colorsList = parseArray(product.product_colors || product.colors);
+  const versionsList = parseVersions(product);
   const hasSpecs = Boolean(product.specifications && product.specifications.trim() !== '');
   const hasFullDesc = Boolean(product.full_description || product.description);
 
@@ -200,7 +218,7 @@ export default function ProductPage() {
         <div className="space-y-4">
           <div className="h-72 sm:h-96 w-full bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden border p-2 relative">
             <img 
-              src={selectedColor?.image || selectedImage} 
+              src={(typeof selectedColor === 'object' ? selectedColor?.image : null) || selectedImage} 
               alt={product.name || ''} 
               className="w-full h-full object-contain"
             />
@@ -230,8 +248,8 @@ export default function ProductPage() {
         <div className="flex flex-col justify-between space-y-6">
           <div className="space-y-4">
             
-            {/* לוגו מותג ולוגו כשרות */}
-            <div className="flex items-center gap-3">
+            {/* לוגו מותג, קטגוריה, כשרות ואחריות */}
+            <div className="flex items-center gap-2 flex-wrap">
               {brandLogo ? (
                 <div className="h-8 max-w-[100px] flex items-center">
                   <img src={brandLogo} alt={product.brand || 'Brand'} className="max-h-full max-w-full object-contain" />
@@ -242,10 +260,22 @@ export default function ProductPage() {
                 </span>
               ) : null}
 
+              {product.category && (
+                <span className="text-xs font-bold bg-gray-100 text-gray-700 px-3 py-1 rounded-full">
+                  {product.category}
+                </span>
+              )}
+
               {product.kosher_image && (
                 <div className="h-8 max-w-[90px] flex items-center" title="כשרות">
                   <img src={product.kosher_image} alt="כשרות" className="max-h-full max-w-full object-contain" />
                 </div>
+              )}
+
+              {product.warranty && (
+                <span className="text-xs font-bold bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-100 flex items-center gap-1">
+                  🛡️ אחריות: {product.warranty}
+                </span>
               )}
             </div>
 
@@ -288,30 +318,32 @@ export default function ProductPage() {
               )}
             </div>
 
-            {/* כפתורי שיתוף והעתקת קישור */}
-            <div className="flex items-center gap-2 pt-1">
-              <span className="text-xs font-bold text-gray-500">שיתוף מוצר:</span>
-              <button
-                onClick={handleWhatsAppShare}
-                title="שתף בוואטסאפ"
-                className="w-9 h-9 rounded-full bg-green-500 hover:bg-green-600 text-white flex items-center justify-center transition shadow-sm cursor-pointer"
-              >
-                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
-                </svg>
-              </button>
-              <button
-                onClick={handleCopyLink}
-                title="העתק קישור"
-                className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center transition shadow-sm cursor-pointer relative"
-              >
-                🔗
-                {copied && (
-                  <span className="absolute -top-8 bg-black text-white text-[10px] px-2 py-0.5 rounded shadow">
-                    הועתק!
-                  </span>
-                )}
-              </button>
+            {/* שיתוף מוצר - הכיתוב מעל האייקונים */}
+            <div className="space-y-1.5 pt-1">
+              <span className="text-xs font-bold text-gray-500 block">שיתוף מוצר:</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleWhatsAppShare}
+                  title="שתף בוואטסאפ"
+                  className="w-9 h-9 rounded-full bg-green-500 hover:bg-green-600 text-white flex items-center justify-center transition shadow-sm cursor-pointer"
+                >
+                  <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                  </svg>
+                </button>
+                <button
+                  onClick={handleCopyLink}
+                  title="העתק קישור"
+                  className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center transition shadow-sm cursor-pointer relative"
+                >
+                  🔗
+                  {copied && (
+                    <span className="absolute -top-8 bg-black text-white text-[10px] px-2 py-0.5 rounded shadow whitespace-nowrap">
+                      הועתק!
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
 
           </div>
@@ -376,6 +408,28 @@ export default function ProductPage() {
               </div>
             )}
 
+            {/* כפתור כמות */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-gray-800">כמות</label>
+              <div className="flex items-center justify-between border border-gray-200 rounded-2xl p-2 bg-gray-50/50 max-w-[140px]">
+                <button
+                  type="button"
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  className="w-8 h-8 rounded-xl bg-white border border-gray-200 hover:bg-gray-100 flex items-center justify-center font-bold text-sm cursor-pointer shadow-xs transition"
+                >
+                  -
+                </button>
+                <span className="text-sm font-black w-8 text-center text-gray-900">{quantity}</span>
+                <button
+                  type="button"
+                  onClick={() => setQuantity(quantity + 1)}
+                  className="w-8 h-8 rounded-xl bg-white border border-gray-200 hover:bg-gray-100 flex items-center justify-center font-bold text-sm cursor-pointer shadow-xs transition"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
             {/* הודעת שגיאה במידה וחסרה בחירה */}
             {errorMessage && (
               <p className="text-xs font-bold text-red-600 bg-red-50 p-2.5 rounded-xl text-center border border-red-100">
@@ -383,7 +437,7 @@ export default function ProductPage() {
               </p>
             )}
 
-            {/* כפתורי הוספה לעגלה וקנה עכשיו בהשראת ההשראה שצורפה */}
+            {/* כפתורי הוספה לעגלה וקנה עכשיו */}
             <div className="space-y-2.5 pt-2">
               <button
                 onClick={() => handleAddToCart(false)}
