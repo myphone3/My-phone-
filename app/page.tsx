@@ -96,6 +96,53 @@ function StoreContent() {
     }
   };
 
+  const getKosherImg = (p: any) => p?.kosher_image || p?.kosher || p?.kosher_logo || p?.kosher_badge || p?.kosher_img || '';
+
+  const handleQuickAddToCart = (product: any, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      const colors = product.product_colors || product.colors || [];
+      const versions = product.versions || product.product_versions || [];
+      
+      const firstColor = colors[0] || {};
+      const firstVersion = versions[0] || {};
+      
+      const finalPrice = product.sale_price || product.price || 0;
+      const versionExtra = typeof firstVersion === 'object' ? (firstVersion?.price_add || firstVersion?.price || 0) : 0;
+      const unitPrice = Number(finalPrice) + Number(versionExtra);
+
+      const colorName = typeof firstColor === 'object' ? firstColor?.name : firstColor || '';
+      const versionName = typeof firstVersion === 'object' ? firstVersion?.name : firstVersion || '';
+      const activeImg = selectedColors[product.id] || (typeof firstColor === 'object' ? firstColor?.image : null) || product.image_url || product.images?.[0] || '';
+
+      const cartItem = {
+        id: `${product.id}-${colorName}-${versionName}`,
+        productId: product.id,
+        name: product.name,
+        price: unitPrice,
+        image: activeImg,
+        color: colorName,
+        version: versionName,
+        quantity: 1
+      };
+
+      const existingIndex = cart.findIndex((item: any) => item.id === cartItem.id);
+      if (existingIndex > -1) {
+        cart[existingIndex].quantity += 1;
+      } else {
+        cart.push(cartItem);
+      }
+
+      localStorage.setItem('cart', JSON.stringify(cart));
+      window.dispatchEvent(new Event('cartUpdated'));
+      alert('המוצר נוסף בהצלחה לעגלה! 🛒');
+    } catch (err) {
+      console.error('Add to cart error:', err);
+    }
+  };
+
   const scrollingBrands = [...brands, ...brands, ...brands, ...brands];
 
   return (
@@ -268,7 +315,7 @@ function StoreContent() {
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
               {products.map((product) => {
-                const colors = product.product_colors || [];
+                const colors = product.product_colors || product.colors || [];
                 const primaryImg = product.image_url || product.images?.[0] || '';
                 const secondaryImg = product.images?.[1] || primaryImg;
                 const activeImage = selectedColors[product.id] || primaryImg;
@@ -276,14 +323,15 @@ function StoreContent() {
 
                 const currentBrandObj = brands.find(b => b.name?.trim().toLowerCase() === product.brand?.trim().toLowerCase());
                 const brandLogo = currentBrandObj?.image_url;
+                const kosherImg = getKosherImg(product);
 
                 return (
                   <div 
                     key={product.id} 
-                    className="group bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-xl transition-all duration-300 p-4"
+                    className="bg-white rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between hover:shadow-xl transition-all duration-300 p-4"
                   >
                     <Link href={`/product/${product.id}`} className="block">
-                      <div className="h-40 sm:h-52 w-full bg-gray-50 overflow-hidden relative rounded-2xl mb-3 flex items-center justify-center">
+                      <div className="h-40 sm:h-52 w-full bg-gray-50 rounded-2xl mb-3 flex items-center justify-center relative overflow-hidden group">
                         <img 
                           src={activeImage} 
                           alt={product.name} 
@@ -304,9 +352,9 @@ function StoreContent() {
                               <img src={brandLogo} alt="" className="w-full h-full object-contain" />
                             </div>
                           )}
-                          {product.kosher_image && (
+                          {kosherImg && (
                             <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center">
-                              <img src={product.kosher_image} alt="" className="w-full h-full object-contain" />
+                              <img src={kosherImg} alt="" className="w-full h-full object-contain" />
                             </div>
                           )}
                         </div>
@@ -344,7 +392,7 @@ function StoreContent() {
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between gap-1">
+                      <div className="flex items-center justify-between gap-1 pt-1">
                         <div className="flex items-baseline gap-1.5">
                           {product.sale_price ? (
                             <>
@@ -355,12 +403,12 @@ function StoreContent() {
                             <span className="text-sm sm:text-base font-black text-gray-900">₪{product.price}</span>
                           )}
                         </div>
-                        <Link
-                          href={`/product/${product.id}`}
-                          className="bg-orange-600 text-white px-3 py-2 rounded-xl text-[11px] font-bold hover:bg-orange-700 transition whitespace-nowrap cursor-pointer shadow-sm"
+                        <button
+                          onClick={(e) => handleQuickAddToCart(product, e)}
+                          className="bg-orange-600 text-white px-3.5 py-2 rounded-xl text-[11px] font-bold hover:bg-orange-700 transition whitespace-nowrap cursor-pointer shadow-sm"
                         >
-                          קנה עכשיו
-                        </Link>
+                          הוספה לעגלה
+                        </button>
                       </div>
                     </div>
                   </div>
