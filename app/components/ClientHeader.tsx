@@ -20,6 +20,12 @@ export default function ClientHeader() {
   useEffect(() => {
     checkUserAndCart();
 
+    const handleCartUpdated = () => {
+      checkUserAndCart();
+    };
+    window.addEventListener('cartUpdated', handleCartUpdated);
+    window.addEventListener('storage', handleCartUpdated);
+
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowDropdown(false);
@@ -29,7 +35,12 @@ export default function ClientHeader() {
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('cartUpdated', handleCartUpdated);
+      window.removeEventListener('storage', handleCartUpdated);
+    };
   }, []);
 
   // Fetch live search results when query changes
