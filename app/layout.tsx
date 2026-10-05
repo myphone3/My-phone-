@@ -5,6 +5,22 @@ import Link from 'next/link';
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 
+// הגדרת מטא-דאטה להצגת שם האפליקציה והלוגו בהוספה למסך הבית
+export const metadata = {
+  title: 'NEW PHONE - הפלאפון החדש שלך',
+  description: 'החנות המובילה למכשירים כשרים, סלולר ונגנים',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'NEW PHONE',
+  },
+  icons: {
+    icon: '/Logo.JPG',
+    apple: '/Logo.JPG',
+  },
+};
+
 export default function RootLayout({
   children,
 }: {
