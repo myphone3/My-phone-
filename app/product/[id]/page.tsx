@@ -99,6 +99,8 @@ export default function ProductPage() {
     return [];
   };
 
+  const getKosherImg = (p: any) => p?.kosher_image || p?.kosher || p?.kosher_logo || p?.kosher_badge || p?.kosher_img || '';
+
   const scrollToTabs = (tab: 'description' | 'specs' = 'description') => {
     setActiveTab(tab);
     tabsRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -134,13 +136,14 @@ export default function ProductPage() {
 
       const colorName = typeof selectedColor === 'object' ? selectedColor?.name : selectedColor || '';
       const versionName = typeof selectedVersion === 'object' ? selectedVersion?.name : selectedVersion || '';
+      const activeImg = (typeof selectedColor === 'object' ? selectedColor?.image : null) || selectedImage;
 
       const cartItem = {
         id: `${product.id}-${colorName}-${versionName}`,
         productId: product.id,
         name: product.name,
         price: unitPrice,
-        image: (typeof selectedColor === 'object' ? selectedColor?.image : null) || selectedImage,
+        image: activeImg,
         color: colorName,
         version: versionName,
         quantity: quantity
@@ -154,6 +157,7 @@ export default function ProductPage() {
       }
 
       localStorage.setItem('cart', JSON.stringify(cart));
+      window.dispatchEvent(new Event('cartUpdated'));
       
       if (redirectAfter) {
         router.push('/cart');
@@ -194,6 +198,7 @@ export default function ProductPage() {
 
   const currentBrandObj = brands.find(b => b.name?.trim().toLowerCase() === product.brand?.trim().toLowerCase());
   const brandLogo = currentBrandObj?.image_url;
+  const kosherImg = getKosherImg(product);
 
   const imagesList = parseArray(product.images);
   if (imagesList.length === 0 && product.image_url) {
@@ -214,7 +219,7 @@ export default function ProductPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white p-6 sm:p-8 rounded-3xl border shadow-xs">
         
-        {/* תמונות המוצר עם תגיות לוגו מותג וכשרות */}
+        {/* תמונות המוצר */}
         <div className="space-y-4">
           <div className="h-72 sm:h-96 w-full bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden border p-2 relative">
             <img 
@@ -230,9 +235,9 @@ export default function ProductPage() {
                   <img src={brandLogo} alt="" className="w-full h-full object-contain" />
                 </div>
               )}
-              {product.kosher_image && (
+              {kosherImg && (
                 <div className="w-10 h-10 bg-white/90 backdrop-blur-sm rounded-2xl p-1.5 shadow border border-gray-100 flex items-center justify-center">
-                  <img src={product.kosher_image} alt="" className="w-full h-full object-contain" />
+                  <img src={kosherImg} alt="" className="w-full h-full object-contain" />
                 </div>
               )}
             </div>
