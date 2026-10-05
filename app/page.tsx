@@ -132,7 +132,7 @@ function StoreContent() {
         </div>
       )}
 
-      {/* שורת מותגים פעילה ויציבה ברקע לבן חלק */}
+      {/* שורת מותגים פעילה ברקע לבן חלק */}
       {brands.length > 0 && (
         <div className="w-full overflow-hidden bg-white py-3 border-b border-gray-100">
           <div className="animate-marquee-right flex items-center gap-8 px-4">
@@ -274,6 +274,9 @@ function StoreContent() {
                 const activeImage = selectedColors[product.id] || primaryImg;
                 const hasHoverImage = secondaryImg && secondaryImg !== primaryImg && !selectedColors[product.id];
 
+                const currentBrandObj = brands.find(b => b.name?.trim().toLowerCase() === product.brand?.trim().toLowerCase());
+                const brandLogo = currentBrandObj?.image_url;
+
                 return (
                   <div 
                     key={product.id} 
@@ -293,8 +296,23 @@ function StoreContent() {
                             className="absolute inset-0 w-full h-full object-contain opacity-0 group-hover:opacity-100 transition duration-300 group-hover:scale-105" 
                           />
                         )}
+
+                        {/* תגיות לוגו מותג ולוגו כשרות על גבי התמונה */}
+                        <div className="absolute top-2 right-2 flex flex-col gap-1.5 z-10">
+                          {brandLogo && (
+                            <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center">
+                              <img src={brandLogo} alt="" className="w-full h-full object-contain" />
+                            </div>
+                          )}
+                          {product.kosher_image && (
+                            <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center">
+                              <img src={product.kosher_image} alt="" className="w-full h-full object-contain" />
+                            </div>
+                          )}
+                        </div>
+
                         {product.sale_price && (
-                          <span className="absolute top-2 right-2 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow">
+                          <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow">
                             מבצע ⚡
                           </span>
                         )}
@@ -339,9 +357,9 @@ function StoreContent() {
                         </div>
                         <Link
                           href={`/product/${product.id}`}
-                          className="bg-orange-600 text-white px-3.5 py-2 rounded-xl text-[11px] font-bold hover:bg-orange-700 transition whitespace-nowrap cursor-pointer shadow-sm"
+                          className="bg-orange-600 text-white px-3 py-2 rounded-xl text-[11px] font-bold hover:bg-orange-700 transition whitespace-nowrap cursor-pointer shadow-sm"
                         >
-                          לצפייה
+                          קנה עכשיו
                         </Link>
                       </div>
                     </div>
