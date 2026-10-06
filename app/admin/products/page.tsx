@@ -26,7 +26,7 @@ export default function AdminProductsPage() {
   const [stock, setStock] = useState('10');
   const [isDraft, setIsDraft] = useState(false);
 
-  // מצבי אחריות חדשים
+  // מצבי אחריות
   const [showWarranty, setShowWarranty] = useState(true);
   const [warrantyDuration, setWarrantyDuration] = useState('');
 
@@ -308,7 +308,9 @@ export default function AdminProductsPage() {
   const relatedSearchProducts = products.filter(p => p.id !== editingId && p.name?.toLowerCase().includes(relatedSearch.toLowerCase()));
   const upsellSearchProducts = products.filter(p => p.id !== editingId && p.name?.toLowerCase().includes(upsellSearch.toLowerCase()));
 
-  if (loading) return <div className="text-center py-20 text-gray-500 font-medium">טוען מוצרים...</div>;
+  if (loading) {
+    return <div className="text-center py-20 text-gray-500 font-medium">טוען מוצרים...</div>;
+  }
 
   return (
     <div className="space-y-8 max-w-full overflow-hidden" dir="rtl">
@@ -369,7 +371,7 @@ export default function AdminProductsPage() {
             </div>
           </div>
 
-          {/* ניהול אחריות חדש */}
+          {/* ניהול אחריות */}
           <div className="space-y-4 bg-gray-50 p-4 rounded-2xl border">
             <div className="flex items-center justify-between">
               <span className="font-bold text-xs text-gray-900">הצג שורת אחריות בכרטיס מוצר</span>
@@ -772,4 +774,113 @@ export default function AdminProductsPage() {
                                 newCols[index].image = imgUrl;
                                 setColors(newCols);
                               }}
-                              className={`relative w-14 h-14 rounded-xl border overflow-hidden cursor-pointer shrink-0 transition bg-gray-5
+                              className={`relative w-14 h-14 rounded-xl border overflow-hidden cursor-pointer shrink-0 transition bg-gray-50 flex items-center justify-center p-0.5 ${isSelected ? 'border-orange-600 ring-2 ring-orange-600/50 bg-orange-50' : 'border-gray-200 hover:border-gray-400'}`}
+                            >
+                              <img src={imgUrl} alt="" className="w-full h-full object-contain" />
+                              {isSelected && (
+                                <span className="absolute bottom-0 right-0 bg-orange-600 text-white text-[9px] px-1 rounded-tl font-bold">
+                                  ✓
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <label className="block text-xs font-bold text-gray-700">תיאור קצר</label>
+              <button type="button" onClick={() => setShowPreviewShort(!showPreviewShort)} className="text-orange-600 text-xs font-bold">👁️ תצוגה מקדימה</button>
+            </div>
+            <input type="text" value={shortDesc} onChange={(e) => setShortDesc(e.target.value)} placeholder="משפט סיכום קצר..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
+            {showPreviewShort && <div className="bg-orange-50 border p-3 rounded-xl text-xs" dangerouslySetInnerHTML={{ __html: parseMarkdownPreview(shortDesc) }}></div>}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <label className="block text-xs font-bold text-gray-700">תיאור מלא</label>
+              <button type="button" onClick={() => setShowPreviewFull(!showPreviewFull)} className="text-orange-600 text-xs font-bold">👁️ תצוגה מקדימה</button>
+            </div>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="תיאור מפורט..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none"></textarea>
+            {showPreviewFull && <div className="bg-orange-50 border p-3 rounded-xl text-xs whitespace-pre-line" dangerouslySetInnerHTML={{ __html: parseMarkdownPreview(description) }}></div>}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <label className="block text-xs font-bold text-gray-700">מפרט טכני מלא</label>
+              <button type="button" onClick={() => setShowPreviewSpecs(!showPreviewSpecs)} className="text-orange-600 text-xs font-bold">👁️ תצוגה מקדימה</button>
+            </div>
+            <textarea value={specs} onChange={(e) => setSpecs(e.target.value)} rows={3} placeholder="מפרט טכני..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none"></textarea>
+            {showPreviewSpecs && <div className="bg-orange-50 border p-3 rounded-xl text-xs whitespace-pre-line" dangerouslySetInnerHTML={{ __html: parseMarkdownPreview(specs) }}></div>}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">SEO Title</label>
+              <input type="text" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">SEO Description</label>
+              <input type="text" value={seoDesc} onChange={(e) => setSeoDesc(e.target.value)} className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
+            </div>
+          </div>
+
+          <div className="bg-orange-50/50 border border-orange-200 p-4 rounded-2xl flex items-center justify-between">
+            <div>
+              <span className="text-xs font-black text-gray-900 block">שמור כטיוטה</span>
+            </div>
+            <input type="checkbox" checked={isDraft} onChange={(e) => setIsDraft(e.target.checked)} className="w-5 h-5 accent-orange-600 cursor-pointer" />
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button type="submit" className="bg-orange-600 text-white px-6 py-3.5 rounded-2xl text-xs font-black hover:bg-orange-700 transition shadow-md cursor-pointer">
+              {editingId ? 'עדכן מוצר ➔' : '+ הוסף מוצר לחנות ➔'}
+            </button>
+            {editingId && (
+              <button type="button" onClick={resetForm} className="bg-gray-200 text-gray-800 px-6 py-3.5 rounded-2xl text-xs font-bold transition cursor-pointer">ביטול</button>
+            )}
+          </div>
+        </form>
+      </div>
+
+      <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4 gap-3">
+          <h2 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">
+            מוצרים קיימים ({filteredProducts.length})
+          </h2>
+          <input
+            type="text"
+            placeholder="חפש מוצר קיים לפי שם..."
+            value={productSearch}
+            onChange={(e) => setProductSearch(e.target.value)}
+            className="w-full sm:w-64 bg-gray-50 border rounded-xl p-2.5 text-xs outline-none"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {filteredProducts.map((p) => (
+            <div key={p.id} className="border rounded-2xl p-4 flex justify-between items-center bg-gray-50/50 shadow-xs">
+              <div className="flex items-center gap-2">
+                <img src={p.image_url} alt="" className="w-10 h-10 object-contain bg-white rounded-xl border p-1" />
+                <div>
+                  <h4 className="font-bold text-xs text-gray-900">{p.name}</h4>
+                  <span className="text-xs text-orange-600 font-black">₪{p.price}</span>
+                </div>
+              </div>
+              <div className="flex gap-2 text-xs">
+                <button onClick={() => handleEdit(p)} className="text-blue-600 font-bold hover:underline cursor-pointer">עריכה</button>
+                <button onClick={() => handleDelete(p.id)} className="text-red-500 font-bold hover:underline cursor-pointer">מחיקה</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
