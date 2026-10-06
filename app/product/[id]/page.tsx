@@ -18,9 +18,11 @@ function ProductDetailContent() {
   const [activeImage, setActiveImage] = useState('');
   const [selectedBundles, setSelectedBundles] = useState<{ name: string; price: number }[]>([]);
   
-  // לוגואים ונתונים נלווים
+  // נתונים נוספים (קטגוריות, מותגים, כשרות, מוצרים קשורים)
+  const [categoriesList, setCategoriesList] = useState<any[]>([]);
   const [brandsList, setBrandsList] = useState<any[]>([]);
   const [kosherList, setKosherList] = useState<any[]>([]);
+  const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
 
   // ניהול תצוגת תיאור מלא ו-Upsell Popup
   const [showFullDescription, setShowFullDescription] = useState(false);
@@ -51,8 +53,9 @@ function ProductDetailContent() {
     try {
       setLoading(true);
 
-      const [prodRes, brandRes, kosherRes] = await Promise.all([
+      const [prodRes, catRes, brandRes, kosherRes] = await Promise.all([
         supabase.from('products').select('*').eq('id', productId).single(),
+        supabase.from('categories').select('*'),
         supabase.from('brands').select('*'),
         supabase.from('kosher_options').select('*')
       ]);
@@ -64,6 +67,7 @@ function ProductDetailContent() {
 
       const data = prodRes.data;
       setProduct(data);
+      if (catRes.data) setCategoriesList(catRes.data);
       if (brandRes.data) setBrandsList(brandRes.data);
       if (kosherRes.data) setKosherList(kosherRes.data);
 
@@ -76,7 +80,17 @@ function ProductDetailContent() {
       const versions = parseSafeArray(data.versions || data.product_versions || data.product_variants);
       if (versions.length > 0) setSelectedVersion(versions[0]);
 
-      // אם יש מוצר Upsell מוגדר, נביא את הפרטים שלו
+      // שליפת מוצרים קשורים / שיעניינו אותך
+      const relatedIds = parseSafeArray(data.related_products);
+      if (relatedIds.length > 0) {
+        const { data: relData } = await supabase
+          .from('products')
+          .select('*')
+          .in('id', relatedIds);
+        if (relData) setRelatedProducts(relData);
+      }
+
+      // שליפת מוצר Upsell במידה וקיים
       if (data.upsell_discount_item && data.upsell_discount_item.productId) {
         const { data: upsellData } = await supabase
           .from('products')
@@ -223,21 +237,29 @@ function ProductDetailContent() {
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-8" dir="rtl">
       
-      {/* פירורי לחם וקטגוריה */}
-      <div className="flex items-center justify-between text-xs font-bold text-gray-500">
-        <Link href="/" className="hover:text-orange-600 transition flex items-center gap-1">
-          <span>➔</span> חזרה לחנות
-        </Link>
-        {product.category && (
-          <span className="bg-orange-50 text-orange-600 px-3 py-1 rounded-full border border-orange-200">
-            קטגוריה: {product.category}
-          </span>
-        )}
-      </div>
+      {/* סרגל קטגוריות עליון */}
+      {categoriesList.length > 0 && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-2">
+          {categoriesList.map((cat) => {
+            const isActive = cat.name.trim().toLowerCase() === product.category?.trim().toLowerCase();
+            return (
+              <Link
+                key={cat.id}
+                href={`/category/${encodeURIComponent(cat.name)}`}
+                className={`px-4 py-2 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer shadow-xs ${
+                  isActive ? 'bg-orange-600 text-white' : 'bg-white text-gray-800 border hover:bg-gray-50'
+                }`}
+              >
+                {cat.name}
+              </Link>
+            );
+          })}
+        </div>
+      )}
 
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
         
-        {/* תמונות עם לוגואים */}
+        {/* תמונות המוצר */}
         <div className="space-y-4">
           <div className="h-72 sm:h-96 w-full bg-gray-50 rounded-2xl flex items-center justify-center p-4 relative overflow-hidden">
             <img src={activeImage} alt={product.name} className="max-h-full max-w-full object-contain" />
@@ -272,12 +294,63 @@ function ProductDetailContent() {
           )}
         </div>
 
-        {/* פרטים ורכישה */}
+        {/* פרטי המוצר ורכישה */}
         <div className="space-y-6">
+          
+          {/* שורה עליונה: שם קטגוריה בכתב בולט + אחריות (אם קיימת) באותה שורה */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            {product.category && (
+              <span className="text-sm font-black text-orange-600 bg-orange-50 px-3 py-1 rounded-xl border border-orange-200">
+                {product.category}
+              </span>
+            )}
+            {(product.warranty || product.warranty_duration) && (
+              <div className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1 rounded-xl text-xs font-bold border border-blue-100">
+                <span>🛡️</span>
+                <span>אחריות: {product.warranty || 'יבואן רשמי'} {product.warranty_duration ? `(${product.warranty_duration})` : ''}</span>
+              </div>
+            )}
+          </div>
+
           <div>
-            <span className="text-orange-600 font-bold text-sm">{product.brand || ''}</span>
+            <span className="text-gray-400 text-xs font-bold">{product.brand || ''}</span>
             <h1 className="text-2xl sm:text-3xl font-black text-gray-900 mt-1" dir="auto">{product.name}</h1>
           </div>
+
+          {/* תיאור קצר מיד מתחת לשם המוצר */}
+          {product.short_description && (
+            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed bg-gray-50 p-3.5 rounded-2xl border border-gray-100" dir="auto">
+              {product.short_description}
+            </p>
+          )}
+
+          {/* כפתור מעבר לתיאור מלא ומפרט */}
+          {(product.description || product.specs) && (
+            <button
+              onClick={() => setShowFullDescription(!showFullDescription)}
+              className="text-xs font-bold text-orange-600 bg-orange-50/70 hover:bg-orange-100 px-4 py-2 rounded-xl transition cursor-pointer flex items-center gap-1.5"
+            >
+              <span>{showFullDescription ? 'הסתר תיאור מלא ומפרט טכני ▲' : 'הצג תיאור מלא ומפרט טכני ▼'}</span>
+            </button>
+          )}
+
+          {/* הצגת תיאור מלא ומפרט במידה ונפתח */}
+          {showFullDescription && (
+            <div className="space-y-4 text-xs sm:text-sm text-gray-700 leading-relaxed bg-gray-50 p-4 rounded-2xl border" dir="auto">
+              {product.description && (
+                <div className="space-y-1">
+                  <h4 className="font-bold text-gray-900">סקירה כללית</h4>
+                  <div className="whitespace-pre-line">{product.description}</div>
+                </div>
+              )}
+              {product.specs && (
+                <div className="space-y-1 pt-3 border-t">
+                  <h4 className="font-bold text-gray-900">מפרט טכני</h4>
+                  <div className="whitespace-pre-line">{product.specs}</div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* מחיר */}
           <div className="flex items-baseline gap-3">
@@ -286,21 +359,6 @@ function ProductDetailContent() {
               <span className="text-sm text-gray-400 line-through">₪{product.price * quantity}</span>
             )}
           </div>
-
-          {/* תיאור קצר */}
-          {product.short_description && (
-            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed" dir="auto">
-              {product.short_description}
-            </p>
-          )}
-
-          {/* סמל אחריות */}
-          {(product.warranty || product.warranty_duration) && (
-            <div className="flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2.5 rounded-2xl text-xs font-bold border border-blue-100">
-              <span className="text-base">🛡️</span>
-              <span>אחריות: {product.warranty || 'יבואן רשמי'} {product.warranty_duration ? `(${product.warranty_duration})` : ''}</span>
-            </div>
-          )}
 
           {/* בחירת צבע */}
           {colors.length > 0 && (
@@ -358,89 +416,67 @@ function ProductDetailContent() {
             </div>
           )}
 
-          {/* בורר כמות */}
-          <div className="flex items-center gap-4 pt-2">
-            <span className="text-xs font-bold text-gray-700">כמות:</span>
-            <div className="flex items-center border rounded-xl bg-gray-50 overflow-hidden shadow-xs">
+          {/* שורה מאוחדת: כפתור "קנה עכשיו" קטן + בורר כמות */}
+          <div className="flex items-center gap-3 pt-2">
+            <div className="flex items-center border rounded-xl bg-gray-50 overflow-hidden shadow-xs shrink-0">
               <button
                 onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                className="px-3.5 py-2 text-sm font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
+                className="px-3 py-2 text-sm font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
               >
                 -
               </button>
-              <span className="px-4 py-2 text-xs font-black text-gray-900">{quantity}</span>
+              <span className="px-3 py-2 text-xs font-black text-gray-900">{quantity}</span>
               <button
                 onClick={() => setQuantity(q => q + 1)}
-                className="px-3.5 py-2 text-sm font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
+                className="px-3 py-2 text-sm font-bold text-gray-700 hover:bg-gray-200 transition cursor-pointer"
               >
                 +
               </button>
             </div>
-          </div>
 
-          {/* כפתורי רכישה (הוסף לעגלה + קנה עכשיו) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-            <button
-              onClick={() => handleAddToCart(false)}
-              className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3.5 rounded-2xl font-black text-xs transition shadow-md cursor-pointer flex items-center justify-center gap-2"
-            >
-              <span>הוסף לעגלה</span>
-              <span>🛒</span>
-            </button>
             <button
               onClick={handleBuyNow}
-              className="w-full bg-black hover:bg-gray-900 text-white py-3.5 rounded-2xl font-black text-xs transition shadow-md cursor-pointer flex items-center justify-center gap-2"
+              className="flex-1 bg-black hover:bg-gray-900 text-white py-3 px-4 rounded-xl font-black text-xs transition shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
             >
               <span>קנה עכשיו</span>
               <span>⚡</span>
             </button>
           </div>
 
-          {/* כפתורי שיתוף */}
-          <div className="flex items-center gap-2 pt-2 border-t text-xs font-bold text-gray-600">
+          {/* כפתור הוספה לעגלה גדול ומלא */}
+          <button
+            onClick={() => handleAddToCart(false)}
+            className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3.5 rounded-2xl font-black text-xs transition shadow-md cursor-pointer flex items-center justify-center gap-2"
+          >
+            <span>הוסף לעגלה</span>
+            <span>🛒</span>
+          </button>
+
+          {/* כפתורי שיתוף עם אייקונים (וואטסאפ והעתקת קישור) */}
+          <div className="flex items-center justify-between pt-3 border-t text-xs font-bold text-gray-600">
             <span>שתף מוצר:</span>
-            <button onClick={() => handleShare('whatsapp')} className="bg-green-50 text-green-700 px-3 py-1.5 rounded-xl border border-green-200 hover:bg-green-100 transition cursor-pointer">
-              💬 וואטסאפ
-            </button>
-            <button onClick={() => handleShare('copy')} className="bg-gray-50 text-gray-700 px-3 py-1.5 rounded-xl border border-gray-200 hover:bg-gray-100 transition cursor-pointer">
-              🔗 העתק קישור
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => handleShare('whatsapp')} 
+                className="bg-green-50 text-green-700 px-3.5 py-2 rounded-xl border border-green-200 hover:bg-green-100 transition cursor-pointer flex items-center gap-1.5"
+                title="שתף בוואטסאפ"
+              >
+                <span>💬</span>
+                <span>וואטסאפ</span>
+              </button>
+              <button 
+                onClick={() => handleShare('copy')} 
+                className="bg-gray-50 text-gray-700 px-3.5 py-2 rounded-xl border border-gray-200 hover:bg-gray-100 transition cursor-pointer flex items-center gap-1.5"
+                title="העתק קישור"
+              >
+                <span>📋</span>
+                <span>העתק קישור</span>
+              </button>
+            </div>
           </div>
 
         </div>
       </div>
-
-      {/* תיאור מלא ומפרט */}
-      {(product.description || product.specs) && (
-        <div className="bg-white p-6 sm:p-8 rounded-3xl border shadow-xs space-y-4">
-          <div className="flex justify-between items-center border-b pb-3">
-            <h3 className="text-sm font-black text-gray-900 border-r-4 border-orange-600 pr-3">תיאור ומפרט טכני</h3>
-            <button
-              onClick={() => setShowFullDescription(!showFullDescription)}
-              className="text-xs font-bold text-orange-600 hover:underline cursor-pointer"
-            >
-              {showFullDescription ? 'הסתר תיאור מלא ▲' : 'הצג תיאור מלא ▼'}
-            </button>
-          </div>
-
-          {showFullDescription && (
-            <div className="space-y-6 text-xs sm:text-sm text-gray-700 leading-relaxed pt-2" dir="auto">
-              {product.description && (
-                <div className="space-y-2">
-                  <h4 className="font-bold text-gray-900">סקירה כללית</h4>
-                  <div className="whitespace-pre-line">{product.description}</div>
-                </div>
-              )}
-              {product.specs && (
-                <div className="space-y-2 pt-4 border-t">
-                  <h4 className="font-bold text-gray-900">מפרט טכני</h4>
-                  <div className="whitespace-pre-line">{product.specs}</div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* מוצרים שתמיד באים יחד */}
       {bundledList.length > 0 && (
@@ -476,6 +512,30 @@ function ProductDetailContent() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* מוצרים שיעניינו אותך (Related Products) */}
+      {relatedProducts.length > 0 && (
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border shadow-xs space-y-6">
+          <h3 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">מוצרים שיעניינו אותך</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {relatedProducts.map((relProd) => (
+              <Link 
+                key={relProd.id} 
+                href={`/product/${relProd.id}`}
+                className="bg-gray-50 p-3 rounded-2xl border border-gray-100 hover:shadow-md transition flex flex-col justify-between group"
+              >
+                <div className="h-32 w-full bg-white rounded-xl flex items-center justify-center p-2 overflow-hidden">
+                  <img src={relProd.image_url || relProd.images?.[0]} alt="" className="h-full object-contain group-hover:scale-105 transition" />
+                </div>
+                <div className="mt-2 space-y-1">
+                  <h4 className="font-bold text-xs text-gray-900 line-clamp-1 group-hover:text-orange-600 transition">{relProd.name}</h4>
+                  <span className="text-xs font-black text-orange-600">₪{relProd.sale_price || relProd.price}</span>
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
       )}
