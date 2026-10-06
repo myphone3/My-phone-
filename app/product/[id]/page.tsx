@@ -77,8 +77,10 @@ function ProductDetailContent() {
       const colors = parseSafeArray(data.product_colors || data.colors);
       if (colors.length > 0) setSelectedColor(null);
 
-      const versions = parseSafeArray(data.versions || data.product_versions || data.product_variants);
-      if (versions.length > 0) setSelectedVersion(null);
+      // איסוף כל האפשרויות האפשריות לשדורות גירסאות בבסיס הנתונים
+      const rawVersions = data.product_variants || data.versions || data.product_versions || data.variants;
+      const versionsArr = parseSafeArray(rawVersions);
+      if (versionsArr.length > 0) setSelectedVersion(null);
 
       // שליפת מוצרים שיעניינו אותך
       const relatedIds = parseSafeArray(data.related_products);
@@ -122,7 +124,8 @@ function ProductDetailContent() {
   }
 
   const colors = parseSafeArray(product.product_colors || product.colors);
-  const versions = parseSafeArray(product.versions || product.product_versions || product.product_variants);
+  const rawVersions = product.product_variants || product.versions || product.product_versions || product.variants;
+  const versions = parseSafeArray(rawVersions);
   const bundledList = parseSafeArray(product.frequently_bought_together);
   const imagesList = parseSafeArray(product.images);
 
@@ -330,13 +333,14 @@ function ProductDetailContent() {
             </p>
           )}
 
-          {/* כפתור קפיצה לתיאור ומפרט מלא */}
+          {/* כפתור מעבר לתיאור ומפרט מלא */}
           {(product.description || product.specs) && (
             <button
               onClick={scrollToDetails}
-              className="text-xs font-bold text-orange-600 hover:underline cursor-pointer flex items-center gap-1"
+              className="w-full bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-200 py-2.5 px-4 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-2 shadow-xs"
             >
-              <span>קרא את התיאור והמפרט המלא למטה ▼</span>
+              <span>לתיאור מלא על המוצר</span>
+              <span>▼</span>
             </button>
           )}
 
@@ -378,7 +382,7 @@ function ProductDetailContent() {
               <span className="text-xs font-bold text-gray-700">בחר גרסה / נפח <span className="text-red-500">*</span>:</span>
               <div className="flex flex-wrap gap-2">
                 {versions.map((v: any, idx: number) => {
-                  const vName = typeof v === 'object' ? v.name : v;
+                  const vName = typeof v === 'object' ? (v.name || v.title || v.label) : v;
                   const isSelected = selectedVersion === v;
                   return (
                     <button
@@ -396,16 +400,16 @@ function ProductDetailContent() {
             </div>
           )}
 
-          {/* מוצרים שתמיד באים יחד (מעל כפתורי הרכישה, רצועות דקות) */}
+          {/* מוצרים שתמיד באים יחד (שורות דקות ללא מילה הוספה) */}
           {bundledList.length > 0 && (
             <div className="space-y-2 pt-2 border-t">
               <h3 className="text-xs font-black text-gray-900">מוצרים שתמיד באים יחד</h3>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {bundledList.map((item: any, index: number) => {
                   const isChecked = selectedBundles.some(b => b.name === item.name);
                   return (
-                    <div key={index} className="flex items-center justify-between bg-gray-50 p-2.5 rounded-xl border text-xs">
-                      <label className="flex items-center gap-2 cursor-pointer flex-1">
+                    <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-xl border text-xs">
+                      <label className="flex items-center gap-2.5 cursor-pointer flex-1">
                         <input
                           type="checkbox"
                           checked={isChecked}
@@ -420,12 +424,7 @@ function ProductDetailContent() {
                         />
                         <span className="font-bold text-gray-900 truncate">{item.name || ''}</span>
                       </label>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <span className="font-black text-orange-600">₪{item.price || 0}</span>
-                        <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold ${isChecked ? 'bg-orange-600 text-white' : 'bg-white border text-gray-700'}`}>
-                          {isChecked ? 'נוסף' : 'הוספה'}
-                        </span>
-                      </div>
+                      <span className="font-black text-orange-600">₪{item.price || 0}</span>
                     </div>
                   );
                 })}
@@ -469,23 +468,23 @@ function ProductDetailContent() {
             <span>🛒</span>
           </button>
 
-          {/* כפתורי שיתוף מעוצבים עם אייקונים */}
+          {/* כפתורי שיתוף עם אייקונים בלבד */}
           <div className="flex items-center justify-between pt-4 border-t text-xs font-bold text-gray-600">
-            <span>שתף מוצר:</span>
+            <span>שיתוף מוצר:</span>
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => handleShare('whatsapp')} 
-                className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3.5 py-2 rounded-xl border border-emerald-200 transition cursor-pointer flex items-center gap-1.5 shadow-xs"
+                className="w-9 h-9 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl border border-emerald-200 transition cursor-pointer flex items-center justify-center shadow-xs"
+                title="שתף בוואטסאפ"
               >
-                <span className="text-sm">💬</span>
-                <span>וואטסאפ</span>
+                <span className="text-base">💬</span>
               </button>
               <button 
                 onClick={() => handleShare('copy')} 
-                className="bg-gray-50 hover:bg-gray-100 text-gray-700 px-3.5 py-2 rounded-xl border border-gray-200 transition cursor-pointer flex items-center gap-1.5 shadow-xs"
+                className="w-9 h-9 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl border border-gray-200 transition cursor-pointer flex items-center justify-center shadow-xs"
+                title="העתק קישור"
               >
-                <span className="text-sm">🔗</span>
-                <span>העתק קישור</span>
+                <span className="text-base">🔗</span>
               </button>
             </div>
           </div>
