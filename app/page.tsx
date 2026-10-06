@@ -96,9 +96,24 @@ function StoreContent() {
     }
   };
 
+  const getProductImage = (p: any, colorImg?: string) => {
+    if (colorImg) return colorImg;
+    if (p.image_url) return p.image_url;
+    if (Array.isArray(p.images) && p.images.length > 0) return p.images[0];
+    if (typeof p.images === 'string') {
+      try {
+        const parsed = JSON.parse(p.images);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed[0];
+      } catch {
+        return p.images;
+      }
+    }
+    return '';
+  };
+
   const getKosherImg = (p: any) => {
-    const img = p?.kosher_image || p?.kosher || p?.kosher_logo || p?.kosher_badge || p?.kosher_img || '';
-    if (typeof img === 'string' && img.trim().startsWith('http')) return img;
+    const img = p?.kosher_image || p?.kosher || p?.kosher_logo || p?.kosher_badge || p?.kosher_img || p?.kosherImage || p?.kosherLogo || '';
+    if (typeof img === 'string' && img.trim().length > 0) return img;
     return '';
   };
 
@@ -120,7 +135,7 @@ function StoreContent() {
       const colorName = typeof firstColor === 'object' ? firstColor?.name : firstColor || '';
       const versionName = typeof firstVersion === 'object' ? firstVersion?.name : firstVersion || '';
       
-      const activeImg = selectedColors[product.id] || (typeof firstColor === 'object' ? firstColor?.image : null) || product.image_url || (Array.isArray(product.images) ? product.images[0] : '') || '';
+      const activeImg = getProductImage(product, selectedColors[product.id] || (typeof firstColor === 'object' ? firstColor?.image : ''));
 
       const cartItem = {
         id: `${product.id}-${colorName}-${versionName}`,
@@ -313,119 +328,7 @@ function StoreContent() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
               {products.map((product) => {
                 const colors = product.product_colors || product.colors || [];
-                const primaryImg = product.image_url || product.images?.[0] || '';
-                const secondaryImg = product.images?.[1] || primaryImg;
+                const primaryImg = getProductImage(product);
+                const secondaryImg = (Array.isArray(product.images) && product.images[1]) || primaryImg;
                 const activeImage = selectedColors[product.id] || primaryImg;
-                const hasHoverImage = secondaryImg && secondaryImg !== primaryImg && !selectedColors[product.id];
-
-                const currentBrandObj = brands.find(b => b.name?.trim().toLowerCase() === product.brand?.trim().toLowerCase());
-                const brandLogo = currentBrandObj?.image_url;
-                const kosherImg = getKosherImg(product);
-
-                return (
-                  <div 
-                    key={product.id} 
-                    className="bg-white rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between p-4 hover:shadow-xl transition-all duration-300"
-                  >
-                    <Link href={`/product/${product.id}`} className="block space-y-3">
-                      <div className="h-40 sm:h-52 w-full bg-gray-50 rounded-2xl flex items-center justify-center relative overflow-hidden group">
-                        <img 
-                          src={activeImage} 
-                          alt={product.name} 
-                          className={`w-full h-full object-contain transition duration-300 group-hover:scale-105 ${hasHoverImage ? 'group-hover:opacity-0' : ''}`} 
-                        />
-                        {hasHoverImage && (
-                          <img 
-                            src={secondaryImg} 
-                            alt={product.name} 
-                            className="absolute inset-0 w-full h-full object-contain opacity-0 group-hover:opacity-100 transition duration-300 group-hover:scale-105" 
-                          />
-                        )}
-
-                        {/* תגיות לוגו מותג ולוגו כשרות */}
-                        <div className="absolute top-2 right-2 flex flex-col gap-1.5 z-10">
-                          {brandLogo && (
-                            <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center">
-                              <img src={brandLogo} alt="" className="w-full h-full object-contain" />
-                            </div>
-                          )}
-                          {kosherImg && (
-                            <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center">
-                              <img src={kosherImg} alt="" className="w-full h-full object-contain" />
-                            </div>
-                          )}
-                        </div>
-
-                        {product.sale_price && (
-                          <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow">
-                            מבצע ⚡
-                          </span>
-                        )}
-                      </div>
-                      <div>
-                        {/* הצגת השם המלא של המוצר בלבד ללא תיאור קצר */}
-                        <h3 className="font-black text-gray-900 text-xs sm:text-sm line-clamp-2 leading-snug">{product.name}</h3>
-                      </div>
-                    </Link>
-
-                    <div className="pt-3 mt-3 border-t flex flex-col gap-2">
-                      {colors.length > 0 && (
-                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-                          {colors.map((col: any, idx: number) => {
-                            const colHex = typeof col === 'object' ? col.hex : '#000000';
-                            const colName = typeof col === 'object' ? col.name : col;
-                            const colImg = typeof col === 'object' ? col.image : '';
-
-                            return (
-                              <button
-                                key={idx}
-                                title={colName}
-                                onClick={(e) => handleColorClick(product.id, colImg, e)}
-                                className="w-4 h-4 rounded-full border border-gray-300 shrink-0 shadow-xs cursor-pointer hover:scale-110 transition"
-                                style={{ backgroundColor: colHex }}
-                              ></button>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between gap-2 pt-1">
-                        {/* מחירים מסודרים: מחיר נכון למעלה, מחיר מקורי מתחתיו */}
-                        <div className="flex flex-col">
-                          {product.sale_price ? (
-                            <>
-                              <span className="text-sm sm:text-base font-black text-red-600 leading-none">₪{product.sale_price}</span>
-                              <span className="text-[10px] text-gray-400 line-through mt-1">₪{product.price}</span>
-                            </>
-                          ) : (
-                            <span className="text-sm sm:text-base font-black text-gray-900">₪{product.price}</span>
-                          )}
-                        </div>
-
-                        <button
-                          onClick={(e) => handleQuickAddToCart(product, e)}
-                          className="bg-orange-600 text-white px-3 py-2 rounded-xl text-[11px] font-bold hover:bg-orange-700 transition whitespace-nowrap cursor-pointer shadow-sm"
-                        >
-                          הוספה לעגלה
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-      </div>
-    </div>
-  );
-}
-
-export default function HomePage() {
-  return (
-    <Suspense fallback={<div className="text-center py-20 font-bold text-sm text-gray-600">טוען את חנות NEW PHONE...</div>}>
-      <StoreContent />
-    </Suspense>
-  );
-}
+                const hasHoverImage
