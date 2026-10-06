@@ -262,6 +262,21 @@ function ProductDetailContent() {
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-8" dir="rtl">
       
+      {/* פירורי לחם (Breadcrumbs) מעל התמונה */}
+      <div className="flex items-center gap-2 text-xs font-bold text-gray-500 bg-white/60 backdrop-blur-sm px-4 py-2.5 rounded-2xl border border-gray-100 shadow-xs">
+        <Link href="/" className="hover:text-orange-600 transition">דף הבית</Link>
+        {product.category && (
+          <>
+            <span className="text-gray-300">/</span>
+            <Link href={`/category/${encodeURIComponent(product.category)}`} className="hover:text-orange-600 transition">
+              {product.category}
+            </Link>
+          </>
+        )}
+        <span className="text-gray-300">/</span>
+        <span className="text-gray-900 truncate max-w-[220px]" title={product.name}>{product.name}</span>
+      </div>
+
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
         
         {/* תמונות המוצר */}
@@ -327,24 +342,6 @@ function ProductDetailContent() {
               <span className="text-sm text-gray-400 line-through">₪{product.price * quantity}</span>
             )}
           </div>
-
-          {/* תיאור קצר */}
-          {product.short_description && (
-            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed bg-gray-50 p-4 rounded-2xl border border-gray-100" dir="auto">
-              {product.short_description}
-            </p>
-          )}
-
-          {/* כפתור מעבר לתיאור ומפרט מלא */}
-          {(product.description || product.specs) && (
-            <button
-              onClick={scrollToDetails}
-              className="w-full bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-200 py-2.5 px-4 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-2 shadow-xs"
-            >
-              <span>לתיאור מלא על המוצר</span>
-              <span>▼</span>
-            </button>
-          )}
 
           {/* בחירת צבע (חובה) */}
           {colors.length > 0 && (
@@ -479,6 +476,25 @@ function ProductDetailContent() {
             <span>🛒</span>
           </button>
 
+          {/* תיאור קצר + כפתור מעבר לתיאור המלא (הועברו לכאן מתחת לכפתורי הקנייה) */}
+          <div className="space-y-4 pt-4 border-t">
+            {product.short_description && (
+              <p className="text-xs sm:text-sm text-gray-600 leading-relaxed bg-gray-50 p-4 rounded-2xl border border-gray-100" dir="auto">
+                {product.short_description}
+              </p>
+            )}
+
+            {(product.description || product.specs) && (
+              <button
+                onClick={scrollToDetails}
+                className="w-full bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-200 py-2.5 px-4 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+              >
+                <span>לתיאור מלא על המוצר</span>
+                <span>▼</span>
+              </button>
+            )}
+          </div>
+
           {/* כפתורי שיתוף עם אייקון וואטסאפ מובהק */}
           <div className="flex items-center justify-between pt-4 border-t text-xs font-bold text-gray-600">
             <span>שיתוף מוצר:</span>
@@ -542,7 +558,7 @@ function ProductDetailContent() {
         </div>
       )}
 
-      {/* מוצרים אולי יעניינו אותך */}
+      {/* מוצרים אולי יעניינו אותך (עם שם מוצר מלא ונקי) */}
       {relatedProducts.length > 0 && (
         <div className="bg-white p-6 sm:p-8 rounded-3xl border shadow-sm space-y-6">
           <h3 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">מוצרים שאולי יעניינו אותך</h3>
@@ -557,8 +573,8 @@ function ProductDetailContent() {
                   <img src={relProd.image_url || relProd.images?.[0]} alt="" className="h-full object-contain group-hover:scale-105 transition" />
                 </div>
                 <div className="mt-2 space-y-1">
-                  <h4 className="font-bold text-xs text-gray-900 line-clamp-1 group-hover:text-orange-600 transition" dir="auto">{relProd.name}</h4>
-                  <span className="text-xs font-black text-orange-600">₪{relProd.sale_price || relProd.price}</span>
+                  <h4 className="font-bold text-xs text-gray-900 line-clamp-2 text-right group-hover:text-orange-600 transition" dir="auto">{relProd.name}</h4>
+                  <span className="text-xs font-black text-orange-600 block text-right">₪{relProd.sale_price || relProd.price}</span>
                 </div>
               </Link>
             ))}
