@@ -3,8 +3,13 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 function StoreContent() {
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get('q') || '';
+  const initialCategory = searchParams.get('category') || '';
+
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
@@ -17,9 +22,18 @@ function StoreContent() {
   const [loading, setLoading] = useState(true);
   const [selectedColors, setSelectedColors] = useState<{ [key: string]: string }>({});
 
+  // חיפוש וסינון
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory);
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    setSearchQuery(searchParams.get('q') || '');
+    setSelectedCategory(searchParams.get('category') || '');
+  }, [searchParams]);
 
   useEffect(() => {
     if (!settings?.announcement_end_time) return;
@@ -57,13 +71,19 @@ function StoreContent() {
     try {
       setLoading(true);
       
+      // שליפת כשרויות מטבלת kosher_options המנוהלת
       let fetchedKosher: any[] = [];
-      const k1 = await supabase.from('kosher').select('*');
-      if (k1.data && k1.data.length > 0) {
-        fetchedKosher = k1.data;
+      const kosherRes = await supabase.from('kosher_options').select('*');
+      if (kosherRes.data && kosherRes.data.length > 0) {
+        fetchedKosher = kosherRes.data;
       } else {
-        const k2 = await supabase.from('kosher_certifications').select('*');
-        if (k2.data) fetchedKosher = k2.data;
+        const k1 = await supabase.from('kosher').select('*');
+        if (k1.data && k1.data.length > 0) {
+          fetchedKosher = k1.data;
+        } else {
+          const k2 = await supabase.from('kosher_certifications').select('*');
+          if (k2.data) fetchedKosher = k2.data;
+        }
       }
 
       const [prodRes, catRes, brandRes, bannerRes, settingsRes] = await Promise.all([
@@ -180,6 +200,12 @@ function StoreContent() {
       console.error('Add to cart error:', err);
     }
   };
+
+  const filteredProducts = products.filter(p => {
+    const matchesQuery = !searchQuery || p.name?.toLowerCase().includes(searchQuery.toLowerCase()) || p.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = !selectedCategory || p.category?.trim().toLowerCase() === selectedCategory.trim().toLowerCase();
+    return matchesQuery && matchesCategory;
+  });
 
   const scrollingBrands = [...brands, ...brands, ...brands, ...brands];
 
@@ -327,24 +353,36 @@ function StoreContent() {
           </section>
         )}
 
-        {/* כל המוצרים */}
+        {/* אזור הצגת המוצרים */}
         <section className="space-y-6 pt-4 border-t">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
-              כל המוצרים
+              {selectedCategory ? `קטגוריה: ${selectedCategory}` : searchQuery ? `תוצאות חיפוש עבור: "${searchQuery}"` : 'כל המוצרים'}
             </h2>
+            {(selectedCategory || searchQuery) && (
+              <button
+                onClick={() => {
+                  setSelectedCategory('');
+                  setSearchQuery('');
+                  window.history.pushState({}, '', '/');
+                }}
+                className="text-xs font-bold text-orange-600 bg-orange-50 px-3 py-1.5 rounded-xl border border-orange-200 cursor-pointer"
+              >
+                ניקוי סינון / הצג הכל ✕
+              </button>
+            )}
           </div>
 
           {loading ? (
             <div className="text-center py-20 text-gray-500 font-medium">טוען את חנות NEW PHONE...</div>
-          ) : products.length === 0 ? (
+          ) : filteredProducts.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-3xl border p-8 space-y-3 shadow-sm">
               <span className="text-4xl">📦</span>
-              <p className="text-gray-500 font-medium">אין מוצרים זמינים כרגע בחנות.</p>
+              <p className="text-gray-500 font-medium">לא נמצאו מוצרים תואמים.</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
-              {products.map((product) => {
+              {filteredProducts.map((product) => {
                 const colors = product.product_colors || product.colors || [];
                 const primaryImg = getProductImage(product);
                 const secondaryImg = (Array.isArray(product.images) && product.images[1]) || primaryImg;
@@ -375,7 +413,7 @@ function StoreContent() {
                           />
                         )}
 
-                        {/* תגיות לוגו מותג ולוגו כשרות (תמונה בלבד, בדיוק כמו מותגים) */}
+                        {/* תגיות לוגו מותג ולוגו כשרות בפינת התמונה */}
                         <div className="absolute top-2 right-2 flex flex-col gap-1.5 z-10">
                           {brandLogo && (
                             <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center">
