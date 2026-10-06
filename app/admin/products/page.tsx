@@ -149,7 +149,6 @@ export default function AdminProductsPage() {
     fetchData();
   };
 
-  // חיבור אמיתי ל-Gemini עם חיפוש רשת
   const handleAiAssistant = async () => {
     if (!name) {
       alert('נא להזין תחילה את שם המוצר כדי שסוכן ה-AI יוכל לשלוף מפרט ולייצר עבורך טקסטים');
@@ -171,7 +170,7 @@ export default function AdminProductsPage() {
       if (data.seoTitle) setSeoTitle(data.seoTitle);
       if (data.seoDescription) setSeoDesc(data.seoDescription);
 
-      alert('המפרט והתכנים נוצרו בהצלחה על ידי סוכן ה-AI ברשת! ✨');
+      alert('המפרט והתכנים נוצרו בהצלחה על ידי סוכן ה-AI! ✨');
     } catch (err: any) {
       console.error(err);
       alert('שגיאה בהפעלת סוכן ה-AI: ' + err.message);
@@ -340,7 +339,7 @@ export default function AdminProductsPage() {
             disabled={aiGenerating}
             className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer"
           >
-            ✨ {aiGenerating ? 'סוכן AI סורק את הרשת...' : 'סוכן AI למילוי אוטומטי מהרשת'}
+            ✨ {aiGenerating ? 'סוכן AI מייצר תוכן...' : 'סוכן AI למילוי אוטומטי'}
           </button>
         </div>
 
@@ -880,7 +879,7 @@ export default function AdminProductsPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {filteredProducts.map((p) => (
-            <div key={id => p.id} className="border rounded-2xl p-4 flex justify-between items-center bg-gray-50/50 shadow-xs">
+            <div key={p.id} className="border rounded-2xl p-4 flex justify-between items-center bg-gray-50/50 shadow-xs">
               <div className="flex items-center gap-2">
                 <img src={p.image_url} alt="" className="w-10 h-10 object-contain bg-white rounded-xl border p-1" />
                 <div>
