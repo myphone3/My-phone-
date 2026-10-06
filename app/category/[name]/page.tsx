@@ -38,7 +38,7 @@ function CategoryContent() {
       else if (k2.data && k2.data.length > 0) fetchedKosher = k2.data;
 
       const [prodRes, catRes, brandRes] = await Promise.all([
-        supabase.from('products').select('*').ilike('category', categoryName).order('created_at', { ascending: false }),
+        supabase.from('products').select('*').ilike('category', categoryName).or('is_published.is.null,is_published.eq.true').order('created_at', { ascending: false }),
         supabase.from('categories').select('*'),
         supabase.from('brands').select('*'),
       ]);
@@ -214,18 +214,20 @@ function CategoryContent() {
                     </div>
 
                     <div className="space-y-1">
-                      <h2 className="font-bold text-gray-900 text-sm line-clamp-1 group-hover:text-orange-600 transition">
+                      {/* שם מוצר מלא בלי חיתוך ובדייקנות */}
+                      <h2 className="font-bold text-gray-900 text-xs sm:text-sm text-right group-hover:text-orange-600 transition leading-snug break-words" dir="auto">
                         {product.name}
                       </h2>
-                      <p className="text-gray-500 text-xs line-clamp-1">
+                      <p className="text-gray-500 text-xs text-right">
                         {product.brand || ''}
                       </p>
                     </div>
                   </Link>
 
                   <div className="mt-3 pt-3 border-t border-gray-100 space-y-3">
+                    {/* צבעים קטנים עם מסגרת פנימית מלאה */}
                     {colors.length > 0 && (
-                      <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                      <div className="flex items-center gap-1.5 overflow-x-auto py-1 px-0.5">
                         {colors.map((c: any, idx: number) => {
                           const colorName = typeof c === 'object' ? c.name : c;
                           const colorImg = typeof c === 'object' ? (c.image_url || c.image) : '';
@@ -236,14 +238,14 @@ function CategoryContent() {
                             <button
                               key={idx}
                               onClick={(e) => handleColorClick(product.id, colorImg, e)}
-                              className={`w-5 h-5 rounded-full border transition relative flex items-center justify-center cursor-pointer ${
-                                isSelected ? 'ring-2 ring-orange-600 ring-offset-1' : 'border-gray-300'
+                              className={`w-7 h-7 rounded-lg transition relative flex items-center justify-center shrink-0 cursor-pointer bg-white ${
+                                isSelected ? 'border-2 border-orange-600 shadow-sm' : 'border border-gray-200'
                               }`}
-                              style={{ backgroundColor: colorHex || '#ccc' }}
+                              style={{ backgroundColor: colorImg ? 'transparent' : (colorHex || '#ccc') }}
                               title={colorName}
                             >
                               {colorImg && (
-                                <img src={colorImg} alt={colorName} className="w-full h-full object-cover rounded-full" />
+                                <img src={colorImg} alt={colorName} className="w-full h-full object-cover rounded-md" />
                               )}
                             </button>
                           );
@@ -251,7 +253,7 @@ function CategoryContent() {
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-2">
                       <div>
                         <span className="text-xs text-gray-400 block">מחיר</span>
                         <span className="text-base font-black text-gray-900">
@@ -261,9 +263,9 @@ function CategoryContent() {
 
                       <button
                         onClick={(e) => handleQuickAddToCart(product, e)}
-                        className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-2 rounded-xl text-xs font-bold transition shadow-sm hover:shadow flex items-center gap-1 cursor-pointer"
+                        className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 rounded-xl text-xs font-bold transition shadow-sm text-center cursor-pointer flex items-center justify-center gap-1.5"
                       >
-                        <span>הוסף</span>
+                        <span>הוספה לעגלה</span>
                         <span>🛒</span>
                       </button>
                     </div>
