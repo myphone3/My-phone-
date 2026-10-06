@@ -13,6 +13,7 @@ export default function ProductPage() {
   const [product, setProduct] = useState<any>(null);
   const [brands, setBrands] = useState<any[]>([]);
   const [kosherList, setKosherList] = useState<any[]>([]);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
   const [selectedImage, setSelectedImage] = useState<string>('');
@@ -45,9 +46,10 @@ export default function ProductPage() {
         if (k2.data) fetchedKosher = k2.data;
       }
 
-      const [prodRes, brandRes] = await Promise.all([
+      const [prodRes, brandRes, allProdRes] = await Promise.all([
         supabase.from('products').select('*').eq('id', productId).single(),
-        supabase.from('brands').select('*')
+        supabase.from('brands').select('*'),
+        supabase.from('products').select('*').neq('id', productId).limit(4)
       ]);
 
       if (prodRes.data) {
@@ -58,23 +60,14 @@ export default function ProductPage() {
         setSelectedImage(primaryImg);
 
         const colors = parseArray(p.product_colors || p.colors);
-        if (colors.length === 1) {
-          setSelectedColor(colors[0]);
-        } else {
-          setSelectedColor(null);
-        }
+        if (colors.length === 1) setSelectedColor(colors[0]);
 
         const versions = parseVersions(p);
-        if (versions.length === 1) {
-          setSelectedVersion(versions[0]);
-        } else {
-          setSelectedVersion(null);
-        }
+        if (versions.length === 1) setSelectedVersion(versions[0]);
       }
-      if (brandRes.data) {
-        setBrands(brandRes.data);
-      }
+      if (brandRes.data) setBrands(brandRes.data);
       setKosherList(fetchedKosher);
+      if (allProdRes.data) setAllProducts(allProdRes.data);
     } catch (err) {
       console.error('Error fetching product:', err);
     } finally {
@@ -130,9 +123,7 @@ export default function ProductPage() {
   const getKosherLogo = (p: any) => {
     const val = p?.kosher || p?.kosher_certification || p?.kosher_name || p?.kosher_image || p?.kosher_logo || '';
     if (!val) return '';
-    if (typeof val === 'string' && (val.startsWith('http') || val.startsWith('/'))) {
-      return val;
-    }
+    if (typeof val === 'string' && (val.startsWith('http') || val.startsWith('/'))) return val;
     const found = kosherList.find(k => k.name?.trim().toLowerCase() === String(val).trim().toLowerCase());
     return found?.image_url || found?.image || '';
   };
@@ -151,12 +142,10 @@ export default function ProductPage() {
       setErrorMessage('חובה לבחור צבע לפני הוספה לעגלה');
       return false;
     }
-
     if (versionsList.length > 0 && !selectedVersion) {
       setErrorMessage('חובה לבחור גרסה לפני הוספה לעגלה');
       return false;
     }
-
     return true;
   };
 
@@ -207,17 +196,6 @@ export default function ProductPage() {
     }
   };
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleWhatsAppShare = () => {
-    const text = encodeURIComponent(`היי, ראיתי את המוצר הזה ב-NEW PHONE: ${window.location.href}`);
-    window.open(`https://wa.me/?text=${text}`, '_blank');
-  };
-
   if (loading) {
     return <div className="text-center py-24 font-bold text-gray-500">טוען פרטי מוצר...</div>;
   }
@@ -238,14 +216,18 @@ export default function ProductPage() {
   const kosherLogo = getKosherLogo(product);
 
   const imagesList = parseArray(product.images);
-  if (imagesList.length === 0 && product.image_url) {
-    imagesList.push(product.image_url);
-  }
+  if (imagesList.length === 0 && product.image_url) imagesList.push(product.image_url);
 
   const colorsList = parseArray(product.product_colors || product.colors);
   const versionsList = parseVersions(product);
   const hasSpecs = Boolean(product.specifications && product.specifications.trim() !== '');
   const hasFullDesc = Boolean(product.full_description || product.description);
+
+  // מוצרים קשורים / שאולי יעניינו אותך מתוך השדה במוצר או ברירת מחדל
+  const relatedProductIds = parseArray(product.related_products || product.upsell_products);
+  const displayRelatedProducts = relatedProductIds.length > 0 
+    ? allProducts.filter(p => relatedProductIds.includes(p.id)) 
+    : allProducts.slice(0, 4);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-8" dir="rtl">
@@ -265,7 +247,6 @@ export default function ProductPage() {
               className="w-full h-full object-contain"
             />
 
-            {/* לוגו מותג ולוגו כשרות (תמונה בלבד, בדיוק כמו מותגים) */}
             <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
               {brandLogo && (
                 <div className="w-10 h-10 bg-white/90 backdrop-blur-sm rounded-2xl p-1.5 shadow border border-gray-100 flex items-center justify-center">
@@ -287,12 +268,12 @@ export default function ProductPage() {
           </div>
 
           {imagesList.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto pb-2">
+            <div className="flex gap-2 overflow-x-auto pb-2 px-1">
               {imagesList.map((img: string, idx: number) => (
                 <button
                   key={idx}
                   onClick={() => setSelectedImage(img)}
-                  className={`w-16 h-16 rounded-xl border-2 overflow-hidden bg-gray-50 shrink-0 transition ${selectedImage === img ? 'border-orange-600 scale-105' : 'border-gray-200 opacity-70'}`}
+                  className={`w-16 h-16 rounded-xl border-2 overflow-hidden bg-gray-50 shrink-0 transition p-1 ${selectedImage === img ? 'border-orange-600 scale-105' : 'border-gray-200 opacity-70'}`}
                 >
                   <img src={img} alt="" className="w-full h-full object-contain" />
                 </button>
@@ -305,14 +286,12 @@ export default function ProductPage() {
         <div className="flex flex-col justify-between space-y-6">
           <div className="space-y-4">
             
-            {/* קטגוריה ואחריות */}
             <div className="flex items-center gap-2 flex-wrap">
               {product.category && (
                 <span className="text-xs font-bold bg-gray-100 text-gray-700 px-3 py-1 rounded-full">
                   {product.category}
                 </span>
               )}
-
               {product.warranty && (
                 <span className="text-xs font-bold bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-100 flex items-center gap-1">
                   🛡️ אחריות: {product.warranty}
@@ -322,7 +301,6 @@ export default function ProductPage() {
 
             <h1 className="text-xl sm:text-2xl font-black text-gray-900">{product.name}</h1>
 
-            {/* מחיר */}
             <div className="flex items-baseline gap-2">
               {product.sale_price ? (
                 <>
@@ -334,12 +312,10 @@ export default function ProductPage() {
               )}
             </div>
 
-            {/* תיאור קצר */}
             <p className="text-xs sm:text-sm text-gray-600 leading-relaxed bg-gray-50 p-3.5 rounded-2xl border border-gray-100">
               {product.short_description || product.description}
             </p>
 
-            {/* כפתורי מעבר לתיאור ומפרט */}
             <div className="flex gap-2">
               {hasFullDesc && (
                 <button
@@ -359,39 +335,10 @@ export default function ProductPage() {
               )}
             </div>
 
-            {/* שיתוף מוצר */}
-            <div className="space-y-1.5 pt-1">
-              <span className="text-xs font-bold text-gray-500 block">שיתוף מוצר:</span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleWhatsAppShare}
-                  title="שתף בוואטסאפ"
-                  className="w-9 h-9 rounded-full bg-green-500 hover:bg-green-600 text-white flex items-center justify-center transition shadow-sm cursor-pointer"
-                >
-                  <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
-                  </svg>
-                </button>
-                <button
-                  onClick={handleCopyLink}
-                  title="העתק קישור"
-                  className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center transition shadow-sm cursor-pointer relative"
-                >
-                  🔗
-                  {copied && (
-                    <span className="absolute -top-8 bg-black text-white text-[10px] px-2 py-0.5 rounded shadow whitespace-nowrap">
-                      הועתק!
-                    </span>
-                  )}
-                </button>
-              </div>
-            </div>
-
           </div>
 
           <div className="space-y-4 pt-4 border-t">
             
-            {/* בחירת גרסה */}
             {versionsList.length > 0 && (
               <div className="space-y-2">
                 <label className="block text-xs font-bold text-gray-800">
@@ -407,9 +354,7 @@ export default function ProductPage() {
                         type="button"
                         onClick={() => setSelectedVersion(ver)}
                         className={`py-2 px-3 rounded-xl border text-xs font-bold transition text-center cursor-pointer ${
-                          isSelected 
-                            ? 'border-orange-600 bg-orange-50 text-orange-900 shadow-xs' 
-                            : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                          isSelected ? 'border-orange-600 bg-orange-50 text-orange-900 shadow-xs' : 'border-gray-200 bg-white text-gray-700'
                         }`}
                       >
                         {verName}
@@ -420,7 +365,6 @@ export default function ProductPage() {
               </div>
             )}
 
-            {/* בחירת צבע */}
             {colorsList.length > 0 && (
               <div className="space-y-2">
                 <label className="block text-xs font-bold text-gray-800">
@@ -431,7 +375,6 @@ export default function ProductPage() {
                     const colHex = typeof col === 'object' ? col.hex : '#000000';
                     const colName = typeof col === 'object' ? col.name : col;
                     const isSelected = selectedColor === col || selectedColor?.name === colName;
-
                     return (
                       <button
                         key={idx}
@@ -439,7 +382,7 @@ export default function ProductPage() {
                         title={colName}
                         onClick={() => setSelectedColor(col)}
                         className={`w-8 h-8 rounded-full transition-transform cursor-pointer relative shadow-sm ${
-                          isSelected ? 'ring-2 ring-orange-600 ring-offset-2 scale-110' : 'border border-gray-300 hover:scale-105'
+                          isSelected ? 'ring-2 ring-orange-600 ring-offset-2 scale-110' : 'border border-gray-300'
                         }`}
                         style={{ backgroundColor: colHex }}
                       />
@@ -449,27 +392,43 @@ export default function ProductPage() {
               </div>
             )}
 
-            {/* בחירת כמות */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-gray-800">כמות</label>
-              <div className="flex items-center justify-between border border-gray-200 rounded-2xl p-2 bg-gray-50/50 max-w-[140px]">
+            {/* שורה אחת: כפתור קנה עכשיו (קטן יותר) ובקרת כמות */}
+            <div className="flex items-center gap-3 pt-2">
+              <div className="flex items-center border border-gray-200 rounded-2xl p-1.5 bg-gray-50 shrink-0">
                 <button
                   type="button"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-8 h-8 rounded-xl bg-white border border-gray-200 hover:bg-gray-100 flex items-center justify-center font-bold text-sm cursor-pointer shadow-xs transition"
+                  className="w-7 h-7 rounded-xl bg-white border border-gray-200 hover:bg-gray-100 flex items-center justify-center font-bold text-sm cursor-pointer shadow-xs"
                 >
                   -
                 </button>
-                <span className="text-sm font-black w-8 text-center text-gray-900">{quantity}</span>
+                <span className="text-sm font-black w-7 text-center text-gray-900">{quantity}</span>
                 <button
                   type="button"
                   onClick={() => setQuantity(quantity + 1)}
-                  className="w-8 h-8 rounded-xl bg-white border border-gray-200 hover:bg-gray-100 flex items-center justify-center font-bold text-sm cursor-pointer shadow-xs transition"
+                  className="w-7 h-7 rounded-xl bg-white border border-gray-200 hover:bg-gray-100 flex items-center justify-center font-bold text-sm cursor-pointer shadow-xs"
                 >
                   +
                 </button>
               </div>
+
+              <button
+                onClick={() => handleAddToCart(true)}
+                className="flex-1 py-3 rounded-2xl text-xs font-black transition shadow-sm cursor-pointer bg-green-600 hover:bg-green-700 text-white flex items-center justify-center gap-1.5"
+              >
+                <span>⚡</span> קנה עכשיו
+              </button>
             </div>
+
+            {/* כפתור הוספה לעגלה כתום ובולט מתחת */}
+            <button
+              onClick={() => handleAddToCart(false)}
+              className={`w-full py-3.5 rounded-2xl text-xs sm:text-sm font-black transition shadow-md cursor-pointer flex items-center justify-center gap-2 ${
+                addedAnimation ? 'bg-green-600 text-white' : 'bg-orange-600 hover:bg-orange-700 text-white'
+              }`}
+            >
+              <span>🛒</span> {addedAnimation ? '✓ נוסף בהצלחה לעגלה!' : 'הוספה לעגלה'}
+            </button>
 
             {errorMessage && (
               <p className="text-xs font-bold text-red-600 bg-red-50 p-2.5 rounded-xl text-center border border-red-100">
@@ -477,51 +436,47 @@ export default function ProductPage() {
               </p>
             )}
 
-            {/* כפתורי הוספה לעגלה וקנה עכשיו */}
-            <div className="space-y-2.5 pt-2">
-              <button
-                onClick={() => handleAddToCart(false)}
-                className={`w-full py-3.5 rounded-2xl text-xs sm:text-sm font-black transition shadow-md cursor-pointer flex items-center justify-center gap-2 ${
-                  addedAnimation 
-                    ? 'bg-green-600 text-white' 
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
-                }`}
-              >
-                <span>🛒</span> {addedAnimation ? '✓ נוסף בהצלחה לעגלה!' : 'הוסף לעגלה'}
-              </button>
-
-              <button
-                onClick={() => handleAddToCart(true)}
-                className="w-full py-3.5 rounded-2xl text-xs sm:text-sm font-black transition shadow-md cursor-pointer bg-green-600 hover:bg-green-700 text-white flex items-center justify-center gap-2"
-              >
-                <span>⚡</span> קנה עכשיו
-              </button>
-            </div>
-
           </div>
         </div>
 
       </div>
 
-      {/* לשוניות תיאור מלא ומפרט מלא */}
+      {/* אזור מוצרים שאולי יעניינו אותך */}
+      {displayRelatedProducts.length > 0 && (
+        <div className="space-y-4 pt-6 border-t">
+          <h2 className="text-lg font-black text-gray-900 border-r-4 border-orange-600 pr-3">מוצרים שאולי יעניינו אותך</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {displayRelatedProducts.map((p) => (
+              <Link key={p.id} href={`/product/${p.id}`} className="bg-white p-3 rounded-2xl border shadow-xs hover:shadow-md transition block space-y-2">
+                <div className="h-32 bg-gray-50 rounded-xl flex items-center justify-center p-1">
+                  <img src={getProductImage(p)} alt={p.name} className="w-full h-full object-contain" />
+                </div>
+                <h4 className="font-bold text-xs text-gray-900 truncate">{p.name}</h4>
+                <span className="text-xs font-black text-orange-600">₪{p.sale_price || p.price}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* לשוניות תיאור ומפרט */}
       <div className="bg-white p-6 sm:p-8 rounded-3xl border shadow-xs space-y-6" ref={tabsRef}>
         <div className="flex border-b gap-6">
           {hasFullDesc && (
             <button
               onClick={() => setActiveTab('description')}
               className={`pb-3 text-xs sm:text-sm font-black border-b-2 transition cursor-pointer ${
-                activeTab === 'description' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-400 hover:text-gray-600'
+                activeTab === 'description' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-400'
               }`}
             >
               תיאור מלא
             </button>
           )}
-          
           {hasSpecs && (
             <button
               onClick={() => setActiveTab('specs')}
               className={`pb-3 text-xs sm:text-sm font-black border-b-2 transition cursor-pointer ${
-                activeTab === 'specs' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-400 hover:text-gray-600'
+                activeTab === 'specs' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-400'
               }`}
             >
               מפרט מלא
@@ -543,5 +498,13 @@ export default function ProductPage() {
       </div>
 
     </div>
+  );
+}
+
+export default function ProductPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-20 font-bold text-sm text-gray-600">טוען מוצר...</div>}>
+      <ProductPage />
+    </Suspense>
   );
 }
