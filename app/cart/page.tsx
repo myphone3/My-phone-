@@ -34,12 +34,14 @@ export default function CartPage() {
     }
     setCartItems(updated);
     localStorage.setItem('cart', JSON.stringify(updated));
+    window.dispatchEvent(new Event('cartUpdated')); // עדכון מונה העגלה בתפריט
   };
 
   const removeItem = (index: number) => {
     const updated = cartItems.filter((_, i) => i !== index);
     setCartItems(updated);
     localStorage.setItem('cart', JSON.stringify(updated));
+    window.dispatchEvent(new Event('cartUpdated')); // עדכון מונה העגלה בתפריט
   };
 
   const subtotalPrice = cartItems.reduce((sum, item) => {
@@ -85,6 +87,7 @@ export default function CartPage() {
       alert('ההזמנה בוצעה בהצלחה! צוות NEW PHONE יצור איתך קשר בהקדם.');
       localStorage.removeItem('cart');
       setCartItems([]);
+      window.dispatchEvent(new Event('cartUpdated')); // איפוס מונה העגלה
       window.location.href = '/';
     }
   };
@@ -108,7 +111,8 @@ export default function CartPage() {
         <div className="space-y-6">
           <div className="bg-white rounded-3xl border shadow-sm divide-y">
             {cartItems.map((item, index) => {
-              const itemImg = item.image_url || item.images?.[0] || '';
+              // שליפת תמונת המוצר באופן מושלם מכל שדה אפשרי
+              const itemImg = item.image || item.image_url || (Array.isArray(item.images) ? item.images[0] : '') || '';
               const itemPrice = item.sale_price || item.price || 0;
               const qty = item.quantity || 1;
 
@@ -124,8 +128,8 @@ export default function CartPage() {
                     </div>
                     <div>
                       <h3 className="font-black text-xs sm:text-sm text-gray-900">{item.name}</h3>
-                      {item.selectedVariant && <span className="text-[10px] text-gray-500 block">גרסה: {item.selectedVariant}</span>}
-                      {item.selectedColor && <span className="text-[10px] text-gray-500 block">צבע: {item.selectedColor.name}</span>}
+                      {item.version && <span className="text-[10px] text-gray-500 block">גרסה: {item.version}</span>}
+                      {item.color && <span className="text-[10px] text-gray-500 block">צבע: {item.color}</span>}
                       <p className="text-xs text-orange-600 font-bold mt-1">₪{itemPrice} ליחידה</p>
                     </div>
                   </div>
