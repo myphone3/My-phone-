@@ -298,6 +298,13 @@ function ProductDetailContent() {
         {/* תמונות המוצר */}
         <div className="space-y-4">
           <div className="h-72 sm:h-96 w-full bg-gray-50 rounded-2xl flex items-center justify-center p-4 relative overflow-hidden">
+            {/* תגית מבצע */}
+            {product.sale_price && (
+              <span className="absolute top-3 left-3 bg-red-500 text-white text-xs font-black px-3 py-1 rounded-xl shadow-md z-10">
+                מבצע 🔥
+              </span>
+            )}
+
             <img src={activeImage} alt={product.name} className="max-h-full max-w-full object-contain" />
 
             {/* לוגו מותג וכשרות */}
@@ -351,9 +358,9 @@ function ProductDetailContent() {
             <h1 className="text-2xl sm:text-3xl font-black text-gray-900 leading-snug" dir="auto">{product.name}</h1>
           </div>
 
-          {/* מחיר */}
+          {/* מחיר - בצבע כתום */}
           <div className="flex items-baseline gap-3">
-            <span className="text-3xl font-black text-gray-900">₪{finalPrice}</span>
+            <span className="text-3xl font-black text-orange-600">₪{finalPrice}</span>
             {product.sale_price && (
               <span className="text-sm text-gray-400 line-through">₪{product.price * quantity}</span>
             )}
@@ -541,7 +548,7 @@ function ProductDetailContent() {
         </div>
       </div>
 
-      {/* מוצרים אולי יעניינו אותך */}
+      {/* מוצרים אולי יעניינו אותך עם תגית מבצע */}
       {relatedProducts.length > 0 && (
         <div className="bg-white p-6 sm:p-8 rounded-3xl border shadow-sm space-y-6">
           <h3 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">מוצרים שאולי יעניינו אותך</h3>
@@ -552,7 +559,12 @@ function ProductDetailContent() {
                 href={`/product/${relProd.id}`}
                 className="bg-gray-50 p-3 rounded-2xl border border-gray-100 hover:shadow-md transition flex flex-col justify-between group"
               >
-                <div className="h-32 w-full bg-white rounded-xl flex items-center justify-center p-2 overflow-hidden">
+                <div className="h-32 w-full bg-white rounded-xl flex items-center justify-center p-2 relative overflow-hidden">
+                  {relProd.sale_price && (
+                    <span className="absolute top-1 left-1 bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-lg shadow-xs z-10">
+                      מבצע
+                    </span>
+                  )}
                   <img src={relProd.image_url || relProd.images?.[0]} alt="" className="h-full object-contain group-hover:scale-105 transition" />
                 </div>
                 <div className="mt-2 space-y-1">
