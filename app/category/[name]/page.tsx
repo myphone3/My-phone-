@@ -26,7 +26,6 @@ function CategoryContent() {
     try {
       setLoading(true);
 
-      // שליפת כשרות מכל הטבלאות האפשריות כדי לוודא תאימות מלאה
       let fetchedKosher: any[] = [];
       const [k1, k2, k3] = await Promise.all([
         supabase.from('kosher').select('*'),
@@ -34,13 +33,9 @@ function CategoryContent() {
         supabase.from('kosher_options').select('*')
       ]);
 
-      if (k3.data && k3.data.length > 0) {
-        fetchedKosher = k3.data;
-      } else if (k1.data && k1.data.length > 0) {
-        fetchedKosher = k1.data;
-      } else if (k2.data && k2.data.length > 0) {
-        fetchedKosher = k2.data;
-      }
+      if (k3.data && k3.data.length > 0) fetchedKosher = k3.data;
+      else if (k1.data && k1.data.length > 0) fetchedKosher = k1.data;
+      else if (k2.data && k2.data.length > 0) fetchedKosher = k2.data;
 
       const [prodRes, catRes, brandRes] = await Promise.all([
         supabase.from('products').select('*').ilike('category', categoryName).order('created_at', { ascending: false }),
@@ -86,9 +81,7 @@ function CategoryContent() {
   const getKosherLogo = (p: any) => {
     const val = p?.kosher || p?.kosher_certification || p?.kosher_name || p?.kosher_image || p?.kosher_logo || '';
     if (!val) return '';
-    if (typeof val === 'string' && (val.startsWith('http') || val.startsWith('/'))) {
-      return val;
-    }
+    if (typeof val === 'string' && (val.startsWith('http') || val.startsWith('/'))) return val;
     const found = kosherList.find(k => k.name?.trim().toLowerCase() === String(val).trim().toLowerCase());
     return found?.image_url || found?.image || found?.logo || '';
   };
@@ -142,8 +135,6 @@ function CategoryContent() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8" dir="rtl">
-      
-      {/* סרגל קטגוריות עליון */}
       {categories.length > 0 && (
         <div className="flex items-center gap-2 overflow-x-auto pb-2">
           {categories.map((cat) => {
@@ -220,10 +211,9 @@ function CategoryContent() {
                           </div>
                         )}
                       </div>
-
                     </div>
 
-                    <div className="space-y-1.5">
+                    <div className="space-y-1">
                       <h2 className="font-bold text-gray-900 text-sm line-clamp-1 group-hover:text-orange-600 transition">
                         {product.name}
                       </h2>
@@ -233,8 +223,8 @@ function CategoryContent() {
                     </div>
                   </Link>
 
-                  <div className="mt-4 pt-3 border-t border-gray-100 space-y-3">
-                    {/* צבעים */}
+                  <div className="mt-3 pt-3 border-t border-gray-100 space-y-3">
+                    {/* צבעים עם תמונה */}
                     {colors.length > 0 && (
                       <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
                         {colors.map((c: any, idx: number) => {
@@ -270,12 +260,13 @@ function CategoryContent() {
                         </span>
                       </div>
 
+                      {/* כפתור הוספה לעגלה קלאסי ונוח */}
                       <button
                         onClick={(e) => handleQuickAddToCart(product, e)}
-                        className="bg-orange-600 hover:bg-orange-700 text-white p-2.5 rounded-2xl transition shadow-sm hover:shadow flex items-center justify-center cursor-pointer"
-                        title="הוסף לעגלה"
+                        className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-2 rounded-xl text-xs font-bold transition shadow-sm hover:shadow flex items-center gap-1 cursor-pointer"
                       >
-                        🛒
+                        <span>הוסף</span>
+                        <span>🛒</span>
                       </button>
                     </div>
                   </div>
