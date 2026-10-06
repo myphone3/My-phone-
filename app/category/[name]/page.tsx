@@ -216,4 +216,83 @@ function CategoryContent() {
                         )}
                         {kosherLogo && (
                           <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center">
-                            <img src={kosher
+                            <img src={kosherLogo} alt="Kosher" className="w-full h-full object-contain" />
+                          </div>
+                        )}
+                      </div>
+
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <h2 className="font-bold text-gray-900 text-sm line-clamp-1 group-hover:text-orange-600 transition">
+                        {product.name}
+                      </h2>
+                      <p className="text-gray-500 text-xs line-clamp-1">
+                        {product.brand || ''}
+                      </p>
+                    </div>
+                  </Link>
+
+                  <div className="mt-4 pt-3 border-t border-gray-100 space-y-3">
+                    {/* צבעים */}
+                    {colors.length > 0 && (
+                      <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                        {colors.map((c: any, idx: number) => {
+                          const colorName = typeof c === 'object' ? c.name : c;
+                          const colorImg = typeof c === 'object' ? (c.image_url || c.image) : '';
+                          const colorHex = typeof c === 'object' ? (c.hex || c.code) : '';
+                          const isSelected = selectedColors[product.id] === colorImg || (!selectedColors[product.id] && idx === 0);
+
+                          return (
+                            <button
+                              key={idx}
+                              onClick={(e) => handleColorClick(product.id, colorImg, e)}
+                              className={`w-5 h-5 rounded-full border transition relative flex items-center justify-center cursor-pointer ${
+                                isSelected ? 'ring-2 ring-orange-600 ring-offset-1' : 'border-gray-300'
+                              }`}
+                              style={{ backgroundColor: colorHex || '#ccc' }}
+                              title={colorName}
+                            >
+                              {colorImg && (
+                                <img src={colorImg} alt={colorName} className="w-full h-full object-cover rounded-full" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs text-gray-400 block">מחיר</span>
+                        <span className="text-base font-black text-gray-900">
+                          ₪{product.sale_price || product.price || 0}
+                        </span>
+                      </div>
+
+                      <button
+                        onClick={(e) => handleQuickAddToCart(product, e)}
+                        className="bg-orange-600 hover:bg-orange-700 text-white p-2.5 rounded-2xl transition shadow-sm hover:shadow flex items-center justify-center cursor-pointer"
+                        title="הוסף לעגלה"
+                      >
+                        🛒
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function CategoryPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-20 text-gray-500 font-medium">טוען קטגוריה...</div>}>
+      <CategoryContent />
+    </Suspense>
+  );
+}
