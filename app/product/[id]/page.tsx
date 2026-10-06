@@ -148,7 +148,7 @@ function ProductDetailContent() {
       return false;
     }
     if (versions.length > 0 && !selectedVersion) {
-      alert('נא לבחור גרסה / נפח');
+      alert('נא לבחור גרסה');
       return false;
     }
     return true;
@@ -375,10 +375,10 @@ function ProductDetailContent() {
             </div>
           )}
 
-          {/* בחירת גרסה (חובה אם קיימת) */}
+          {/* בחירת גרסה (חובה אם קיימת) - עודכן לכתיב "בחר גרסה" בלבד */}
           {versions.length > 0 && (
             <div className="space-y-2">
-              <span className="text-xs font-bold text-gray-700">בחר גרסה / נפח <span className="text-gray-400 font-normal">(חובה)</span>:</span>
+              <span className="text-xs font-bold text-gray-700">בחר גרסה <span className="text-gray-400 font-normal">(חובה)</span>:</span>
               <div className="flex flex-wrap gap-2">
                 {versions.map((v: any, idx: number) => {
                   const vName = typeof v === 'object' ? (v.name || v.title || v.label) : v;
@@ -399,7 +399,7 @@ function ProductDetailContent() {
             </div>
           )}
 
-          {/* מוצרים שתמיד באים יחד (אקורדיון סגור כברירת מחדל) */}
+          {/* מוצרים שתמיד באים יחד (אקורדיון סגור כברירת מחדל) - תוקנה תצוגת השורות הארוכות */}
           {bundledList.length > 0 && (
             <div className="space-y-2 pt-2 border-t">
               <button
@@ -411,12 +411,12 @@ function ProductDetailContent() {
               </button>
 
               {showBundles && (
-                <div className="space-y-1.5 pt-1">
+                <div className="space-y-2 pt-1">
                   {bundledList.map((item: any, index: number) => {
                     const isChecked = selectedBundles.some(b => b.name === item.name);
                     return (
-                      <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-xl border text-xs">
-                        <label className="flex items-center gap-2.5 cursor-pointer flex-1">
+                      <div key={index} className="flex items-start justify-between gap-3 bg-gray-50 px-3 py-2.5 rounded-xl border text-xs">
+                        <label className="flex items-start gap-2.5 cursor-pointer flex-1 min-w-0">
                           <input
                             type="checkbox"
                             checked={isChecked}
@@ -427,11 +427,11 @@ function ProductDetailContent() {
                                 setSelectedBundles(selectedBundles.filter(b => b.name !== item.name));
                               }
                             }}
-                            className="w-4 h-4 accent-orange-600 cursor-pointer"
+                            className="w-4 h-4 accent-orange-600 cursor-pointer mt-0.5 shrink-0"
                           />
-                          <span className="font-bold text-gray-900 truncate">{item.name || ''}</span>
+                          <span className="font-bold text-gray-900 leading-relaxed break-words">{item.name || ''}</span>
                         </label>
-                        <span className="font-black text-orange-600">₪{item.price || 0}</span>
+                        <span className="font-black text-orange-600 shrink-0">₪{item.price || 0}</span>
                       </div>
                     );
                   })}
