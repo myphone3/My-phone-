@@ -326,7 +326,7 @@ function ProductDetailContent() {
             )}
             {product.warranty && (
               <span className="text-xs font-bold bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-100 flex items-center gap-1">
-                🛡️️ אחריות: {product.warranty} {product.warranty_duration ? `(${product.warranty_duration})` : ''}
+                🛡 אחריות: {product.warranty} {product.warranty_duration ? `(${product.warranty_duration})` : ''}
               </span>
             )}
           </div>
@@ -476,7 +476,7 @@ function ProductDetailContent() {
             <span>🛒</span>
           </button>
 
-          {/* כפתורי שיתוף (הועברו לכאן מעל התיאור הקצר) */}
+          {/* כפתורי שיתוף מעל התיאור הקצר */}
           <div className="flex items-center justify-between pt-4 border-t text-xs font-bold text-gray-600">
             <span>שיתוף מוצר:</span>
             <div className="flex items-center gap-2">
@@ -536,7 +536,7 @@ function ProductDetailContent() {
                   <img src={relProd.image_url || relProd.images?.[0]} alt="" className="h-full object-contain group-hover:scale-105 transition" />
                 </div>
                 <div className="mt-2 space-y-1">
-                  <h4 className="font-bold text-xs text-gray-900 line-clamp-2 text-right group-hover:text-orange-600 transition" dir="auto">{relProd.name}</h4>
+                  <h4 className="font-bold text-xs text-gray-900 text-right group-hover:text-orange-600 transition" dir="auto">{relProd.name}</h4>
                   <span className="text-xs font-black text-orange-600 block text-right">₪{relProd.sale_price || relProd.price}</span>
                 </div>
               </Link>
@@ -545,7 +545,7 @@ function ProductDetailContent() {
         </div>
       )}
 
-      {/* אזור לשוניות (תיאור מלא / מפרט מלא) - הועבר מתחת למוצרים שאולי יעניינו אותך */}
+      {/* אזור לשוניות (תיאור מלא / מפרט מלא) מתחת למוצרים שאולי יעניינו אותך */}
       {(product.description || product.specs) && (
         <div ref={detailsRef} className="bg-white p-6 sm:p-8 rounded-3xl border shadow-sm space-y-6 scroll-mt-6">
           <div className="flex border-b gap-4">
