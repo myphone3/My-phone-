@@ -23,6 +23,21 @@ function ProductDetailContent() {
     }
   }, [productId]);
 
+  // פונקציית עזר בטוחה לפענוח מערכים מ-Supabase
+  const parseSafeArray = (val: any) => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string') {
+      try {
+        const parsed = JSON.parse(val);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
   const fetchProduct = async () => {
     try {
       setLoading(true);
@@ -39,16 +54,19 @@ function ProductDetailContent() {
       }
 
       setProduct(data);
-      setActiveImage(data.image_url || (Array.isArray(data.images) ? data.images[0] : ''));
 
-      const colors = data.product_colors || data.colors || [];
+      const imagesArr = parseSafeArray(data.images);
+      setActiveImage(data.image_url || (imagesArr.length > 0 ? imagesArr[0] : ''));
+
+      const colors = parseSafeArray(data.product_colors || data.colors);
       if (colors.length > 0) setSelectedColor(colors[0]);
 
-      const versions = data.versions || data.product_versions || data.product_variants || [];
+      const versions = parseSafeArray(data.versions || data.product_versions || data.product_variants);
       if (versions.length > 0) setSelectedVersion(versions[0]);
 
     } catch (err) {
       console.error('Error fetching product:', err);
+      setProduct(null);
     } finally {
       setLoading(false);
     }
@@ -69,9 +87,9 @@ function ProductDetailContent() {
     );
   }
 
-  const colors = product.product_colors || product.colors || [];
-  const versions = product.versions || product.product_versions || product.product_variants || [];
-  const bundledList = Array.isArray(product.frequently_bought_together) ? product.frequently_bought_together : [];
+  const colors = parseSafeArray(product.product_colors || product.colors);
+  const versions = parseSafeArray(product.versions || product.product_versions || product.product_variants);
+  const bundledList = parseSafeArray(product.frequently_bought_together);
 
   const basePrice = Number(product.sale_price || product.price || 0);
   const versionExtra = selectedVersion && typeof selectedVersion === 'object' ? Number(selectedVersion.price_add || selectedVersion.price || 0) : 0;
@@ -138,7 +156,7 @@ function ProductDetailContent() {
         {/* פרטים ורכישה */}
         <div className="space-y-6">
           <div>
-            <span className="text-orange-600 font-bold text-sm">{product.brand}</span>
+            <span className="text-orange-600 font-bold text-sm">{product.brand || ''}</span>
             <h1 className="text-2xl sm:text-3xl font-black text-gray-900 mt-1">{product.name}</h1>
           </div>
 
@@ -231,8 +249,8 @@ function ProductDetailContent() {
                   <div className="flex items-center gap-3">
                     <span className="text-xl">📦</span>
                     <div>
-                      <h4 className="font-bold text-xs text-gray-900">{item.name}</h4>
-                      <span className="text-xs font-black text-orange-600">₪{item.price}</span>
+                      <h4 className="font-bold text-xs text-gray-900">{item.name || ''}</h4>
+                      <span className="text-xs font-black text-orange-600">₪{item.price || 0}</span>
                     </div>
                   </div>
                   <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-1.5 rounded-xl border shadow-xs">
