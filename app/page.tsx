@@ -168,7 +168,7 @@ function StoreContent() {
   return (
     <div className="space-y-0 pb-16" dir="rtl">
       
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style>{`
         @keyframes marqueeRight {
           0% { transform: translateX(0); }
           100% { transform: translateX(50%); }
@@ -181,7 +181,7 @@ function StoreContent() {
         .animate-marquee-right:hover {
           animation-play-state: paused;
         }
-      ` }} />
+      `}</style>
 
       {/* פס מבצעים עליון סטטי עם טיימר */}
       {settings?.announcement_text && (
@@ -358,7 +358,7 @@ function StoreContent() {
                           />
                         )}
 
-                        {/* תגיות לוגו מותג ולוגו כשרות חכם (תמונה או תגית טקסט) */}
+                        {/* תגיות לוגו מותג ולוגו כשרות חכם (תמונה או תגית טקסט, ללא סימן שאלה) */}
                         <div className="absolute top-2 right-2 flex flex-col gap-1.5 z-10">
                           {brandLogo && (
                             <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center">
