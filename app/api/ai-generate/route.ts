@@ -1,7 +1,4 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenAI } from '@google/genai';
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || process.env.API_KEY });
 
 export async function POST(request: Request) {
   try {
@@ -10,33 +7,47 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Product name is required' }, { status: 400 });
     }
 
-    const prompt = `
-אתה מומחה שיווק דיגיטלי וקופירייטר מוביל עבור חנות הסלולר והמכשירים הכשרים "NEW PHONE".
+    const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: 'Gemini API Key not configured' }, { status: 500 });
+    }
+
+    const prompt = `אתה מומחה שיווק דיגיטלי וקופירייטר מוביל עבור חנות הסלולר והמכשירים הכשרים "NEW PHONE".
 הלקוח ביקש לייצר תוכן שיווקי ומפרט מלא עבור המוצר: "${productName}".
 
-עליך לחפש מידע מדויק על המוצר ברשת ולייצר את השדות הבאים בפורמט JSON בדיוק כך (ללא מעטפת נוספת מעבר ל-JSON):
+עליך לספק את השדות הבאים בפורמט JSON בלבד (ללא שום טקסט נוסף סביב, רק אובייקט JSON תקין לחלוטין):
 {
   "shortDesc": "תיאור קצר ומושך בכמה מילים עם מודגשים ואימוג'י בפורמט Markdown",
   "description": "סקירה כללית מפורטת ושיווקית המותאמת לחנות NEW PHONE, בפורמט Markdown עם כותרות ##",
-  "specs": "מפרט טכני מלא ומדויק הכולל את כל הנתונים הטכניים האמיתיים של המכשיר ברשת בפורמט Markdown עם נקודות •",
+  "specs": "מפרט טכני מלא ומדויק הכולל נתונים טכניים של המכשיר בפורמט Markdown עם נקודות •",
   "seoTitle": "כותרת SEO שיווקית ומושכת בגוגל הכוללת את שם המוצר ושם החנות NEW PHONE",
   "seoDescription": "תיאור SEO שיווקי מושך בגוגל שמניע לפעולה לרכישת המוצר ב-NEW PHONE"
 }
+שמור על דיוק, שפה עברית עשירה ומקצועית, ומבנה JSON תקין בלבד.`;
 
-הקפד על דיוק מוחלט בנתונים הטכניים, שפה עברית עשירה וגבוהה, ומבנה מקצועי. מחזיר אך ורק אובייקט JSON תקין.
-    `;
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
-        tools: [{ googleSearch: {} }],
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [{ text: prompt }]
+          }
+        ]
+      })
     });
 
-    const text = response.text;
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error?.message || 'Gemini API error');
+    }
+
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) {
-      throw new Error('No response from Gemini');
+      throw new Error('No response text from Gemini');
     }
 
     let jsonStr = text.trim();
@@ -46,8 +57,8 @@ export async function POST(request: Request) {
       jsonStr = jsonStr.replace(/^```/, '').replace(/```$/, '').trim();
     }
 
-    const data = JSON.parse(jsonStr);
-    return NextResponse.json(data);
+    const parsedData = JSON.parse(jsonStr);
+    return NextResponse.json(parsedData);
   } catch (err: any) {
     console.error('AI generation error:', err);
     return NextResponse.json({ error: err.message || 'Generation failed' }, { status: 500 });
