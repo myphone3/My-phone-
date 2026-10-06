@@ -149,20 +149,35 @@ export default function AdminProductsPage() {
     fetchData();
   };
 
-  const handleAiAssistant = () => {
+  // חיבור אמיתי ל-Gemini עם חיפוש רשת
+  const handleAiAssistant = async () => {
     if (!name) {
-      alert('נא להזין תחילה את שם המוצר כדי שהסוכן יוכל לייצר עבורך טקסטים');
+      alert('נא להזין תחילה את שם המוצר כדי שסוכן ה-AI יוכל לשלוף מפרט ולייצר עבורך טקסטים');
       return;
     }
     setAiGenerating(true);
-    setTimeout(() => {
-      setShortDesc(`**מכשיר איכותי ומתקדם** דגם *${name}*, בעל ביצועים עוצמתיים ואחריות מלאה.`);
-      setDescription(`## סקירה כללית\nהכירו את **${name}**.\n\nמכשיר מושלם המשלב עיצוב חדשני ומסך איכותי.`);
-      setSpecs(`## מפרט טכני\n• **מסך:** איכותי וחד\n• **מעבד:** מתקדם ועוצמתי\n• **סוללה:** קיבולת גבוהה\n• **אחריות:** יבואן רשמי`);
-      setSeoTitle(`${name} | מחיר מיוחד משלוח מהיר עד הבית`);
-      setSeoDesc(`הזמינו כעת ${name} במחיר הטוב ביותר בחנות NEW PHONE. משלוח מהיר עד הבית ושירות מעולה.`);
+    try {
+      const res = await fetch('/api/ai-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productName: name }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'שגיאה ביצירת תוכן');
+
+      if (data.shortDesc) setShortDesc(data.shortDesc);
+      if (data.description) setDescription(data.description);
+      if (data.specs) setSpecs(data.specs);
+      if (data.seoTitle) setSeoTitle(data.seoTitle);
+      if (data.seoDescription) setSeoDesc(data.seoDescription);
+
+      alert('המפרט והתכנים נוצרו בהצלחה על ידי סוכן ה-AI ברשת! ✨');
+    } catch (err: any) {
+      console.error(err);
+      alert('שגיאה בהפעלת סוכן ה-AI: ' + err.message);
+    } finally {
       setAiGenerating(false);
-    }, 800);
+    }
   };
 
   const handleSaveProduct = async (e: React.FormEvent) => {
@@ -325,7 +340,7 @@ export default function AdminProductsPage() {
             disabled={aiGenerating}
             className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer"
           >
-            ✨ {aiGenerating ? 'יוצר תוכן...' : 'סוכן AI למילוי אוטומטי'}
+            ✨ {aiGenerating ? 'סוכן AI סורק את הרשת...' : 'סוכן AI למילוי אוטומטי מהרשת'}
           </button>
         </div>
 
@@ -865,7 +880,7 @@ export default function AdminProductsPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {filteredProducts.map((p) => (
-            <div key={p.id} className="border rounded-2xl p-4 flex justify-between items-center bg-gray-50/50 shadow-xs">
+            <div key={id => p.id} className="border rounded-2xl p-4 flex justify-between items-center bg-gray-50/50 shadow-xs">
               <div className="flex items-center gap-2">
                 <img src={p.image_url} alt="" className="w-10 h-10 object-contain bg-white rounded-xl border p-1" />
                 <div>
