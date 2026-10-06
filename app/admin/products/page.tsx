@@ -42,6 +42,14 @@ export default function AdminProductsPage() {
   // מוצרים שתמיד באים יחד
   const [bundledItems, setBundledItems] = useState<{ name: string; price: string }[]>([]);
 
+  // מוצרים שאולי יעניינו אותך
+  const [relatedProductIds, setRelatedProductIds] = useState<string[]>([]);
+
+  // מוצר בהנחה בקניית מוצר (Upsell Popup)
+  const [upsellProductId, setUpsellProductId] = useState('');
+  const [upsellDiscountType, setUpsellDiscountType] = useState<'percent' | 'fixed'>('percent');
+  const [upsellDiscountValue, setUpsellDiscountValue] = useState('');
+
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDesc, setSeoDesc] = useState('');
 
@@ -92,7 +100,7 @@ export default function AdminProductsPage() {
     }
 
     let filesList: string[] = [];
-    const bucketsToTry = ['products', 'media', 'public', 'images', 'uploads'];
+    const bucketsToTry = ['products', 'media', 'public', 'images', 'uploads', 'product-images'];
     for (const bucket of bucketsToTry) {
       try {
         const storageRes = await supabase.storage.from(bucket).list('', { limit: 100 });
@@ -188,6 +196,12 @@ export default function AdminProductsPage() {
       images,
       product_colors: colors,
       frequently_bought_together: bundledItems,
+      related_products: relatedProductIds,
+      upsell_discount_item: upsellProductId ? {
+        productId: upsellProductId,
+        discountType: upsellDiscountType,
+        discountValue: Number(upsellDiscountValue) || 0
+      } : null,
       seo_title: seoTitle,
       seo_description: seoDesc
     };
@@ -229,6 +243,10 @@ export default function AdminProductsPage() {
     setImages([]);
     setColors([{ name: 'שחור', hex: '#000000', image: '' }]);
     setBundledItems([]);
+    setRelatedProductIds([]);
+    setUpsellProductId('');
+    setUpsellDiscountType('percent');
+    setUpsellDiscountValue('');
     setSeoTitle('');
     setSeoDesc('');
     setEditingId(null);
@@ -253,6 +271,15 @@ export default function AdminProductsPage() {
     setImages(prod.images || (prod.image_url ? [prod.image_url] : []));
     setColors(prod.product_colors || [{ name: 'שחור', hex: '#000000', image: '' }]);
     setBundledItems(prod.frequently_bought_together || []);
+    setRelatedProductIds(prod.related_products || []);
+    if (prod.upsell_discount_item) {
+      setUpsellProductId(prod.upsell_discount_item.productId || '');
+      setUpsellDiscountType(prod.upsell_discount_item.discountType || 'percent');
+      setUpsellDiscountValue(prod.upsell_discount_item.discountValue?.toString() || '');
+    } else {
+      setUpsellProductId('');
+      setUpsellDiscountValue('');
+    }
     setSeoTitle(prod.seo_title || '');
     setSeoDesc(prod.seo_description || '');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -415,6 +442,67 @@ export default function AdminProductsPage() {
             </div>
           </div>
 
+          {/* מוצרים שאולי יעניינו אותך מתוך המלאי */}
+          <div className="space-y-2 bg-gray-50 p-4 rounded-2xl border">
+            <label className="block text-xs font-bold text-gray-700">מוצרים שאולי יעניינו אותך (יוצגו בתחתית עמוד המוצר)</label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-44 overflow-y-auto p-2 bg-white rounded-xl border">
+              {products.filter(p => p.id !== editingId).map((p) => {
+                const isSelected = relatedProductIds.includes(p.id);
+                return (
+                  <div
+                    key={p.id}
+                    onClick={() => {
+                      if (isSelected) {
+                        setRelatedProductIds(relatedProductIds.filter(id => id !== p.id));
+                      } else {
+                        setRelatedProductIds([...relatedProductIds, p.id]);
+                      }
+                    }}
+                    className={`p-2 rounded-xl border text-xs cursor-pointer flex items-center gap-2 ${isSelected ? 'border-orange-600 bg-orange-50 font-bold' : 'border-gray-200'}`}
+                  >
+                    <img src={p.image_url} alt="" className="w-8 h-8 object-contain bg-white rounded" />
+                    <span className="truncate flex-1">{p.name}</span>
+                    <span>{isSelected ? '✓' : '+'}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* מוצר בהנחה בקניית מוצר (Upsell Popup) */}
+          <div className="space-y-3 bg-orange-50/40 p-4 rounded-2xl border border-orange-200">
+            <label className="block text-xs font-bold text-gray-900">🎁 מוצר בהנחה שיוצג בחלון קופץ בעת הוספה לעגלה (אופציונלי)</label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <select
+                value={upsellProductId}
+                onChange={(e) => setUpsellProductId(e.target.value)}
+                className="bg-white border rounded-xl p-3 text-xs outline-none"
+              >
+                <option value="">בחר מוצר מבצע נלווה...</option>
+                {products.filter(p => p.id !== editingId).map((p) => (
+                  <option key={p.id} value={p.id}>{p.name} (₪{p.price})</option>
+                ))}
+              </select>
+
+              <select
+                value={upsellDiscountType}
+                onChange={(e: any) => setUpsellDiscountType(e.target.value)}
+                className="bg-white border rounded-xl p-3 text-xs outline-none"
+              >
+                <option value="percent">הנחת אחוזים (%)</option>
+                <option value="fixed">הנחת סכום (₪)</option>
+              </select>
+
+              <input
+                type="number"
+                placeholder="סכום או אחוז הנחה (לדוגמה: 20)"
+                value={upsellDiscountValue}
+                onChange={(e) => setUpsellDiscountValue(e.target.value)}
+                className="bg-white border rounded-xl p-3 text-xs outline-none"
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
             <label className="block text-xs font-bold text-gray-700">בחר מותג מתוך הרשימה (כולל חיפוש)</label>
             <input
@@ -440,15 +528,15 @@ export default function AdminProductsPage() {
             <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="או הזן קישור לתמונת מותג..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
           </div>
 
-          {/* כשרות */}
+          {/* כשרות מתוך ניהול כשרויות */}
           <div className="space-y-2">
-            <label className="block text-xs font-bold text-gray-700">בחר רמת כשרות מהרשימה</label>
+            <label className="block text-xs font-bold text-gray-700">בחר רמת כשרות מהרשימה המנוהלת</label>
             <select
               value={kosher}
               onChange={(e) => setKosher(e.target.value)}
               className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
             >
-              <option value="">בחר רמת כשרות מהרשימה...</option>
+              <option value="">ללא כשרות / בחר מהרשימה...</option>
               {kosherList.map((k) => (
                 <option key={k.id} value={k.name}>{k.name}</option>
               ))}
@@ -673,8 +761,8 @@ export default function AdminProductsPage() {
               <label className="block text-xs font-bold text-gray-700">מפרט טכני מלא</label>
               <div className="flex flex-wrap gap-1.5">
                 <button type="button" onClick={() => setSpecs(specs + '\n## כותרת ראשית\n')} className="bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ כותרת (##)</button>
-                <button type="button" onClick={() => setSpecs(specs + '**טקסט מודגש**')} className="bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ הדגשה (**)</button>
-                <button type="button" onClick={() => setShowPreviewSpecs(!showPreviewSpecs)} className="text-orange-600 text-xs font-bold px-2">👁️ תצוגה מקדימה</button>
+                <button type="button" onClick={() => setSpecs(specs + '**טקסט מודגש**')} className="bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ הדגשה (**)</button>
+                <button type="button" onClick={() => setShowPreviewSpecs(!showPreviewSpecs)} className="text-orange-600 text-xs font-bold px-2">👁️️ תצוגה מקדימה</button>
               </div>
             </div>
             <textarea value={specs} onChange={(e) => setSpecs(e.target.value)} rows={3} placeholder="הזן נתוני מפרט טכני..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"></textarea>
