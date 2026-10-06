@@ -16,7 +16,6 @@ function StoreContent() {
   const [currentBanner, setCurrentBanner] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selectedColors, setSelectedColors] = useState<{ [key: string]: string }>({});
-  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -182,12 +181,6 @@ function StoreContent() {
     }
   };
 
-  const filteredProducts = products.filter(p => 
-    p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.brand?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   const scrollingBrands = [...brands, ...brands, ...brands, ...brands];
 
   return (
@@ -309,18 +302,6 @@ function StoreContent() {
 
       <div className="max-w-7xl mx-auto px-4 space-y-10 pt-8">
 
-        {/* שורת חיפוש יחידה */}
-        <div className="relative max-w-xl mx-auto">
-          <input
-            type="text"
-            placeholder="חיפוש מוצרים, מכשירים או קטגוריות..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white border border-orange-200 rounded-3xl py-3 px-5 pr-12 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-600"
-          />
-          <span className="absolute right-4 top-3.5 text-gray-400">🔍</span>
-        </div>
-
         {/* קטגוריות מובילות עם תמונות */}
         {categories.length > 0 && (
           <section className="space-y-4">
@@ -356,14 +337,14 @@ function StoreContent() {
 
           {loading ? (
             <div className="text-center py-20 text-gray-500 font-medium">טוען מוצרים...</div>
-          ) : filteredProducts.length === 0 ? (
+          ) : products.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-3xl border p-8 space-y-3 shadow-sm">
               <span className="text-4xl">📦</span>
               <p className="text-gray-500 font-medium">אין מוצרים זמינים כרגע.</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
-              {filteredProducts.map((product) => {
+              {products.map((product) => {
                 const colors = product.product_colors || product.colors || [];
                 const primaryImg = getProductImage(product);
                 const secondaryImg = (Array.isArray(product.images) && product.images[1]) || primaryImg;
@@ -409,7 +390,8 @@ function StoreContent() {
                       </div>
 
                       <div className="space-y-1">
-                        <h2 className="font-bold text-gray-900 text-sm line-clamp-1 group-hover:text-orange-600 transition">
+                        {/* תוקן: line-clamp-2 כדי ששם המוצר המלא יופיע בשתי שורות ולא ייחתך */}
+                        <h2 className="font-bold text-gray-900 text-sm line-clamp-2 group-hover:text-orange-600 transition min-h-[2.5rem]">
                           {product.name}
                         </h2>
                         <p className="text-gray-500 text-xs line-clamp-1">
@@ -419,7 +401,7 @@ function StoreContent() {
                     </Link>
 
                     <div className="mt-3 pt-3 border-t border-gray-100 space-y-3">
-                      {/* צבעים מתוקנים בלי חיתוך מסביב למסגרת */}
+                      {/* תוקן: עיגולי צבעים נקיים עם rounded-md ו-object-contain כך שהתמונה בפנים לא תיחתך במסגרת */}
                       {colors.length > 0 && (
                         <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
                           {colors.map((c: any, idx: number) => {
@@ -432,14 +414,14 @@ function StoreContent() {
                               <button
                                 key={idx}
                                 onClick={(e) => handleColorClick(product.id, colorImg, e)}
-                                className={`w-6 h-6 rounded-full border transition relative flex items-center justify-center overflow-hidden shrink-0 cursor-pointer ${
-                                  isSelected ? 'ring-2 ring-orange-600 ring-offset-1' : 'border-gray-300'
+                                className={`w-6 h-6 rounded-md border transition relative flex items-center justify-center overflow-hidden shrink-0 cursor-pointer bg-white ${
+                                  isSelected ? 'ring-2 ring-orange-600 ring-offset-1 border-orange-500' : 'border-gray-300'
                                 }`}
-                                style={{ backgroundColor: colorHex || '#ccc' }}
+                                style={{ backgroundColor: colorImg ? 'transparent' : (colorHex || '#ccc') }}
                                 title={colorName}
                               >
                                 {colorImg && (
-                                  <img src={colorImg} alt={colorName} className="w-full h-full object-cover" />
+                                  <img src={colorImg} alt={colorName} className="w-full h-full object-contain" />
                                 )}
                               </button>
                             );
@@ -447,7 +429,6 @@ function StoreContent() {
                         </div>
                       )}
 
-                      {/* מבנה מחיר וכפתור הוספה מסודר מתחתיו */}
                       <div className="flex flex-col gap-2">
                         <div>
                           <span className="text-xs text-gray-400 block">מחיר</span>
