@@ -436,7 +436,8 @@ function StoreContent() {
                         <div>
                           <span className="text-xs text-gray-400 block">מחיר</span>
                           <div className="flex items-center gap-2">
-                            <span className="text-base font-black text-orange-600">
+                            {/* מחיר שחור למוצרים רגילים, וכתום רק למוצר שבמבצע */}
+                            <span className={`text-base font-black ${product.sale_price ? 'text-orange-600' : 'text-gray-900'}`}>
                               ₪{product.sale_price || product.price || 0}
                             </span>
                             {product.sale_price && (
