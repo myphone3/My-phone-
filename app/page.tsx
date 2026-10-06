@@ -96,8 +96,11 @@ function StoreContent() {
     }
   };
 
-  // בדיקת כל שמות האפשריים לשדה הכשרות במסד הנתונים
-  const getKosherImg = (p: any) => p?.kosher_image || p?.kosher || p?.kosher_logo || p?.kosher_badge || p?.kosher_img || '';
+  const getKosherImg = (p: any) => {
+    const img = p?.kosher_image || p?.kosher || p?.kosher_logo || p?.kosher_badge || p?.kosher_img || '';
+    if (typeof img === 'string' && img.trim().startsWith('http')) return img;
+    return '';
+  };
 
   const handleQuickAddToCart = (product: any, e: React.MouseEvent) => {
     e.preventDefault();
@@ -117,7 +120,6 @@ function StoreContent() {
       const colorName = typeof firstColor === 'object' ? firstColor?.name : firstColor || '';
       const versionName = typeof firstVersion === 'object' ? firstVersion?.name : firstVersion || '';
       
-      // תמונת המוצר הנכונה שתוצג בעגלה
       const activeImg = selectedColors[product.id] || (typeof firstColor === 'object' ? firstColor?.image : null) || product.image_url || (Array.isArray(product.images) ? product.images[0] : '') || '';
 
       const cartItem = {
@@ -360,9 +362,9 @@ function StoreContent() {
                           </span>
                         )}
                       </div>
-                      <div className="space-y-1">
-                        <h3 className="font-black text-gray-900 text-xs sm:text-sm line-clamp-1">{product.name}</h3>
-                        <p className="text-[11px] text-gray-500 line-clamp-2">{product.short_description || product.description}</p>
+                      <div>
+                        {/* הצגת השם המלא של המוצר בלבד ללא תיאור קצר */}
+                        <h3 className="font-black text-gray-900 text-xs sm:text-sm line-clamp-2 leading-snug">{product.name}</h3>
                       </div>
                     </Link>
 
@@ -387,20 +389,22 @@ function StoreContent() {
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between gap-1">
-                        <div className="flex items-baseline gap-1">
+                      <div className="flex items-center justify-between gap-2 pt-1">
+                        {/* מחירים מסודרים: מחיר נכון למעלה, מחיר מקורי מתחתיו */}
+                        <div className="flex flex-col">
                           {product.sale_price ? (
                             <>
-                              <span className="text-xs sm:text-sm font-black text-red-600">₪{product.sale_price}</span>
-                              <span className="text-[9px] text-gray-400 line-through">₪{product.price}</span>
+                              <span className="text-sm sm:text-base font-black text-red-600 leading-none">₪{product.sale_price}</span>
+                              <span className="text-[10px] text-gray-400 line-through mt-1">₪{product.price}</span>
                             </>
                           ) : (
-                            <span className="text-xs sm:text-sm font-black text-gray-900">₪{product.price}</span>
+                            <span className="text-sm sm:text-base font-black text-gray-900">₪{product.price}</span>
                           )}
                         </div>
+
                         <button
                           onClick={(e) => handleQuickAddToCart(product, e)}
-                          className="bg-orange-600 text-white px-2.5 py-2 rounded-xl text-[10px] sm:text-[11px] font-bold hover:bg-orange-700 transition whitespace-nowrap cursor-pointer shadow-sm"
+                          className="bg-orange-600 text-white px-3 py-2 rounded-xl text-[11px] font-bold hover:bg-orange-700 transition whitespace-nowrap cursor-pointer shadow-sm"
                         >
                           הוספה לעגלה
                         </button>
