@@ -97,13 +97,14 @@ function StoreContent() {
   };
 
   const getProductImage = (p: any, colorImg?: string) => {
-    if (colorImg) return colorImg;
-    if (p?.image_url) return p.image_url;
+    if (colorImg && typeof colorImg === 'string' && colorImg.trim().length > 0) return colorImg;
+    if (p?.image_url && typeof p.image_url === 'string' && p.image_url.trim().length > 0) return p.image_url;
     if (Array.isArray(p?.images) && p.images.length > 0) return p.images[0];
     if (typeof p?.images === 'string') {
       try {
         const parsed = JSON.parse(p.images);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed[0];
+        if (typeof parsed === 'string') return parsed;
       } catch {
         return p.images;
       }
@@ -111,10 +112,8 @@ function StoreContent() {
     return '';
   };
 
-  const getKosherImg = (p: any) => {
-    const img = p?.kosher_image || p?.kosher || p?.kosher_logo || p?.kosher_badge || p?.kosher_img || p?.kosherImage || p?.kosherLogo || '';
-    if (typeof img === 'string' && img.trim().length > 0) return img;
-    return '';
+  const getKosherValue = (p: any) => {
+    return p?.kosher_image || p?.kosher || p?.kosher_logo || p?.kosher_badge || p?.kosher_img || p?.kosherImage || p?.kosherLogo || '';
   };
 
   const handleQuickAddToCart = (product: any, e: React.MouseEvent) => {
@@ -143,6 +142,7 @@ function StoreContent() {
         name: product.name,
         price: unitPrice,
         image: activeImg || product.image_url || '',
+        image_url: activeImg || product.image_url || '',
         color: colorName,
         version: versionName,
         quantity: 1
@@ -335,7 +335,8 @@ function StoreContent() {
 
                 const currentBrandObj = brands.find(b => b.name?.trim().toLowerCase() === product.brand?.trim().toLowerCase());
                 const brandLogo = currentBrandObj?.image_url;
-                const kosherImg = getKosherImg(product);
+                const kosherVal = getKosherValue(product);
+                const isKosherUrl = typeof kosherVal === 'string' && (kosherVal.startsWith('http') || kosherVal.startsWith('/'));
 
                 return (
                   <div 
@@ -357,17 +358,23 @@ function StoreContent() {
                           />
                         )}
 
-                        {/* תגיות לוגו מותג ולוגו כשרות */}
+                        {/* תגיות לוגו מותג ולוגו כשרות חכם (תמונה או תגית טקסט) */}
                         <div className="absolute top-2 right-2 flex flex-col gap-1.5 z-10">
                           {brandLogo && (
                             <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center">
                               <img src={brandLogo} alt="" className="w-full h-full object-contain" />
                             </div>
                           )}
-                          {kosherImg && (
-                            <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center">
-                              <img src={kosherImg} alt="" className="w-full h-full object-contain" />
-                            </div>
+                          {kosherVal && (
+                            isKosherUrl ? (
+                              <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center">
+                                <img src={kosherVal} alt="" className="w-full h-full object-contain" />
+                              </div>
+                            ) : (
+                              <div className="bg-amber-50 border border-amber-200 text-amber-900 text-[9px] font-black px-1.5 py-0.5 rounded-lg shadow-xs flex items-center justify-center text-center max-w-[55px] truncate">
+                                {kosherVal}
+                              </div>
+                            )
                           )}
                         </div>
 
