@@ -360,6 +360,13 @@ function StoreContent() {
                   >
                     <Link href={`/product/${product.id}`} className="block space-y-3">
                       <div className="h-40 sm:h-52 w-full bg-gray-50 rounded-2xl flex items-center justify-center relative overflow-hidden group">
+                        {/* תגית מבצע */}
+                        {product.sale_price && (
+                          <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-lg shadow-xs z-10">
+                            מבצע 🔥
+                          </span>
+                        )}
+
                         <img 
                           src={activeImage} 
                           alt={product.name} 
@@ -388,7 +395,6 @@ function StoreContent() {
                       </div>
 
                       <div className="space-y-1">
-                        {/* שם מוצר מלא בלי חיתוך, מותאם לשפות מעורבות */}
                         <h2 className="font-bold text-gray-900 text-xs sm:text-sm text-right group-hover:text-orange-600 transition leading-snug break-words" dir="auto">
                           {product.name}
                         </h2>
@@ -399,7 +405,6 @@ function StoreContent() {
                     </Link>
 
                     <div className="mt-3 pt-3 border-t border-gray-100 space-y-3">
-                      {/* תמונות צבעים קטנות עם מסגרת פנימית מלאה שלא נחתכת לעולם */}
                       {colors.length > 0 && (
                         <div className="flex items-center gap-1.5 overflow-x-auto py-1 px-0.5">
                           {colors.map((c: any, idx: number) => {
@@ -430,9 +435,16 @@ function StoreContent() {
                       <div className="flex flex-col gap-2">
                         <div>
                           <span className="text-xs text-gray-400 block">מחיר</span>
-                          <span className="text-base font-black text-gray-900">
-                            ₪{product.sale_price || product.price || 0}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-base font-black text-orange-600">
+                              ₪{product.sale_price || product.price || 0}
+                            </span>
+                            {product.sale_price && (
+                              <span className="text-xs text-gray-400 line-through">
+                                ₪{product.price}
+                              </span>
+                            )}
+                          </div>
                         </div>
 
                         <button
