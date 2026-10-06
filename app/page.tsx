@@ -274,41 +274,4 @@ function StoreContent() {
                 <button
                   key={idx}
                   onClick={() => setCurrentBanner(idx)}
-                  className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${currentBanner === idx ? 'w-6 bg-orange-500' : 'w-2 bg-white/40'}`}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="max-w-7xl mx-auto px-4 space-y-10 pt-8">
-
-        {/* קטגוריות מובילות */}
-        {categories.length > 0 && (
-          <section className="space-y-4">
-            <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">קטגוריות מובילות</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-              {categories.map((cat) => (
-                <Link 
-                  key={cat.id} 
-                  href={`/category/${encodeURIComponent(cat.name)}`}
-                  className="flex flex-col items-center text-center gap-2 cursor-pointer group"
-                >
-                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-white flex items-center justify-center overflow-hidden group-hover:scale-105 transition shadow-xs border border-orange-500/30">
-                    {cat.image_url ? (
-                      <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-3xl">📦</span>
-                    )}
-                  </div>
-                  <span className="font-bold text-xs sm:text-sm text-gray-900 group-hover:text-orange-600 transition">{cat.name}</span>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* כל המוצרים */}
-        <section className="space-y-6 pt-4 border-t">
-          <
+                  
