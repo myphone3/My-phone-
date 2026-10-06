@@ -8,6 +8,7 @@ function StoreContent() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
+  const [kosherList, setKosherList] = useState<any[]>([]);
   const [banners, setBanners] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number; isExpired: boolean } | null>(null);
@@ -55,6 +56,16 @@ function StoreContent() {
   const fetchData = async () => {
     try {
       setLoading(true);
+      
+      let fetchedKosher: any[] = [];
+      const k1 = await supabase.from('kosher').select('*');
+      if (k1.data && k1.data.length > 0) {
+        fetchedKosher = k1.data;
+      } else {
+        const k2 = await supabase.from('kosher_certifications').select('*');
+        if (k2.data) fetchedKosher = k2.data;
+      }
+
       const [prodRes, catRes, brandRes, bannerRes, settingsRes] = await Promise.all([
         supabase.from('products').select('*').or('is_published.is.null,is_published.eq.true').order('created_at', { ascending: false }),
         supabase.from('categories').select('*'),
@@ -66,6 +77,7 @@ function StoreContent() {
       if (prodRes.data) setProducts(prodRes.data);
       if (catRes.data) setCategories(catRes.data);
       if (brandRes.data) setBrands(brandRes.data);
+      setKosherList(fetchedKosher);
       if (settingsRes.data) setSettings(settingsRes.data);
 
       if (bannerRes.data && bannerRes.data.length > 0) {
@@ -112,8 +124,14 @@ function StoreContent() {
     return '';
   };
 
-  const getKosherValue = (p: any) => {
-    return p?.kosher_image || p?.kosher || p?.kosher_logo || p?.kosher_badge || p?.kosher_img || p?.kosherImage || p?.kosherLogo || '';
+  const getKosherLogo = (p: any) => {
+    const val = p?.kosher || p?.kosher_certification || p?.kosher_name || p?.kosher_image || p?.kosher_logo || '';
+    if (!val) return '';
+    if (typeof val === 'string' && (val.startsWith('http') || val.startsWith('/'))) {
+      return val;
+    }
+    const found = kosherList.find(k => k.name?.trim().toLowerCase() === String(val).trim().toLowerCase());
+    return found?.image_url || found?.image || '';
   };
 
   const handleQuickAddToCart = (product: any, e: React.MouseEvent) => {
@@ -335,8 +353,7 @@ function StoreContent() {
 
                 const currentBrandObj = brands.find(b => b.name?.trim().toLowerCase() === product.brand?.trim().toLowerCase());
                 const brandLogo = currentBrandObj?.image_url;
-                const kosherVal = getKosherValue(product);
-                const isKosherUrl = typeof kosherVal === 'string' && (kosherVal.startsWith('http') || kosherVal.startsWith('/'));
+                const kosherLogo = getKosherLogo(product);
 
                 return (
                   <div 
@@ -358,23 +375,17 @@ function StoreContent() {
                           />
                         )}
 
-                        {/* תגיות לוגו מותג ולוגו כשרות חכם (תמונה או תגית טקסט, ללא סימן שאלה) */}
+                        {/* תגיות לוגו מותג ולוגו כשרות (תמונה בלבד, בדיוק כמו מותגים) */}
                         <div className="absolute top-2 right-2 flex flex-col gap-1.5 z-10">
                           {brandLogo && (
                             <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center">
                               <img src={brandLogo} alt="" className="w-full h-full object-contain" />
                             </div>
                           )}
-                          {kosherVal && (
-                            isKosherUrl ? (
-                              <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center">
-                                <img src={kosherVal} alt="" className="w-full h-full object-contain" />
-                              </div>
-                            ) : (
-                              <div className="bg-amber-50 border border-amber-200 text-amber-900 text-[9px] font-black px-1.5 py-0.5 rounded-lg shadow-xs flex items-center justify-center text-center max-w-[55px] truncate">
-                                {kosherVal}
-                              </div>
-                            )
+                          {kosherLogo && (
+                            <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center">
+                              <img src={kosherLogo} alt="" className="w-full h-full object-contain" />
+                            </div>
                           )}
                         </div>
 
