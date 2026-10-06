@@ -26,13 +26,20 @@ function CategoryContent() {
     try {
       setLoading(true);
 
+      // שליפת כשרות מכל הטבלאות האפשריות כדי לוודא תאימות מלאה
       let fetchedKosher: any[] = [];
-      const k1 = await supabase.from('kosher').select('*');
-      if (k1.data && k1.data.length > 0) {
+      const [k1, k2, k3] = await Promise.all([
+        supabase.from('kosher').select('*'),
+        supabase.from('kosher_certifications').select('*'),
+        supabase.from('kosher_options').select('*')
+      ]);
+
+      if (k3.data && k3.data.length > 0) {
+        fetchedKosher = k3.data;
+      } else if (k1.data && k1.data.length > 0) {
         fetchedKosher = k1.data;
-      } else {
-        const k2 = await supabase.from('kosher_certifications').select('*');
-        if (k2.data) fetchedKosher = k2.data;
+      } else if (k2.data && k2.data.length > 0) {
+        fetchedKosher = k2.data;
       }
 
       const [prodRes, catRes, brandRes] = await Promise.all([
@@ -83,7 +90,7 @@ function CategoryContent() {
       return val;
     }
     const found = kosherList.find(k => k.name?.trim().toLowerCase() === String(val).trim().toLowerCase());
-    return found?.image_url || found?.image || '';
+    return found?.image_url || found?.image || found?.logo || '';
   };
 
   const handleQuickAddToCart = (product: any, e: React.MouseEvent) => {
@@ -209,77 +216,4 @@ function CategoryContent() {
                         )}
                         {kosherLogo && (
                           <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center">
-                            <img src={kosherLogo} alt="" className="w-full h-full object-contain" />
-                          </div>
-                        )}
-                      </div>
-
-                      {product.sale_price && (
-                        <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow">
-                          מבצע ⚡
-                        </span>
-                      )}
-                    </div>
-                    <div>
-                      <h3 className="font-black text-gray-900 text-xs sm:text-sm leading-snug">{product.name}</h3>
-                    </div>
-                  </Link>
-
-                  <div className="pt-3 mt-3 border-t flex flex-col gap-3">
-                    {colors.length > 0 && (
-                      <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-                        {colors.map((col: any, idx: number) => {
-                          const colHex = typeof col === 'object' ? col.hex : '#000000';
-                          const colName = typeof col === 'object' ? col.name : col;
-                          const colImg = typeof col === 'object' ? col.image : '';
-
-                          return (
-                            <button
-                              key={idx}
-                              title={colName}
-                              onClick={(e) => handleColorClick(product.id, colImg, e)}
-                              className="w-4 h-4 rounded-full border border-gray-300 shrink-0 shadow-xs cursor-pointer hover:scale-110 transition"
-                              style={{ backgroundColor: colHex }}
-                            ></button>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-baseline justify-between">
-                        {product.sale_price ? (
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-sm sm:text-base font-black text-red-600">₪{product.sale_price}</span>
-                            <span className="text-xs text-gray-400 line-through">₪{product.price}</span>
-                          </div>
-                        ) : (
-                          <span className="text-sm sm:text-base font-black text-gray-900">₪{product.price}</span>
-                        )}
-                      </div>
-
-                      <button
-                        onClick={(e) => handleQuickAddToCart(product, e)}
-                        className="w-full bg-orange-600 text-white py-2.5 rounded-xl text-xs font-bold hover:bg-orange-700 transition cursor-pointer shadow-sm text-center"
-                      >
-                        הוספה לעגלה
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export default function CategoryPage() {
-  return (
-    <Suspense fallback={<div className="text-center py-20 font-bold text-sm text-gray-600">טוען קטגוריה...</div>}>
-      <CategoryContent />
-    </Suspense>
-  );
-}
+                            <img src={kosher
