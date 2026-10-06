@@ -75,10 +75,10 @@ function ProductDetailContent() {
       setActiveImage(data.image_url || (imagesArr.length > 0 ? imagesArr[0] : ''));
 
       const colors = parseSafeArray(data.product_colors || data.colors);
-      if (colors.length > 0) setSelectedColor(null); // דורש בחירה חובה
+      if (colors.length > 0) setSelectedColor(null);
 
       const versions = parseSafeArray(data.versions || data.product_versions || data.product_variants);
-      if (versions.length > 0) setSelectedVersion(null); // דורש בחירה חובה
+      if (versions.length > 0) setSelectedVersion(null);
 
       // שליפת מוצרים שיעניינו אותך
       const relatedIds = parseSafeArray(data.related_products);
@@ -396,6 +396,43 @@ function ProductDetailContent() {
             </div>
           )}
 
+          {/* מוצרים שתמיד באים יחד (מעל כפתורי הרכישה, רצועות דקות) */}
+          {bundledList.length > 0 && (
+            <div className="space-y-2 pt-2 border-t">
+              <h3 className="text-xs font-black text-gray-900">מוצרים שתמיד באים יחד</h3>
+              <div className="space-y-2">
+                {bundledList.map((item: any, index: number) => {
+                  const isChecked = selectedBundles.some(b => b.name === item.name);
+                  return (
+                    <div key={index} className="flex items-center justify-between bg-gray-50 p-2.5 rounded-xl border text-xs">
+                      <label className="flex items-center gap-2 cursor-pointer flex-1">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedBundles([...selectedBundles, { name: item.name, price: Number(item.price) }]);
+                            } else {
+                              setSelectedBundles(selectedBundles.filter(b => b.name !== item.name));
+                            }
+                          }}
+                          className="w-4 h-4 accent-orange-600 cursor-pointer"
+                        />
+                        <span className="font-bold text-gray-900 truncate">{item.name || ''}</span>
+                      </label>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="font-black text-orange-600">₪{item.price || 0}</span>
+                        <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold ${isChecked ? 'bg-orange-600 text-white' : 'bg-white border text-gray-700'}`}>
+                          {isChecked ? 'נוסף' : 'הוספה'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* שורה מאוחדת: כפתור "קנה עכשיו" ירוק + בורר כמות */}
           <div className="grid grid-cols-12 gap-3 pt-2">
             <button
@@ -489,44 +526,6 @@ function ProductDetailContent() {
             {activeTab === 'specs' && product.specs && (
               <div className="whitespace-pre-line">{product.specs}</div>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* מוצרים שתמיד באים יחד */}
-      {bundledList.length > 0 && (
-        <div className="bg-white p-6 rounded-3xl border shadow-xs space-y-4">
-          <h3 className="text-sm font-black text-gray-900 border-r-4 border-orange-600 pr-3">מוצרים שתמיד באים יחד</h3>
-          <div className="space-y-3">
-            {bundledList.map((item: any, index: number) => {
-              const isChecked = selectedBundles.some(b => b.name === item.name);
-              return (
-                <div key={index} className="flex items-center justify-between bg-gray-50 p-3.5 rounded-2xl border">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">📦</span>
-                    <div>
-                      <h4 className="font-bold text-xs text-gray-900">{item.name || ''}</h4>
-                      <span className="text-xs font-black text-orange-600">₪{item.price || 0}</span>
-                    </div>
-                  </div>
-                  <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-1.5 rounded-xl border shadow-xs">
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedBundles([...selectedBundles, { name: item.name, price: Number(item.price) }]);
-                        } else {
-                          setSelectedBundles(selectedBundles.filter(b => b.name !== item.name));
-                        }
-                      }}
-                      className="w-4 h-4 accent-orange-600 cursor-pointer"
-                    />
-                    <span className="text-xs font-bold">הוסף לעסקה</span>
-                  </label>
-                </div>
-              );
-            })}
           </div>
         </div>
       )}
