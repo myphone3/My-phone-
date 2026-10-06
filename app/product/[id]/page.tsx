@@ -1,75 +1,52 @@
 'use client';
 
-import React, { useEffect, useState, use } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 
-export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params);
-  const productId = resolvedParams.id;
+function ProductDetailContent() {
+  const params = useParams();
+  const productId = params?.id as string;
 
   const [product, setProduct] = useState<any>(null);
-  const [brands, setBrands] = useState<any[]>([]);
-  const [kosherList, setKosherList] = useState<any[]>([]);
-  const [allProducts, setAllProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const [selectedImage, setSelectedImage] = useState<string>('');
   const [selectedColor, setSelectedColor] = useState<any>(null);
   const [selectedVersion, setSelectedVersion] = useState<any>(null);
   const [quantity, setQuantity] = useState(1);
-  const [addedAnimation, setAddedAnimation] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-
-  // בחירת מוצרים נלווים שתמיד באים יחד
+  const [activeImage, setActiveImage] = useState('');
   const [selectedBundles, setSelectedBundles] = useState<{ name: string; price: number }[]>([]);
 
-  // חלון קופץ למוצר בהנחה
-  const [showUpsellModal, setShowUpsellModal] = useState(false);
-  const [upsellProductData, setUpsellProductData] = useState<any>(null);
-
   useEffect(() => {
-    if (productId) fetchProductAndData();
+    if (productId) {
+      fetchProduct();
+    }
   }, [productId]);
 
-  const fetchProductAndData = async () => {
+  const fetchProduct = async () => {
     try {
       setLoading(true);
-      const [prodRes, brandRes, kosherRes, allProdRes] = await Promise.all([
-        supabase.from('products').select('*').eq('id', productId).single(),
-        supabase.from('brands').select('*'),
-        supabase.from('kosher_options').select('*'),
-        supabase.from('products').select('*').neq('id', productId)
-      ]);
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', productId)
+        .single();
 
-      if (prodRes.data) {
-        const p = prodRes.data;
-        setProduct(p);
-        setSelectedImage(getProductImage(p));
-
-        const colors = parseArray(p.product_colors || p.colors);
-        if (colors.length === 1) setSelectedColor(colors[0]);
-
-        const versions = parseVersions(p);
-        if (versions.length === 1) setSelectedVersion(versions[0]);
-
-        if (p.upsell_discount_item?.productId) {
-          const upsellMatch = allProdRes.data?.find(item => item.id === p.upsell_discount_item.productId);
-          if (upsellMatch) {
-            let finalUpsellPrice = upsellMatch.sale_price || upsellMatch.price || 0;
-            if (p.upsell_discount_item.discountType === 'percent') {
-              finalUpsellPrice = finalUpsellPrice * (1 - p.upsell_discount_item.discountValue / 100);
-            } else {
-              finalUpsellPrice = Math.max(0, finalUpsellPrice - p.upsell_discount_item.discountValue);
-            }
-            setUpsellProductData({ ...upsellMatch, discountedPrice: Math.round(finalUpsellPrice) });
-          }
-        }
+      if (error || !data) {
+        console.error('Product not found:', error);
+        setProduct(null);
+        return;
       }
 
-      if (brandRes.data) setBrands(brandRes.data);
-      if (kosherRes.data) setKosherList(kosherRes.data);
-      if (allProdRes.data) setAllProducts(allProdRes.data);
+      setProduct(data);
+      setActiveImage(data.image_url || (Array.isArray(data.images) ? data.images[0] : ''));
+
+      const colors = data.product_colors || data.colors || [];
+      if (colors.length > 0) setSelectedColor(colors[0]);
+
+      const versions = data.versions || data.product_versions || data.product_variants || [];
+      if (versions.length > 0) setSelectedVersion(versions[0]);
+
     } catch (err) {
       console.error('Error fetching product:', err);
     } finally {
@@ -77,54 +54,41 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
     }
   };
 
-  const parseArray = (field: any) => {
-    if (!field) return [];
-    if (Array.isArray(field)) return field;
-    try {
-      const parsed = JSON.parse(field);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  };
+  if (loading) {
+    return <div className="text-center py-32 text-gray-500 font-medium">טוען פרטי מוצר...</div>;
+  }
 
-  const parseVersions = (prod: any) => {
-    const raw = prod.versions || prod.product_versions || prod.product_variants;
-    return parseArray(raw);
-  };
+  if (!product) {
+    return (
+      <div className="text-center py-32 space-y-4" dir="rtl">
+        <h2 className="text-2xl font-bold text-gray-800">המוצר לא נמצא</h2>
+        <Link href="/" className="inline-block bg-orange-600 text-white px-6 py-2 rounded-2xl font-bold">
+          חזרה לדף הבית
+        </Link>
+      </div>
+    );
+  }
 
-  const getProductImage = (p: any, colorImg?: string) => {
-    if (colorImg && colorImg.trim().length > 0) return colorImg;
-    if (p?.image_url && p.image_url.trim().length > 0) return p.image_url;
-    const arr = parseArray(p?.images);
-    return arr.length > 0 ? arr[0] : '';
-  };
+  const colors = product.product_colors || product.colors || [];
+  const versions = product.versions || product.product_versions || product.product_variants || [];
+  const bundledList = Array.isArray(product.frequently_bought_together) ? product.frequently_bought_together : [];
 
-  const getKosherLogo = (p: any) => {
-    const val = p?.kosher || '';
-    if (!val) return '';
-    if (typeof val === 'string' && (val.startsWith('http') || val.startsWith('/'))) return val;
-    const found = kosherList.find(k => k.name?.trim().toLowerCase() === String(val).trim().toLowerCase());
-    return found?.image_url || found?.image || '';
-  };
+  const basePrice = Number(product.sale_price || product.price || 0);
+  const versionExtra = selectedVersion && typeof selectedVersion === 'object' ? Number(selectedVersion.price_add || selectedVersion.price || 0) : 0;
+  const finalPrice = basePrice + versionExtra;
 
-  const handleAddToCart = (includeUpsell = false, upsellItemObj: any = null) => {
+  const handleAddToCart = () => {
     try {
       const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-      const finalPrice = product.sale_price || product.price || 0;
-      const versionExtra = typeof selectedVersion === 'object' ? (selectedVersion?.price_add || 0) : 0;
-      const unitPrice = Number(finalPrice) + Number(versionExtra);
-
       const colorName = typeof selectedColor === 'object' ? selectedColor?.name : selectedColor || '';
       const versionName = typeof selectedVersion === 'object' ? selectedVersion?.name : selectedVersion || '';
-      const activeImg = getProductImage(product, typeof selectedColor === 'object' ? selectedColor?.image : '') || selectedImage;
 
       const cartItem = {
         id: `${product.id}-${colorName}-${versionName}`,
         productId: product.id,
         name: product.name,
-        price: unitPrice,
-        image: activeImg,
+        price: finalPrice,
+        image: activeImage || product.image_url || '',
         color: colorName,
         version: versionName,
         quantity: quantity
@@ -143,53 +107,18 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
           id: `${product.id}-bundle-${idx}`,
           name: bundle.name,
           price: Number(bundle.price),
-          image: activeImg,
+          image: activeImage,
           quantity: 1
         });
       });
 
-      if (includeUpsell && upsellItemObj) {
-        cart.push({
-          id: `${upsellItemObj.id}-upsell`,
-          productId: upsellItemObj.id,
-          name: `${upsellItemObj.name} (מבצע נלווה 🎁)`,
-          price: upsellItemObj.discountedPrice,
-          image: getProductImage(upsellItemObj),
-          quantity: 1
-        });
-      }
-
       localStorage.setItem('cart', JSON.stringify(cart));
       window.dispatchEvent(new Event('cartUpdated'));
-      setShowUpsellModal(false);
-      setAddedAnimation(true);
-      setTimeout(() => setAddedAnimation(false), 2500);
+      alert('המוצר נוסף בהצלחה לעגלה! 🛒');
     } catch (err) {
       console.error('Add to cart error:', err);
     }
   };
-
-  const handleBuyButtonClick = (isBuyNow = false) => {
-    if (!isBuyNow && upsellProductData) {
-      setShowUpsellModal(true);
-    } else {
-      handleAddToCart();
-      if (isBuyNow) window.location.href = '/cart';
-    }
-  };
-
-  if (loading) return <div className="text-center py-24 font-bold text-gray-500">טוען פרטי מוצר...</div>;
-  if (!product) return <div className="text-center py-24 font-bold text-gray-500">המוצר אינו נמצא</div>;
-
-  const currentBrandObj = brands.find(b => b.name?.trim().toLowerCase() === product.brand?.trim().toLowerCase());
-  const brandLogo = currentBrandObj?.image_url;
-  const kosherLogo = getKosherLogo(product);
-  const imagesList = parseArray(product.images);
-  if (imagesList.length === 0 && product.image_url) imagesList.push(product.image_url);
-
-  const colorsList = parseArray(product.product_colors || product.colors);
-  const versionsList = parseVersions(product);
-  const bundledList = parseArray(product.frequently_bought_together);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-8" dir="rtl">
@@ -197,71 +126,96 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
         <span>➔</span> חזרה לחנות
       </Link>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white p-6 sm:p-8 rounded-3xl border shadow-xs">
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+        
+        {/* תמונות */}
         <div className="space-y-4">
-          <div className="h-72 sm:h-96 w-full bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden border p-2 relative">
-            <img src={(typeof selectedColor === 'object' ? selectedColor?.image : null) || selectedImage} alt="" className="w-full h-full object-contain" />
-            <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
-              {brandLogo && <div className="w-10 h-10 bg-white/90 rounded-2xl p-1.5 shadow border flex items-center justify-center"><img src={brandLogo} alt="" className="w-full h-full object-contain" /></div>}
-              {kosherLogo && <div className="w-10 h-10 bg-white/90 rounded-2xl p-1.5 shadow border flex items-center justify-center"><img src={kosherLogo} alt="" className="w-full h-full object-contain" /></div>}
-            </div>
+          <div className="h-72 sm:h-96 w-full bg-gray-50 rounded-2xl flex items-center justify-center p-4">
+            <img src={activeImage} alt={product.name} className="max-h-full max-w-full object-contain" />
           </div>
         </div>
 
-        <div className="flex flex-col justify-between space-y-6">
-          <div className="space-y-4">
-            <h1 className="text-xl sm:text-2xl font-black text-gray-900">{product.name}</h1>
-            <div className="flex items-baseline gap-2">
-              {product.sale_price ? (
-                <>
-                  <span className="text-2xl font-black text-red-600">₪{product.sale_price}</span>
-                  <span className="text-sm text-gray-400 line-through">₪{product.price}</span>
-                </>
-              ) : (
-                <span className="text-2xl font-black text-gray-900">₪{product.price}</span>
-              )}
+        {/* פרטים ורכישה */}
+        <div className="space-y-6">
+          <div>
+            <span className="text-orange-600 font-bold text-sm">{product.brand}</span>
+            <h1 className="text-2xl sm:text-3xl font-black text-gray-900 mt-1">{product.name}</h1>
+          </div>
+
+          <div className="text-2xl font-black text-gray-900">
+            ₪{finalPrice}
+          </div>
+
+          {/* אחריות */}
+          {(product.warranty || product.warranty_duration) && (
+            <div className="flex items-center gap-2 bg-blue-50 text-blue-700 px-3.5 py-2 rounded-xl text-xs font-bold border border-blue-100">
+              <span>🛡️</span>
+              <span>אחריות: {product.warranty || 'יבואן רשמי'} {product.warranty_duration ? `(${product.warranty_duration})` : ''}</span>
             </div>
+          )}
 
-            {/* הצגת אחריות ומשך אחריות */}
-            {(product.warranty || product.warranty_duration) && (
-              <div className="flex items-center gap-2 bg-blue-50 text-blue-700 px-3.5 py-2 rounded-xl text-xs font-bold border border-blue-100">
-                <span>🛡️</span>
-                <span>אחריות: {product.warranty || 'יבואן רשמי'} {product.warranty_duration ? `(${product.warranty_duration})` : ''}</span>
-              </div>
-            )}
+          {/* בחירת צבע */}
+          {colors.length > 0 && (
+            <div className="space-y-2">
+              <span className="text-sm font-bold text-gray-700">בחר צבע:</span>
+              <div className="flex items-center gap-2">
+                {colors.map((c: any, idx: number) => {
+                  const colorImg = typeof c === 'object' ? (c.image_url || c.image) : '';
+                  const colorHex = typeof c === 'object' ? (c.hex || c.code) : '';
+                  const isSelected = selectedColor === c;
 
-            <p className="text-xs sm:text-sm text-gray-600 bg-gray-50 p-3.5 rounded-2xl border">{product.short_description || product.description}</p>
-          </div>
-
-          <div className="space-y-4 pt-4 border-t">
-            {versionsList.length > 0 && (
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-gray-800">בחר גרסה</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {versionsList.map((ver: any, idx: number) => (
-                    <button key={idx} onClick={() => setSelectedVersion(ver)} className={`py-2 px-3 rounded-xl border text-xs font-bold transition cursor-pointer ${selectedVersion === ver ? 'border-orange-600 bg-orange-50 text-orange-900' : 'bg-white text-gray-700'}`}>
-                      {typeof ver === 'string' ? ver : ver?.name}
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        setSelectedColor(c);
+                        if (colorImg) setActiveImage(colorImg);
+                      }}
+                      className={`w-8 h-8 rounded-full border transition relative flex items-center justify-center cursor-pointer ${
+                        isSelected ? 'ring-2 ring-orange-600 ring-offset-2' : 'border-gray-300'
+                      }`}
+                      style={{ backgroundColor: colorHex || '#ccc' }}
+                    >
+                      {colorImg && <img src={colorImg} alt="" className="w-full h-full object-cover rounded-full" />}
                     </button>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
-            )}
+            </div>
+          )}
 
-            {colorsList.length > 0 && (
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-gray-800">בחר צבע</label>
-                <div className="flex items-center gap-3">
-                  {colorsList.map((col: any, idx: number) => (
-                    <button key={idx} onClick={() => setSelectedColor(col)} className={`w-8 h-8 rounded-full transition-transform cursor-pointer shadow-sm ${selectedColor === col ? 'ring-2 ring-orange-600 ring-offset-2 scale-110' : 'border'}`} style={{ backgroundColor: typeof col === 'object' ? col.hex : '#000' }} />
-                  ))}
-                </div>
+          {/* בחירת גרסה */}
+          {versions.length > 0 && (
+            <div className="space-y-2">
+              <span className="text-sm font-bold text-gray-700">בחר גרסה / נפח:</span>
+              <div className="flex flex-wrap gap-2">
+                {versions.map((v: any, idx: number) => {
+                  const vName = typeof v === 'object' ? v.name : v;
+                  const isSelected = selectedVersion === v;
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => setSelectedVersion(v)}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                        isSelected ? 'bg-orange-600 text-white border-orange-600' : 'bg-white text-gray-800 border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      {vName}
+                    </button>
+                  );
+                })}
               </div>
-            )}
+            </div>
+          )}
 
-            <button onClick={() => handleBuyButtonClick(false)} className={`w-full py-3.5 rounded-2xl text-xs font-black text-white transition cursor-pointer shadow-md ${addedAnimation ? 'bg-green-600' : 'bg-orange-600 hover:bg-orange-700'}`}>
-              {addedAnimation ? '✓ נוסף בהצלחה לעגלה!' : '🛒 הוספה לעגלה'}
-            </button>
-          </div>
+          {/* כפתור הוספה לעגלה */}
+          <button
+            onClick={handleAddToCart}
+            className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-2xl font-black text-base transition shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2"
+          >
+            <span>הוסף לעגלה</span>
+            <span>🛒</span>
+          </button>
         </div>
       </div>
 
@@ -303,5 +257,13 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
         </div>
       )}
     </div>
+  );
+}
+
+export default function ProductPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-32 text-gray-500 font-medium">טוען...</div>}>
+      <ProductDetailContent />
+    </Suspense>
   );
 }
