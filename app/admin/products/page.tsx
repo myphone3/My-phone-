@@ -39,16 +39,18 @@ export default function AdminProductsPage() {
     { name: 'שחור', hex: '#000000', image: '' }
   ]);
 
-  // מוצרים שתמיד באים יחד
+  // מוצרים שתמיד באים יחד (תוקן העיצוב שלא יחרוג מהמסגרת)
   const [bundledItems, setBundledItems] = useState<{ name: string; price: string }[]>([]);
 
-  // מוצרים שאולי יעניינו אותך
+  // מוצרים שאולי יעניינו אותך + חיפוש
   const [relatedProductIds, setRelatedProductIds] = useState<string[]>([]);
+  const [relatedSearch, setRelatedSearch] = useState('');
 
-  // מוצר בהנחה בקניית מוצר (Upsell Popup)
+  // מוצר בהנחה בקניית מוצר (Upsell Popup) + חיפוש
   const [upsellProductId, setUpsellProductId] = useState('');
   const [upsellDiscountType, setUpsellDiscountType] = useState<'percent' | 'fixed'>('percent');
   const [upsellDiscountValue, setUpsellDiscountValue] = useState('');
+  const [upsellSearch, setUpsellSearch] = useState('');
 
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDesc, setSeoDesc] = useState('');
@@ -113,17 +115,6 @@ export default function AdminProductsPage() {
         }
       } catch (e) {}
     }
-
-    if (prodRes.data) {
-      prodRes.data.forEach((p: any) => {
-        if (p.image_url && !filesList.includes(p.image_url)) filesList.push(p.image_url);
-        if (p.images && Array.isArray(p.images)) {
-          p.images.forEach((img: string) => {
-            if (img && !filesList.includes(img)) filesList.push(img);
-          });
-        }
-      });
-    }
     setStorageFiles(filesList);
     setLoading(false);
   };
@@ -150,7 +141,6 @@ export default function AdminProductsPage() {
     const updatedImages = [...images, ...newUrls];
     setImages(updatedImages);
     if (!imageUrl && updatedImages.length > 0) setImageUrl(updatedImages[0]);
-    
     setUploading(false);
     fetchData();
   };
@@ -244,9 +234,11 @@ export default function AdminProductsPage() {
     setColors([{ name: 'שחור', hex: '#000000', image: '' }]);
     setBundledItems([]);
     setRelatedProductIds([]);
+    setRelatedSearch('');
     setUpsellProductId('');
     setUpsellDiscountType('percent');
     setUpsellDiscountValue('');
+    setUpsellSearch('');
     setSeoTitle('');
     setSeoDesc('');
     setEditingId(null);
@@ -303,10 +295,13 @@ export default function AdminProductsPage() {
   const filteredBrands = brandsList.filter(b => b.name.toLowerCase().includes(brandSearch.toLowerCase()));
   const filteredProducts = products.filter(p => p.name?.toLowerCase().includes(productSearch.toLowerCase()));
 
+  const relatedSearchProducts = products.filter(p => p.id !== editingId && p.name?.toLowerCase().includes(relatedSearch.toLowerCase()));
+  const upsellSearchProducts = products.filter(p => p.id !== editingId && p.name?.toLowerCase().includes(upsellSearch.toLowerCase()));
+
   if (loading) return <div className="text-center py-20 text-gray-500 font-medium">טוען מוצרים...</div>;
 
   return (
-    <div className="space-y-8" dir="rtl">
+    <div className="space-y-8 max-w-full overflow-hidden" dir="rtl">
       <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4 gap-3">
           <h2 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">
@@ -365,7 +360,7 @@ export default function AdminProductsPage() {
           </div>
 
           <div className="space-y-2 bg-gray-50 p-4 rounded-2xl border">
-            <label className="block text-xs font-bold text-gray-700">בחר גרסאות מותרות למוצר זה (שדה חובה ללקוח בחנות):</label>
+            <label className="block text-xs font-bold text-gray-700">בחר גרסאות מותרות למוצר זה:</label>
             {versionsList.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {versionsList.map((ver) => {
@@ -389,13 +384,13 @@ export default function AdminProductsPage() {
                 })}
               </div>
             ) : (
-              <p className="text-xs text-gray-400">לא הוגדרו גרסאות בטאב "ניהול גרסאות".</p>
+              <p className="text-xs text-gray-400">לא הוגדרו גרסאות.</p>
             )}
           </div>
 
-          {/* מוצרים שתמיד באים יחד */}
-          <div className="space-y-3 bg-gray-50 p-4 rounded-2xl border">
-            <div className="flex justify-between items-center">
+          {/* מוצרים שתמיד באים יחד - עיצוב מתוקן שלא בולט מהמסגרת */}
+          <div className="space-y-3 bg-gray-50 p-4 rounded-2xl border overflow-hidden">
+            <div className="flex justify-between items-center flex-wrap gap-2">
               <label className="block text-xs font-bold text-gray-700">מוצרים שתמיד באים יחד (אופציונלי)</label>
               <button
                 type="button"
@@ -407,7 +402,7 @@ export default function AdminProductsPage() {
             </div>
             <div className="space-y-2">
               {bundledItems.map((bundle, idx) => (
-                <div key={idx} className="flex gap-2 items-center bg-white p-3 rounded-xl border">
+                <div key={idx} className="flex flex-col sm:flex-row gap-2 items-center bg-white p-3 rounded-xl border w-full">
                   <input
                     type="text"
                     placeholder="שם המוצר הנלווה (לדוגמה: מגן זכוכית)"
@@ -417,7 +412,7 @@ export default function AdminProductsPage() {
                       updated[idx].name = e.target.value;
                       setBundledItems(updated);
                     }}
-                    className="bg-gray-50 border rounded-lg p-2 text-xs flex-1 outline-none"
+                    className="bg-gray-50 border rounded-lg p-2 text-xs flex-1 w-full sm:w-auto outline-none"
                   />
                   <input
                     type="number"
@@ -428,62 +423,68 @@ export default function AdminProductsPage() {
                       updated[idx].price = e.target.value;
                       setBundledItems(updated);
                     }}
-                    className="bg-gray-50 border rounded-lg p-2 text-xs w-28 outline-none"
+                    className="bg-gray-50 border rounded-lg p-2 text-xs w-full sm:w-28 outline-none"
                   />
                   <button
                     type="button"
                     onClick={() => setBundledItems(bundledItems.filter((_, i) => i !== idx))}
-                    className="text-red-500 font-bold text-xs px-2"
+                    className="text-red-500 font-bold text-xs px-2 self-end sm:self-center cursor-pointer"
                   >
-                    ✕
+                    ✕ הסר
                   </button>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* מוצרים שאולי יעניינו אותך מתוך המלאי */}
-          <div className="space-y-2 bg-gray-50 p-4 rounded-2xl border">
-            <label className="block text-xs font-bold text-gray-700">מוצרים שאולי יעניינו אותך (יוצגו בתחתית עמוד המוצר)</label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-44 overflow-y-auto p-2 bg-white rounded-xl border">
-              {products.filter(p => p.id !== editingId).map((p) => {
-                const isSelected = relatedProductIds.includes(p.id);
-                return (
-                  <div
-                    key={p.id}
-                    onClick={() => {
-                      if (isSelected) {
-                        setRelatedProductIds(relatedProductIds.filter(id => id !== p.id));
-                      } else {
-                        setRelatedProductIds([...relatedProductIds, p.id]);
-                      }
-                    }}
-                    className={`p-2 rounded-xl border text-xs cursor-pointer flex items-center gap-2 ${isSelected ? 'border-orange-600 bg-orange-50 font-bold' : 'border-gray-200'}`}
-                  >
-                    <img src={p.image_url} alt="" className="w-8 h-8 object-contain bg-white rounded" />
-                    <span className="truncate flex-1">{p.name}</span>
-                    <span>{isSelected ? '✓' : '+'}</span>
-                  </div>
-                );
-              })}
+          {/* מוצרים שאולי יעניינו אותך עם חיפוש */}
+          <div className="space-y-3 bg-gray-50 p-4 rounded-2xl border">
+            <div className="flex justify-between items-center">
+              <label className="block text-xs font-bold text-gray-900">מוצרים שאולי יעניינו אותך (יוצגו בתחתית עמוד המוצר)</label>
+              <span className="text-[11px] text-gray-500 font-bold">{relatedProductIds.length} נבחרו</span>
+            </div>
+            <input
+              type="text"
+              placeholder="חפש מוצר להוספה להמלצות..."
+              value={relatedSearch}
+              onChange={(e) => setRelatedSearch(e.target.value)}
+              className="w-full bg-white border rounded-xl p-2.5 text-xs outline-none focus:border-orange-600"
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 bg-white rounded-xl border">
+              {relatedSearchProducts.length > 0 ? (
+                relatedSearchProducts.map((p) => {
+                  const isSelected = relatedProductIds.includes(p.id);
+                  return (
+                    <div
+                      key={p.id}
+                      onClick={() => {
+                        if (isSelected) {
+                          setRelatedProductIds(relatedProductIds.filter(id => id !== p.id));
+                        } else {
+                          setRelatedProductIds([...relatedProductIds, p.id]);
+                        }
+                      }}
+                      className={`p-2 rounded-xl border text-xs cursor-pointer flex items-center justify-between gap-2 transition ${isSelected ? 'border-orange-600 bg-orange-50 font-bold' : 'border-gray-200 hover:bg-gray-50'}`}
+                    >
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <img src={p.image_url || p.images?.[0]} alt="" className="w-8 h-8 object-contain bg-white rounded border p-0.5 shrink-0" />
+                        <span className="truncate">{p.name}</span>
+                      </div>
+                      <span className="shrink-0">{isSelected ? '✓' : '+'}</span>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="col-span-full text-center text-xs text-gray-400 py-4">לא נמצאו מוצרים תואמים לחיפוש.</p>
+              )}
             </div>
           </div>
 
-          {/* מוצר בהנחה בקניית מוצר (Upsell Popup) */}
-          <div className="space-y-3 bg-orange-50/40 p-4 rounded-2xl border border-orange-200">
+          {/* מוצר בהנחה בקניית מוצר (Upsell Popup) עם חיפוש ותמונות */}
+          <div className="space-y-3 bg-orange-50/50 p-4 rounded-2xl border border-orange-200">
             <label className="block text-xs font-bold text-gray-900">🎁 מוצר בהנחה שיוצג בחלון קופץ בעת הוספה לעגלה (אופציונלי)</label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <select
-                value={upsellProductId}
-                onChange={(e) => setUpsellProductId(e.target.value)}
-                className="bg-white border rounded-xl p-3 text-xs outline-none"
-              >
-                <option value="">בחר מוצר מבצע נלווה...</option>
-                {products.filter(p => p.id !== editingId).map((p) => (
-                  <option key={p.id} value={p.id}>{p.name} (₪{p.price})</option>
-                ))}
-              </select>
-
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <select
                 value={upsellDiscountType}
                 onChange={(e: any) => setUpsellDiscountType(e.target.value)}
@@ -501,10 +502,48 @@ export default function AdminProductsPage() {
                 className="bg-white border rounded-xl p-3 text-xs outline-none"
               />
             </div>
+
+            <div className="space-y-2">
+              <input
+                type="text"
+                placeholder="חפש מוצר מבצע נלווה לפי שם..."
+                value={upsellSearch}
+                onChange={(e) => setUpsellSearch(e.target.value)}
+                className="w-full bg-white border rounded-xl p-2.5 text-xs outline-none focus:border-orange-600"
+              />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 bg-white rounded-xl border">
+                <div
+                  onClick={() => setUpsellProductId('')}
+                  className={`p-2 rounded-xl border text-xs cursor-pointer flex items-center gap-2 ${!upsellProductId ? 'border-orange-600 bg-orange-50 font-bold' : 'border-gray-200'}`}
+                >
+                  <span>🚫 ללא מוצר מבצע</span>
+                </div>
+                {upsellSearchProducts.map((p) => {
+                  const isSelected = upsellProductId === p.id;
+                  return (
+                    <div
+                      key={p.id}
+                      onClick={() => setUpsellProductId(p.id)}
+                      className={`p-2 rounded-xl border text-xs cursor-pointer flex items-center justify-between gap-2 transition ${isSelected ? 'border-orange-600 bg-orange-50 font-bold' : 'border-gray-200 hover:bg-gray-50'}`}
+                    >
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <img src={p.image_url || p.images?.[0]} alt="" className="w-10 h-10 object-contain bg-white rounded-lg border p-0.5 shrink-0" />
+                        <div className="overflow-hidden">
+                          <h4 className="truncate font-bold text-gray-900">{p.name}</h4>
+                          <span className="text-[11px] text-orange-600">₪{p.price}</span>
+                        </div>
+                      </div>
+                      <span className="shrink-0">{isSelected ? '✓ בחירה פעילה' : 'בחר'}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
           <div className="space-y-2">
-            <label className="block text-xs font-bold text-gray-700">בחר מותג מתוך הרשימה (כולל חיפוש)</label>
+            <label className="block text-xs font-bold text-gray-700">בחר מותג מתוך הרשימה</label>
             <input
               type="text"
               placeholder="חפש מותג..."
@@ -528,7 +567,7 @@ export default function AdminProductsPage() {
             <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="או הזן קישור לתמונת מותג..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
           </div>
 
-          {/* כשרות מתוך ניהול כשרויות */}
+          {/* כשרות */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-gray-700">בחר רמת כשרות מהרשימה המנוהלת</label>
             <select
@@ -593,34 +632,30 @@ export default function AdminProductsPage() {
                 </div>
 
                 <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 overflow-y-auto p-2 flex-1">
-                  {storageFiles.length > 0 ? (
-                    storageFiles.map((url, idx) => {
-                      const isSelected = images.includes(url);
-                      return (
-                        <div
-                          key={idx}
-                          onClick={() => {
-                            if (!images.includes(url)) {
-                              setImages([...images, url]);
-                              if (!imageUrl) setImageUrl(url);
-                            } else {
-                              setImages(images.filter(i => i !== url));
-                            }
-                          }}
-                          className={`relative h-24 rounded-xl border overflow-hidden cursor-pointer transition bg-gray-50 flex items-center justify-center p-1 ${isSelected ? 'border-orange-600 ring-2 ring-orange-600/40 bg-orange-50' : 'border-gray-200 hover:border-gray-400'}`}
-                        >
-                          <img src={url} alt="" className="w-full h-full object-contain" />
-                          {isSelected && (
-                            <span className="absolute top-1 right-1 bg-orange-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold shadow-xs">
-                              ✓
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <p className="col-span-full text-center text-xs text-gray-400 py-10">לא נמצאו תמונות באחסון האתר כרגע.</p>
-                  )}
+                  {storageFiles.map((url, idx) => {
+                    const isSelected = images.includes(url);
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => {
+                          if (!images.includes(url)) {
+                            setImages([...images, url]);
+                            if (!imageUrl) setImageUrl(url);
+                          } else {
+                            setImages(images.filter(i => i !== url));
+                          }
+                        }}
+                        className={`relative h-24 rounded-xl border overflow-hidden cursor-pointer transition bg-gray-50 flex items-center justify-center p-1 ${isSelected ? 'border-orange-600 ring-2 ring-orange-600/40 bg-orange-50' : 'border-gray-200 hover:border-gray-400'}`}
+                      >
+                        <img src={url} alt="" className="w-full h-full object-contain" />
+                        {isSelected && (
+                          <span className="absolute top-1 right-1 bg-orange-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold shadow-xs">
+                            ✓
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <div className="border-t pt-3 flex justify-end">
@@ -687,7 +722,7 @@ export default function AdminProductsPage() {
                     )}
                   </div>
 
-                  {images.length > 0 ? (
+                  {images.length > 0 && (
                     <div className="space-y-1">
                       <span className="text-[11px] font-bold text-gray-600 block">בחר תמונה לצבע זה מתוך תמונות המוצר:</span>
                       <div className="flex gap-2 overflow-x-auto pb-2">
@@ -714,78 +749,53 @@ export default function AdminProductsPage() {
                         })}
                       </div>
                     </div>
-                  ) : (
-                    <p className="text-[11px] text-orange-600">העלה או בחר תמונות לעיל עבור המוצר כדי שתוכל לשייך אותן לצבעים.</p>
                   )}
                 </div>
               ))}
             </div>
           </div>
 
-          {/* תיאור קצר עם כפתורי עיצוב ותצוגה מקדימה */}
           <div className="space-y-2">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+            <div className="flex justify-between items-center">
               <label className="block text-xs font-bold text-gray-700">תיאור קצר</label>
-              <div className="flex flex-wrap gap-1.5">
-                <button type="button" onClick={() => setShortDesc(shortDesc + '\n## כותרת ראשית\n')} className="bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ כותרת (##)</button>
-                <button type="button" onClick={() => setShortDesc(shortDesc + '**טקסט מודגש**')} className="bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ הדגשה (**)</button>
-                <button type="button" onClick={() => setShowPreviewShort(!showPreviewShort)} className="text-orange-600 text-xs font-bold px-2">👁️ תצוגה מקדימה</button>
-              </div>
+              <button type="button" onClick={() => setShowPreviewShort(!showPreviewShort)} className="text-orange-600 text-xs font-bold">👁️ תצוגה מקדימה</button>
             </div>
-            <input type="text" value={shortDesc} onChange={(e) => setShortDesc(e.target.value)} placeholder="משפט סיכום קצר..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
-            {showPreviewShort && (
-              <div className="bg-orange-50 border p-3 rounded-xl text-xs" dangerouslySetInnerHTML={{ __html: parseMarkdownPreview(shortDesc || 'אין תוכן') }}></div>
-            )}
+            <input type="text" value={shortDesc} onChange={(e) => setShortDesc(e.target.value)} placeholder="משפט סיכום קצר..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
+            {showPreviewShort && <div className="bg-orange-50 border p-3 rounded-xl text-xs" dangerouslySetInnerHTML={{ __html: parseMarkdownPreview(shortDesc) }}></div>}
           </div>
 
-          {/* תיאור מלא עם כפתורי עיצוב ותצוגה מקדימה */}
           <div className="space-y-2">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-              <label className="block text-xs font-bold text-gray-700">תיאור מלא (השתמש ב-## לכותרת ו-** להדגשה):</label>
-              <div className="flex flex-wrap gap-1.5">
-                <button type="button" onClick={() => setDescription(description + '\n## כותרת ראשית\n')} className="bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ כותרת ראשית (##)</button>
-                <button type="button" onClick={() => setDescription(description + '\n### כותרת משנית\n')} className="bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ כותרת משנית (###)</button>
-                <button type="button" onClick={() => setDescription(description + '**טקסט מודגש**')} className="bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ הדגשה (**)</button>
-                <button type="button" onClick={() => setShowPreviewFull(!showPreviewFull)} className="text-orange-600 text-xs font-bold px-2">👁️ תצוגה מקדימה</button>
-              </div>
+            <div className="flex justify-between items-center">
+              <label className="block text-xs font-bold text-gray-700">תיאור מלא</label>
+              <button type="button" onClick={() => setShowPreviewFull(!showPreviewFull)} className="text-orange-600 text-xs font-bold">👁️ תצוגה מקדימה</button>
             </div>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="תיאור מפורט... (למשל: ## כותרת או **טקסט מודגש**)" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"></textarea>
-            {showPreviewFull && (
-              <div className="bg-orange-50 border p-3 rounded-xl text-xs whitespace-pre-line" dangerouslySetInnerHTML={{ __html: parseMarkdownPreview(description || 'אין תוכן') }}></div>
-            )}
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="תיאור מפורט..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none"></textarea>
+            {showPreviewFull && <div className="bg-orange-50 border p-3 rounded-xl text-xs whitespace-pre-line" dangerouslySetInnerHTML={{ __html: parseMarkdownPreview(description) }}></div>}
           </div>
 
-          {/* מפרט טכני מלא עם כפתורי עיצוב ותצוגה מקדימה */}
           <div className="space-y-2">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+            <div className="flex justify-between items-center">
               <label className="block text-xs font-bold text-gray-700">מפרט טכני מלא</label>
-              <div className="flex flex-wrap gap-1.5">
-                <button type="button" onClick={() => setSpecs(specs + '\n## כותרת ראשית\n')} className="bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ כותרת (##)</button>
-                <button type="button" onClick={() => setSpecs(specs + '**טקסט מודגש**')} className="bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer">➕ הדגשה (**)</button>
-                <button type="button" onClick={() => setShowPreviewSpecs(!showPreviewSpecs)} className="text-orange-600 text-xs font-bold px-2">👁️️ תצוגה מקדימה</button>
-              </div>
+              <button type="button" onClick={() => setShowPreviewSpecs(!showPreviewSpecs)} className="text-orange-600 text-xs font-bold">👁️ תצוגה מקדימה</button>
             </div>
-            <textarea value={specs} onChange={(e) => setSpecs(e.target.value)} rows={3} placeholder="הזן נתוני מפרט טכני..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"></textarea>
-            {showPreviewSpecs && (
-              <div className="bg-orange-50 border p-3 rounded-xl text-xs whitespace-pre-line" dangerouslySetInnerHTML={{ __html: parseMarkdownPreview(specs || 'אין תוכן') }}></div>
-            )}
+            <textarea value={specs} onChange={(e) => setSpecs(e.target.value)} rows={3} placeholder="מפרט טכני..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none"></textarea>
+            {showPreviewSpecs && <div className="bg-orange-50 border p-3 rounded-xl text-xs whitespace-pre-line" dangerouslySetInnerHTML={{ __html: parseMarkdownPreview(specs) }}></div>}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-4">
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">SEO Title (כותרת בגוגל)</label>
-              <input type="text" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} placeholder="כותרת SEO..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
+              <label className="block text-xs font-bold text-gray-700 mb-1">SEO Title</label>
+              <input type="text" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">SEO Description (תיאור בגוגל)</label>
-              <input type="text" value={seoDesc} onChange={(e) => setSeoDesc(e.target.value)} placeholder="תיאור SEO..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
+              <label className="block text-xs font-bold text-gray-700 mb-1">SEO Description</label>
+              <input type="text" value={seoDesc} onChange={(e) => setSeoDesc(e.target.value)} className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
             </div>
           </div>
 
           <div className="bg-orange-50/50 border border-orange-200 p-4 rounded-2xl flex items-center justify-between">
             <div>
-              <span className="text-xs font-black text-gray-900 block">שמור כטיוטה (לא מפורסם בחנות)</span>
-              <span className="text-[11px] text-gray-500">מוצר במצב טיוטה לא יוצג ללקוחות באתר.</span>
+              <span className="text-xs font-black text-gray-900 block">שמור כטיוטה</span>
             </div>
             <input type="checkbox" checked={isDraft} onChange={(e) => setIsDraft(e.target.checked)} className="w-5 h-5 accent-orange-600 cursor-pointer" />
           </div>
@@ -795,49 +805,42 @@ export default function AdminProductsPage() {
               {editingId ? 'עדכן מוצר ➔' : '+ הוסף מוצר לחנות ➔'}
             </button>
             {editingId && (
-              <button type="button" onClick={resetForm} className="bg-gray-200 text-gray-800 px-6 py-3.5 rounded-2xl text-xs font-bold transition cursor-pointer">
-                ביטול
-              </button>
+              <button type="button" onClick={resetForm} className="bg-gray-200 text-gray-800 px-6 py-3.5 rounded-2xl text-xs font-bold transition cursor-pointer">ביטול</button>
             )}
           </div>
         </form>
       </div>
 
-      {/* אזור מוצרים קיימים הכולל שורת חיפוש חיה */}
       <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4 gap-3">
           <h2 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">
-            מוצרים קיימים ({filteredProducts.length} מתוך {products.length})
+            מוצרים קיימים ({filteredProducts.length})
           </h2>
           <input
             type="text"
             placeholder="חפש מוצר קיים לפי שם..."
             value={productSearch}
             onChange={(e) => setProductSearch(e.target.value)}
-            className="w-full sm:w-64 bg-gray-50 border rounded-xl p-2.5 text-xs outline-none focus:border-orange-600"
+            className="w-full sm:w-64 bg-gray-50 border rounded-xl p-2.5 text-xs outline-none"
           />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {filteredProducts.length > 0 ? (
-            filteredProducts.map((p) => (
-              <div key={p.id} className="border rounded-2xl p-4 flex justify-between items-center bg-gray-50/50 shadow-xs">
-                <div className="flex items-center gap-2">
-                  <img src={p.image_url} alt="" className="w-10 h-10 object-contain bg-white rounded-xl border p-1" />
-                  <div>
-                    <h4 className="font-bold text-xs text-gray-900">{p.name}</h4>
-                    <span className="text-xs text-orange-600 font-black">₪{p.price}</span>
-                  </div>
-                </div>
-                <div className="flex gap-2 text-xs">
-                  <button onClick={() => handleEdit(p)} className="text-blue-600 font-bold hover:underline cursor-pointer">עריכה</button>
-                  <button onClick={() => handleDelete(p.id)} className="text-red-500 font-bold hover:underline cursor-pointer">מחיקה</button>
+          {filteredProducts.map((p) => (
+            <div key={p.id} className="border rounded-2xl p-4 flex justify-between items-center bg-gray-50/50 shadow-xs">
+              <div className="flex items-center gap-2">
+                <img src={p.image_url} alt="" className="w-10 h-10 object-contain bg-white rounded-xl border p-1" />
+                <div>
+                  <h4 className="font-bold text-xs text-gray-900">{p.name}</h4>
+                  <span className="text-xs text-orange-600 font-black">₪{p.price}</span>
                 </div>
               </div>
-            ))
-          ) : (
-            <p className="col-span-full text-center text-xs text-gray-400 py-8">לא נמצאו מוצרים התואמים את החיפוש.</p>
-          )}
+              <div className="flex gap-2 text-xs">
+                <button onClick={() => handleEdit(p)} className="text-blue-600 font-bold hover:underline cursor-pointer">עריכה</button>
+                <button onClick={() => handleDelete(p.id)} className="text-red-500 font-bold hover:underline cursor-pointer">מחיקה</button>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
