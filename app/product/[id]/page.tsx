@@ -25,48 +25,60 @@ export default function ProductPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [copied, setCopied] = useState(false);
 
+  // חלון קופץ למוצר בהנחה
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
+  const [upsellProductData, setUpsellProductData] = useState<any>(null);
+
   const tabsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (productId) {
-      fetchProductAndBrands();
+      fetchProductAndData();
     }
   }, [productId]);
 
-  const fetchProductAndBrands = async () => {
+  const fetchProductAndData = async () => {
     try {
       setLoading(true);
 
-      let fetchedKosher: any[] = [];
-      const k1 = await supabase.from('kosher').select('*');
-      if (k1.data && k1.data.length > 0) {
-        fetchedKosher = k1.data;
-      } else {
-        const k2 = await supabase.from('kosher_certifications').select('*');
-        if (k2.data) fetchedKosher = k2.data;
-      }
-
-      const [prodRes, brandRes, allProdRes] = await Promise.all([
+      const [prodRes, brandRes, kosherRes, allProdRes] = await Promise.all([
         supabase.from('products').select('*').eq('id', productId).single(),
         supabase.from('brands').select('*'),
-        supabase.from('products').select('*').neq('id', productId).limit(4)
+        supabase.from('kosher_options').select('*'),
+        supabase.from('products').select('*').neq('id', productId)
       ]);
 
       if (prodRes.data) {
         const p = prodRes.data;
         setProduct(p);
-        
-        const primaryImg = getProductImage(p);
-        setSelectedImage(primaryImg);
+        setSelectedImage(getProductImage(p));
 
         const colors = parseArray(p.product_colors || p.colors);
         if (colors.length === 1) setSelectedColor(colors[0]);
 
         const versions = parseVersions(p);
         if (versions.length === 1) setSelectedVersion(versions[0]);
+
+        // אם יש מוצר מבצע נלווה מוגדר, נשלוף את פרטיו
+        if (p.upsell_discount_item?.productId) {
+          const upsellMatch = allProdRes.data?.find(item => item.id === p.upsell_discount_item.productId);
+          if (upsellMatch) {
+            let finalUpsellPrice = upsellMatch.sale_price || upsellMatch.price || 0;
+            if (p.upsell_discount_item.discountType === 'percent') {
+              finalUpsellPrice = finalUpsellPrice * (1 - p.upsell_discount_item.discountValue / 100);
+            } else {
+              finalUpsellPrice = Math.max(0, finalUpsellPrice - p.upsell_discount_item.discountValue);
+            }
+            setUpsellProductData({
+              ...upsellMatch,
+              discountedPrice: Math.round(finalUpsellPrice)
+            });
+          }
+        }
       }
+
       if (brandRes.data) setBrands(brandRes.data);
-      setKosherList(fetchedKosher);
+      if (kosherRes.data) setKosherList(kosherRes.data);
       if (allProdRes.data) setAllProducts(allProdRes.data);
     } catch (err) {
       console.error('Error fetching product:', err);
@@ -108,29 +120,15 @@ export default function ProductPage() {
     if (colorImg && typeof colorImg === 'string' && colorImg.trim().length > 0) return colorImg;
     if (p?.image_url && typeof p.image_url === 'string' && p.image_url.trim().length > 0) return p.image_url;
     if (Array.isArray(p?.images) && p.images.length > 0) return p.images[0];
-    if (typeof p?.images === 'string') {
-      try {
-        const parsed = JSON.parse(p.images);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed[0];
-        if (typeof parsed === 'string') return parsed;
-      } catch {
-        return p.images;
-      }
-    }
     return '';
   };
 
   const getKosherLogo = (p: any) => {
-    const val = p?.kosher || p?.kosher_certification || p?.kosher_name || p?.kosher_image || p?.kosher_logo || '';
+    const val = p?.kosher || '';
     if (!val) return '';
     if (typeof val === 'string' && (val.startsWith('http') || val.startsWith('/'))) return val;
     const found = kosherList.find(k => k.name?.trim().toLowerCase() === String(val).trim().toLowerCase());
     return found?.image_url || found?.image || '';
-  };
-
-  const scrollToTabs = (tab: 'description' | 'specs' = 'description') => {
-    setActiveTab(tab);
-    tabsRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const validateSelections = () => {
@@ -149,14 +147,14 @@ export default function ProductPage() {
     return true;
   };
 
-  const handleAddToCart = (redirectAfter = false) => {
+  const handleAddToCart = (redirectAfter = false, includeUpsell = false, upsellItemObj = null) => {
     if (!validateSelections()) return;
 
     try {
       const cart = JSON.parse(localStorage.getItem('cart') || '[]');
       
       const finalPrice = product.sale_price || product.price || 0;
-      const versionExtra = typeof selectedVersion === 'object' ? (selectedVersion?.price_add || selectedVersion?.price || 0) : 0;
+      const versionExtra = typeof selectedVersion === 'object' ? (selectedVersion?.price_add || 0) : 0;
       const unitPrice = Number(finalPrice) + Number(versionExtra);
 
       const colorName = typeof selectedColor === 'object' ? selectedColor?.name : selectedColor || '';
@@ -168,8 +166,8 @@ export default function ProductPage() {
         productId: product.id,
         name: product.name,
         price: unitPrice,
-        image: activeImg || product.image_url || '',
-        image_url: activeImg || product.image_url || '',
+        image: activeImg,
+        image_url: activeImg,
         color: colorName,
         version: versionName,
         quantity: quantity
@@ -182,8 +180,24 @@ export default function ProductPage() {
         cart.push(cartItem);
       }
 
+      // אם הלקוח בחר להוסיף את מוצר המבצע בהנחה
+      if (includeUpsell && upsellItemObj) {
+        const upsellCartItem = {
+          id: `${upsellItemObj.id}-upsell`,
+          productId: upsellItemObj.id,
+          name: `${upsellItemObj.name} (מבצע נלווה 🎁)`,
+          price: upsellItemObj.discountedPrice,
+          image: getProductImage(upsellItemObj),
+          image_url: getProductImage(upsellItemObj),
+          quantity: 1
+        };
+        cart.push(upsellCartItem);
+      }
+
       localStorage.setItem('cart', JSON.stringify(cart));
       window.dispatchEvent(new Event('cartUpdated'));
+
+      setShowUpsellModal(false);
       
       if (redirectAfter) {
         router.push('/cart');
@@ -196,20 +210,18 @@ export default function ProductPage() {
     }
   };
 
-  if (loading) {
-    return <div className="text-center py-24 font-bold text-gray-500">טוען פרטי מוצר...</div>;
-  }
+  const handleBuyButtonClick = (isBuyNow = false) => {
+    if (!validateSelections()) return;
+    // אם יש מוצר מבצע בהנחה שמוגדר למוצר זה והלקוח הוסף לעגלה רגיל, נציג את החלון הקופץ
+    if (!isBuyNow && upsellProductData) {
+      setShowUpsellModal(true);
+    } else {
+      handleAddToCart(isBuyNow);
+    }
+  };
 
-  if (!product) {
-    return (
-      <div className="text-center py-24 space-y-4">
-        <h2 className="text-xl font-black text-gray-800">המוצר אינו נמצא</h2>
-        <Link href="/" className="inline-block bg-orange-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold">
-          חזרה לחנות ➔
-        </Link>
-      </div>
-    );
-  }
+  if (loading) return <div className="text-center py-24 font-bold text-gray-500">טוען פרטי מוצר...</div>;
+  if (!product) return <div className="text-center py-24 font-bold text-gray-500">המוצר אינו נמצא</div>;
 
   const currentBrandObj = brands.find(b => b.name?.trim().toLowerCase() === product.brand?.trim().toLowerCase());
   const brandLogo = currentBrandObj?.image_url;
@@ -220,13 +232,11 @@ export default function ProductPage() {
 
   const colorsList = parseArray(product.product_colors || product.colors);
   const versionsList = parseVersions(product);
-  const hasSpecs = Boolean(product.specifications && product.specifications.trim() !== '');
-  const hasFullDesc = Boolean(product.full_description || product.description);
 
-  // מוצרים קשורים / שאולי יעניינו אותך מתוך השדה במוצר או ברירת מחדל
-  const relatedProductIds = parseArray(product.related_products || product.upsell_products);
-  const displayRelatedProducts = relatedProductIds.length > 0 
-    ? allProducts.filter(p => relatedProductIds.includes(p.id)) 
+  // מוצרים שאולי יעניינו אותך מתוך הבחירה בניהול או ברירת מחדל
+  const relatedIds = parseArray(product.related_products);
+  const displayRelatedProducts = relatedIds.length > 0 
+    ? allProducts.filter(p => relatedIds.includes(p.id)) 
     : allProducts.slice(0, 4);
 
   return (
@@ -273,7 +283,7 @@ export default function ProductPage() {
                 <button
                   key={idx}
                   onClick={() => setSelectedImage(img)}
-                  className={`w-16 h-16 rounded-xl border-2 overflow-hidden bg-gray-50 shrink-0 transition p-1 ${selectedImage === img ? 'border-orange-600 scale-105' : 'border-gray-200 opacity-70'}`}
+                  className={`w-16 h-16 rounded-xl border-2 overflow-hidden bg-gray-50 shrink-0 transition p-1 cursor-pointer ${selectedImage === img ? 'border-orange-600 scale-105' : 'border-gray-200 opacity-70'}`}
                 >
                   <img src={img} alt="" className="w-full h-full object-contain" />
                 </button>
@@ -282,7 +292,7 @@ export default function ProductPage() {
           )}
         </div>
 
-        {/* פרטי המוצר */}
+        {/* פרטי המוצר וכפתורי רכישה */}
         <div className="flex flex-col justify-between space-y-6">
           <div className="space-y-4">
             
@@ -315,25 +325,6 @@ export default function ProductPage() {
             <p className="text-xs sm:text-sm text-gray-600 leading-relaxed bg-gray-50 p-3.5 rounded-2xl border border-gray-100">
               {product.short_description || product.description}
             </p>
-
-            <div className="flex gap-2">
-              {hasFullDesc && (
-                <button
-                  onClick={() => scrollToTabs('description')}
-                  className="flex-1 bg-gray-100 hover:bg-orange-50 hover:text-orange-700 text-gray-800 py-2.5 px-4 rounded-xl text-xs font-bold border border-gray-200 transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
-                >
-                  <span>📖</span> תיאור מלא על המוצר
-                </button>
-              )}
-              {hasSpecs && (
-                <button
-                  onClick={() => scrollToTabs('specs')}
-                  className="flex-1 bg-gray-100 hover:bg-orange-50 hover:text-orange-700 text-gray-800 py-2.5 px-4 rounded-xl text-xs font-bold border border-gray-200 transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
-                >
-                  <span>⚙️</span> מעבר למפרט מלא
-                </button>
-              )}
-            </div>
 
           </div>
 
@@ -392,7 +383,7 @@ export default function ProductPage() {
               </div>
             )}
 
-            {/* שורה אחת: כפתור קנה עכשיו (קטן יותר) ובקרת כמות */}
+            {/* שורה אחת: קנה עכשיו (קטן יותר) ובקרת כמות */}
             <div className="flex items-center gap-3 pt-2">
               <div className="flex items-center border border-gray-200 rounded-2xl p-1.5 bg-gray-50 shrink-0">
                 <button
@@ -413,7 +404,7 @@ export default function ProductPage() {
               </div>
 
               <button
-                onClick={() => handleAddToCart(true)}
+                onClick={() => handleBuyButtonClick(true)}
                 className="flex-1 py-3 rounded-2xl text-xs font-black transition shadow-sm cursor-pointer bg-green-600 hover:bg-green-700 text-white flex items-center justify-center gap-1.5"
               >
                 <span>⚡</span> קנה עכשיו
@@ -422,7 +413,7 @@ export default function ProductPage() {
 
             {/* כפתור הוספה לעגלה כתום ובולט מתחת */}
             <button
-              onClick={() => handleAddToCart(false)}
+              onClick={() => handleBuyButtonClick(false)}
               className={`w-full py-3.5 rounded-2xl text-xs sm:text-sm font-black transition shadow-md cursor-pointer flex items-center justify-center gap-2 ${
                 addedAnimation ? 'bg-green-600 text-white' : 'bg-orange-600 hover:bg-orange-700 text-white'
               }`}
@@ -440,6 +431,43 @@ export default function ProductPage() {
         </div>
 
       </div>
+
+      {/* חלון קופץ (Popup) למוצר בהנחה */}
+      {showUpsellModal && upsellProductData && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-3xl p-6 space-y-5 shadow-2xl text-center animate-in fade-in zoom-in duration-200" dir="rtl">
+            <span className="text-3xl">🎁</span>
+            <h3 className="text-lg font-black text-gray-900">הצעה מיוחדת עבורך!</h3>
+            <p className="text-xs text-gray-600">הוספת את המוצר לעגלה. שדרג את הרכישה עם מוצר נלווה בהנחה בלעדית:</p>
+            
+            <div className="flex items-center gap-3 bg-orange-50/70 border border-orange-200 p-3.5 rounded-2xl text-right">
+              <img src={getProductImage(upsellProductData)} alt="" className="w-16 h-16 object-contain bg-white rounded-xl border p-1" />
+              <div className="flex-1 overflow-hidden">
+                <h4 className="font-bold text-xs text-gray-900 truncate">{upsellProductData.name}</h4>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-sm font-black text-red-600">₪{upsellProductData.discountedPrice}</span>
+                  <span className="text-xs text-gray-400 line-through">₪{upsellProductData.sale_price || upsellProductData.price}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <button
+                onClick={() => handleAddToCart(false, true, upsellProductData)}
+                className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3.5 rounded-2xl text-xs font-black shadow-md cursor-pointer"
+              >
+                כן, הוסף את המוצר בהנחה לעגלה ➔
+              </button>
+              <button
+                onClick={() => handleAddToCart(false, false)}
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-2xl text-xs font-bold cursor-pointer"
+              >
+                לא תודה, המשך לעגלה רגיל
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* אזור מוצרים שאולי יעניינו אותך */}
       {displayRelatedProducts.length > 0 && (
@@ -459,52 +487,6 @@ export default function ProductPage() {
         </div>
       )}
 
-      {/* לשוניות תיאור ומפרט */}
-      <div className="bg-white p-6 sm:p-8 rounded-3xl border shadow-xs space-y-6" ref={tabsRef}>
-        <div className="flex border-b gap-6">
-          {hasFullDesc && (
-            <button
-              onClick={() => setActiveTab('description')}
-              className={`pb-3 text-xs sm:text-sm font-black border-b-2 transition cursor-pointer ${
-                activeTab === 'description' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-400'
-              }`}
-            >
-              תיאור מלא
-            </button>
-          )}
-          {hasSpecs && (
-            <button
-              onClick={() => setActiveTab('specs')}
-              className={`pb-3 text-xs sm:text-sm font-black border-b-2 transition cursor-pointer ${
-                activeTab === 'specs' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-400'
-              }`}
-            >
-              מפרט מלא
-            </button>
-          )}
-        </div>
-
-        <div className="text-xs sm:text-sm text-gray-700 leading-relaxed min-h-[120px]">
-          {activeTab === 'description' ? (
-            <div className="whitespace-pre-line space-y-2">
-              {product.full_description || product.description || 'אין תיאור מלא זמין עבור מוצר זה.'}
-            </div>
-          ) : (
-            <div className="whitespace-pre-line space-y-2">
-              {product.specifications || 'אין מפרט טכני זמין עבור מוצר זה.'}
-            </div>
-          )}
-        </div>
-      </div>
-
     </div>
-  );
-}
-
-export default function ProductPage() {
-  return (
-    <Suspense fallback={<div className="text-center py-20 font-bold text-sm text-gray-600">טוען מוצר...</div>}>
-      <ProductPage />
-    </Suspense>
   );
 }
