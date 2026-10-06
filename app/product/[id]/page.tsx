@@ -59,7 +59,6 @@ export default function ProductPage() {
         const versions = parseVersions(p);
         if (versions.length === 1) setSelectedVersion(versions[0]);
 
-        // אם יש מוצר מבצע נלווה מוגדר, נשלוף את פרטיו
         if (p.upsell_discount_item?.productId) {
           const upsellMatch = allProdRes.data?.find(item => item.id === p.upsell_discount_item.productId);
           if (upsellMatch) {
@@ -147,7 +146,8 @@ export default function ProductPage() {
     return true;
   };
 
-  const handleAddToCart = (redirectAfter = false, includeUpsell = false, upsellItemObj = null) => {
+  // תיקון טיפוס הנתונים (הוספת : any ל-upsellItemObj)
+  const handleAddToCart = (redirectAfter = false, includeUpsell = false, upsellItemObj: any = null) => {
     if (!validateSelections()) return;
 
     try {
@@ -180,7 +180,6 @@ export default function ProductPage() {
         cart.push(cartItem);
       }
 
-      // אם הלקוח בחר להוסיף את מוצר המבצע בהנחה
       if (includeUpsell && upsellItemObj) {
         const upsellCartItem = {
           id: `${upsellItemObj.id}-upsell`,
@@ -212,7 +211,6 @@ export default function ProductPage() {
 
   const handleBuyButtonClick = (isBuyNow = false) => {
     if (!validateSelections()) return;
-    // אם יש מוצר מבצע בהנחה שמוגדר למוצר זה והלקוח הוסף לעגלה רגיל, נציג את החלון הקופץ
     if (!isBuyNow && upsellProductData) {
       setShowUpsellModal(true);
     } else {
@@ -233,7 +231,6 @@ export default function ProductPage() {
   const colorsList = parseArray(product.product_colors || product.colors);
   const versionsList = parseVersions(product);
 
-  // מוצרים שאולי יעניינו אותך מתוך הבחירה בניהול או ברירת מחדל
   const relatedIds = parseArray(product.related_products);
   const displayRelatedProducts = relatedIds.length > 0 
     ? allProducts.filter(p => relatedIds.includes(p.id)) 
@@ -248,7 +245,6 @@ export default function ProductPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white p-6 sm:p-8 rounded-3xl border shadow-xs">
         
-        {/* תמונות המוצר */}
         <div className="space-y-4">
           <div className="h-72 sm:h-96 w-full bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden border p-2 relative">
             <img 
@@ -292,7 +288,6 @@ export default function ProductPage() {
           )}
         </div>
 
-        {/* פרטי המוצר וכפתורי רכישה */}
         <div className="flex flex-col justify-between space-y-6">
           <div className="space-y-4">
             
@@ -383,7 +378,6 @@ export default function ProductPage() {
               </div>
             )}
 
-            {/* שורה אחת: קנה עכשיו (קטן יותר) ובקרת כמות */}
             <div className="flex items-center gap-3 pt-2">
               <div className="flex items-center border border-gray-200 rounded-2xl p-1.5 bg-gray-50 shrink-0">
                 <button
@@ -411,7 +405,6 @@ export default function ProductPage() {
               </button>
             </div>
 
-            {/* כפתור הוספה לעגלה כתום ובולט מתחת */}
             <button
               onClick={() => handleBuyButtonClick(false)}
               className={`w-full py-3.5 rounded-2xl text-xs sm:text-sm font-black transition shadow-md cursor-pointer flex items-center justify-center gap-2 ${
@@ -432,7 +425,6 @@ export default function ProductPage() {
 
       </div>
 
-      {/* חלון קופץ (Popup) למוצר בהנחה */}
       {showUpsellModal && upsellProductData && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-3xl p-6 space-y-5 shadow-2xl text-center animate-in fade-in zoom-in duration-200" dir="rtl">
@@ -469,7 +461,6 @@ export default function ProductPage() {
         </div>
       )}
 
-      {/* אזור מוצרים שאולי יעניינו אותך */}
       {displayRelatedProducts.length > 0 && (
         <div className="space-y-4 pt-6 border-t">
           <h2 className="text-lg font-black text-gray-900 border-r-4 border-orange-600 pr-3">מוצרים שאולי יעניינו אותך</h2>
