@@ -274,4 +274,171 @@ function StoreContent() {
                 <button
                   key={idx}
                   onClick={() => setCurrentBanner(idx)}
-                  
+                  className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${currentBanner === idx ? 'w-6 bg-orange-500' : 'w-2 bg-white/40'}`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="max-w-7xl mx-auto px-4 space-y-10 pt-8">
+
+        {/* קטגוריות מובילות */}
+        {categories.length > 0 && (
+          <section className="space-y-4">
+            <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">קטגוריות מובילות</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+              {categories.map((cat) => (
+                <Link 
+                  key={cat.id} 
+                  href={`/category/${encodeURIComponent(cat.name)}`}
+                  className="flex flex-col items-center text-center gap-2 cursor-pointer group"
+                >
+                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-white flex items-center justify-center overflow-hidden group-hover:scale-105 transition shadow-xs border border-orange-500/30">
+                    {cat.image_url ? (
+                      <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-3xl">📦</span>
+                    )}
+                  </div>
+                  <span className="font-bold text-xs sm:text-sm text-gray-900 group-hover:text-orange-600 transition">{cat.name}</span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* כל המוצרים */}
+        <section className="space-y-6 pt-4 border-t">
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
+              כל המוצרים
+            </h2>
+          </div>
+
+          {loading ? (
+            <div className="text-center py-20 text-gray-500 font-medium">טוען את חנות NEW PHONE...</div>
+          ) : products.length === 0 ? (
+            <div className="text-center py-20 bg-white rounded-3xl border p-8 space-y-3 shadow-sm">
+              <span className="text-4xl">📦</span>
+              <p className="text-gray-500 font-medium">אין מוצרים זמינים כרגע בחנות.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
+              {products.map((product) => {
+                const colors = product.product_colors || product.colors || [];
+                const primaryImg = getProductImage(product);
+                const secondaryImg = (Array.isArray(product.images) && product.images[1]) || primaryImg;
+                const activeImage = selectedColors[product.id] || primaryImg;
+                const hasHoverImage = secondaryImg && secondaryImg !== primaryImg && !selectedColors[product.id];
+
+                const currentBrandObj = brands.find(b => b.name?.trim().toLowerCase() === product.brand?.trim().toLowerCase());
+                const brandLogo = currentBrandObj?.image_url;
+                const kosherImg = getKosherImg(product);
+
+                return (
+                  <div 
+                    key={product.id} 
+                    className="bg-white rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between p-4 hover:shadow-xl transition-all duration-300"
+                  >
+                    <Link href={`/product/${product.id}`} className="block space-y-3">
+                      <div className="h-40 sm:h-52 w-full bg-gray-50 rounded-2xl flex items-center justify-center relative overflow-hidden group">
+                        <img 
+                          src={activeImage} 
+                          alt={product.name} 
+                          className={`w-full h-full object-contain transition duration-300 group-hover:scale-105 ${hasHoverImage ? 'group-hover:opacity-0' : ''}`} 
+                        />
+                        {hasHoverImage && (
+                          <img 
+                            src={secondaryImg} 
+                            alt={product.name} 
+                            className="absolute inset-0 w-full h-full object-contain opacity-0 group-hover:opacity-100 transition duration-300 group-hover:scale-105" 
+                          />
+                        )}
+
+                        {/* תגיות לוגו מותג ולוגו כשרות */}
+                        <div className="absolute top-2 right-2 flex flex-col gap-1.5 z-10">
+                          {brandLogo && (
+                            <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center">
+                              <img src={brandLogo} alt="" className="w-full h-full object-contain" />
+                            </div>
+                          )}
+                          {kosherImg && (
+                            <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center">
+                              <img src={kosherImg} alt="" className="w-full h-full object-contain" />
+                            </div>
+                          )}
+                        </div>
+
+                        {product.sale_price && (
+                          <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow">
+                            מבצע ⚡
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="font-black text-gray-900 text-xs sm:text-sm leading-snug">{product.name}</h3>
+                      </div>
+                    </Link>
+
+                    <div className="pt-3 mt-3 border-t flex flex-col gap-3">
+                      {colors.length > 0 && (
+                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                          {colors.map((col: any, idx: number) => {
+                            const colHex = typeof col === 'object' ? col.hex : '#000000';
+                            const colName = typeof col === 'object' ? col.name : col;
+                            const colImg = typeof col === 'object' ? col.image : '';
+
+                            return (
+                              <button
+                                key={idx}
+                                title={colName}
+                                onClick={(e) => handleColorClick(product.id, colImg, e)}
+                                className="w-4 h-4 rounded-full border border-gray-300 shrink-0 shadow-xs cursor-pointer hover:scale-110 transition"
+                                style={{ backgroundColor: colHex }}
+                              ></button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-baseline justify-between">
+                          {product.sale_price ? (
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-sm sm:text-base font-black text-red-600">₪{product.sale_price}</span>
+                              <span className="text-xs text-gray-400 line-through">₪{product.price}</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm sm:text-base font-black text-gray-900">₪{product.price}</span>
+                          )}
+                        </div>
+
+                        <button
+                          onClick={(e) => handleQuickAddToCart(product, e)}
+                          className="w-full bg-orange-600 text-white py-2.5 rounded-xl text-xs font-bold hover:bg-orange-700 transition cursor-pointer shadow-sm text-center"
+                        >
+                          הוספה לעגלה
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+      </div>
+    </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="text-center py-20 font-bold text-sm text-gray-600">טוען את חנות NEW PHONE...</div>}>
+      <StoreContent />
+    </Suspense>
+  );
+}
