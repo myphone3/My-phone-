@@ -12,6 +12,7 @@ export default function ProductPage() {
 
   const [product, setProduct] = useState<any>(null);
   const [brands, setBrands] = useState<any[]>([]);
+  const [kosherList, setKosherList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
   const [selectedImage, setSelectedImage] = useState<string>('');
@@ -34,6 +35,16 @@ export default function ProductPage() {
   const fetchProductAndBrands = async () => {
     try {
       setLoading(true);
+
+      let fetchedKosher: any[] = [];
+      const k1 = await supabase.from('kosher').select('*');
+      if (k1.data && k1.data.length > 0) {
+        fetchedKosher = k1.data;
+      } else {
+        const k2 = await supabase.from('kosher_certifications').select('*');
+        if (k2.data) fetchedKosher = k2.data;
+      }
+
       const [prodRes, brandRes] = await Promise.all([
         supabase.from('products').select('*').eq('id', productId).single(),
         supabase.from('brands').select('*')
@@ -63,6 +74,7 @@ export default function ProductPage() {
       if (brandRes.data) {
         setBrands(brandRes.data);
       }
+      setKosherList(fetchedKosher);
     } catch (err) {
       console.error('Error fetching product:', err);
     } finally {
@@ -100,13 +112,14 @@ export default function ProductPage() {
   };
 
   const getProductImage = (p: any, colorImg?: string) => {
-    if (colorImg) return colorImg;
-    if (p?.image_url) return p.image_url;
+    if (colorImg && typeof colorImg === 'string' && colorImg.trim().length > 0) return colorImg;
+    if (p?.image_url && typeof p.image_url === 'string' && p.image_url.trim().length > 0) return p.image_url;
     if (Array.isArray(p?.images) && p.images.length > 0) return p.images[0];
     if (typeof p?.images === 'string') {
       try {
         const parsed = JSON.parse(p.images);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed[0];
+        if (typeof parsed === 'string') return parsed;
       } catch {
         return p.images;
       }
@@ -114,10 +127,14 @@ export default function ProductPage() {
     return '';
   };
 
-  const getKosherImg = (p: any) => {
-    const img = p?.kosher_image || p?.kosher || p?.kosher_logo || p?.kosher_badge || p?.kosher_img || p?.kosherImage || p?.kosherLogo || '';
-    if (typeof img === 'string' && img.trim().length > 0) return img;
-    return '';
+  const getKosherLogo = (p: any) => {
+    const val = p?.kosher || p?.kosher_certification || p?.kosher_name || p?.kosher_image || p?.kosher_logo || '';
+    if (!val) return '';
+    if (typeof val === 'string' && (val.startsWith('http') || val.startsWith('/'))) {
+      return val;
+    }
+    const found = kosherList.find(k => k.name?.trim().toLowerCase() === String(val).trim().toLowerCase());
+    return found?.image_url || found?.image || '';
   };
 
   const scrollToTabs = (tab: 'description' | 'specs' = 'description') => {
@@ -163,6 +180,7 @@ export default function ProductPage() {
         name: product.name,
         price: unitPrice,
         image: activeImg || product.image_url || '',
+        image_url: activeImg || product.image_url || '',
         color: colorName,
         version: versionName,
         quantity: quantity
@@ -217,7 +235,7 @@ export default function ProductPage() {
 
   const currentBrandObj = brands.find(b => b.name?.trim().toLowerCase() === product.brand?.trim().toLowerCase());
   const brandLogo = currentBrandObj?.image_url;
-  const kosherImg = getKosherImg(product);
+  const kosherLogo = getKosherLogo(product);
 
   const imagesList = parseArray(product.images);
   if (imagesList.length === 0 && product.image_url) {
@@ -247,16 +265,16 @@ export default function ProductPage() {
               className="w-full h-full object-contain"
             />
 
-            {/* לוגו מותג ולוגו כשרות בצד התמונה */}
+            {/* לוגו מותג ולוגו כשרות (תמונה בלבד, בדיוק כמו מותגים) */}
             <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
               {brandLogo && (
                 <div className="w-10 h-10 bg-white/90 backdrop-blur-sm rounded-2xl p-1.5 shadow border border-gray-100 flex items-center justify-center">
                   <img src={brandLogo} alt="" className="w-full h-full object-contain" />
                 </div>
               )}
-              {kosherImg && (
+              {kosherLogo && (
                 <div className="w-10 h-10 bg-white/90 backdrop-blur-sm rounded-2xl p-1.5 shadow border border-gray-100 flex items-center justify-center">
-                  <img src={kosherImg} alt="" className="w-full h-full object-contain" />
+                  <img src={kosherLogo} alt="" className="w-full h-full object-contain" />
                 </div>
               )}
             </div>
