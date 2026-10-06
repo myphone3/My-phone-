@@ -326,7 +326,7 @@ function ProductDetailContent() {
             )}
             {product.warranty && (
               <span className="text-xs font-bold bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-100 flex items-center gap-1">
-                🛡️ אחריות: {product.warranty} {product.warranty_duration ? `(${product.warranty_duration})` : ''}
+                🛡️️ אחריות: {product.warranty} {product.warranty_duration ? `(${product.warranty_duration})` : ''}
               </span>
             )}
           </div>
@@ -476,26 +476,7 @@ function ProductDetailContent() {
             <span>🛒</span>
           </button>
 
-          {/* תיאור קצר + כפתור מעבר לתיאור המלא (הועברו לכאן מתחת לכפתורי הקנייה) */}
-          <div className="space-y-4 pt-4 border-t">
-            {product.short_description && (
-              <p className="text-xs sm:text-sm text-gray-600 leading-relaxed bg-gray-50 p-4 rounded-2xl border border-gray-100" dir="auto">
-                {product.short_description}
-              </p>
-            )}
-
-            {(product.description || product.specs) && (
-              <button
-                onClick={scrollToDetails}
-                className="w-full bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-200 py-2.5 px-4 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-2 shadow-xs"
-              >
-                <span>לתיאור מלא על המוצר</span>
-                <span>▼</span>
-              </button>
-            )}
-          </div>
-
-          {/* כפתורי שיתוף עם אייקון וואטסאפ מובהק */}
+          {/* כפתורי שיתוף (הועברו לכאן מעל התיאור הקצר) */}
           <div className="flex items-center justify-between pt-4 border-t text-xs font-bold text-gray-600">
             <span>שיתוף מוצר:</span>
             <div className="flex items-center gap-2">
@@ -518,10 +499,53 @@ function ProductDetailContent() {
             </div>
           </div>
 
+          {/* תיאור קצר + כפתור מעבר לתיאור המלא */}
+          <div className="space-y-4 pt-4 border-t">
+            {product.short_description && (
+              <p className="text-xs sm:text-sm text-gray-600 leading-relaxed bg-gray-50 p-4 rounded-2xl border border-gray-100" dir="auto">
+                {product.short_description}
+              </p>
+            )}
+
+            {(product.description || product.specs) && (
+              <button
+                onClick={scrollToDetails}
+                className="w-full bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-200 py-2.5 px-4 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+              >
+                <span>לתיאור מלא על המוצר</span>
+                <span>▼</span>
+              </button>
+            )}
+          </div>
+
         </div>
       </div>
 
-      {/* אזור לשוניות (תיאור מלא / מפרט מלא) */}
+      {/* מוצרים אולי יעניינו אותך */}
+      {relatedProducts.length > 0 && (
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border shadow-sm space-y-6">
+          <h3 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">מוצרים שאולי יעניינו אותך</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {relatedProducts.map((relProd) => (
+              <Link 
+                key={relProd.id} 
+                href={`/product/${relProd.id}`}
+                className="bg-gray-50 p-3 rounded-2xl border border-gray-100 hover:shadow-md transition flex flex-col justify-between group"
+              >
+                <div className="h-32 w-full bg-white rounded-xl flex items-center justify-center p-2 overflow-hidden">
+                  <img src={relProd.image_url || relProd.images?.[0]} alt="" className="h-full object-contain group-hover:scale-105 transition" />
+                </div>
+                <div className="mt-2 space-y-1">
+                  <h4 className="font-bold text-xs text-gray-900 line-clamp-2 text-right group-hover:text-orange-600 transition" dir="auto">{relProd.name}</h4>
+                  <span className="text-xs font-black text-orange-600 block text-right">₪{relProd.sale_price || relProd.price}</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* אזור לשוניות (תיאור מלא / מפרט מלא) - הועבר מתחת למוצרים שאולי יעניינו אותך */}
       {(product.description || product.specs) && (
         <div ref={detailsRef} className="bg-white p-6 sm:p-8 rounded-3xl border shadow-sm space-y-6 scroll-mt-6">
           <div className="flex border-b gap-4">
@@ -554,30 +578,6 @@ function ProductDetailContent() {
             {activeTab === 'specs' && product.specs && (
               <div className="whitespace-pre-line">{product.specs}</div>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* מוצרים אולי יעניינו אותך (עם שם מוצר מלא ונקי) */}
-      {relatedProducts.length > 0 && (
-        <div className="bg-white p-6 sm:p-8 rounded-3xl border shadow-sm space-y-6">
-          <h3 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">מוצרים שאולי יעניינו אותך</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {relatedProducts.map((relProd) => (
-              <Link 
-                key={relProd.id} 
-                href={`/product/${relProd.id}`}
-                className="bg-gray-50 p-3 rounded-2xl border border-gray-100 hover:shadow-md transition flex flex-col justify-between group"
-              >
-                <div className="h-32 w-full bg-white rounded-xl flex items-center justify-center p-2 overflow-hidden">
-                  <img src={relProd.image_url || relProd.images?.[0]} alt="" className="h-full object-contain group-hover:scale-105 transition" />
-                </div>
-                <div className="mt-2 space-y-1">
-                  <h4 className="font-bold text-xs text-gray-900 line-clamp-2 text-right group-hover:text-orange-600 transition" dir="auto">{relProd.name}</h4>
-                  <span className="text-xs font-black text-orange-600 block text-right">₪{relProd.sale_price || relProd.price}</span>
-                </div>
-              </Link>
-            ))}
           </div>
         </div>
       )}
