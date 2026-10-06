@@ -78,11 +78,19 @@ function ProductDetailContent() {
       setActiveImage(data.image_url || (imagesArr.length > 0 ? imagesArr[0] : ''));
 
       const colors = parseSafeArray(data.product_colors || data.colors);
-      if (colors.length > 0) setSelectedColor(null);
+      if (colors.length === 1) {
+        setSelectedColor(colors[0]);
+      } else {
+        setSelectedColor(null);
+      }
 
       const rawVersions = data.product_variants || data.versions || data.product_versions || data.variants;
       const versionsArr = parseSafeArray(rawVersions);
-      if (versionsArr.length > 0) setSelectedVersion(null);
+      if (versionsArr.length === 1) {
+        setSelectedVersion(versionsArr[0]);
+      } else {
+        setSelectedVersion(null);
+      }
 
       // שליפת מוצרים שיעניינו אותך
       const relatedIds = parseSafeArray(data.related_products);
@@ -143,14 +151,22 @@ function ProductDetailContent() {
   const finalPrice = (basePrice + versionExtra) * quantity;
 
   const validateSelections = () => {
-    if (colors.length > 0 && !selectedColor) {
+    if (colors.length > 1 && !selectedColor) {
       alert('נא לבחור צבע ממגוון הצבעים הזמינים');
       return false;
     }
-    if (versions.length > 0 && !selectedVersion) {
+    if (colors.length === 1 && !selectedColor) {
+      setSelectedColor(colors[0]);
+    }
+
+    if (versions.length > 1 && !selectedVersion) {
       alert('נא לבחור גרסה');
       return false;
     }
+    if (versions.length === 1 && !selectedVersion) {
+      setSelectedVersion(versions[0]);
+    }
+
     return true;
   };
 
@@ -343,10 +359,12 @@ function ProductDetailContent() {
             )}
           </div>
 
-          {/* בחירת צבע (חובה) */}
+          {/* בחירת צבע (חובה רק אם יש יותר מאפשרות אחת) */}
           {colors.length > 0 && (
             <div className="space-y-2">
-              <span className="text-xs font-bold text-gray-700">בחר צבע <span className="text-gray-400 font-normal">(חובה)</span>:</span>
+              <span className="text-xs font-bold text-gray-700">
+                בחר צבע {colors.length > 1 && <span className="text-gray-400 font-normal">(חובה)</span>}:
+              </span>
               <div className="flex items-center gap-2 overflow-x-auto py-1">
                 {colors.map((c: any, idx: number) => {
                   const colorName = typeof c === 'object' ? c.name : c;
@@ -375,10 +393,12 @@ function ProductDetailContent() {
             </div>
           )}
 
-          {/* בחירת גרסה (חובה אם קיימת) - עודכן לכתיב "בחר גרסה" בלבד */}
+          {/* בחירת גרסה (חובה רק אם יש יותר מאפשרות אחת) */}
           {versions.length > 0 && (
             <div className="space-y-2">
-              <span className="text-xs font-bold text-gray-700">בחר גרסה <span className="text-gray-400 font-normal">(חובה)</span>:</span>
+              <span className="text-xs font-bold text-gray-700">
+                בחר גרסה {versions.length > 1 && <span className="text-gray-400 font-normal">(חובה)</span>}:
+              </span>
               <div className="flex flex-wrap gap-2">
                 {versions.map((v: any, idx: number) => {
                   const vName = typeof v === 'object' ? (v.name || v.title || v.label) : v;
@@ -399,7 +419,7 @@ function ProductDetailContent() {
             </div>
           )}
 
-          {/* מוצרים שתמיד באים יחד (אקורדיון סגור כברירת מחדל) - תוקנה תצוגת השורות הארוכות */}
+          {/* מוצרים שתמיד באים יחד (אקורדיון סגור כברירת מחדל) */}
           {bundledList.length > 0 && (
             <div className="space-y-2 pt-2 border-t">
               <button
