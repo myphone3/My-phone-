@@ -335,9 +335,7 @@ function StoreContent() {
             </h2>
           </div>
 
-          {loading ? (
-            <div className="text-center py-20 text-gray-500 font-medium">טוען מוצרים...</div>
-          ) : products.length === 0 ? (
+          {products.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-3xl border p-8 space-y-3 shadow-sm">
               <span className="text-4xl">📦</span>
               <p className="text-gray-500 font-medium">אין מוצרים זמינים כרגע.</p>
@@ -390,20 +388,20 @@ function StoreContent() {
                       </div>
 
                       <div className="space-y-1">
-                        {/* תוקן: line-clamp-2 כדי ששם המוצר המלא יופיע בשתי שורות ולא ייחתך */}
-                        <h2 className="font-bold text-gray-900 text-sm line-clamp-2 group-hover:text-orange-600 transition min-h-[2.5rem]">
+                        {/* שם מוצר מלא בלי חיתוך, מותאם לשפות מעורבות */}
+                        <h2 className="font-bold text-gray-900 text-xs sm:text-sm text-right group-hover:text-orange-600 transition leading-snug break-words" dir="auto">
                           {product.name}
                         </h2>
-                        <p className="text-gray-500 text-xs line-clamp-1">
+                        <p className="text-gray-500 text-xs text-right">
                           {product.brand || ''}
                         </p>
                       </div>
                     </Link>
 
                     <div className="mt-3 pt-3 border-t border-gray-100 space-y-3">
-                      {/* תוקן: עיגולי צבעים נקיים עם rounded-md ו-object-contain כך שהתמונה בפנים לא תיחתך במסגרת */}
+                      {/* תמונות צבעים קטנות עם מסגרת פנימית מלאה שלא נחתכת לעולם */}
                       {colors.length > 0 && (
-                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                        <div className="flex items-center gap-1.5 overflow-x-auto py-1 px-0.5">
                           {colors.map((c: any, idx: number) => {
                             const colorName = typeof c === 'object' ? c.name : c;
                             const colorImg = typeof c === 'object' ? (c.image_url || c.image) : '';
@@ -414,14 +412,14 @@ function StoreContent() {
                               <button
                                 key={idx}
                                 onClick={(e) => handleColorClick(product.id, colorImg, e)}
-                                className={`w-6 h-6 rounded-md border transition relative flex items-center justify-center overflow-hidden shrink-0 cursor-pointer bg-white ${
-                                  isSelected ? 'ring-2 ring-orange-600 ring-offset-1 border-orange-500' : 'border-gray-300'
+                                className={`w-7 h-7 rounded-lg transition relative flex items-center justify-center shrink-0 cursor-pointer bg-white ${
+                                  isSelected ? 'border-2 border-orange-600 shadow-sm' : 'border border-gray-200'
                                 }`}
                                 style={{ backgroundColor: colorImg ? 'transparent' : (colorHex || '#ccc') }}
                                 title={colorName}
                               >
                                 {colorImg && (
-                                  <img src={colorImg} alt={colorName} className="w-full h-full object-contain" />
+                                  <img src={colorImg} alt={colorName} className="w-full h-full object-cover rounded-md" />
                                 )}
                               </button>
                             );
