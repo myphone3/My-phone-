@@ -224,7 +224,6 @@ function CategoryContent() {
                   </Link>
 
                   <div className="mt-3 pt-3 border-t border-gray-100 space-y-3">
-                    {/* צבעים עם תמונה */}
                     {colors.length > 0 && (
                       <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
                         {colors.map((c: any, idx: number) => {
@@ -260,7 +259,6 @@ function CategoryContent() {
                         </span>
                       </div>
 
-                      {/* כפתור הוספה לעגלה קלאסי ונוח */}
                       <button
                         onClick={(e) => handleQuickAddToCart(product, e)}
                         className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-2 rounded-xl text-xs font-bold transition shadow-sm hover:shadow flex items-center gap-1 cursor-pointer"
