@@ -43,7 +43,7 @@ export default function ProductPage() {
         const p = prodRes.data;
         setProduct(p);
         
-        const primaryImg = p.image_url || (Array.isArray(p.images) ? p.images[0] : '') || '';
+        const primaryImg = getProductImage(p);
         setSelectedImage(primaryImg);
 
         const colors = parseArray(p.product_colors || p.colors);
@@ -99,7 +99,26 @@ export default function ProductPage() {
     return [];
   };
 
-  const getKosherImg = (p: any) => p?.kosher_image || p?.kosher || p?.kosher_logo || p?.kosher_badge || p?.kosher_img || '';
+  const getProductImage = (p: any, colorImg?: string) => {
+    if (colorImg) return colorImg;
+    if (p?.image_url) return p.image_url;
+    if (Array.isArray(p?.images) && p.images.length > 0) return p.images[0];
+    if (typeof p?.images === 'string') {
+      try {
+        const parsed = JSON.parse(p.images);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed[0];
+      } catch {
+        return p.images;
+      }
+    }
+    return '';
+  };
+
+  const getKosherImg = (p: any) => {
+    const img = p?.kosher_image || p?.kosher || p?.kosher_logo || p?.kosher_badge || p?.kosher_img || p?.kosherImage || p?.kosherLogo || '';
+    if (typeof img === 'string' && img.trim().length > 0) return img;
+    return '';
+  };
 
   const scrollToTabs = (tab: 'description' | 'specs' = 'description') => {
     setActiveTab(tab);
@@ -136,14 +155,14 @@ export default function ProductPage() {
 
       const colorName = typeof selectedColor === 'object' ? selectedColor?.name : selectedColor || '';
       const versionName = typeof selectedVersion === 'object' ? selectedVersion?.name : selectedVersion || '';
-      const activeImg = (typeof selectedColor === 'object' ? selectedColor?.image : null) || selectedImage;
+      const activeImg = getProductImage(product, typeof selectedColor === 'object' ? selectedColor?.image : '') || selectedImage;
 
       const cartItem = {
         id: `${product.id}-${colorName}-${versionName}`,
         productId: product.id,
         name: product.name,
         price: unitPrice,
-        image: activeImg,
+        image: activeImg || product.image_url || '',
         color: colorName,
         version: versionName,
         quantity: quantity
