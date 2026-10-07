@@ -890,7 +890,7 @@ ${rawInfoText}
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">SEO Description</label>
-              <input type="text" value={seoDesc} onChange={(e) => setSeoDesc(e.target.value)} className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
+            <input type="text" value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} className=... />
             </div>
           </div>
 
