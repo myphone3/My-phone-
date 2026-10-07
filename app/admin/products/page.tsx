@@ -15,8 +15,6 @@ export default function AdminProductsPage() {
   // Product Form States
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
-  const [seoTitle, setSeoTitle] = useState('');
-  const [seoDescription, setSeoDescription] = useState('');
   const [salePrice, setSalePrice] = useState('');
   const [category, setCategory] = useState('');
   const [brand, setBrand] = useState('');
@@ -59,7 +57,8 @@ export default function AdminProductsPage() {
   const [upsellSearch, setUpsellSearch] = useState('');
 
   const [seoTitle, setSeoTitle] = useState('');
-  const [seoDesc, setSeoDesc] = useState('');
+  const [seoDescription, setSeoDescription] = useState('');
+
 
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
