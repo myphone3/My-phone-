@@ -890,6 +890,25 @@ ${rawInfoText}
             <input type="checkbox" checked={isDraft} onChange={(e) => setIsDraft(e.target.checked)} className="w-5 h-5 accent-orange-600 cursor-pointer" />
           </div>
 
+          <div>
+  <label className="block text-xs font-bold text-gray-700 mb-1">SEO Title</label>
+  <input 
+    type="text" 
+    value={seoTitle} 
+    onChange={(e) => setSeoTitle(e.target.value)} 
+    className="w-full border p-2 rounded text-sm" 
+  />
+</div>
+<div>
+  <label className="block text-xs font-bold text-gray-700 mb-1">SEO Description</label>
+  <input 
+    type="text" 
+    value={seoDescription} 
+    onChange={(e) => setSeoDescription(e.target.value)} 
+    className="w-full border p-2 rounded text-sm" 
+  />
+</div>
+
           <div className="flex gap-3 pt-4">
             <button type="submit" className="bg-orange-600 text-white px-6 py-3.5 rounded-2xl text-xs font-black hover:bg-orange-700 transition shadow-md cursor-pointer">
               {editingId ? 'עדכן מוצר ➔' : '+ הוסף מוצר לחנות ➔'}
