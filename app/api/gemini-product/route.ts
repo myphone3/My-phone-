@@ -31,6 +31,7 @@ ${rawInfo || 'אין מידע נוסף, התבסס על שם המוצר'}
   "seoDescription": "תיאור SEO מדויק ל-NEW PHONE"
 }`;
 
+    // קריאת fetch ישירה ונקייה ללא שום תלות בספריות חיצוניות
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -61,7 +62,7 @@ ${rawInfo || 'אין מידע נוסף, התבסס על שם המוצר'}
 
     const parsedData = JSON.parse(jsonStr);
     return NextResponse.json(parsedData);
-  } catch (err: any)  {
+  } catch (err: any) {
     console.error('AI generation error:', err);
     return NextResponse.json({ error: err.message || 'Generation failed' }, { status: 500 });
   }
