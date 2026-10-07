@@ -30,20 +30,18 @@ ${rawInfo || 'אין מידע נוסף, צור על בסיס שם המוצר'}
   "seoDescription": "תיאור SEO שיווקי ל-NEW PHONE"
 }`;
 
-    // הגדלת זמן ההמתנה ל-20 שניות ומעבר למודל היציב והמהיר 3.5
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000);
-
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json"
+        }
       })
     });
-
-    clearTimeout(timeoutId);
 
     const data = await response.json();
     
@@ -56,19 +54,10 @@ ${rawInfo || 'אין מידע נוסף, צור על בסיס שם המוצר'}
       throw new Error('לא התקבלה תשובה מהמודל');
     }
 
-    let jsonStr = text.trim();
-    const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      jsonStr = jsonMatch[0];
-    }
-
-    const parsedData = JSON.parse(jsonStr);
+    const parsedData = JSON.parse(text);
     return NextResponse.json(parsedData);
   } catch (err: any) {
     console.error('AI generation error:', err);
-    if (err.name === 'AbortError') {
-      return NextResponse.json({ error: 'השרת עמוס כרגע והתגובה התעכבה. אנא נסה שוב.' }, { status: 504 });
-    }
     return NextResponse.json({ error: err.message || 'Generation failed' }, { status: 500 });
   }
 }
