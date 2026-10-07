@@ -12,10 +12,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Gemini API Key not configured' }, { status: 500 });
     }
 
-    // מנגנון ניקוי אוטומטי שמונע כל מקף או תו שגוי שמגיע מהקאש או ממשתני הסביבה
-    const rawModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
-    const model = rawModel.replace(/^-+/, '');
-
     const prompt = `אתה מומחה שיווק דיגיטלי וקופירייטר מוביל עבור חנות הסלולר והמכשירים הכשרים "NEW PHONE".
 המטרה שלך היא לערוך ולשפר את הטקסטים והמפרט הבאים עבור המוצר בצורה שיווקית וברורה בפורמט Markdown.
 
@@ -34,7 +30,8 @@ ${rawInfo || 'אין מידע נוסף, צור על בסיס שם המוצר'}
   "seoDescription": "תיאור SEO שיווקי ל-NEW PHONE"
 }`;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+    // שם המודל מקובע קשיח לחלוטין – מתעלם מכל הגדרה חיצונית ב-Vercel
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
