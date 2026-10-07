@@ -125,20 +125,24 @@ export default function AdminProductsPage() {
 
     setUploading(true);
     const newUrls: string[] = [];
+    const bucketsToTry = ['products', 'media', 'public', 'images', 'uploads', 'product-images'];
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}_${i}.${fileExt}`;
       const filePath = `products/${fileName}`;
 
-      const { error } = await supabase.storage.from('products').upload(filePath, file);
-      if (error) {
-        console.error('Upload error:', error);
-        alert('שגיאה בהעלאת תמונה: ' + error.message);
-      } else {
-        const { data } = await supabase.storage.from('products').getPublicUrl(filePath);
-        if (data?.publicUrl) {
-          newUrls.push(data.publicUrl);
+      let uploaded = false;
+      for (const bucket of bucketsToTry) {
+        const { error } = await supabase.storage.from(bucket).upload(filePath, file);
+        if (!error) {
+          const { data } = await supabase.storage.from(bucket).getPublicUrl(filePath);
+          if (data?.publicUrl) {
+            newUrls.push(data.publicUrl);
+            uploaded = true;
+            break;
+          }
         }
       }
     }
@@ -147,6 +151,8 @@ export default function AdminProductsPage() {
       const updatedImages = [...images, ...newUrls];
       setImages(updatedImages);
       if (!imageUrl) setImageUrl(newUrls[0]);
+    } else {
+      alert('שגיאה בהעלאת תמונה: לא נמצא באקט זמין ב-Supabase');
     }
     setUploading(false);
   };
@@ -183,7 +189,7 @@ ${rawInfoText}
   "seoDescription": "תיאור SEO מדויק ל-NEW PHONE"
 }`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-3.8-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
