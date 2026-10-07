@@ -262,7 +262,7 @@ ${rawInfoText}
         discountValue: Number(upsellDiscountValue) || 0
       } : null,
       seo_title: seoTitle,
-      seo_description: seoDesc
+      seo_description: seoDescription
     };
 
     if (editingId) {
