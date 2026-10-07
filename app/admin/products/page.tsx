@@ -356,25 +356,14 @@ ${rawInfoText}
     fetchData();
   };
 
-  const parseMarkdownPreview = (text: string) => {
-    if (!text) return '';
-    return text
-      .replace(/^## (.*$)/gm, '<h2 class="text-sm font-black text-gray-900 mt-2 mb-1">$1</h2>')
-      .replace(/^### (.*$)/gm, '<h3 class="text-xs font-bold text-gray-800 mt-1 mb-1">$1</h3>')
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\n/g, '<br />');
-  };
-
-  const filteredBrands = brandsList.filter(b => b.name.toLowerCase().includes(brandSearch.toLowerCase()));
-  const filteredProducts = products.filter(p => p.name?.toLowerCase().includes(productSearch.toLowerCase()));
-
-  const relatedSearchProducts = products.filter(p => p.id !== editingId && p.name?.toLowerCase().includes(relatedSearch.toLowerCase()));
-  const upsellSearchProducts = products.filter(p => p.id !== editingId && p.name?.toLowerCase().includes(upsellSearch.toLowerCase()));
-
-  if (loading) {
-    return <div className="text-center py-20 text-gray-500 font-medium">טוען מוצרים...</div>;
+    const parseMarkdownPreview = (text: string) => {
+    // לוגיקת ההמרה (אם קיימת) או החזרת הטקסט
+    return text;
   }
 
+  if (loading) {
+    return <div className="text-center py-20 text-gray-500 font-medium">טוען מוצרים</div>;
+  }
   return (
     <div className="space-y-8 max-w-full overflow-hidden" dir="rtl">
       <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-6">
