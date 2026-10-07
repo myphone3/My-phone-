@@ -13,12 +13,15 @@ export async function POST(request: Request) {
     }
 
     const prompt = `אתה מומחה שיווק דיגיטלי וקופירייטר מוביל עבור חנות הסלולר והמכשירים הכשרים "NEW PHONE".
-התפקיד שלך הוא לקחת את המידע הגולמי שסופק ולערוך אותו בצורה יפה, ברורה, מקצועית ושיווקית עבור המוצר.
+המטרה שלך היא לקחת את שם המוצר והמידע הגולמי (או ההערות) שהמשתמש סיפק, ולעצב, לנסח ולשפר אותם בצורה מקצועית, שיווקית וברורה לחלוטין.
 
 שם המוצר: "${productName}"
-מידע גולמי / הערות לעריכה: "${rawInfo || 'אין מידע גולמי נוסף, צור על בסיס שם המוצר והכרות עם סוג מכשיר זה'}"
+מידע גולמי / הערות לניסוח ועריכה: 
+"""
+${rawInfo || 'אין מידע גולמי נוסף, צור תיאורים ומפרט מקצועי על בסיס שם המוצר לבד'}
+"""
 
-עליך להחזיר אובייקט JSON חוקי הכולל בדיוק את השדות הבאים:
+עליך להחזיר אובייקט JSON חוקי הכולל בדיוק את השדות הבאים (ללא שום טקסט או מעטפת מעבר לכך):
 {
   "shortDesc": "תיאור קצר ומושך בכמה מילים עם מודגשים ואימוג'י בפורמט Markdown",
   "description": "סקירה כללית מפורטת ושיווקית המותאמת לחנות NEW PHONE על בסיס המידע שקיבלת, בפורמט Markdown עם כותרות ##",
@@ -27,7 +30,7 @@ export async function POST(request: Request) {
   "seoDescription": "תיאור SEO שיווקי מושך בגוגל שמניע לפעולה לרכישת המוצר ב-NEW PHONE"
 }`;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
