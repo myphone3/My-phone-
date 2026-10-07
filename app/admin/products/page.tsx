@@ -149,42 +149,83 @@ export default function AdminProductsPage() {
     fetchData();
   };
 
-  const handleAiAssistant = async () => {
-    if (!name) {
-      alert('נא להזין תחילה את שם המוצר כדי שסוכן ה-AI יוכל לשלוף מפרט ולייצר עבורך טקסטים');
-      return;
-    }
-    setAiGenerating(true);
-        try {
-      const rawInfoText = `תיאור קצר: ${shortDesc}\nתיאור מלא: ${description}\nמפרט: ${specs}`;
+    const handleAiAssistant = async () => {
+    try {
+      setAiGenerating(true);
       
-      const res = await fetch('/api/gemini-product', {
+      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+      if (!apiKey) {
+        alert('נא להגדיר את מפתח ה-API תחת NEXT_PUBLIC_GEMINI_API_KEY ב-Vercel');
+        setAiGenerating(false);
+        return;
+      }
 
+      const rawInfoText = `שם המוצר: ${name || ''}\nתיאור קצר: ${shortDesc || ''}\nתיאור מלא: ${description || ''}\nמפרט: ${specs || ''}`;
+
+      const prompt = `אתה מומחה ניסוח, עריכה ועיצוב תוכן לחנות הסלולר והמכשירים הכשרים "NEW PHONE".
+המשתמש סיפק נתונים טכניים ותיאור אמיתי על המוצר: "${name || 'מוצר'}".
+המידע הגולמי שהוזן:
+"""
+${rawInfoText}
+"""
+
+הנחיות קריטיות לעבודה:
+1. אל תמציא נתונים, תכונות או פיצ'רים שלא קיימים במידע הגולמי שהוזן. התבסס אך ורק על העובדות והנתונים האמיתיים שנמסרו.
+2. התפקיד שלך הוא לקחת את הנתונים האמיתיים האלו ולערוך, לסדר ולעצב אותם בצורה מקצועית, נקייה ומשכנעת בפורמט Markdown עבור חנות "NEW PHONE".
+3. החזר אך ורק אובייקט JSON תקין לחלוטין (ללא שום טקסט או מעטפת מסביב) במבנה הבא בדיוק:
+{
+  "shortDesc": "תיאור קצר ומדויק המבוסס על הנתונים עם אימוג'י ב-Markdown",
+  "description": "סקירה מקצועית ומסודרת המבוססת אך ורק על הנתונים עם כותרות ## ב-Markdown",
+  "specs": "מפרט טכני מסודר ומדויק לפי הנתונים עם נקודות • ב-Markdown",
+  "seoTitle": "כותרת SEO מדויקת ומקצועית ל-NEW PHONE",
+  "seoDescription": "תיאור SEO מדויק ל-NEW PHONE"
+}`;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          productName: name,
-          rawInfo: rawInfoText 
-        }),
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            responseMimeType: "application/json"
+          }
+        })
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'שגיאה ביצירת תוכן');
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error?.message || 'שגיאה בתקשורת מול ג׳מיני');
+      }
 
-      if (data.shortDesc) setShortDesc(data.shortDesc);
-      if (data.description) setDescription(data.description);
-      if (data.specs) setSpecs(data.specs);
-      if (data.seoTitle) setSeoTitle(data.seoTitle);
-      if (data.seoDescription) setSeoDesc(data.seoDescription);
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) {
+        throw new Error('לא התקבלה תשובה מהמודל');
+      }
 
-      alert('המפרט והתכנים נוצרו בהצלחה על ידי סוכן ה-AI! ✨');
+      let jsonStr = text.trim();
+      jsonStr = jsonStr.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
+      const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        jsonStr = jsonMatch[0];
+      }
+
+      const parsedData = JSON.parse(jsonStr);
+      
+      if (parsedData.shortDesc) setShortDesc(parsedData.shortDesc);
+      if (parsedData.description) setDescription(parsedData.description);
+      if (parsedData.specs) setSpecs(parsedData.specs);
+      if (parsedData.seoTitle) setSeoTitle(parsedData.seoTitle);
+      if (parsedData.seoDescription) setSeoDescription(parsedData.seoDescription);
+
     } catch (err: any) {
-      console.error(err);
-      alert('שגיאה בהפעלת סוכן ה-AI: ' + err.message);
+      console.error('AI error:', err);
+      alert('שגיאה בהפעלת ה-AI: ' + (err.message || 'שגיאה לא ידועה'));
     } finally {
       setAiGenerating(false);
     }
   };
+
 
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
