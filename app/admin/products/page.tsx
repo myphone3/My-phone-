@@ -59,7 +59,6 @@ export default function AdminProductsPage() {
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
 
-
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   
@@ -150,7 +149,7 @@ export default function AdminProductsPage() {
     fetchData();
   };
 
-    const handleAiAssistant = async () => {
+  const handleAiAssistant = async () => {
     try {
       setAiGenerating(true);
       
@@ -226,7 +225,6 @@ ${rawInfoText}
       setAiGenerating(false);
     }
   };
-
 
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -346,7 +344,7 @@ ${rawInfoText}
       setUpsellDiscountValue('');
     }
     setSeoTitle(prod.seo_title || '');
-    setSeoDescription(prod.seo_description);
+    setSeoDescription(prod.seo_description || '');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -356,14 +354,31 @@ ${rawInfoText}
     fetchData();
   };
 
-    const parseMarkdownPreview = (text: string) => {
-    // לוגיקת ההמרה (אם קיימת) או החזרת הטקסט
+  const parseMarkdownPreview = (text: string) => {
     return text;
-  }
+  };
+
+  // משתני סינון לממשק
+  const filteredBrands = brandsList.filter((b) =>
+    b.name?.toLowerCase().includes(brandSearch.toLowerCase())
+  );
+
+  const relatedSearchProducts = products.filter((p) =>
+    p.name?.toLowerCase().includes(relatedSearch.toLowerCase())
+  );
+
+  const upsellSearchProducts = products.filter((p) =>
+    p.name?.toLowerCase().includes(upsellSearch.toLowerCase())
+  );
+
+  const filteredProducts = products.filter((p) =>
+    p.name?.toLowerCase().includes(productSearch.toLowerCase())
+  );
 
   if (loading) {
     return <div className="text-center py-20 text-gray-500 font-medium">טוען מוצרים</div>;
   }
+
   return (
     <div className="space-y-8 max-w-full overflow-hidden" dir="rtl">
       <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-6">
@@ -879,7 +894,7 @@ ${rawInfoText}
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">SEO Description</label>
-            <input type="text" value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} className=... />
+              <input type="text" value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
             </div>
           </div>
 
@@ -889,25 +904,6 @@ ${rawInfoText}
             </div>
             <input type="checkbox" checked={isDraft} onChange={(e) => setIsDraft(e.target.checked)} className="w-5 h-5 accent-orange-600 cursor-pointer" />
           </div>
-
-          <div>
-  <label className="block text-xs font-bold text-gray-700 mb-1">SEO Title</label>
-  <input 
-    type="text" 
-    value={seoTitle} 
-    onChange={(e) => setSeoTitle(e.target.value)} 
-    className="w-full border p-2 rounded text-sm" 
-  />
-</div>
-<div>
-  <label className="block text-xs font-bold text-gray-700 mb-1">SEO Description</label>
-  <input 
-    type="text" 
-    value={seoDescription} 
-    onChange={(e) => setSeoDescription(e.target.value)} 
-    className="w-full border p-2 rounded text-sm" 
-  />
-</div>
 
           <div className="flex gap-3 pt-4">
             <button type="submit" className="bg-orange-600 text-white px-6 py-3.5 rounded-2xl text-xs font-black hover:bg-orange-700 transition shadow-md cursor-pointer">
