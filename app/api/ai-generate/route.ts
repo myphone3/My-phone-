@@ -30,18 +30,13 @@ ${rawInfo || 'אין מידע נוסף, צור על בסיס שם המוצר'}
   "seoDescription": "תיאור SEO שיווקי ל-NEW PHONE"
 }`;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/interactions`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'gemini-3.8-flash',
-        input: prompt,
-        response_format: {
-          type: 'text',
-          mime_type: 'application/json'
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json"
         }
       })
     });
@@ -52,7 +47,7 @@ ${rawInfo || 'אין מידע נוסף, צור על בסיס שם המוצר'}
       throw new Error(data.error?.message || 'שגיאה בתקשורת מול שרתי ה-AI');
     }
 
-    const text = data.output_text;
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) {
       throw new Error('לא התקבלה תשובה מהמודל');
     }
