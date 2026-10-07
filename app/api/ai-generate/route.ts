@@ -54,15 +54,14 @@ export async function POST(request: Request) {
     const prompt = `אתה מומחה שיווק דיגיטלי וקופירייטר מוביל עבור חנות הסלולר והמכשירים הכשרים "NEW PHONE".
 הלקוח ביקש לייצר תוכן שיווקי ומפרט מלא עבור המוצר: "${productName}".
 
-עליך לספק את השדות הבאים בפורמט JSON בלבד (ללא שום טקסט נוסף סביב, רק אובייקט JSON תקין לחלוטין):
+החזר אך ורק אובייקט JSON תקין לחלוטין (ללא שום טקסט, הסברים או מרכאות מעבר לכך) במבנה הבא בדיוק:
 {
   "shortDesc": "תיאור קצר ומושך בכמה מילים עם מודגשים ואימוג'י בפורמט Markdown",
   "description": "סקירה כללית מפורטת ושיווקית המותאמת לחנות NEW PHONE, בפורמט Markdown עם כותרות ##",
   "specs": "מפרט טכני מלא ומדויק הכולל נתונים טכניים של המכשיר בפורמט Markdown עם נקודות •",
   "seoTitle": "כותרת SEO שיווקית ומושכת בגוגל הכוללת את שם המוצר ושם החנות NEW PHONE",
   "seoDescription": "תיאור SEO שיווקי מושך בגוגל שמניע לפעולה לרכישת המוצר ב-NEW PHONE"
-}
-שמור על דיוק, שפה עברית עשירה ומקצועית, ומבנה JSON תקין בלבד.`;
+}`;
 
     const data = await callGeminiWithRetry(apiKey, prompt);
 
@@ -71,11 +70,11 @@ export async function POST(request: Request) {
       throw new Error('No response text from Gemini');
     }
 
+    // חילוץ חכם ובטוח של ה-JSON מתוך התשובה
     let jsonStr = text.trim();
-    if (jsonStr.startsWith('```json')) {
-      jsonStr = jsonStr.replace(/^```json/, '').replace(/```$/, '').trim();
-    } else if (jsonStr.startsWith('```')) {
-      jsonStr = jsonStr.replace(/^```/, '').replace(/```$/, '').trim();
+    const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      jsonStr = jsonMatch[0];
     }
 
     const parsedData = JSON.parse(jsonStr);
