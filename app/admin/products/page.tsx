@@ -346,7 +346,7 @@ ${rawInfoText}
       setUpsellDiscountValue('');
     }
     setSeoTitle(prod.seo_title || '');
-    setSeoDesc(prod.seo_description || '');
+    setSeoDescription(prod.seo_description);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
