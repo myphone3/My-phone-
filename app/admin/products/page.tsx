@@ -311,7 +311,7 @@ ${rawInfoText}
     setUpsellDiscountValue('');
     setUpsellSearch('');
     setSeoTitle('');
-    setSeoDesc('');
+    setSeoDescription('');
     setEditingId(null);
   };
 
