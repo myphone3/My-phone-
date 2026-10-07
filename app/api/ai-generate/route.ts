@@ -1,5 +1,46 @@
 import { NextResponse } from 'next/server';
 
+async function callGeminiWithRetry(apiKey: string, prompt: string, retries = 3): Promise<any> {
+  const models = ['gemini-3.8-flash', 'gemini-2.5-flash'];
+  
+  for (const model of models) {
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }]
+          })
+        });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+          return data;
+        }
+
+        // אם יש עומס זמני (503) או הגבלת קצב (429), נמתין וננסה שוב אוטומטית
+        if (response.status === 503 || response.status === 429) {
+          if (attempt < retries - 1) {
+            await new Promise(resolve => setTimeout(resolve, 800 * (attempt + 1)));
+            continue;
+          }
+        } else {
+          // עבור שגיאה מסוג אחר, נעבור מיד למודל הגיבוי
+          break;
+        }
+      } catch (err) {
+        if (attempt === retries - 1) break;
+        await new Promise(resolve => setTimeout(resolve, 800 * (attempt + 1)));
+      }
+    }
+  }
+  throw new Error('השרתים חווים כרגע עומס זמני. אנא נסה שוב בעוד מספר שניות.');
+}
+
 export async function POST(request: Request) {
   try {
     const { productName } = await request.json();
@@ -25,25 +66,7 @@ export async function POST(request: Request) {
 }
 שמור על דיוק, שפה עברית עשירה ומקצועית, ומבנה JSON תקין בלבד.`;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [{ text: prompt }]
-          }
-        ]
-      })
-    });
-
-    const data = await response.json();
-    
-    if (!response.ok) {
-      throw new Error(data.error?.message || 'Gemini API error');
-    }
+    const data = await callGeminiWithRetry(apiKey, prompt);
 
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) {
