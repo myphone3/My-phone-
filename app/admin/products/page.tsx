@@ -15,6 +15,8 @@ export default function AdminProductsPage() {
   // Product Form States
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
+  const [seoTitle, setSeoTitle] = useState('');
+  const [seoDescription, setSeoDescription] = useState('');
   const [salePrice, setSalePrice] = useState('');
   const [category, setCategory] = useState('');
   const [brand, setBrand] = useState('');
