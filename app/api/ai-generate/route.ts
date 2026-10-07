@@ -13,51 +13,63 @@ export async function POST(request: Request) {
     }
 
     const prompt = `אתה מומחה שיווק דיגיטלי וקופירייטר מוביל עבור חנות הסלולר והמכשירים הכשרים "NEW PHONE".
-המטרה שלך היא לקחת את שם המוצר והמידע הגולמי (או ההערות) שהמשתמש סיפק, ולעצב, לנסח ולשפר אותם בצורה מקצועית, שיווקית וברורה לחלוטין.
+המטרה שלך היא לערוך ולשפר את הטקסטים והמפרט הבאים עבור המוצר בצורה שיווקית וברורה בפורמט Markdown.
 
 שם המוצר: "${productName}"
-מידע גולמי / הערות לניסוח ועריכה: 
+מידע לעריכה:
 """
-${rawInfo || 'אין מידע גולמי נוסף, צור תיאורים ומפרט מקצועי על בסיס שם המוצר לבד'}
+${rawInfo || 'אין מידע נוסף, צור על בסיס שם המוצר'}
 """
 
-עליך להחזיר אובייקט JSON חוקי הכולל בדיוק את השדות הבאים (ללא שום טקסט או מעטפת מעבר לכך):
+החזר אך ורק אובייקט JSON תקין לחלוטין (ללא שום טקסט מסביב) במבנה הבא בדיוק:
 {
-  "shortDesc": "תיאור קצר ומושך בכמה מילים עם מודגשים ואימוג'י בפורמט Markdown",
-  "description": "סקירה כללית מפורטת ושיווקית המותאמת לחנות NEW PHONE על בסיס המידע שקיבלת, בפורמט Markdown עם כותרות ##",
-  "specs": "מפרט טכני מלא ומסודר בפורמט Markdown עם נקודות • המבוסס על הנתונים שניתנו",
-  "seoTitle": "כותרת SEO שיווקית ומושכת בגוגל הכוללת את שם המוצר ושם החנות NEW PHONE",
-  "seoDescription": "תיאור SEO שיווקי מושך בגוגל שמניע לפעולה לרכישת המוצר ב-NEW PHONE"
+  "shortDesc": "תיאור קצר ומושך עם אימוג'י ב-Markdown",
+  "description": "סקירה שיווקית מפורטת עם כותרות ## ב-Markdown",
+  "specs": "מפרט טכני מסודר עם נקודות • ב-Markdown",
+  "seoTitle": "כותרת SEO שיווקית ל-NEW PHONE",
+  "seoDescription": "תיאור SEO שיווקי ל-NEW PHONE"
 }`;
+
+    // מנגנון הגנה: עצירת הבקשה אוטומטית אחרי 10 שניות כדי שזה לעולם לא יתקע
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseMimeType: "application/json"
-        }
+        contents: [{ parts: [{ text: prompt }] }]
       })
     });
+
+    clearTimeout(timeoutId);
 
     const data = await response.json();
     
     if (!response.ok) {
-      throw new Error(data.error?.message || 'Gemini API error');
+      throw new Error(data.error?.message || 'שגיאה בתקשורת מול שרתי ה-AI');
     }
 
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) {
-      throw new Error('No response text from Gemini');
+      throw new Error('לא התקבלה תשובה מהמודל');
     }
 
-    const parsedData = JSON.parse(text);
+    // חילוץ חכם של ה-JSON מתוך התשובה
+    let jsonStr = text.trim();
+    const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      jsonStr = jsonMatch[0];
+    }
+
+    const parsedData = JSON.parse(jsonStr);
     return NextResponse.json(parsedData);
   } catch (err: any) {
     console.error('AI generation error:', err);
+    if (err.name === 'AbortError') {
+      return NextResponse.json({ error: 'השרת עמוס כרגע והתגובה התעכבה. אנא נסה שוב.' }, { status: 504 });
+    }
     return NextResponse.json({ error: err.message || 'Generation failed' }, { status: 500 });
   }
 }
