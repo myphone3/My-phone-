@@ -14,6 +14,8 @@ export default function AdminProductsPage() {
 
   // Product Form States
   const [name, setName] = useState('');
+  const [sku, setSku] = useState('');
+  const [slug, setSlug] = useState('');
   const [price, setPrice] = useState('');
   const [salePrice, setSalePrice] = useState('');
   const [category, setCategory] = useState('');
@@ -52,8 +54,10 @@ export default function AdminProductsPage() {
   const [upsellDiscountValue, setUpsellDiscountValue] = useState('');
   const [upsellSearch, setUpsellSearch] = useState('');
 
+  // SEO & Keywords
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
+  const [seoKeywords, setSeoKeywords] = useState('');
 
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -186,7 +190,8 @@ ${rawInfoText}
   "description": "סקירה מקצועית ומסודרת המבוססת אך ורק על הנתונים עם כותרות ## ב-Markdown",
   "specs": "מפרט טכני מסודר ומדויק לפי הנתונים עם נקודות • ב-Markdown",
   "seoTitle": "כותרת SEO מדויקת ומקצועית ל-NEW PHONE",
-  "seoDescription": "תיאור SEO מדויק ל-NEW PHONE"
+  "seoDescription": "תיאור SEO מדויק ל-NEW PHONE",
+  "seoKeywords": "מילות מפתח רלוונטיות פסיק, פסיק"
 }`;
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-3.8-flash:generateContent?key=${apiKey}`, {
@@ -225,6 +230,7 @@ ${rawInfoText}
       if (parsedData.specs) setSpecs(parsedData.specs);
       if (parsedData.seoTitle) setSeoTitle(parsedData.seoTitle);
       if (parsedData.seoDescription) setSeoDescription(parsedData.seoDescription);
+      if (parsedData.seoKeywords) setSeoKeywords(parsedData.seoKeywords);
 
     } catch (err: any) {
       console.error('AI error:', err);
@@ -243,6 +249,8 @@ ${rawInfoText}
 
     const payload = {
       name,
+      sku,
+      slug: slug || name.toLowerCase().replace(/\s+/g, '-'),
       price: Number(price),
       sale_price: salePrice ? Number(salePrice) : null,
       category,
@@ -266,7 +274,8 @@ ${rawInfoText}
         discountValue: Number(upsellDiscountValue) || 0
       } : null,
       seo_title: seoTitle,
-      seo_description: seoDescription
+      seo_description: seoDescription,
+      seo_keywords: seoKeywords
     };
 
     if (editingId) {
@@ -290,6 +299,8 @@ ${rawInfoText}
 
   const resetForm = () => {
     setName('');
+    setSku('');
+    setSlug('');
     setPrice('');
     setSalePrice('');
     setCategory('');
@@ -314,12 +325,15 @@ ${rawInfoText}
     setUpsellSearch('');
     setSeoTitle('');
     setSeoDescription('');
+    setSeoKeywords('');
     setEditingId(null);
   };
 
   const handleEdit = (prod: any) => {
     setEditingId(prod.id);
     setName(prod.name || '');
+    setSku(prod.sku || '');
+    setSlug(prod.slug || '');
     setPrice(prod.price || '');
     setSalePrice(prod.sale_price || '');
     setCategory(prod.category || '');
@@ -347,6 +361,7 @@ ${rawInfoText}
     }
     setSeoTitle(prod.seo_title || '');
     setSeoDescription(prod.seo_description || '');
+    setSeoKeywords(prod.seo_keywords || '');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -354,6 +369,10 @@ ${rawInfoText}
     if (!confirm('האם למחוק מוצר זה?')) return;
     await supabase.from('products').delete().eq('id', id);
     fetchData();
+  };
+
+  const insertToolbar = (setter: any, currentVal: string, tag: string) => {
+    setter(currentVal + tag);
   };
 
   const parseMarkdownPreview = (text: string) => {
@@ -396,6 +415,17 @@ ${rawInfoText}
               <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="שם המכשיר..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" required />
             </div>
             <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">SKU (מק"ט)</label>
+              <input type="text" value={sku} onChange={(e) => setSku(e.target.value)} placeholder="SKU-1002" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">Slug (כתובת URL)</label>
+              <input type="text" value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="phone-model-name" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">מחיר רגיל (₪) <span className="text-red-500">*</span></label>
               <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="999" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" required />
             </div>
@@ -403,9 +433,13 @@ ${rawInfoText}
               <label className="block text-xs font-bold text-gray-700 mb-1">מחיר מבצע (₪)</label>
               <input type="number" value={salePrice} onChange={(e) => setSalePrice(e.target.value)} placeholder="799" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
             </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">מלאי (כמות יחידות)</label>
+              <input type="number" value={stock} onChange={(e) => setStock(e.target.value)} placeholder="10" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">קטגוריה</label>
               <select
@@ -419,15 +453,9 @@ ${rawInfoText}
                 ))}
               </select>
             </div>
-
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">נפח אחסון</label>
               <input type="text" value={storageVal} onChange={(e) => setStorageVal(e.target.value)} placeholder="128GB" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">מלאי (כמות יחידות)</label>
-              <input type="number" value={stock} onChange={(e) => setStock(e.target.value)} placeholder="10" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
             </div>
           </div>
 
@@ -836,10 +864,11 @@ ${rawInfoText}
             {showPreviewShort && <div className="bg-orange-50 border p-3 rounded-xl text-xs" dangerouslySetInnerHTML={{ __html: parseMarkdownPreview(shortDesc) }}></div>}
           </div>
 
+          {/* תיאור מלא + סרגל כלים לעיצוב + סוכן AI צמוד */}
           <div className="space-y-2">
             <div className="flex justify-between items-center flex-wrap gap-2">
-              <label className="block text-xs font-bold text-gray-700">תיאור מלא</label>
-              <div className="flex items-center gap-2">
+              <label className="block text-xs font-bold text-gray-700">תיאור מלא (Markdown)</label>
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   type="button"
                   onClick={handleAiAssistant}
@@ -851,6 +880,14 @@ ${rawInfoText}
                 <button type="button" onClick={() => setShowPreviewFull(!showPreviewFull)} className="text-orange-600 text-xs font-bold">👁️ תצוגה מקדימה</button>
               </div>
             </div>
+
+            {/* סרגל כלים מהיר לעיצוב */}
+            <div className="flex gap-1 bg-gray-100 p-1.5 rounded-xl overflow-x-auto">
+              <button type="button" onClick={() => insertToolbar(setDescription, description, ' **טקסט מודגש** ')} className="bg-white px-2.5 py-1 rounded-lg text-[11px] font-bold border shadow-2xs cursor-pointer">B מודגש</button>
+              <button type="button" onClick={() => insertToolbar(setDescription, description, ' \n## כותרת ראשית\n ')} className="bg-white px-2.5 py-1 rounded-lg text-[11px] font-bold border shadow-2xs cursor-pointer">H2 כותרת</button>
+              <button type="button" onClick={() => insertToolbar(setDescription, description, ' \n• נקודה ברשימה\n ')} className="bg-white px-2.5 py-1 rounded-lg text-[11px] font-bold border shadow-2xs cursor-pointer">• רשימה</button>
+            </div>
+
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="תיאור מפורט..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none"></textarea>
             {showPreviewFull && <div className="bg-orange-50 border p-3 rounded-xl text-xs whitespace-pre-line" dangerouslySetInnerHTML={{ __html: parseMarkdownPreview(description) }}></div>}
           </div>
@@ -864,14 +901,29 @@ ${rawInfoText}
             {showPreviewSpecs && <div className="bg-orange-50 border p-3 rounded-xl text-xs whitespace-pre-line" dangerouslySetInnerHTML={{ __html: parseMarkdownPreview(specs) }}></div>}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">SEO Title</label>
-              <input type="text" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
+          {/* ניהול SEO מתקדם עם מוני תווים */}
+          <div className="bg-gray-50 p-4 rounded-2xl border space-y-4">
+            <h3 className="text-xs font-black text-gray-900 border-r-4 border-orange-600 pr-2">ניהול SEO לקידום בגוגל</h3>
+            
+            <div className="space-y-1">
+              <div className="flex justify-between items-center">
+                <label className="block text-xs font-bold text-gray-700">Meta Title (כותרת בגוגל)</label>
+                <span className={`text-[10px] font-bold ${seoTitle.length > 60 ? 'text-red-500' : 'text-gray-400'}`}>{seoTitle.length}/60</span>
+              </div>
+              <input type="text" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} placeholder="כותרת שמוצגת בתוצאות חיפוש בגוגל" className="w-full bg-white border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
             </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">SEO Description</label>
-              <input type="text" value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
+
+            <div className="space-y-1">
+              <div className="flex justify-between items-center">
+                <label className="block text-xs font-bold text-gray-700">Meta Description (תיאור קצר בגוגל)</label>
+                <span className={`text-[10px] font-bold ${seoDescription.length > 160 ? 'text-red-500' : 'text-gray-400'}`}>{seoDescription.length}/160</span>
+              </div>
+              <textarea value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} rows={2} placeholder="תיאור קצר שמוצג תחת התוצאה בגוגל" className="w-full bg-white border rounded-xl p-3 text-xs outline-none focus:border-orange-600"></textarea>
+            </div>
+
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-gray-700">Keywords (מילות מפתח)</label>
+              <input type="text" value={seoKeywords} onChange={(e) => setSeoKeywords(e.target.value)} placeholder="פלאפון כשר, טלפון הדרן, מכשיר כשר" className="w-full bg-white border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
             </div>
           </div>
 
