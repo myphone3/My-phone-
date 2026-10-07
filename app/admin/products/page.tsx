@@ -155,12 +155,18 @@ export default function AdminProductsPage() {
       return;
     }
     setAiGenerating(true);
-    try {
+        try {
+      const rawInfoText = `תיאור קצר: ${shortDesc}\nתיאור מלא: ${description}\nמפרט: ${specs}`;
+      
       const res = await fetch('/api/ai-generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productName: name }),
+        body: JSON.stringify({ 
+          productName: name,
+          rawInfo: rawInfoText 
+        }),
       });
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'שגיאה ביצירת תוכן');
 
