@@ -158,7 +158,8 @@ export default function AdminProductsPage() {
         try {
       const rawInfoText = `תיאור קצר: ${shortDesc}\nתיאור מלא: ${description}\nמפרט: ${specs}`;
       
-      const res = await fetch('/api/ai-generate', {
+      const res = await fetch('/api/gemini-product', {
+
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
