@@ -70,7 +70,6 @@ export async function POST(request: Request) {
       throw new Error('No response text from Gemini');
     }
 
-    // חילוץ חכם ובטוח של ה-JSON מתוך התשובה
     let jsonStr = text.trim();
     const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
