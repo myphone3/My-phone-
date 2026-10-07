@@ -30,56 +30,31 @@ ${rawInfo || 'אין מידע נוסף, צור על בסיס שם המוצר'}
   "seoDescription": "תיאור SEO שיווקי ל-NEW PHONE"
 }`;
 
-    // מנגנון ניסיונות חוזרים אוטומטי למקרה של עומס זמני בשרתי גוגל
-    let response: Response | null = null;
-    let data: any = null;
-    const maxRetries = 3;
-
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-      try {
-        response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: controller.signal,
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              responseMimeType: "application/json"
-            }
-          })
-        });
-
-        clearTimeout(timeoutId);
-        data = await response.json();
-
-        if (response.ok) {
-          break;
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/interactions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey,
+      },
+      body: JSON.stringify({
+        model: 'gemini-3.8-flash',
+        input: prompt,
+        response_format: {
+          type: 'text',
+          mime_type: 'application/json'
         }
+      })
+    });
 
-        // אם יש עומס (503 או 429), נמתין קצרות וננסה שוב אוטומטית
-        if ((response.status === 503 || response.status === 429) && attempt < maxRetries - 1) {
-          await new Promise(resolve => setTimeout(resolve, 800 * (attempt + 1)));
-          continue;
-        } else {
-          break;
-        }
-      } catch (fetchErr) {
-        clearTimeout(timeoutId);
-        if (attempt === maxRetries - 1) throw fetchErr;
-        await new Promise(resolve => setTimeout(resolve, 800 * (attempt + 1)));
-      }
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error?.message || 'שגיאה בתקשורת מול שרתי ה-AI');
     }
 
-    if (!response || !response.ok) {
-      throw new Error(data?.error?.message || 'השרת חווה עומס זמני, אנא נסה שוב בעוד מספר שניות.');
-    }
-
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const text = data.output_text;
     if (!text) {
-      throw new Error('לא התקבלה תשובה תקינה מהמודל');
+      throw new Error('לא התקבלה תשובה מהמודל');
     }
 
     let jsonStr = text.trim();
