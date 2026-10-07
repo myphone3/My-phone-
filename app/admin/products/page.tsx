@@ -132,7 +132,10 @@ export default function AdminProductsPage() {
       const filePath = `products/${fileName}`;
 
       const { error } = await supabase.storage.from('products').upload(filePath, file);
-      if (!error) {
+      if (error) {
+        console.error('Upload error:', error);
+        alert('שגיאה בהעלאת תמונה: ' + error.message);
+      } else {
         const { data } = await supabase.storage.from('products').getPublicUrl(filePath);
         if (data?.publicUrl) {
           newUrls.push(data.publicUrl);
@@ -140,11 +143,12 @@ export default function AdminProductsPage() {
       }
     }
 
-    const updatedImages = [...images, ...newUrls];
-    setImages(updatedImages);
-    if (!imageUrl && updatedImages.length > 0) setImageUrl(updatedImages[0]);
+    if (newUrls.length > 0) {
+      const updatedImages = [...images, ...newUrls];
+      setImages(updatedImages);
+      if (!imageUrl) setImageUrl(newUrls[0]);
+    }
     setUploading(false);
-    fetchData();
   };
 
   const handleAiAssistant = async () => {
@@ -179,7 +183,7 @@ ${rawInfoText}
   "seoDescription": "תיאור SEO מדויק ל-NEW PHONE"
 }`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -377,14 +381,6 @@ ${rawInfoText}
           <h2 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">
             {editingId ? 'עריכת מוצר קיים' : 'הוספת מוצר חדש לחנות'}
           </h2>
-          <button
-            type="button"
-            onClick={handleAiAssistant}
-            disabled={aiGenerating}
-            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer"
-          >
-            ✨ {aiGenerating ? 'סוכן AI מייצר תוכן...' : 'סוכן AI למילוי אוטומטי'}
-          </button>
         </div>
 
         <form onSubmit={handleSaveProduct} className="space-y-6">
@@ -835,9 +831,19 @@ ${rawInfoText}
           </div>
 
           <div className="space-y-2">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center flex-wrap gap-2">
               <label className="block text-xs font-bold text-gray-700">תיאור מלא</label>
-              <button type="button" onClick={() => setShowPreviewFull(!showPreviewFull)} className="text-orange-600 text-xs font-bold">👁️ תצוגה מקדימה</button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleAiAssistant}
+                  disabled={aiGenerating}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-xl text-[11px] font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                >
+                  ✨ {aiGenerating ? 'AI מעבד...' : 'סוכן AI למילוי אוטומטי'}
+                </button>
+                <button type="button" onClick={() => setShowPreviewFull(!showPreviewFull)} className="text-orange-600 text-xs font-bold">👁️ תצוגה מקדימה</button>
+              </div>
             </div>
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="תיאור מפורט..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none"></textarea>
             {showPreviewFull && <div className="bg-orange-50 border p-3 rounded-xl text-xs whitespace-pre-line" dangerouslySetInnerHTML={{ __html: parseMarkdownPreview(description) }}></div>}
@@ -906,8 +912,8 @@ ${rawInfoText}
                 </div>
               </div>
               <div className="flex gap-2 text-xs">
-                <button onClick={() => handleEdit(p)} className="text-blue-600 font-bold hover:underline cursor-pointer">עריכה</button>
-                <button onClick={() => handleDelete(p.id)} className="text-red-500 font-bold hover:underline cursor-pointer">מחיקה</button>
+                <button type="button" onClick={() => handleEdit(p)} className="text-blue-600 font-bold hover:underline cursor-pointer">עריכה</button>
+                <button type="button" onClick={() => handleDelete(p.id)} className="text-red-500 font-bold hover:underline cursor-pointer">מחיקה</button>
               </div>
             </div>
           ))}
