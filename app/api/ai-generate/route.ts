@@ -30,7 +30,6 @@ ${rawInfo || 'אין מידע נוסף, צור על בסיס שם המוצר'}
   "seoDescription": "תיאור SEO שיווקי ל-NEW PHONE"
 }`;
 
-    // מנגנון הגנה: עצירת הבקשה אוטומטית אחרי 10 שניות כדי שזה לעולם לא יתקע
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 
@@ -56,7 +55,6 @@ ${rawInfo || 'אין מידע נוסף, צור על בסיס שם המוצר'}
       throw new Error('לא התקבלה תשובה מהמודל');
     }
 
-    // חילוץ חכם של ה-JSON מתוך התשובה
     let jsonStr = text.trim();
     const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
