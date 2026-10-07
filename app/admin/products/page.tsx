@@ -628,15 +628,15 @@ ${rawInfoText}
                 <button
                   key={b.id}
                   type="button"
-                  onClick={() => setBrand(b.image_url || b.name)}
-                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-2 shrink-0 bg-white cursor-pointer ${brand === (b.image_url || b.name) ? 'border-orange-600 bg-orange-50' : 'border-gray-200'}`}
+                  onClick={() => setBrand(b.name)}
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-2 shrink-0 bg-white cursor-pointer ${brand === b.name ? 'border-orange-600 bg-orange-50' : 'border-gray-200'}`}
                 >
                   {b.image_url && <img src={b.image_url} alt="" className="h-4 object-contain" />}
                   <span>{b.name}</span>
                 </button>
               ))}
             </div>
-            <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="או הזן קישור לתמונת מותג..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
+            <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="או הזן את שם המותג..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
           </div>
 
           {/* כשרות */}
