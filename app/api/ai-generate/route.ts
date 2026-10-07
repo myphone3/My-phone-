@@ -22,14 +22,12 @@ async function callGeminiWithRetry(apiKey: string, prompt: string, retries = 3):
           return data;
         }
 
-        // אם יש עומס זמני (503) או הגבלת קצב (429), נמתין וננסה שוב אוטומטית
         if (response.status === 503 || response.status === 429) {
           if (attempt < retries - 1) {
             await new Promise(resolve => setTimeout(resolve, 800 * (attempt + 1)));
             continue;
           }
         } else {
-          // עבור שגיאה מסוג אחר, נעבור מיד למודל הגיבוי
           break;
         }
       } catch (err) {
