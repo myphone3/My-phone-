@@ -30,7 +30,7 @@ ${rawInfo || 'אין מידע נוסף, צור על בסיס שם המוצר'}
   "seoDescription": "תיאור SEO שיווקי ל-NEW PHONE"
 }`;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
