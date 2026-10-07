@@ -12,22 +12,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Gemini API Key not configured' }, { status: 500 });
     }
 
-    const prompt = `אתה מומחה שיווק דיגיטלי וקופירייטר מוביל עבור חנות הסלולר והמכשירים הכשרים "NEW PHONE".
-המטרה שלך היא לערוך ולשפר את הטקסטים והמפרט הבאים עבור המוצר בצורה שיווקית וברורה בפורמט Markdown.
-
-שם המוצר: "${productName}"
-מידע לעריכה:
+    const prompt = `אתה מומחה ניסוח, עריכה ועיצוב תוכן לחנות הסלולר והמכשירים הכשרים "NEW PHONE".
+המשתמש סיפק נתונים טכניים ותיאור אמיתי על המוצר: "${productName}".
+המידע הגולמי שהוזן:
 """
-${rawInfo || 'אין מידע נוסף, צור על בסיס שם המוצר'}
+${rawInfo || 'אין מידע נוסף, התבסס על שם המוצר'}
 """
 
-החזר אך ורק אובייקט JSON תקין לחלוטין (ללא שום טקסט מסביב) במבנה הבא בדיוק:
+הנחיות קריטיות לעבודה:
+1. אל תמציא נתונים, תכונות או פיצ'רים שלא קיימים במידע הגולמי שהוזן. התבסס אך ורק על העובדות והנתונים האמיתיים שנמסרו (מסך, סוללה, נפח, כשרות וכדומה).
+2. התפקיד שלך הוא לקחת את הנתונים האמיתיים האלו ולערוך, לסדר ולעצב אותם בצורה מקצועית, נקייה, יפה לעין ומשכנעת ללקוח בפורמט Markdown.
+3. החזר אך ורק אובייקט JSON תקין לחלוטין (ללא שום טקסט או מעטפת מסביב) במבנה הבא בדיוק:
 {
-  "shortDesc": "תיאור קצר ומושך עם אימוג'י ב-Markdown",
-  "description": "סקירה שיווקית מפורטת עם כותרות ## ב-Markdown",
-  "specs": "מפרט טכני מסודר עם נקודות • ב-Markdown",
-  "seoTitle": "כותרת SEO שיווקית ל-NEW PHONE",
-  "seoDescription": "תיאור SEO שיווקי ל-NEW PHONE"
+  "shortDesc": "תיאור קצר ומדויק המבוסס על הנתונים עם אימוג'י ב-Markdown",
+  "description": "סקירה מקצועית ומסודרת המבוססת אך ורק על הנתונים האמיתיים עם כותרות ## ב-Markdown",
+  "specs": "מפרט טכני מסודר ומדויק לפי הנתונים עם נקודות • ב-Markdown",
+  "seoTitle": "כותרת SEO מדויקת ומקצועית ל-NEW PHONE",
+  "seoDescription": "תיאור SEO מדויק ל-NEW PHONE"
 }`;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
@@ -60,7 +61,7 @@ ${rawInfo || 'אין מידע נוסף, צור על בסיס שם המוצר'}
 
     const parsedData = JSON.parse(jsonStr);
     return NextResponse.json(parsedData);
-  } catch (err: any) {
+  } catch (err: any)  {
     console.error('AI generation error:', err);
     return NextResponse.json({ error: err.message || 'Generation failed' }, { status: 500 });
   }
