@@ -26,10 +26,6 @@ export default function AdminProductsPage() {
   const [stock, setStock] = useState('10');
   const [isDraft, setIsDraft] = useState(false);
 
-  // מצבי אחריות
-  const [showWarranty, setShowWarranty] = useState(true);
-  const [warrantyDuration, setWarrantyDuration] = useState('');
-
   const [shortDesc, setShortDesc] = useState('');
   const [description, setDescription] = useState('');
   const [specs, setSpecs] = useState('');
@@ -138,7 +134,9 @@ export default function AdminProductsPage() {
       const { error } = await supabase.storage.from('products').upload(filePath, file);
       if (!error) {
         const { data } = await supabase.storage.from('products').getPublicUrl(filePath);
-        newUrls.push(data.publicUrl);
+        if (data?.publicUrl) {
+          newUrls.push(data.publicUrl);
+        }
       }
     }
 
@@ -149,7 +147,7 @@ export default function AdminProductsPage() {
     fetchData();
   };
 
-        const handleAiAssistant = async () => {
+  const handleAiAssistant = async () => {
     try {
       setAiGenerating(true);
       
@@ -181,7 +179,7 @@ ${rawInfoText}
   "seoDescription": "תיאור SEO מדויק ל-NEW PHONE"
 }`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-3.8-flash:generateContent?key=${apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -244,8 +242,6 @@ ${rawInfoText}
       product_variants: selectedVersions,
       stock: Number(stock) || 0,
       is_published: !isDraft,
-      show_warranty: showWarranty,
-      warranty_duration: warrantyDuration,
       short_description: shortDesc,
       description,
       specs,
@@ -293,8 +289,6 @@ ${rawInfoText}
     setSelectedVersions([]);
     setStock('10');
     setIsDraft(false);
-    setShowWarranty(true);
-    setWarrantyDuration('');
     setShortDesc('');
     setDescription('');
     setSpecs('');
@@ -325,8 +319,6 @@ ${rawInfoText}
     setSelectedVersions(prod.product_variants || []);
     setStock(prod.stock?.toString() || '10');
     setIsDraft(prod.is_published === false);
-    setShowWarranty(prod.show_warranty ?? true);
-    setWarrantyDuration(prod.warranty_duration || '');
     setShortDesc(prod.short_description || '');
     setDescription(prod.description || '');
     setSpecs(prod.specs || '');
@@ -358,7 +350,6 @@ ${rawInfoText}
     return text;
   };
 
-  // משתני סינון לממשק
   const filteredBrands = brandsList.filter((b) =>
     b.name?.toLowerCase().includes(brandSearch.toLowerCase())
   );
@@ -436,32 +427,6 @@ ${rawInfoText}
               <label className="block text-xs font-bold text-gray-700 mb-1">מלאי (כמות יחידות)</label>
               <input type="number" value={stock} onChange={(e) => setStock(e.target.value)} placeholder="10" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
             </div>
-          </div>
-
-          {/* ניהול אחריות */}
-          <div className="space-y-4 bg-gray-50 p-4 rounded-2xl border">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-xs text-gray-900">הצג שורת אחריות בכרטיס מוצר</span>
-              <input
-                type="checkbox"
-                checked={showWarranty}
-                onChange={(e) => setShowWarranty(e.target.checked)}
-                className="w-5 h-5 accent-orange-600 cursor-pointer"
-              />
-            </div>
-
-            {showWarranty && (
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-gray-700">משך האחריות (לדוגמה: שנה / שנתיים / 3 חודשים):</label>
-                <input
-                  type="text"
-                  value={warrantyDuration}
-                  onChange={(e) => setWarrantyDuration(e.target.value)}
-                  placeholder="לדוגמה: שנה"
-                  className="w-full bg-white border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
-                />
-              </div>
-            )}
           </div>
 
           <div className="space-y-2 bg-gray-50 p-4 rounded-2xl border">
