@@ -150,10 +150,12 @@ function StoreContent() {
 
   const getBannerHref = (banner: any) => {
     if (!banner) return '';
-    if (banner.link_product_id) return `/product/${banner.link_product_id}`;
-    if (banner.link_category) return `/category/${encodeURIComponent(banner.link_category)}`;
-    if (banner.category) return `/category/${encodeURIComponent(banner.category)}`;
-    if (banner.link_url) return banner.link_url;
+    const prodId = banner.link_product_id || banner.product_id;
+    if (prodId) return `/product/${prodId}`;
+    const cat = banner.link_category || banner.category;
+    if (cat) return `/category/${encodeURIComponent(cat)}`;
+    const url = banner.link_url || banner.link;
+    if (url) return url;
     return '';
   };
 
@@ -250,6 +252,13 @@ function StoreContent() {
           -ms-overflow-style: none;
           scrollbar-width: none;
         }
+        @keyframes pulseGlow {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.6; transform: scale(1.1); }
+        }
+        .animate-pulse-glow {
+          animation: pulseGlow 2s infinite;
+        }
       `}</style>
 
       {/* פס מבצעים עליון עם טיימר */}
@@ -292,7 +301,7 @@ function StoreContent() {
         </div>
       )}
 
-      {/* באנר ראשי עם תמונה נקייה לחלוטין וכפתור "לפרטים וקנייה" צף בפינה */}
+      {/* באנר ראשי עם כפתור שקוף-למחצה ומסגרת כתומים אלגנטית בפינה */}
       {banners.length > 0 && (
         <div className="relative w-full overflow-hidden bg-black">
           {banners[currentBanner]?.desktop_image_url || banners[currentBanner]?.mobile_image_url || banners[currentBanner]?.image_url ? (
@@ -319,15 +328,20 @@ function StoreContent() {
                 />
               )}
 
-              {/* כפתור "לפרטים וקנייה" צף ומעוצב בפינה התחתונה בלי להסתיר את התמונה או המלל שעל הבאנר */}
+              {/* תגית מבצע מיוחדת שמושכת את העין (Pulse Badge) */}
+              <div className="absolute top-4 right-4 z-20 flex items-center gap-2 bg-black/40 backdrop-blur-md border border-orange-500/50 text-orange-400 px-3 py-1 rounded-full text-[11px] font-bold shadow-lg">
+                <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse-glow"></span>
+                <span>מבצע מוגבל</span>
+              </div>
+
+              {/* כפתור "לפרטים וקנייה" בעיצוב שקוף-למחצה עם מסגרת כתומה בולטת בלי אימוג'י */}
               {bannerLink && (
                 <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 z-20">
                   <Link 
                     href={bannerLink}
-                    className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-4 py-2.5 sm:px-6 sm:py-3 rounded-2xl shadow-2xl transition-all duration-300 flex items-center gap-2 text-xs sm:text-sm cursor-pointer border border-orange-400/80 hover:scale-105 active:scale-95"
+                    className="backdrop-blur-md bg-black/30 border-2 border-orange-500 hover:bg-orange-600 text-white font-bold px-4 py-2 sm:px-6 sm:py-2.5 rounded-2xl shadow-xl transition-all duration-300 flex items-center gap-2 text-xs sm:text-sm cursor-pointer hover:scale-105 active:scale-95"
                   >
                     <span>לפרטים וקנייה</span>
-                    <span>🛒</span>
                   </Link>
                 </div>
               )}
@@ -348,10 +362,9 @@ function StoreContent() {
                   <div className="pt-2">
                     <Link 
                       href={bannerLink}
-                      className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-3 rounded-2xl shadow-xl transition-all duration-300 inline-flex items-center gap-2 text-xs sm:text-sm cursor-pointer"
+                      className="backdrop-blur-md bg-black/30 border-2 border-orange-500 hover:bg-orange-600 text-white font-bold px-6 py-3 rounded-2xl shadow-xl transition-all duration-300 inline-flex items-center gap-2 text-xs sm:text-sm cursor-pointer"
                     >
                       <span>לפרטים וקנייה</span>
-                      <span>🛒</span>
                     </Link>
                   </div>
                 )}
