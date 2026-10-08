@@ -284,7 +284,7 @@ function StoreContent() {
         </div>
       )}
 
-      {/* באנר ראשי */}
+      {/* באנר ראשי עם כפתור "לפרטים וקנייה" */}
       {banners.length > 0 && (
         <div className="relative w-full overflow-hidden bg-black">
           {banners[currentBanner]?.desktop_image_url || banners[currentBanner]?.mobile_image_url || banners[currentBanner]?.image_url ? (
@@ -311,11 +311,17 @@ function StoreContent() {
                 />
               )}
 
+              {/* כפתור לפרטים וקנייה על גבי הבאנר */}
               {banners[currentBanner]?.link_product_id && (
-                <Link 
-                  href={`/product/${banners[currentBanner].link_product_id}`}
-                  className="absolute inset-0 z-10 cursor-pointer"
-                />
+                <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 z-20">
+                  <Link 
+                    href={`/product/${banners[currentBanner].link_product_id}`}
+                    className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-4 py-2 sm:px-6 sm:py-3 rounded-2xl shadow-xl transition-all duration-300 flex items-center gap-2 text-xs sm:text-sm cursor-pointer backdrop-blur-md border border-orange-500/30 hover:scale-105"
+                  >
+                    <span>לפרטים וקנייה</span>
+                    <span>🛒</span>
+                  </Link>
+                </div>
               )}
             </div>
           ) : (
@@ -330,6 +336,17 @@ function StoreContent() {
                 <p className="w-full text-gray-300 text-xs sm:text-sm font-medium leading-relaxed">
                   {banners[currentBanner]?.subtitle}
                 </p>
+                {banners[currentBanner]?.link_product_id && (
+                  <div className="pt-2">
+                    <Link 
+                      href={`/product/${banners[currentBanner].link_product_id}`}
+                      className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-3 rounded-2xl shadow-xl transition-all duration-300 inline-flex items-center gap-2 text-xs sm:text-sm cursor-pointer"
+                    >
+                      <span>לפרטים וקנייה</span>
+                      <span>🛒</span>
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
           )}
