@@ -205,7 +205,8 @@ ${rawInfoText}
   "seoKeywords": "מילות מפתח רלוונטיות פסיק, פסיק"
 }`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-3.8-flash:generateContent?key=${apiKey}`, {
+      // שימוש במודל היציב והמהיר gemini-1.5-flash
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -414,7 +415,6 @@ ${rawInfoText}
 
   return (
     <div className="space-y-8 max-w-full overflow-hidden" dir="rtl">
-      {/* כפתור הוספת מוצר חדש / טופס הוספה ועריכה */}
       {!showForm ? (
         <div className="bg-white p-6 rounded-3xl border shadow-sm flex justify-between items-center flex-wrap gap-4">
           <div>
@@ -445,7 +445,7 @@ ${rawInfoText}
               onClick={() => setShowForm(false)}
               className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer"
             >
-              ✕ סגור וטפלה ברשימה
+              ✕ סגור וחזור לרשימה
             </button>
           </div>
 
