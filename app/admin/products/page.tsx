@@ -27,6 +27,7 @@ export default function AdminProductsPage() {
   const [productSearch, setProductSearch] = useState('');
   const [kosher, setKosher] = useState('');
   const [storageVal, setStorageVal] = useState('');
+  const [warranty, setWarranty] = useState('');
   const [selectedVersions, setSelectedVersions] = useState<string[]>([]);
   const [stock, setStock] = useState('10');
   const [isDraft, setIsDraft] = useState(false);
@@ -205,8 +206,8 @@ ${rawInfoText}
   "seoKeywords": "מילות מפתח רלוונטיות פסיק, פסיק"
 }`;
 
-      // שימוש במודל gemini-2.5-flash המעודכן
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+      // שימוש במודל gemini-3.8-flash המבוקש לפי הודעת המערכת
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-3.8-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -269,6 +270,7 @@ ${rawInfoText}
       brand,
       kosher,
       storage: storageVal,
+      warranty,
       product_variants: selectedVersions,
       stock: Number(stock) || 0,
       is_published: !isDraft,
@@ -319,6 +321,7 @@ ${rawInfoText}
     setBrand('');
     setKosher('');
     setStorageVal('');
+    setWarranty('');
     setSelectedVersions([]);
     setStock('10');
     setIsDraft(false);
@@ -353,6 +356,7 @@ ${rawInfoText}
     setBrand(prod.brand || '');
     setKosher(prod.kosher || '');
     setStorageVal(prod.storage || '');
+    setWarranty(prod.warranty || '');
     setSelectedVersions(prod.product_variants || []);
     setStock(prod.stock?.toString() || '10');
     setIsDraft(prod.is_published === false);
@@ -480,7 +484,7 @@ ${rawInfoText}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">קטגוריה</label>
                 <select
@@ -497,6 +501,10 @@ ${rawInfoText}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">נפח אחסון</label>
                 <input type="text" value={storageVal} onChange={(e) => setStorageVal(e.target.value)} placeholder="128GB" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">אחריות</label>
+                <input type="text" value={warranty} onChange={(e) => setWarranty(e.target.value)} placeholder="שנה אחריות יבואן רשמי" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
               </div>
             </div>
 
