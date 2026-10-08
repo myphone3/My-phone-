@@ -148,9 +148,13 @@ function StoreContent() {
     }
   };
 
-  // מנגנון חכם ותומך מלא למוצרים, קטגוריות ומותגים מתוך Supabase
+  // מנגנון חכם ותומך מלא למוצרים, קטגוריות, מותגים וקישורים מתוך Supabase
   const getBannerHref = (banner: any) => {
     if (!banner) return '';
+    
+    // בדיקת קישור כללי
+    const url = banner.link_url || banner.link || banner.url;
+    if (url) return url;
     
     // בדיקת מוצר
     const prodId = banner.link_product_id || banner.product_id;
@@ -163,10 +167,6 @@ function StoreContent() {
     // בדיקת מותג
     const brand = banner.link_brand || banner.brand || banner.brand_name;
     if (brand) return `/brand/${encodeURIComponent(brand)}`;
-
-    // בדיקת קישור כללי
-    const url = banner.link_url || banner.link;
-    if (url) return url;
 
     return '';
   };
@@ -251,7 +251,6 @@ function StoreContent() {
   };
 
   const scrollingBrands = [...brands, ...brands, ...brands, ...brands];
-  const bannerLink = banners.length > 0 ? getBannerHref(banners[currentBanner]) : '';
 
   return (
     <div className="space-y-0 pb-16" dir="rtl">
@@ -306,77 +305,70 @@ function StoreContent() {
         </div>
       )}
 
-      {/* באנר ראשי עם כפתור ברקע כתום בהיר מטושטש ומסגרת כתובה */}
+      {/* באנר ראשי שכולו לחיץ בהתאם לקישור ב-Supabase */}
       {banners.length > 0 && (
         <div className="relative w-full overflow-hidden bg-black">
-          {banners[currentBanner]?.desktop_image_url || banners[currentBanner]?.mobile_image_url || banners[currentBanner]?.image_url ? (
-            <div className="relative w-full">
-              {banners[currentBanner]?.desktop_image_url && (
-                <img 
-                  src={banners[currentBanner].desktop_image_url} 
-                  alt={banners[currentBanner]?.title || ''} 
-                  className={`w-full h-auto object-cover max-h-[460px] min-h-[260px] ${banners[currentBanner]?.mobile_image_url ? 'hidden sm:block' : 'block'}`}
-                />
-              )}
-              {banners[currentBanner]?.mobile_image_url && (
-                <img 
-                  src={banners[currentBanner].mobile_image_url} 
-                  alt={banners[currentBanner]?.title || ''} 
-                  className="w-full h-auto object-cover max-h-[380px] min-h-[220px] block sm:hidden"
-                />
-              )}
-              {!banners[currentBanner]?.desktop_image_url && !banners[currentBanner]?.mobile_image_url && banners[currentBanner]?.image_url && (
-                <img 
-                  src={banners[currentBanner].image_url} 
-                  alt={banners[currentBanner]?.title || ''} 
-                  className="w-full h-auto object-cover max-h-[460px] min-h-[260px]"
-                />
-              )}
+          {(() => {
+            const banner = banners[currentBanner];
+            if (!banner) return null;
+            const link = getBannerHref(banner);
 
-              {/* כפתור "לפרטים ורכישה" בעיצוב כתום בהיר מטושטש עם מסגרת כתומה בולטת */}
-              {bannerLink && (
-                <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 z-20">
-                  <Link 
-                    href={bannerLink}
-                    className="backdrop-blur-md bg-orange-500/25 border-2 border-orange-500 hover:bg-orange-600 hover:text-white text-orange-950 font-black px-4 py-2 sm:px-6 sm:py-2.5 rounded-2xl shadow-xl transition-all duration-300 flex items-center gap-2 text-xs sm:text-sm cursor-pointer hover:scale-105 active:scale-95"
-                  >
-                    <span>לפרטים ורכישה</span>
-                  </Link>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="relative w-full bg-gradient-to-r from-gray-950 via-orange-950 to-black text-white py-14 px-4 sm:px-16">
-              <div className="max-w-5xl mx-auto space-y-3 relative z-10 text-right sm:text-center flex flex-col items-start sm:items-center">
-                <span className="inline-block bg-orange-600/35 border border-orange-500/40 text-orange-300 px-3 py-1 rounded-full text-[11px] sm:text-xs font-bold tracking-wide backdrop-blur-md">
-                  NEW PHONE מבצעים חמים ⚡
-                </span>
-                <h1 className="w-full text-lg sm:text-3xl md:text-4xl font-black leading-snug sm:leading-tight break-words">
-                  {banners[currentBanner]?.title}
-                </h1>
-                <p className="w-full text-gray-300 text-xs sm:text-sm font-medium leading-relaxed">
-                  {banners[currentBanner]?.subtitle}
-                </p>
-                {bannerLink && (
-                  <div className="pt-2">
-                    <Link 
-                      href={bannerLink}
-                      className="backdrop-blur-md bg-orange-500/25 border-2 border-orange-500 hover:bg-orange-600 text-white font-black px-6 py-3 rounded-2xl shadow-xl transition-all duration-300 inline-flex items-center gap-2 text-xs sm:text-sm cursor-pointer"
-                    >
-                      <span>לפרטים ורכישה</span>
-                    </Link>
+            const bannerContent = (
+              <div className="relative w-full cursor-pointer">
+                {banner.desktop_image_url && (
+                  <img 
+                    src={banner.desktop_image_url} 
+                    alt={banner.title || ''} 
+                    className={`w-full h-auto object-cover max-h-[460px] min-h-[260px] ${banner.mobile_image_url ? 'hidden sm:block' : 'block'}`}
+                  />
+                )}
+                {banner.mobile_image_url && (
+                  <img 
+                    src={banner.mobile_image_url} 
+                    alt={banner.title || ''} 
+                    className="w-full h-auto object-cover max-h-[380px] min-h-[220px] block sm:hidden"
+                  />
+                )}
+                {!banner.desktop_image_url && !banner.mobile_image_url && banner.image_url && (
+                  <img 
+                    src={banner.image_url} 
+                    alt={banner.title || ''} 
+                    className="w-full h-auto object-cover max-h-[460px] min-h-[260px]"
+                  />
+                )}
+                {!banner.desktop_image_url && !banner.mobile_image_url && !banner.image_url && (
+                  <div className="relative w-full bg-gradient-to-r from-gray-950 via-orange-950 to-black text-white py-14 px-4 sm:px-16">
+                    <div className="max-w-5xl mx-auto space-y-3 relative z-10 text-right sm:text-center flex flex-col items-start sm:items-center">
+                      <span className="inline-block bg-orange-600/35 border border-orange-500/40 text-orange-300 px-3 py-1 rounded-full text-[11px] sm:text-xs font-bold tracking-wide backdrop-blur-md">
+                        NEW PHONE מבצעים חמים ⚡
+                      </span>
+                      <h1 className="w-full text-lg sm:text-3xl md:text-4xl font-black leading-snug sm:leading-tight break-words">
+                        {banner.title}
+                      </h1>
+                      <p className="w-full text-gray-300 text-xs sm:text-sm font-medium leading-relaxed">
+                        {banner.subtitle}
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
-            </div>
-          )}
+            );
+
+            return link ? (
+              <Link href={link} className="block w-full">
+                {bannerContent}
+              </Link>
+            ) : (
+              bannerContent
+            );
+          })()}
 
           {banners.length > 1 && (
             <div className="absolute top-3 left-4 flex gap-1.5 z-20">
               {banners.map((_, idx) => (
                 <button
                   key={idx}
-                  onClick={() => setCurrentBanner(idx)}
+                  onClick={(e) => { e.preventDefault(); setCurrentBanner(idx); }}
                   className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${currentBanner === idx ? 'w-6 bg-orange-500' : 'w-2 bg-white/40'}`}
                 />
               ))}
