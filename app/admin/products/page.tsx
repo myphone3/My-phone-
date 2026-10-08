@@ -74,6 +74,7 @@ export default function AdminProductsPage() {
     fetchData();
   }, []);
 
+  // פונקציה מעודכנת שסורקת גם את התיקייה הראשית וגם את תיקיות המשנה (כמו products) בכל הבאקטים
   const fetchData = async () => {
     setLoading(true);
     
@@ -109,15 +110,30 @@ export default function AdminProductsPage() {
 
     let filesList: string[] = [];
     const bucketsToTry = ['products', 'media', 'public', 'images', 'uploads', 'product-images'];
+    
     for (const bucket of bucketsToTry) {
       try {
-        const storageRes = await supabase.storage.from(bucket).list('', { limit: 100 });
-        if (storageRes.data && storageRes.data.length > 0) {
-          const mapped = storageRes.data.map((f: any) => {
-            const { data } = supabase.storage.from(bucket).getPublicUrl(f.name);
-            return data.publicUrl;
-          });
-          filesList = [...filesList, ...mapped];
+        const { data: rootData, error: rootError } = await supabase.storage.from(bucket).list('', { limit: 100 });
+        if (!rootError && rootData) {
+          for (const item of rootData) {
+            if (item.name && item.name !== '.emptyFolderPlaceholder' && item.name !== '.gitkeep') {
+              if (!item.id || item.metadata === null || item.name === 'products') {
+                const { data: subData, error: subError } = await supabase.storage.from(bucket).list(item.name);
+                if (!subError && subData) {
+                  for (const subItem of subData) {
+                    if (subItem.name && subItem.name !== '.emptyFolderPlaceholder' && subItem.name !== '.gitkeep') {
+                      const filePath = `${item.name}/${subItem.name}`;
+                      const { data: pub } = supabase.storage.from(bucket).getPublicUrl(filePath);
+                      if (pub?.publicUrl) filesList.push(pub.publicUrl);
+                    }
+                  }
+                }
+              } else {
+                const { data: pub } = supabase.storage.from(bucket).getPublicUrl(item.name);
+                if (pub?.publicUrl) filesList.push(pub.publicUrl);
+              }
+            }
+          }
         }
       } catch (e) {}
     }
@@ -206,7 +222,6 @@ ${rawInfoText}
   "seoKeywords": "מילות מפתח רלוונטיות פסיק, פסיק"
 }`;
 
-      // שימוש במודל gemini-3.8-flash המבוקש לפי הודעת המערכת
       const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-3.8-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
