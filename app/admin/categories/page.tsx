@@ -15,17 +15,38 @@ export default function AdminCategoriesPage() {
     fetchData();
   }, []);
 
+  // פונקציה מעודכנת שסורקת גם את התיקייה הראשית וגם את תיקיות המשנה (כמו products)
   const fetchData = async () => {
     const { data: catData } = await supabase.from('categories').select('*');
     if (catData) setCategories(catData);
 
     let allMedia: any[] = [];
-    const { data: files } = await supabase.storage.from('product-images').list();
-    if (files) {
-      for (const file of files) {
-        if (file.name && file.name !== '.emptyFolderPlaceholder') {
-          const { data: pub } = supabase.storage.from('product-images').getPublicUrl(file.name);
-          if (pub?.publicUrl) allMedia.push({ id: file.id || file.name, url: pub.publicUrl });
+    const { data: rootData, error: rootError } = await supabase.storage.from('product-images').list('');
+    
+    if (!rootError && rootData) {
+      for (const item of rootData) {
+        if (item.name && item.name !== '.emptyFolderPlaceholder' && item.name !== '.gitkeep') {
+          // בדיקה האם זו תיקייה (למשל 'products') או קובץ רגיל
+          if (!item.id || item.metadata === null || item.name === 'products') {
+            const { data: subData, error: subError } = await supabase.storage.from('product-images').list(item.name);
+            if (!subError && subData) {
+              for (const subItem of subData) {
+                if (subItem.name && subItem.name !== '.emptyFolderPlaceholder' && subItem.name !== '.gitkeep') {
+                  const filePath = `${item.name}/${subItem.name}`;
+                  const { data: pub } = supabase.storage.from('product-images').getPublicUrl(filePath);
+                  if (pub?.publicUrl) {
+                    allMedia.push({ id: subItem.id || filePath, url: pub.publicUrl });
+                  }
+                }
+              }
+            }
+          } else {
+            // קובץ רגיל בתיקייה הראשית
+            const { data: pub } = supabase.storage.from('product-images').getPublicUrl(item.name);
+            if (pub?.publicUrl) {
+              allMedia.push({ id: item.id || item.name, url: pub.publicUrl });
+            }
+          }
         }
       }
     }
