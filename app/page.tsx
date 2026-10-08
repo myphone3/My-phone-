@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, Suspense } from 'react';
+import React, { useEffect, useState, useRef, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
@@ -17,9 +17,50 @@ function StoreContent() {
   const [loading, setLoading] = useState(true);
   const [selectedColors, setSelectedColors] = useState<{ [key: string]: string }>({});
 
+  // רפרנס עבור גלילת המותגים האינסופית והחלקה
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container || brands.length === 0) return;
+
+    let animationFrameId: number;
+    let isPaused = false;
+
+    const scroll = () => {
+      if (!isPaused && container) {
+        container.scrollLeft += 1; // מהירות תנועת הסרט הנע
+        if (container.scrollLeft >= container.scrollWidth / 3) {
+          container.scrollLeft = 0;
+        }
+      }
+      animationFrameId = requestAnimationFrame(scroll);
+    };
+
+    animationFrameId = requestAnimationFrame(scroll);
+
+    const handleMouseEnter = () => { isPaused = true; };
+    const handleMouseLeave = () => { isPaused = false; };
+    const handleTouchStart = () => { isPaused = true; };
+    const handleTouchEnd = () => { isPaused = false; };
+
+    container.addEventListener('mouseenter', handleMouseEnter);
+    container.addEventListener('mouseleave', handleMouseLeave);
+    container.addEventListener('touchstart', handleTouchStart);
+    container.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      container.removeEventListener('mouseenter', handleMouseEnter);
+      container.removeEventListener('mouseleave', handleMouseLeave);
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [brands]);
 
   useEffect(() => {
     if (!settings?.announcement_end_time) return;
@@ -181,26 +222,12 @@ function StoreContent() {
     }
   };
 
-  const scrollingBrands = [...brands, ...brands, ...brands, ...brands];
+  // שלישיית כפילות למותגים כדי ליצור גלילה אינסופית מושלמת
+  const scrollingBrands = [...brands, ...brands, ...brands];
 
   return (
     <div className="space-y-0 pb-16" dir="rtl">
       
-      <style>{`
-        @keyframes marqueeRight {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(50%); }
-        }
-        .animate-marquee-right {
-          display: flex;
-          width: max-content;
-          animation: marqueeRight 25s linear infinite;
-        }
-        .animate-marquee-right:hover {
-          animation-play-state: paused;
-        }
-      `}</style>
-
       {/* פס מבצעים עליון עם טיימר */}
       {settings?.announcement_text && (
         <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2.5 text-xs sm:text-sm font-bold flex items-center justify-between gap-4 shadow-sm z-50">
@@ -217,18 +244,22 @@ function StoreContent() {
         </div>
       )}
 
-      {/* שורת מותגים רצה */}
+      {/* שורת מותגים זזה אוטומטית שניתן להזיז ידנית עם האצבע או העכבר */}
       {brands.length > 0 && (
         <div className="w-full overflow-hidden bg-white py-3 border-b border-gray-100">
-          <div className="animate-marquee-right flex items-center gap-8 px-4">
+          <div 
+            ref={scrollRef}
+            className="flex overflow-x-auto space-x-8 space-x-reverse scrollbar-none items-center py-2 px-4 cursor-grab active:cursor-grabbing select-none"
+            style={{ scrollBehavior: 'auto' }}
+          >
             {scrollingBrands.map((brand, idx) => (
               brand.image_url && (
                 <Link 
                   key={`${brand.id}-${idx}`} 
                   href={`/brand/${encodeURIComponent(brand.name)}`}
-                  className="w-24 h-12 flex items-center justify-center flex-shrink-0 opacity-85 hover:opacity-100 hover:scale-110 transition cursor-pointer"
+                  className="w-24 h-12 flex items-center justify-center flex-shrink-0 opacity-85 hover:opacity-100 transition cursor-pointer"
                 >
-                  <img src={brand.image_url} alt={brand.name} className="max-h-full max-w-full object-contain" />
+                  <img src={brand.image_url} alt={brand.name} className="max-h-full max-w-full object-contain pointer-events-none" />
                 </Link>
               )
             ))}
@@ -436,7 +467,6 @@ function StoreContent() {
                         <div>
                           <span className="text-xs text-gray-400 block">מחיר</span>
                           <div className="flex items-center gap-2">
-                            {/* מחיר שחור למוצרים רגילים, וכתום רק למוצר שבמבצע */}
                             <span className={`text-base font-black ${product.sale_price ? 'text-orange-600' : 'text-gray-900'}`}>
                               ₪{product.sale_price || product.price || 0}
                             </span>
