@@ -57,20 +57,36 @@ export default function AdminBanners() {
     setSavingSettings(false);
   };
 
+  // פונקציה מעודכנת שסורקת גם את תיקיות המשנה (כמו products) ומביאה את כל התמונות לגלריה
   const fetchExistingImages = async () => {
     try {
       setLoadingGallery(true);
-      const { data, error } = await supabase.storage.from('product-images').list();
-      if (error) throw error;
-      if (data) {
-        const urls = data
-          .filter(file => file.name && file.name !== '.gitkeep')
-          .map((file) => {
-            const { data: pub } = supabase.storage.from('product-images').getPublicUrl(file.name);
-            return pub.publicUrl;
-          });
-        setExistingImages(urls);
+      const { data: rootData, error: rootError } = await supabase.storage.from('product-images').list('');
+      if (rootError) throw rootError;
+
+      let allUrls: string[] = [];
+      if (rootData) {
+        for (const item of rootData) {
+          if (item.name && item.name !== '.gitkeep') {
+            if (!item.id || item.metadata === null || item.name === 'products') {
+              const { data: subData, error: subError } = await supabase.storage.from('product-images').list(item.name);
+              if (!subError && subData) {
+                for (const subItem of subData) {
+                  if (subItem.name && subItem.name !== '.gitkeep') {
+                    const filePath = `${item.name}/${subItem.name}`;
+                    const { data: pub } = supabase.storage.from('product-images').getPublicUrl(filePath);
+                    allUrls.push(pub.publicUrl);
+                  }
+                }
+              }
+            } else {
+              const { data: pub } = supabase.storage.from('product-images').getPublicUrl(item.name);
+              allUrls.push(pub.publicUrl);
+            }
+          }
+        }
       }
+      setExistingImages(allUrls);
     } catch (err: any) {
       console.error('Error fetching existing images:', err.message);
     } finally {
@@ -171,7 +187,6 @@ export default function AdminBanners() {
     <div className="space-y-8" dir="rtl">
       <h1 className="text-2xl font-bold text-gray-900">ניהול באנרים ופס עליון</h1>
 
-      {/* ניהול פס מבצעים עליון עם הגבלת תווים לשורה */}
       <form onSubmit={handleSaveSettings} className="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
         <h2 className="text-lg font-bold text-gray-800 border-b pb-2">ניהול פס מבצעים עליון וטיימר ⏱️</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -182,10 +197,9 @@ export default function AdminBanners() {
               maxLength={60}
               value={announcementText} 
               onChange={(e) => setAnnouncementText(e.target.value)} 
-              placeholder="למשל: מבצע ל-24 שעות בלבד!! משלוח חינם בקניה מעל 399₪" 
+              placeholder="למשל: מבצע ל-24 שעות בלבד!!" 
               className="w-full border rounded-xl p-3 outline-none text-xs sm:text-sm" 
             />
-            <span className="text-[10px] text-gray-500 mt-1 block">מוגבל ל-60 תווים כדי שיישאר בשורה אחת ברורה.</span>
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">שעת סיום מבצע (לשם טיימר)</label>
@@ -197,7 +211,6 @@ export default function AdminBanners() {
         </button>
       </form>
 
-      {/* טופס הוספה / עריכת באנר */}
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
         <h2 className="text-lg font-bold text-gray-800 border-b pb-2">
           {editingId ? 'עריכת באנר ✏️' : 'הוספת באנר חדש ➕'}
@@ -206,11 +219,11 @@ export default function AdminBanners() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">כותרת הבאנר</label>
-            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="למשל: 🔥 מבצעי ענק על מכשירים כשרים..." className="w-full border rounded-xl p-3 outline-none text-xs sm:text-sm" required />
+            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="כותרת..." className="w-full border rounded-xl p-3 outline-none text-xs sm:text-sm" required />
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">כותרת משנה</label>
-            <input type="text" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="למשל: הנחות מיוחדות לשבוע הקרוב בלבד..." className="w-full border rounded-xl p-3 outline-none text-xs sm:text-sm" />
+            <input type="text" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="כותרת משנה..." className="w-full border rounded-xl p-3 outline-none text-xs sm:text-sm" />
           </div>
         </div>
 
@@ -220,7 +233,7 @@ export default function AdminBanners() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1">
               <label className="text-xs font-black text-gray-900">תמונת באנר למחשב (Desktop)</label>
               <span className="text-[10px] bg-orange-100 text-orange-800 font-bold px-2 py-1 rounded-md leading-relaxed">
-                מידות מומלצות: 1920x640 px (רוחב × גובה) | יחס 3:1 | פורמט JPG/WebP | עד 500KB
+                מידות מומלצות: 1920x640 px | יחס 3:1 | עד 500KB
               </span>
             </div>
             <div className="flex gap-2 pt-2">
@@ -249,7 +262,7 @@ export default function AdminBanners() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1">
               <label className="text-xs font-black text-gray-900">תמונת באנר לפלאפון (Mobile)</label>
               <span className="text-[10px] bg-orange-100 text-orange-800 font-bold px-2 py-1 rounded-md leading-relaxed">
-                מידות מומלצות: 1075x1536 px | מוצג בגובה נמוך יותר בכ-30% במובייל.
+                מידות מומלצות: 1075x1536 px
               </span>
             </div>
             <div className="flex gap-2 pt-2">
@@ -287,7 +300,7 @@ export default function AdminBanners() {
                 <button
                   type="button"
                   onClick={() => setShowGalleryModal(null)}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-2xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-2xl text-xs font-bold transition cursor-pointer"
                 >
                   סגור ✕
                 </button>
@@ -344,7 +357,7 @@ export default function AdminBanners() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t">
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">קישור למזהה מוצר (אופציונלי)</label>
-            <input type="text" value={linkProductId} onChange={(e) => setLinkProductId(e.target.value)} placeholder="השאר ריק או הכנס מזהה מוצר..." className="w-full border rounded-xl p-3 outline-none text-xs sm:text-sm" />
+            <input type="text" value={linkProductId} onChange={(e) => setLinkProductId(e.target.value)} placeholder="מזהה מוצר..." className="w-full border rounded-xl p-3 outline-none text-xs sm:text-sm" />
           </div>
           <div className="flex items-center gap-3 pt-6">
             <label className="flex items-center gap-2 cursor-pointer font-bold text-xs">
