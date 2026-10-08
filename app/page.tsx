@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, Suspense } from 'react';
+import React, { useEffect, useState, useRef, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
@@ -17,9 +17,56 @@ function StoreContent() {
   const [loading, setLoading] = useState(true);
   const [selectedColors, setSelectedColors] = useState<{ [key: string]: string }>({});
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  // מנגנון תנועה תמידי מושלם: רץ אוטומטית, מאפשר ניווט ידני חופשי באצבע, וחוזר לבד מיד בעזיבה
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container || brands.length === 0) return;
+
+    let animationFrameId: number;
+    let lastInteractionTime = 0;
+
+    const recordInteraction = () => {
+      lastInteractionTime = Date.now();
+    };
+
+    container.addEventListener('touchstart', recordInteraction, { passive: true });
+    container.addEventListener('touchmove', recordInteraction, { passive: true });
+    container.addEventListener('mousedown', recordInteraction);
+    container.addEventListener('mousemove', recordInteraction);
+    container.addEventListener('wheel', recordInteraction, { passive: true });
+
+    const scroll = () => {
+      if (container) {
+        const now = Date.now();
+        // אם המשתמש לא נגע בפס בחצי השנייה האחרונה, הפס ממשיך לנסוע אוטומטית קדימה
+        if (now - lastInteractionTime > 500) {
+          container.scrollLeft += 1.2;
+          const halfWidth = container.scrollWidth / 2;
+          if (halfWidth > 0 && container.scrollLeft >= halfWidth) {
+            container.scrollLeft = 0; // לולאה אינסופית חלקה בלי רווחים
+          }
+        }
+      }
+      animationFrameId = requestAnimationFrame(scroll);
+    };
+
+    animationFrameId = requestAnimationFrame(scroll);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      container.removeEventListener('touchstart', recordInteraction);
+      container.removeEventListener('touchmove', recordInteraction);
+      container.removeEventListener('mousedown', recordInteraction);
+      container.removeEventListener('mousemove', recordInteraction);
+      container.removeEventListener('wheel', recordInteraction);
+    };
+  }, [brands]);
 
   useEffect(() => {
     if (!settings?.announcement_end_time) return;
@@ -182,20 +229,18 @@ function StoreContent() {
   };
 
   // הכפלה מרובה של המותגים ליצירת רצף אינסופי מושלם
-  const scrollingBrands = [...brands, ...brands, ...brands, ...brands, ...brands, ...brands];
+  const scrollingBrands = [...brands, ...brands, ...brands, ...brands];
 
   return (
     <div className="space-y-0 pb-16" dir="rtl">
 
       <style>{`
-        @keyframes continuousScroll {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
         }
-        .animate-continuous {
-          display: flex;
-          width: max-content;
-          animation: continuousScroll 25s linear infinite;
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
       `}</style>
 
@@ -215,10 +260,15 @@ function StoreContent() {
         </div>
       )}
 
-      {/* שורת מותגים רצה תמיד אוטומטית ברציפות מהשנייה הראשונה, ללא עצירות וללא פס ניווט */}
+      {/* שורת מותגים רצה תמיד אוטומטית ברציפות, ניתנת לניווט ידני, בלולאה אינסופית וללא פס ניווט */}
       {brands.length > 0 && (
         <div className="w-full bg-white py-3 border-b border-gray-100 overflow-hidden">
-          <div className="animate-continuous flex items-center gap-8 px-4">
+          <div 
+            ref={scrollRef}
+            dir="ltr"
+            className="no-scrollbar flex overflow-x-auto space-x-8 items-center py-2 px-4 cursor-grab active:cursor-grabbing select-none"
+            style={{ scrollBehavior: 'auto', WebkitOverflowScrolling: 'touch' }}
+          >
             {scrollingBrands.map((brand, idx) => (
               brand.image_url && (
                 <Link 
