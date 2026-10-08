@@ -23,22 +23,33 @@ function StoreContent() {
     fetchData();
   }, []);
 
-  // מנגנון תנועה תמידי, רציף ובלתי פוסק שמאפשר גם גלילה ידנית מלאה באצבע
+  // מנגנון תנועה תמידי חכם: נעצר רק בזמן מגע ידני וחוזר מיד אוטומטית כשהאצבע עוזבת
   useEffect(() => {
     const container = scrollRef.current;
     if (!container || brands.length === 0) return;
 
     let animationFrameId: number;
-    let isTouching = false;
+    let lastInteractionTime = 0;
+
+    const recordInteraction = () => {
+      lastInteractionTime = Date.now();
+    };
+
+    container.addEventListener('touchstart', recordInteraction, { passive: true });
+    container.addEventListener('touchmove', recordInteraction, { passive: true });
+    container.addEventListener('mousedown', recordInteraction);
+    container.addEventListener('mousemove', recordInteraction);
+    container.addEventListener('wheel', recordInteraction, { passive: true });
 
     const scroll = () => {
-      if (!isTouching && container) {
-        container.scrollLeft += 1.2; // מהירות הנסיעה התמידית
-        
-        // לולאה אינסופית חלקה בלי רווחים
-        if (container.scrollWidth > container.clientWidth) {
-          if (container.scrollLeft >= (container.scrollWidth / 2)) {
-            container.scrollLeft = 0;
+      if (container) {
+        const now = Date.now();
+        // אם המשתמש לא נגע בשורת המותגים ב-800 המיליסקנד האחרונות, הפס חוזר מיד לנסוע לבד אוטומטית!
+        if (now - lastInteractionTime > 800) {
+          container.scrollLeft += 1.2;
+          const halfWidth = container.scrollWidth / 2;
+          if (container.scrollLeft >= halfWidth) {
+            container.scrollLeft = 0; // לולאה אינסופית חלקה בלי רווחים
           }
         }
       }
@@ -47,22 +58,13 @@ function StoreContent() {
 
     animationFrameId = requestAnimationFrame(scroll);
 
-    const handleTouchStart = () => { isTouching = true; };
-    const handleTouchEnd = () => { isTouching = false; };
-    const handleMouseDown = () => { isTouching = true; };
-    const handleMouseUp = () => { isTouching = false; };
-
-    container.addEventListener('touchstart', handleTouchStart, { passive: true });
-    container.addEventListener('touchend', handleTouchEnd, { passive: true });
-    container.addEventListener('mousedown', handleMouseDown);
-    window.addEventListener('mouseup', handleMouseUp);
-
     return () => {
       cancelAnimationFrame(animationFrameId);
-      container.removeEventListener('touchstart', handleTouchStart);
-      container.removeEventListener('touchend', handleTouchEnd);
-      container.removeEventListener('mousedown', handleMouseDown);
-      window.removeEventListener('mouseup', handleMouseUp);
+      container.removeEventListener('touchstart', recordInteraction);
+      container.removeEventListener('touchmove', recordInteraction);
+      container.removeEventListener('mousedown', recordInteraction);
+      container.removeEventListener('mousemove', recordInteraction);
+      container.removeEventListener('wheel', recordInteraction);
     };
   }, [brands]);
 
@@ -258,7 +260,7 @@ function StoreContent() {
         </div>
       )}
 
-      {/* שורת מותגים רצה תמיד ברציפות אוטומטית מהרגע הראשון, ללא פס ניווט, וניתנת לגלילה חופשית באצבע */}
+      {/* שורת מותגים רצה תמיד אוטומטית ברציפות, ניתנת לגלילה ידנית, וללא פס ניווט */}
       {brands.length > 0 && (
         <div className="w-full bg-white py-3 border-b border-gray-100 overflow-hidden">
           <div 
