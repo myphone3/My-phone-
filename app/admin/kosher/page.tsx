@@ -24,20 +24,36 @@ export default function AdminKosher() {
     if (data) setKosherList(data);
   };
 
+  // פונקציה מעודכנת שסורקת גם את תיקיות המשנה (כמו products) ומביאה את כל התמונות
   const fetchExistingImages = async () => {
     try {
       setLoadingGallery(true);
-      const { data, error } = await supabase.storage.from('product-images').list();
-      if (error) throw error;
-      if (data) {
-        const urls = data
-          .filter(file => file.name && file.name !== '.gitkeep')
-          .map((file) => {
-            const { data: pub } = supabase.storage.from('product-images').getPublicUrl(file.name);
-            return pub.publicUrl;
-          });
-        setExistingImages(urls);
+      const { data: rootData, error: rootError } = await supabase.storage.from('product-images').list('');
+      if (rootError) throw rootError;
+
+      let allUrls: string[] = [];
+      if (rootData) {
+        for (const item of rootData) {
+          if (item.name && item.name !== '.gitkeep') {
+            if (!item.id || item.metadata === null || item.name === 'products') {
+              const { data: subData, error: subError } = await supabase.storage.from('product-images').list(item.name);
+              if (!subError && subData) {
+                for (const subItem of subData) {
+                  if (subItem.name && subItem.name !== '.gitkeep') {
+                    const filePath = `${item.name}/${subItem.name}`;
+                    const { data: pub } = supabase.storage.from('product-images').getPublicUrl(filePath);
+                    allUrls.push(pub.publicUrl);
+                  }
+                }
+              }
+            } else {
+              const { data: pub } = supabase.storage.from('product-images').getPublicUrl(item.name);
+              allUrls.push(pub.publicUrl);
+            }
+          }
+        }
       }
+      setExistingImages(allUrls);
     } catch (err: any) {
       console.error('Error fetching existing images:', err.message);
     } finally {
