@@ -205,8 +205,8 @@ ${rawInfoText}
   "seoKeywords": "מילות מפתח רלוונטיות פסיק, פסיק"
 }`;
 
-      // שימוש במודל היציב והמהיר gemini-1.5-flash
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      // שימוש במודל gemini-2.5-flash המעודכן
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
