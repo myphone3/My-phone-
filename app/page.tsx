@@ -148,27 +148,34 @@ function StoreContent() {
     }
   };
 
-  // מנגנון חכם ותומך מלא למוצרים, קטגוריות, מותגים וקישורים מתוך Supabase
+  // פענוח חכם של עמודת הקישור מתוך טבלת הבאנרים (ניקוי כתובות מלאות או התאמה לנתיב)
   const getBannerHref = (banner: any) => {
     if (!banner) return '';
-    
-    // בדיקת קישור כללי
-    const url = banner.link_url || banner.link || banner.url;
-    if (url) return url;
-    
-    // בדיקת מוצר
-    const prodId = banner.link_product_id || banner.product_id;
-    if (prodId) return `/product/${prodId}`;
-    
-    // בדיקת קטגוריה
-    const cat = banner.link_category || banner.category || banner.category_name;
-    if (cat) return `/category/${encodeURIComponent(cat)}`;
+    const rawVal = banner.link_product_id || banner.link_url || banner.link || '';
+    if (!rawVal || typeof rawVal !== 'string') return '';
 
-    // בדיקת מותג
-    const brand = banner.link_brand || banner.brand || banner.brand_name;
-    if (brand) return `/brand/${encodeURIComponent(brand)}`;
+    const trimmed = rawVal.trim();
 
-    return '';
+    // אם הוזנה כתובת Vercel מלאה, נחלץ מתוכה רק את הנתיב הפנימי
+    if (trimmed.includes('my-phone-iota.vercel.app')) {
+      try {
+        const urlObj = new URL(trimmed);
+        return urlObj.pathname + urlObj.search;
+      } catch {
+        const parts = trimmed.split('vercel.app');
+        if (parts[1]) return parts[1];
+      }
+    }
+
+    // אם זה כבר נתיב יחסי תקין
+    if (trimmed.startsWith('/')) return trimmed;
+
+    // אם זה מזהה מוצר או שם קטגוריה
+    if (trimmed.length > 20 && !trimmed.includes(' ')) {
+      return `/product/${trimmed}`;
+    }
+
+    return `/category/${encodeURIComponent(trimmed)}`;
   };
 
   const handleColorClick = (productId: string, colorImg: string, e: React.MouseEvent) => {
