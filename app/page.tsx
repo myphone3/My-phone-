@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef, Suspense } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
@@ -17,50 +17,9 @@ function StoreContent() {
   const [loading, setLoading] = useState(true);
   const [selectedColors, setSelectedColors] = useState<{ [key: string]: string }>({});
 
-  const scrollRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     fetchData();
   }, []);
-
-  // מנגנון תנועה תמידי, רציף ובלתי פוסק שרץ מהרגע הראשון ומטפל بلולאה חלקה בלי להיתקע
-  useEffect(() => {
-    const container = scrollRef.current;
-    if (!container || brands.length === 0) return;
-
-    let animationFrameId: number;
-    let isDragging = false;
-
-    const scroll = () => {
-      if (!isDragging && container) {
-        container.scrollLeft += 1.5; // מהירות הנסיעה התמידית
-        
-        // בדיקה מדויקת מול קצה הגלילה האמיתי כדי לחזור להתחלה בלי להיתקע קפוא
-        if (container.scrollWidth > container.clientWidth) {
-          if (container.scrollLeft >= container.scrollWidth - container.clientWidth - 3) {
-            container.scrollLeft = 0;
-          }
-        }
-      }
-      animationFrameId = requestAnimationFrame(scroll);
-    };
-
-    animationFrameId = requestAnimationFrame(scroll);
-
-    const handlePointerDown = () => { isDragging = true; };
-    const handlePointerUp = () => { isDragging = false; };
-
-    container.addEventListener('pointerdown', handlePointerDown);
-    window.addEventListener('pointerup', handlePointerUp);
-    window.addEventListener('pointercancel', handlePointerUp);
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-      container.removeEventListener('pointerdown', handlePointerDown);
-      window.removeEventListener('pointerup', handlePointerUp);
-      window.removeEventListener('pointercancel', handlePointerUp);
-    };
-  }, [brands]);
 
   useEffect(() => {
     if (!settings?.announcement_end_time) return;
@@ -222,19 +181,21 @@ function StoreContent() {
     }
   };
 
-  // הכפלה מרובה של המותגים ליצירת רצף אינסופי מושלם
-  const scrollingBrands = [...brands, ...brands, ...brands, ...brands, ...brands, ...brands];
+  // הכפלה מרובה של המותגים ליצירת רצף אינסופי מושלם ללא הפסקה
+  const scrollingBrands = [...brands, ...brands, ...brands, ...brands, ...brands, ...brands, ...brands, ...brands];
 
   return (
     <div className="space-y-0 pb-16" dir="rtl">
 
       <style>{`
-        .no-scrollbar::-webkit-scrollbar {
-          display: none;
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
         }
-        .no-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
+        .animate-marquee {
+          display: flex;
+          width: max-content;
+          animation: marquee 25s linear infinite;
         }
       `}</style>
 
@@ -254,14 +215,10 @@ function StoreContent() {
         </div>
       )}
 
-      {/* שורת מותגים רצה תמיד ברציפות, ללא פס ניווט, ורצה לבד מהשנייה הראשונה */}
+      {/* שורת מותגים רצה תמיד ברציפות אוטומטית מהשנייה הראשונה, ללא עצירות וללא פס ניווט */}
       {brands.length > 0 && (
         <div className="w-full bg-white py-3 border-b border-gray-100 overflow-hidden">
-          <div 
-            ref={scrollRef}
-            className="no-scrollbar flex overflow-x-auto space-x-8 space-x-reverse items-center py-2 px-4 select-none cursor-grab active:cursor-grabbing"
-            style={{ scrollBehavior: 'auto', WebkitOverflowScrolling: 'touch' }}
-          >
+          <div className="animate-marquee flex items-center gap-8 px-4">
             {scrollingBrands.map((brand, idx) => (
               brand.image_url && (
                 <Link 
