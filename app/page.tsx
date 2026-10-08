@@ -23,19 +23,23 @@ function StoreContent() {
     fetchData();
   }, []);
 
-  // מנגנון תנועה תמידי, רציף ובלתי פוסק מהשנייה הראשונה שלא נעצר לעולם
+  // מנגנון תנועה תמידי, רציף ובלתי פוסק שרץ מהרגע הראשון ומטפל بلולאה חלקה בלי להיתקע
   useEffect(() => {
     const container = scrollRef.current;
     if (!container || brands.length === 0) return;
 
     let animationFrameId: number;
+    let isDragging = false;
 
     const scroll = () => {
-      if (container) {
-        container.scrollLeft += 1.2; // מהירות הנסיעה התמידית
-        const halfWidth = container.scrollWidth / 2;
-        if (container.scrollLeft >= halfWidth) {
-          container.scrollLeft = 0; // לולאה אינסופית חלקה בלי רווחים ובלי לעצור
+      if (!isDragging && container) {
+        container.scrollLeft += 1.5; // מהירות הנסיעה התמידית
+        
+        // בדיקה מדויקת מול קצה הגלילה האמיתי כדי לחזור להתחלה בלי להיתקע קפוא
+        if (container.scrollWidth > container.clientWidth) {
+          if (container.scrollLeft >= container.scrollWidth - container.clientWidth - 3) {
+            container.scrollLeft = 0;
+          }
         }
       }
       animationFrameId = requestAnimationFrame(scroll);
@@ -43,8 +47,18 @@ function StoreContent() {
 
     animationFrameId = requestAnimationFrame(scroll);
 
+    const handlePointerDown = () => { isDragging = true; };
+    const handlePointerUp = () => { isDragging = false; };
+
+    container.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
+
     return () => {
       cancelAnimationFrame(animationFrameId);
+      container.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerUp);
     };
   }, [brands]);
 
@@ -209,7 +223,7 @@ function StoreContent() {
   };
 
   // הכפלה מרובה של המותגים ליצירת רצף אינסופי מושלם
-  const scrollingBrands = [...brands, ...brands, ...brands, ...brands];
+  const scrollingBrands = [...brands, ...brands, ...brands, ...brands, ...brands, ...brands];
 
   return (
     <div className="space-y-0 pb-16" dir="rtl">
@@ -245,7 +259,7 @@ function StoreContent() {
         <div className="w-full bg-white py-3 border-b border-gray-100 overflow-hidden">
           <div 
             ref={scrollRef}
-            className="no-scrollbar flex overflow-x-auto space-x-8 space-x-reverse items-center py-2 px-4 select-none"
+            className="no-scrollbar flex overflow-x-auto space-x-8 space-x-reverse items-center py-2 px-4 select-none cursor-grab active:cursor-grabbing"
             style={{ scrollBehavior: 'auto', WebkitOverflowScrolling: 'touch' }}
           >
             {scrollingBrands.map((brand, idx) => (
@@ -442,7 +456,7 @@ function StoreContent() {
 
                             return (
                               <button
-                            key={idx}
+                                key={idx}
                                 onClick={(e) => handleColorClick(product.id, colorImg, e)}
                                 className={`w-7 h-7 rounded-lg transition relative flex items-center justify-center shrink-0 cursor-pointer bg-white ${
                                   isSelected ? 'border-2 border-orange-600 shadow-sm' : 'border border-gray-200'
