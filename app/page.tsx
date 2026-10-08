@@ -292,7 +292,7 @@ function StoreContent() {
         </div>
       )}
 
-      {/* באנר ראשי עם פס תחתון מעוצב וכפתור לפרטים וקנייה */}
+      {/* באנר ראשי עם תמונה נקייה לחלוטין וכפתור "לפרטים וקנייה" צף בפינה */}
       {banners.length > 0 && (
         <div className="relative w-full overflow-hidden bg-black">
           {banners[currentBanner]?.desktop_image_url || banners[currentBanner]?.mobile_image_url || banners[currentBanner]?.image_url ? (
@@ -319,31 +319,18 @@ function StoreContent() {
                 />
               )}
 
-              {/* פס תחתון מעוצב ואלגנטי עם הכותרת וכפתור "לפרטים וקנייה" שאינו מסתיר את התמונה */}
-              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-8 pb-4 px-4 sm:px-6 flex items-end justify-between gap-4 z-20">
-                <div className="space-y-1 text-right text-white max-w-[70%]">
-                  {banners[currentBanner]?.title && (
-                    <h3 className="font-black text-xs sm:text-base leading-tight drop-shadow-md">
-                      {banners[currentBanner].title}
-                    </h3>
-                  )}
-                  {banners[currentBanner]?.subtitle && (
-                    <p className="text-[11px] sm:text-xs text-gray-200 line-clamp-1 drop-shadow-sm">
-                      {banners[currentBanner].subtitle}
-                    </p>
-                  )}
-                </div>
-
-                {bannerLink && (
+              {/* כפתור "לפרטים וקנייה" צף ומעוצב בפינה התחתונה בלי להסתיר את התמונה או המלל שעל הבאנר */}
+              {bannerLink && (
+                <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 z-20">
                   <Link 
                     href={bannerLink}
-                    className="shrink-0 bg-orange-600 hover:bg-orange-700 text-white font-bold px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-xl shadow-xl transition-all duration-300 flex items-center gap-1.5 text-xs sm:text-sm cursor-pointer border border-orange-500/50 hover:scale-105 active:scale-95"
+                    className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-4 py-2.5 sm:px-6 sm:py-3 rounded-2xl shadow-2xl transition-all duration-300 flex items-center gap-2 text-xs sm:text-sm cursor-pointer border border-orange-400/80 hover:scale-105 active:scale-95"
                   >
                     <span>לפרטים וקנייה</span>
                     <span>🛒</span>
                   </Link>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="relative w-full bg-gradient-to-r from-gray-950 via-orange-950 to-black text-white py-14 px-4 sm:px-16">
