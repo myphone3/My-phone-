@@ -217,11 +217,13 @@ export default function AdminBanners() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t">
           
           <div className="space-y-2 bg-gray-50 p-4 rounded-2xl border">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1">
               <label className="text-xs font-black text-gray-900">תמונת באנר למחשב (Desktop)</label>
-              <span className="text-[10px] bg-orange-100 text-orange-800 font-bold px-2 py-0.5 rounded-md">מידות מומלצות: 1920x500 px</span>
+              <span className="text-[10px] bg-orange-100 text-orange-800 font-bold px-2 py-1 rounded-md leading-relaxed">
+                מידות מומלצות: 1920x640 px (רוחב × גובה) | יחס 3:1 | פורמט JPG/WebP | עד 500KB
+              </span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 pt-2">
               <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'desktop')} className="w-full border rounded-xl p-2.5 text-xs bg-white cursor-pointer" />
               <button
                 type="button"
@@ -244,11 +246,13 @@ export default function AdminBanners() {
           </div>
 
           <div className="space-y-2 bg-gray-50 p-4 rounded-2xl border">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1">
               <label className="text-xs font-black text-gray-900">תמונת באנר לפלאפון (Mobile)</label>
-              <span className="text-[10px] bg-orange-100 text-orange-800 font-bold px-2 py-0.5 rounded-md">מידות מומלצות: 1000x600 px</span>
+              <span className="text-[10px] bg-orange-100 text-orange-800 font-bold px-2 py-1 rounded-md leading-relaxed">
+                מידות מומלצות: 1075x1536 px | מוצג בגובה נמוך יותר בכ-30% במובייל.
+              </span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 pt-2">
               <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'mobile')} className="w-full border rounded-xl p-2.5 text-xs bg-white cursor-pointer" />
               <button
                 type="button"
