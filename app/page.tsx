@@ -149,6 +149,7 @@ function StoreContent() {
   };
 
   const getBannerHref = (banner: any) => {
+    if (!banner) return '';
     if (banner.link_product_id) return `/product/${banner.link_product_id}`;
     if (banner.link_category) return `/category/${encodeURIComponent(banner.link_category)}`;
     if (banner.category) return `/category/${encodeURIComponent(banner.category)}`;
@@ -236,7 +237,7 @@ function StoreContent() {
   };
 
   const scrollingBrands = [...brands, ...brands, ...brands, ...brands];
-  const bannerLink = getBannerHref(banners[currentBanner]);
+  const bannerLink = banners.length > 0 ? getBannerHref(banners[currentBanner]) : '';
 
   return (
     <div className="space-y-0 pb-16" dir="rtl">
