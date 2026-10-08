@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, Suspense } from 'react';
+import React, { useEffect, useState, useRef, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
@@ -17,9 +17,72 @@ function StoreContent() {
   const [loading, setLoading] = useState(true);
   const [selectedColors, setSelectedColors] = useState<{ [key: string]: string }>({});
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  // מנגנון גלילה אוטומטית רציפה עם אפשרות גלילה ידנית באצבע וחזרה אוטומטית לתנועה
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container || brands.length === 0) return;
+
+    let animationFrameId: number;
+    let isInteracting = false;
+    let resumeTimeout: NodeJS.Timeout;
+
+    const scroll = () => {
+      if (!isInteracting && container) {
+        container.scrollLeft += 1.2; // מהירות התנועה האוטומטית
+        const halfWidth = container.scrollWidth / 2;
+        if (container.scrollLeft >= halfWidth) {
+          container.scrollLeft = 0; // לולאה אינסופית חלקה בלי רווחים
+        }
+      }
+      animationFrameId = requestAnimationFrame(scroll);
+    };
+
+    animationFrameId = requestAnimationFrame(scroll);
+
+    const handleTouchStart = () => {
+      isInteracting = true;
+      clearTimeout(resumeTimeout);
+    };
+
+    const handleTouchEnd = () => {
+      clearTimeout(resumeTimeout);
+      resumeTimeout = setTimeout(() => {
+        isInteracting = false;
+      }, 1500); // חזרה לתנועה אוטומטית 1.5 שניות אחרי עזיבת האצבע
+    };
+
+    const handleMouseDown = () => {
+      isInteracting = true;
+      clearTimeout(resumeTimeout);
+    };
+
+    const handleMouseUp = () => {
+      clearTimeout(resumeTimeout);
+      resumeTimeout = setTimeout(() => {
+        isInteracting = false;
+      }, 1500);
+    };
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+    container.addEventListener('touchend', handleTouchEnd, { passive: true });
+    container.addEventListener('mousedown', handleMouseDown);
+    container.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      clearTimeout(resumeTimeout);
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchend', handleTouchEnd);
+      container.removeEventListener('mousedown', handleMouseDown);
+      container.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [brands]);
 
   useEffect(() => {
     if (!settings?.announcement_end_time) return;
@@ -181,24 +244,19 @@ function StoreContent() {
     }
   };
 
-  // הכפלה מרובה של המותגים ליצירת לולאה אינסופית חלקה ללא רווחים ריקים
+  // הכפלה כפולה של המותגים ליצירת רצף אינסופי מושלם
   const scrollingBrands = [...brands, ...brands, ...brands, ...brands];
 
   return (
     <div className="space-y-0 pb-16" dir="rtl">
-      
+
       <style>{`
-        @keyframes marquee {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
         }
-        .animate-marquee {
-          display: flex;
-          width: max-content;
-          animation: marquee 22s linear infinite;
-        }
-        .animate-marquee:hover {
-          animation-play-state: paused;
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
       `}</style>
 
@@ -218,10 +276,14 @@ function StoreContent() {
         </div>
       )}
 
-      {/* שורת מותגים רצה אוטומטית וללא פסי גלילה */}
+      {/* שורת מותגים רצה אוטומטית, חלק ללא פס ניווט, וניתנת לגלילה חופשית באצבע */}
       {brands.length > 0 && (
-        <div className="w-full overflow-hidden bg-white py-3 border-b border-gray-100">
-          <div className="animate-marquee flex items-center gap-8 px-4">
+        <div className="w-full bg-white py-3 border-b border-gray-100 overflow-hidden">
+          <div 
+            ref={scrollRef}
+            className="no-scrollbar flex overflow-x-auto space-x-8 space-x-reverse items-center py-2 px-4 cursor-grab active:cursor-grabbing select-none"
+            style={{ scrollBehavior: 'auto', WebkitOverflowScrolling: 'touch' }}
+          >
             {scrollingBrands.map((brand, idx) => (
               brand.image_url && (
                 <Link 
