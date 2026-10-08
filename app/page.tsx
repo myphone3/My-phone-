@@ -44,12 +44,11 @@ function StoreContent() {
     const scroll = () => {
       if (container) {
         const now = Date.now();
-        // אם המשתמש לא נגע בפס בחצי השנייה האחרונה, הפס ממשיך לנסוע אוטומטית קדימה
         if (now - lastInteractionTime > 500) {
           container.scrollLeft += 1.2;
           const halfWidth = container.scrollWidth / 2;
           if (halfWidth > 0 && container.scrollLeft >= halfWidth) {
-            container.scrollLeft = 0; // לולאה אינסופית חלקה בלי רווחים
+            container.scrollLeft = 0;
           }
         }
       }
@@ -149,6 +148,14 @@ function StoreContent() {
     }
   };
 
+  const getBannerHref = (banner: any) => {
+    if (banner.link_product_id) return `/product/${banner.link_product_id}`;
+    if (banner.link_category) return `/category/${encodeURIComponent(banner.link_category)}`;
+    if (banner.category) return `/category/${encodeURIComponent(banner.category)}`;
+    if (banner.link_url) return banner.link_url;
+    return '';
+  };
+
   const handleColorClick = (productId: string, colorImg: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -228,8 +235,8 @@ function StoreContent() {
     }
   };
 
-  // הכפלה מרובה של המותגים ליצירת רצף אינסופי מושלם
   const scrollingBrands = [...brands, ...brands, ...brands, ...brands];
+  const bannerLink = getBannerHref(banners[currentBanner]);
 
   return (
     <div className="space-y-0 pb-16" dir="rtl">
@@ -284,7 +291,7 @@ function StoreContent() {
         </div>
       )}
 
-      {/* באנר ראשי עם כפתור "לפרטים וקנייה" */}
+      {/* באנר ראשי עם פס תחתון מעוצב וכפתור לפרטים וקנייה */}
       {banners.length > 0 && (
         <div className="relative w-full overflow-hidden bg-black">
           {banners[currentBanner]?.desktop_image_url || banners[currentBanner]?.mobile_image_url || banners[currentBanner]?.image_url ? (
@@ -311,18 +318,31 @@ function StoreContent() {
                 />
               )}
 
-              {/* כפתור לפרטים וקנייה על גבי הבאנר */}
-              {banners[currentBanner]?.link_product_id && (
-                <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 z-20">
+              {/* פס תחתון מעוצב ואלגנטי עם הכותרת וכפתור "לפרטים וקנייה" שאינו מסתיר את התמונה */}
+              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-8 pb-4 px-4 sm:px-6 flex items-end justify-between gap-4 z-20">
+                <div className="space-y-1 text-right text-white max-w-[70%]">
+                  {banners[currentBanner]?.title && (
+                    <h3 className="font-black text-xs sm:text-base leading-tight drop-shadow-md">
+                      {banners[currentBanner].title}
+                    </h3>
+                  )}
+                  {banners[currentBanner]?.subtitle && (
+                    <p className="text-[11px] sm:text-xs text-gray-200 line-clamp-1 drop-shadow-sm">
+                      {banners[currentBanner].subtitle}
+                    </p>
+                  )}
+                </div>
+
+                {bannerLink && (
                   <Link 
-                    href={`/product/${banners[currentBanner].link_product_id}`}
-                    className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-4 py-2 sm:px-6 sm:py-3 rounded-2xl shadow-xl transition-all duration-300 flex items-center gap-2 text-xs sm:text-sm cursor-pointer backdrop-blur-md border border-orange-500/30 hover:scale-105"
+                    href={bannerLink}
+                    className="shrink-0 bg-orange-600 hover:bg-orange-700 text-white font-bold px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-xl shadow-xl transition-all duration-300 flex items-center gap-1.5 text-xs sm:text-sm cursor-pointer border border-orange-500/50 hover:scale-105 active:scale-95"
                   >
                     <span>לפרטים וקנייה</span>
                     <span>🛒</span>
                   </Link>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           ) : (
             <div className="relative w-full bg-gradient-to-r from-gray-950 via-orange-950 to-black text-white py-14 px-4 sm:px-16">
@@ -336,10 +356,10 @@ function StoreContent() {
                 <p className="w-full text-gray-300 text-xs sm:text-sm font-medium leading-relaxed">
                   {banners[currentBanner]?.subtitle}
                 </p>
-                {banners[currentBanner]?.link_product_id && (
+                {bannerLink && (
                   <div className="pt-2">
                     <Link 
-                      href={`/product/${banners[currentBanner].link_product_id}`}
+                      href={bannerLink}
                       className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-3 rounded-2xl shadow-xl transition-all duration-300 inline-flex items-center gap-2 text-xs sm:text-sm cursor-pointer"
                     >
                       <span>לפרטים וקנייה</span>
@@ -352,7 +372,7 @@ function StoreContent() {
           )}
 
           {banners.length > 1 && (
-            <div className="absolute bottom-3 left-4 sm:left-1/2 sm:-translate-x-1/2 flex gap-1.5 z-20">
+            <div className="absolute top-3 left-4 flex gap-1.5 z-20">
               {banners.map((_, idx) => (
                 <button
                   key={idx}
