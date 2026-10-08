@@ -23,21 +23,19 @@ function StoreContent() {
     fetchData();
   }, []);
 
-  // מנגנון גלילה אוטומטית חלקה שרץ תמיד, ונעצר רק בזמן מגע ידני עם חזרה אוטומטית לתנועה
+  // מנגנון תנועה תמידי, רציף ובלתי פוסק מהשנייה הראשונה שלא נעצר לעולם
   useEffect(() => {
     const container = scrollRef.current;
     if (!container || brands.length === 0) return;
 
     let animationFrameId: number;
-    let pauseTimeout: NodeJS.Timeout;
-    let isUserInteracting = false;
 
     const scroll = () => {
-      if (!isUserInteracting && container) {
-        container.scrollLeft += 1.5; // מהירות התנועה האוטומטית
+      if (container) {
+        container.scrollLeft += 1.2; // מהירות הנסיעה התמידית
         const halfWidth = container.scrollWidth / 2;
         if (container.scrollLeft >= halfWidth) {
-          container.scrollLeft = 0; // לולאה אינסופית חלקה בלי רווחים
+          container.scrollLeft = 0; // לולאה אינסופית חלקה בלי רווחים ובלי לעצור
         }
       }
       animationFrameId = requestAnimationFrame(scroll);
@@ -45,44 +43,8 @@ function StoreContent() {
 
     animationFrameId = requestAnimationFrame(scroll);
 
-    const handleTouchStart = () => {
-      isUserInteracting = true;
-      clearTimeout(pauseTimeout);
-    };
-
-    const handleTouchEnd = () => {
-      clearTimeout(pauseTimeout);
-      pauseTimeout = setTimeout(() => {
-        isUserInteracting = false;
-      }, 1000); // חזרה לתנועה אוטומטית שנייה אחרי עזיבת האצבע
-    };
-
-    const handleMouseDown = () => {
-      isUserInteracting = true;
-      clearTimeout(pauseTimeout);
-    };
-
-    const handleMouseUp = () => {
-      clearTimeout(pauseTimeout);
-      pauseTimeout = setTimeout(() => {
-        isUserInteracting = false;
-      }, 1000);
-    };
-
-    container.addEventListener('touchstart', handleTouchStart, { passive: true });
-    container.addEventListener('touchend', handleTouchEnd, { passive: true });
-    container.addEventListener('mousedown', handleMouseDown);
-    container.addEventListener('mouseup', handleMouseUp);
-    container.addEventListener('mouseleave', handleMouseUp);
-
     return () => {
       cancelAnimationFrame(animationFrameId);
-      clearTimeout(pauseTimeout);
-      container.removeEventListener('touchstart', handleTouchStart);
-      container.removeEventListener('touchend', handleTouchEnd);
-      container.removeEventListener('mousedown', handleMouseDown);
-      container.removeEventListener('mouseup', handleMouseUp);
-      container.removeEventListener('mouseleave', handleMouseUp);
     };
   }, [brands]);
 
@@ -278,12 +240,12 @@ function StoreContent() {
         </div>
       )}
 
-      {/* שורת מותגים רצה אוטומטית ברציפות מהרגע הראשון, ללא פס ניווט, וניתנת לגלילה חופשית באצבע */}
+      {/* שורת מותגים רצה תמיד ברציפות, ללא פס ניווט, ורצה לבד מהשנייה הראשונה */}
       {brands.length > 0 && (
         <div className="w-full bg-white py-3 border-b border-gray-100 overflow-hidden">
           <div 
             ref={scrollRef}
-            className="no-scrollbar flex overflow-x-auto space-x-8 space-x-reverse items-center py-2 px-4 cursor-grab active:cursor-grabbing select-none"
+            className="no-scrollbar flex overflow-x-auto space-x-8 space-x-reverse items-center py-2 px-4 select-none"
             style={{ scrollBehavior: 'auto', WebkitOverflowScrolling: 'touch' }}
           >
             {scrollingBrands.map((brand, idx) => (
@@ -480,7 +442,7 @@ function StoreContent() {
 
                             return (
                               <button
-                                key={idx}
+                            key={idx}
                                 onClick={(e) => handleColorClick(product.id, colorImg, e)}
                                 className={`w-7 h-7 rounded-lg transition relative flex items-center justify-center shrink-0 cursor-pointer bg-white ${
                                   isSelected ? 'border-2 border-orange-600 shadow-sm' : 'border border-gray-200'
