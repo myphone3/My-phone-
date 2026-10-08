@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, Suspense } from 'react';
+import React, { useEffect, useState, useRef, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
@@ -17,9 +17,54 @@ function StoreContent() {
   const [loading, setLoading] = useState(true);
   const [selectedColors, setSelectedColors] = useState<{ [key: string]: string }>({});
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  // מנגנון תנועה תמידי, רציף ובלתי פוסק שמאפשר גם גלילה ידנית מלאה באצבע
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container || brands.length === 0) return;
+
+    let animationFrameId: number;
+    let isTouching = false;
+
+    const scroll = () => {
+      if (!isTouching && container) {
+        container.scrollLeft += 1.2; // מהירות הנסיעה התמידית
+        
+        // לולאה אינסופית חלקה בלי רווחים
+        if (container.scrollWidth > container.clientWidth) {
+          if (container.scrollLeft >= (container.scrollWidth / 2)) {
+            container.scrollLeft = 0;
+          }
+        }
+      }
+      animationFrameId = requestAnimationFrame(scroll);
+    };
+
+    animationFrameId = requestAnimationFrame(scroll);
+
+    const handleTouchStart = () => { isTouching = true; };
+    const handleTouchEnd = () => { isTouching = false; };
+    const handleMouseDown = () => { isTouching = true; };
+    const handleMouseUp = () => { isTouching = false; };
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+    container.addEventListener('touchend', handleTouchEnd, { passive: true });
+    container.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchend', handleTouchEnd);
+      container.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [brands]);
 
   useEffect(() => {
     if (!settings?.announcement_end_time) return;
@@ -181,21 +226,19 @@ function StoreContent() {
     }
   };
 
-  // הכפלת המותגים בדיוק כדי לייצר לולאה רציפה חלקה ב-RTL
-  const scrollingBrands = [...brands, ...brands, ...brands, ...brands];
+  // הכפלה מרובה של המותגים ליצירת רצף אינסופי מושלם
+  const scrollingBrands = [...brands, ...brands, ...brands, ...brands, ...brands, ...brands];
 
   return (
     <div className="space-y-0 pb-16" dir="rtl">
 
       <style>{`
-        @keyframes marqueeRTL {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(50%); }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
         }
-        .animate-marquee-rtl {
-          display: flex;
-          width: max-content;
-          animation: marqueeRTL 25s linear infinite;
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
       `}</style>
 
@@ -215,10 +258,14 @@ function StoreContent() {
         </div>
       )}
 
-      {/* שורת מותגים רצה אוטומטית ברציפות מהשנייה הראשונה בלולאה אינסופית מושלמת */}
+      {/* שורת מותגים רצה תמיד ברציפות אוטומטית מהרגע הראשון, ללא פס ניווט, וניתנת לגלילה חופשית באצבע */}
       {brands.length > 0 && (
         <div className="w-full bg-white py-3 border-b border-gray-100 overflow-hidden">
-          <div className="animate-marquee-rtl flex items-center gap-8 px-4">
+          <div 
+            ref={scrollRef}
+            className="no-scrollbar flex overflow-x-auto space-x-8 space-x-reverse items-center py-2 px-4 cursor-grab active:cursor-grabbing select-none"
+            style={{ scrollBehavior: 'auto', WebkitOverflowScrolling: 'touch' }}
+          >
             {scrollingBrands.map((brand, idx) => (
               brand.image_url && (
                 <Link 
