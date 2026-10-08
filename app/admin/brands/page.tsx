@@ -24,20 +24,36 @@ export default function AdminBrands() {
     if (data) setBrands(data);
   };
 
+  // פונקציה מעודכנת שסורקת גם את תיקיות המשנה (כמו products) ומביאה את כל התמונות לגלריה
   const fetchExistingImages = async () => {
     try {
       setLoadingGallery(true);
-      const { data, error } = await supabase.storage.from('product-images').list();
-      if (error) throw error;
-      if (data) {
-        const urls = data
-          .filter(file => file.name && file.name !== '.gitkeep')
-          .map((file) => {
-            const { data: pub } = supabase.storage.from('product-images').getPublicUrl(file.name);
-            return pub.publicUrl;
-          });
-        setExistingImages(urls);
+      const { data: rootData, error: rootError } = await supabase.storage.from('product-images').list('');
+      if (rootError) throw rootError;
+
+      let allUrls: string[] = [];
+      if (rootData) {
+        for (const item of rootData) {
+          if (item.name && item.name !== '.gitkeep') {
+            if (!item.id || item.metadata === null || item.name === 'products') {
+              const { data: subData, error: subError } = await supabase.storage.from('product-images').list(item.name);
+              if (!subError && subData) {
+                for (const subItem of subData) {
+                  if (subItem.name && subItem.name !== '.gitkeep') {
+                    const filePath = `${item.name}/${subItem.name}`;
+                    const { data: pub } = supabase.storage.from('product-images').getPublicUrl(filePath);
+                    allUrls.push(pub.publicUrl);
+                  }
+                }
+              }
+            } else {
+              const { data: pub } = supabase.storage.from('product-images').getPublicUrl(item.name);
+              allUrls.push(pub.publicUrl);
+            }
+          }
+        }
       }
+      setExistingImages(allUrls);
     } catch (err: any) {
       console.error('Error fetching existing images:', err.message);
     } finally {
@@ -89,10 +105,10 @@ export default function AdminBrands() {
     setLoading(false);
   };
 
-  const handleEdit = (b: any) => {
-    setEditingId(b.id);
-    setName(b.name || '');
-    setImageUrl(b.image_url || '');
+  const handleEdit = (item: any) => {
+    setEditingId(item.id);
+    setName(item.name || '');
+    setImageUrl(item.image_url || '');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -121,10 +137,10 @@ export default function AdminBrands() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">שם המותג</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="למשל: Xiaomi..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" required />
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="למשל: Xiaomi, Apple..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" required />
           </div>
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">לוגו מותג</label>
+            <label className="block text-xs font-bold text-gray-700 mb-1">לוגו / תמונת מותג</label>
             
             <div className="flex gap-2 mb-2">
               <input type="file" accept="image/*" onChange={handleFileUpload} className="w-full border rounded-xl p-2.5 text-xs bg-gray-50 cursor-pointer" />
@@ -140,15 +156,14 @@ export default function AdminBrands() {
               </button>
             </div>
 
-            {/* גלריית תמונות גדולה וברורה במיוחד */}
             {showGallery && (
               <div className="bg-gray-50 border-2 border-orange-200 p-4 rounded-2xl mb-3 space-y-3 shadow-inner">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs font-black text-gray-900">בחר תמונה ברורה וגדולה מתוך האחסון:</span>
+                  <span className="text-xs font-black text-gray-900">בחר לוגו או תמונה מתוך כלל האחסון במערכת:</span>
                   <button type="button" onClick={() => setShowGallery(false)} className="text-xs text-gray-500 font-bold hover:text-red-600">סגור [X]</button>
                 </div>
                 {loadingGallery ? (
-                  <p className="text-xs text-gray-500 py-6 text-center font-bold">טוען תמונות בגודל מלא...</p>
+                  <p className="text-xs text-gray-500 py-6 text-center font-bold">טוען תמונות מהאחסון...</p>
                 ) : existingImages.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-72 overflow-y-auto p-2 bg-white border rounded-xl shadow-xs">
                     {existingImages.map((url, idx) => (
@@ -179,7 +194,7 @@ export default function AdminBrands() {
               <div className="mt-2 flex items-center gap-4 bg-orange-50/60 p-3 rounded-2xl border border-orange-200">
                 <img src={imageUrl} alt="" className="w-16 h-16 object-contain bg-white rounded-xl border p-1 shadow-sm" />
                 <div className="overflow-hidden">
-                  <span className="text-xs text-orange-800 font-black block">הלוגו נבחר בהצלחה ותצוגה מקדימה פעילה ✓</span>
+                  <span className="text-xs text-orange-800 font-black block">התמונה נבחרה בהצלחה ותצוגה מקדימה פעילה ✓</span>
                   <span className="text-[11px] text-gray-500 truncate block max-w-xs mt-0.5">{imageUrl}</span>
                 </div>
               </div>
@@ -199,19 +214,19 @@ export default function AdminBrands() {
       <div className="bg-white p-6 rounded-2xl shadow-sm border space-y-3">
         <h2 className="text-lg font-bold text-gray-800">מותגים קיימים ({brands.length})</h2>
         <div className="space-y-2">
-          {brands.map((b) => (
-            <div key={b.id} className="flex justify-between items-center p-3.5 bg-gray-50 rounded-xl border">
+          {brands.map((item) => (
+            <div key={item.id} className="flex justify-between items-center p-3.5 bg-gray-50 rounded-xl border">
               <div className="flex items-center gap-3">
-                {b.image_url ? (
-                  <img src={b.image_url} alt="" className="w-14 h-14 rounded-xl object-contain border bg-white p-1 shadow-xs" />
+                {item.image_url ? (
+                  <img src={item.image_url} alt="" className="w-14 h-14 rounded-xl object-contain border bg-white p-1 shadow-xs" />
                 ) : (
                   <div className="w-14 h-14 rounded-xl bg-gray-200 flex items-center justify-center text-xs">🏷️</div>
                 )}
-                <span className="font-semibold text-gray-800 text-lg">{b.name}</span>
+                <span className="font-semibold text-gray-800 text-lg">{item.name}</span>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => handleEdit(b)} className="bg-blue-50 text-blue-600 px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-blue-100 transition">ערוך ✏️</button>
-                <button onClick={() => handleDelete(b.id)} className="bg-red-50 text-red-600 px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-red-100 transition">מחק 🗑️</button>
+                <button onClick={() => handleEdit(item)} className="bg-blue-50 text-blue-600 px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-blue-100 transition">ערוך ✏️</button>
+                <button onClick={() => handleDelete(item.id)} className="bg-red-50 text-red-600 px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-red-100 transition">מחק 🗑️</button>
               </div>
             </div>
           ))}
