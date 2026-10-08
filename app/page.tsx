@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef, Suspense } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
@@ -17,72 +17,9 @@ function StoreContent() {
   const [loading, setLoading] = useState(true);
   const [selectedColors, setSelectedColors] = useState<{ [key: string]: string }>({});
 
-  const scrollRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     fetchData();
   }, []);
-
-  // מנגנון תנועה תמידי מושלם: נוסע אוטומטית תמיד, מאפשר גלילה ידנית באצבע, וחוזר לנסוע לבד מיד בעזיבה
-  useEffect(() => {
-    const container = scrollRef.current;
-    if (!container || brands.length === 0) return;
-
-    let animationFrameId: number;
-    let isDragging = false;
-    let resumeTimeout: NodeJS.Timeout;
-
-    const handleTouchStart = () => {
-      isDragging = true;
-      clearTimeout(resumeTimeout);
-    };
-
-    const handleTouchEnd = () => {
-      clearTimeout(resumeTimeout);
-      resumeTimeout = setTimeout(() => {
-        isDragging = false;
-      }, 500); // חזרה לתנועה אוטומטית חצי שנייה אחרי עזיבת האצבע
-    };
-
-    const handleMouseDown = () => {
-      isDragging = true;
-      clearTimeout(resumeTimeout);
-    };
-
-    const handleMouseUp = () => {
-      clearTimeout(resumeTimeout);
-      resumeTimeout = setTimeout(() => {
-        isDragging = false;
-      }, 500);
-    };
-
-    container.addEventListener('touchstart', handleTouchStart, { passive: true });
-    container.addEventListener('touchend', handleTouchEnd, { passive: true });
-    container.addEventListener('mousedown', handleMouseDown);
-    window.addEventListener('mouseup', handleMouseUp);
-
-    const scroll = () => {
-      if (container && !isDragging) {
-        container.scrollLeft += 1.2; // מהירות הנסיעה התמידית
-        const halfWidth = container.scrollWidth / 2;
-        if (container.scrollLeft >= halfWidth) {
-          container.scrollLeft = 0; // לולאה אינסופית חלקה בלי רווחים
-        }
-      }
-      animationFrameId = requestAnimationFrame(scroll);
-    };
-
-    animationFrameId = requestAnimationFrame(scroll);
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-      clearTimeout(resumeTimeout);
-      container.removeEventListener('touchstart', handleTouchStart);
-      container.removeEventListener('touchend', handleTouchEnd);
-      container.removeEventListener('mousedown', handleMouseDown);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [brands]);
 
   useEffect(() => {
     if (!settings?.announcement_end_time) return;
@@ -251,12 +188,14 @@ function StoreContent() {
     <div className="space-y-0 pb-16" dir="rtl">
 
       <style>{`
-        .no-scrollbar::-webkit-scrollbar {
-          display: none;
+        @keyframes continuousScroll {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
         }
-        .no-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
+        .animate-continuous {
+          display: flex;
+          width: max-content;
+          animation: continuousScroll 25s linear infinite;
         }
       `}</style>
 
@@ -276,14 +215,10 @@ function StoreContent() {
         </div>
       )}
 
-      {/* שורת מותגים רצה תמיד אוטומטית ברציפות מהשנייה הראשונה, ניתנת לגלילה ידנית, וללא פס ניווט */}
+      {/* שורת מותגים רצה תמיד אוטומטית ברציפות מהשנייה הראשונה, ללא עצירות וללא פס ניווט */}
       {brands.length > 0 && (
         <div className="w-full bg-white py-3 border-b border-gray-100 overflow-hidden">
-          <div 
-            ref={scrollRef}
-            className="no-scrollbar flex overflow-x-auto space-x-8 space-x-reverse items-center py-2 px-4 cursor-grab active:cursor-grabbing select-none"
-            style={{ scrollBehavior: 'auto', WebkitOverflowScrolling: 'touch' }}
-          >
+          <div className="animate-continuous flex items-center gap-8 px-4">
             {scrollingBrands.map((brand, idx) => (
               brand.image_url && (
                 <Link 
