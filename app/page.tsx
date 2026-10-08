@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef, Suspense } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
@@ -17,50 +17,9 @@ function StoreContent() {
   const [loading, setLoading] = useState(true);
   const [selectedColors, setSelectedColors] = useState<{ [key: string]: string }>({});
 
-  // רפרנס עבור גלילת המותגים האינסופית והחלקה
-  const scrollRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     fetchData();
   }, []);
-
-  useEffect(() => {
-    const container = scrollRef.current;
-    if (!container || brands.length === 0) return;
-
-    let animationFrameId: number;
-    let isPaused = false;
-
-    const scroll = () => {
-      if (!isPaused && container) {
-        container.scrollLeft += 1; // מהירות תנועת הסרט הנע
-        if (container.scrollLeft >= container.scrollWidth / 3) {
-          container.scrollLeft = 0;
-        }
-      }
-      animationFrameId = requestAnimationFrame(scroll);
-    };
-
-    animationFrameId = requestAnimationFrame(scroll);
-
-    const handleMouseEnter = () => { isPaused = true; };
-    const handleMouseLeave = () => { isPaused = false; };
-    const handleTouchStart = () => { isPaused = true; };
-    const handleTouchEnd = () => { isPaused = false; };
-
-    container.addEventListener('mouseenter', handleMouseEnter);
-    container.addEventListener('mouseleave', handleMouseLeave);
-    container.addEventListener('touchstart', handleTouchStart);
-    container.addEventListener('touchend', handleTouchEnd);
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-      container.removeEventListener('mouseenter', handleMouseEnter);
-      container.removeEventListener('mouseleave', handleMouseLeave);
-      container.removeEventListener('touchstart', handleTouchStart);
-      container.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, [brands]);
 
   useEffect(() => {
     if (!settings?.announcement_end_time) return;
@@ -222,12 +181,26 @@ function StoreContent() {
     }
   };
 
-  // שלישיית כפילות למותגים כדי ליצור גלילה אינסופית מושלמת
-  const scrollingBrands = [...brands, ...brands, ...brands];
+  const scrollingBrands = [...brands, ...brands, ...brands, ...brands];
 
   return (
     <div className="space-y-0 pb-16" dir="rtl">
       
+      <style>{`
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+          display: flex;
+          width: max-content;
+          animation: marquee 25s linear infinite;
+        }
+        .animate-marquee:hover, .animate-marquee:active {
+          animation-play-state: paused;
+        }
+      `}</style>
+
       {/* פס מבצעים עליון עם טיימר */}
       {settings?.announcement_text && (
         <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2.5 text-xs sm:text-sm font-bold flex items-center justify-between gap-4 shadow-sm z-50">
@@ -244,14 +217,10 @@ function StoreContent() {
         </div>
       )}
 
-      {/* שורת מותגים זזה אוטומטית שניתן להזיז ידנית עם האצבע או העכבר */}
+      {/* שורת מותגים רצה אוטומטית מהרגע הראשון וללא פסי גלילה */}
       {brands.length > 0 && (
         <div className="w-full overflow-hidden bg-white py-3 border-b border-gray-100">
-          <div 
-            ref={scrollRef}
-            className="flex overflow-x-auto space-x-8 space-x-reverse scrollbar-none items-center py-2 px-4 cursor-grab active:cursor-grabbing select-none"
-            style={{ scrollBehavior: 'auto' }}
-          >
+          <div className="animate-marquee flex items-center gap-8 px-4">
             {scrollingBrands.map((brand, idx) => (
               brand.image_url && (
                 <Link 
