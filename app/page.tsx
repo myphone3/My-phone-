@@ -181,21 +181,21 @@ function StoreContent() {
     }
   };
 
-  // הכפלה מרובה של המותגים ליצירת רצף אינסופי מושלם ללא הפסקה
-  const scrollingBrands = [...brands, ...brands, ...brands, ...brands, ...brands, ...brands, ...brands, ...brands];
+  // הכפלת המותגים בדיוק כדי לייצר לולאה רציפה חלקה ב-RTL
+  const scrollingBrands = [...brands, ...brands, ...brands, ...brands];
 
   return (
     <div className="space-y-0 pb-16" dir="rtl">
 
       <style>{`
-        @keyframes marquee {
+        @keyframes marqueeRTL {
           0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
+          100% { transform: translateX(50%); }
         }
-        .animate-marquee {
+        .animate-marquee-rtl {
           display: flex;
           width: max-content;
-          animation: marquee 25s linear infinite;
+          animation: marqueeRTL 25s linear infinite;
         }
       `}</style>
 
@@ -215,10 +215,10 @@ function StoreContent() {
         </div>
       )}
 
-      {/* שורת מותגים רצה תמיד ברציפות אוטומטית מהשנייה הראשונה, ללא עצירות וללא פס ניווט */}
+      {/* שורת מותגים רצה אוטומטית ברציפות מהשנייה הראשונה בלולאה אינסופית מושלמת */}
       {brands.length > 0 && (
         <div className="w-full bg-white py-3 border-b border-gray-100 overflow-hidden">
-          <div className="animate-marquee flex items-center gap-8 px-4">
+          <div className="animate-marquee-rtl flex items-center gap-8 px-4">
             {scrollingBrands.map((brand, idx) => (
               brand.image_url && (
                 <Link 
