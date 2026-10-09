@@ -18,12 +18,13 @@ function StoreContent() {
   const [selectedColors, setSelectedColors] = useState<{ [key: string]: string }>({});
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const catScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  // מנגנון תנועה תמידי מושלם: רץ אוטומטית, מאפשר ניווט ידני חופשי באצבע, וחוזר לבד מיד בעזיבה
+  // מנגנון תנועה תמידי למותגים
   useEffect(() => {
     const container = scrollRef.current;
     if (!container || brands.length === 0) return;
@@ -66,6 +67,48 @@ function StoreContent() {
       container.removeEventListener('wheel', recordInteraction);
     };
   }, [brands]);
+
+  // מנגנון תנועה עדינה לקטגוריות כדי לעודד גלילה
+  useEffect(() => {
+    const container = catScrollRef.current;
+    if (!container || categories.length <= 4) return;
+
+    let animationFrameId: number;
+    let lastInteractionTime = 0;
+
+    const recordInteraction = () => {
+      lastInteractionTime = Date.now();
+    };
+
+    container.addEventListener('touchstart', recordInteraction, { passive: true });
+    container.addEventListener('touchmove', recordInteraction, { passive: true });
+    container.addEventListener('mousedown', recordInteraction);
+    container.addEventListener('wheel', recordInteraction, { passive: true });
+
+    const scroll = () => {
+      if (container) {
+        const now = Date.now();
+        // תנועה איטית מאוד שזזה מעט ימינה ושמאלה או קדימה כדי למשוך תשומת לב
+        if (now - lastInteractionTime > 1500) {
+          container.scrollLeft += 0.8;
+          if (container.scrollLeft >= container.scrollWidth - container.clientWidth - 10) {
+            container.scrollLeft = 0;
+          }
+        }
+      }
+      animationFrameId = requestAnimationFrame(scroll);
+    };
+
+    animationFrameId = requestAnimationFrame(scroll);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      container.removeEventListener('touchstart', recordInteraction);
+      container.removeEventListener('touchmove', recordInteraction);
+      container.removeEventListener('mousedown', recordInteraction);
+      container.removeEventListener('wheel', recordInteraction);
+    };
+  }, [categories]);
 
   useEffect(() => {
     if (!settings?.announcement_end_time) return;
@@ -148,7 +191,6 @@ function StoreContent() {
     }
   };
 
-  // פענוח חכם של עמודת הקישור מתוך טבלת הבאנרים (ניקוי כתובות מלאות או התאמה לנתיב)
   const getBannerHref = (banner: any) => {
     if (!banner) return '';
     const rawVal = banner.link_product_id || banner.link_url || banner.link || '';
@@ -156,7 +198,6 @@ function StoreContent() {
 
     const trimmed = rawVal.trim();
 
-    // אם הוזנה כתובת Vercel מלאה, נחלץ מתוכה רק את הנתיב הפנימי
     if (trimmed.includes('my-phone-iota.vercel.app')) {
       try {
         const urlObj = new URL(trimmed);
@@ -167,10 +208,7 @@ function StoreContent() {
       }
     }
 
-    // אם זה כבר נתיב יחסי תקין
     if (trimmed.startsWith('/')) return trimmed;
-
-    // אם זה מזהה מוצר או שם קטגוריה
     if (trimmed.length > 20 && !trimmed.includes(' ')) {
       return `/product/${trimmed}`;
     }
@@ -258,6 +296,7 @@ function StoreContent() {
   };
 
   const scrollingBrands = [...brands, ...brands, ...brands, ...brands];
+  const saleProducts = products.filter(p => p.sale_price && Number(p.sale_price) > 0 && Number(p.sale_price) < Number(p.price));
 
   return (
     <div className="space-y-0 pb-16" dir="rtl">
@@ -269,6 +308,13 @@ function StoreContent() {
         .no-scrollbar {
           -ms-overflow-style: none;
           scrollbar-width: none;
+        }
+        @keyframes subtle-pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.025); }
+        }
+        .animate-subtle-pulse {
+          animation: subtle-pulse 2.2s infinite ease-in-out;
         }
       `}</style>
 
@@ -288,7 +334,7 @@ function StoreContent() {
         </div>
       )}
 
-      {/* שורת מותגים רצה תמיד אוטומטית ברציפות, ניתנת לניווט ידני, בלולאה אינסופית וללא פס ניווט */}
+      {/* שורת מותגים רצה תמיד אוטומטית ברציפות */}
       {brands.length > 0 && (
         <div className="w-full bg-white py-3 border-b border-gray-100 overflow-hidden">
           <div 
@@ -312,7 +358,7 @@ function StoreContent() {
         </div>
       )}
 
-      {/* באנר ראשי שכולו לחיץ בהתאם לקישור ב-Supabase */}
+      {/* באנר ראשי */}
       {banners.length > 0 && (
         <div className="relative w-full overflow-hidden bg-black">
           {(() => {
@@ -386,27 +432,100 @@ function StoreContent() {
 
       <div className="max-w-7xl mx-auto px-4 space-y-10 pt-8">
 
-        {/* קטגוריות מובילות עם תמונות */}
+        {/* קטגוריות מובילות ב-2 שורות עם גלילה אופקית חכמה ותנועה עדינה */}
         {categories.length > 0 && (
           <section className="space-y-4">
             <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">קטגוריות מובילות</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+            <div 
+              ref={catScrollRef}
+              className="grid grid-flow-col grid-rows-2 gap-6 overflow-x-auto no-scrollbar pb-2 pt-1 cursor-grab active:cursor-grabbing select-none"
+              style={{ scrollBehavior: 'auto', WebkitOverflowScrolling: 'touch' }}
+            >
               {categories.map((cat) => (
                 <Link 
                   key={cat.id} 
                   href={`/category/${encodeURIComponent(cat.name)}`}
-                  className="flex flex-col items-center text-center gap-2 cursor-pointer group"
+                  className="flex flex-col items-center text-center gap-2 cursor-pointer group shrink-0 w-28 sm:w-32"
                 >
-                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-white flex items-center justify-center overflow-hidden group-hover:scale-105 transition shadow-xs border border-orange-500/30">
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-white flex items-center justify-center overflow-hidden group-hover:scale-105 transition shadow-xs border border-orange-500/30">
                     {cat.image_url ? (
-                      <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover" />
+                      <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover pointer-events-none" />
                     ) : (
                       <span className="text-3xl">📦</span>
                     )}
                   </div>
-                  <span className="font-bold text-xs sm:text-sm text-gray-900 group-hover:text-orange-600 transition">{cat.name}</span>
+                  <span className="font-bold text-xs sm:text-sm text-gray-900 group-hover:text-orange-600 transition truncate w-full">{cat.name}</span>
                 </Link>
               ))}
+            </div>
+          </section>
+        )}
+
+        {/* שורת מבצעים חמים (יוצג רק אם יש מוצרים במבצע) עם כרטיסים קופצים (Pulse) */}
+        {saleProducts.length > 0 && (
+          <section className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
+                מבצעים חמים להיום 🔥
+              </h2>
+            </div>
+
+            <div className="flex overflow-x-auto gap-4 no-scrollbar pb-3 pt-1" dir="rtl">
+              {saleProducts.map((product) => {
+                const primaryImg = getProductImage(product);
+                const currentBrandObj = brands.find(b => b.name?.trim().toLowerCase() === product.brand?.trim().toLowerCase());
+                const brandLogo = currentBrandObj?.image_url;
+                const kosherLogo = getKosherLogo(product);
+
+                return (
+                  <div 
+                    key={`sale-${product.id}`} 
+                    className="w-48 sm:w-56 shrink-0 bg-white rounded-3xl border-2 border-orange-200 shadow-md flex flex-col justify-between p-3.5 animate-subtle-pulse hover:shadow-xl transition-all duration-300 relative"
+                  >
+                    <Link href={`/product/${product.id}`} className="block space-y-2.5">
+                      <div className="h-32 sm:h-36 w-full bg-gray-50 rounded-2xl flex items-center justify-center relative overflow-hidden group">
+                        <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-lg shadow-xs z-10">
+                          מבצע 🔥
+                        </span>
+                        <img 
+                          src={primaryImg} 
+                          alt={product.name} 
+                          className="w-full h-full object-contain transition duration-300 group-hover:scale-105" 
+                        />
+                        <div className="absolute top-2 right-2 flex flex-col gap-1 z-10">
+                          {brandLogo && (
+                            <div className="w-7 h-7 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border flex items-center justify-center">
+                              <img src={brandLogo} alt="" className="w-full h-full object-contain" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <h2 className="font-bold text-gray-900 text-xs sm:text-sm text-right group-hover:text-orange-600 transition truncate" dir="auto">
+                          {product.name}
+                        </h2>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-black text-orange-600">
+                            ₪{product.sale_price}
+                          </span>
+                          <span className="text-xs text-gray-400 line-through">
+                            ₪{product.price}
+                          </span>
+                        </div>
+                      </div>
+                    </Link>
+
+                    <button
+                      onClick={(e) => handleQuickAddToCart(product, e)}
+                      className="mt-3 w-full bg-orange-600 hover:bg-orange-700 text-white py-2 rounded-xl text-xs font-bold transition shadow-sm text-center cursor-pointer flex items-center justify-center gap-1"
+                    >
+                      <span>הוספה לעגלה</span>
+                      <span>🛒</span>
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </section>
         )}
@@ -444,7 +563,6 @@ function StoreContent() {
                   >
                     <Link href={`/product/${product.id}`} className="block space-y-3">
                       <div className="h-40 sm:h-52 w-full bg-gray-50 rounded-2xl flex items-center justify-center relative overflow-hidden group">
-                        {/* תגית מבצע */}
                         {product.sale_price && (
                           <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-lg shadow-xs z-10">
                             מבצע 🔥
