@@ -19,6 +19,7 @@ function StoreContent() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const catScrollRef = useRef<HTMLDivElement>(null);
+  const saleScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchData();
@@ -68,7 +69,7 @@ function StoreContent() {
     };
   }, [brands]);
 
-  // מנגנון תנועה עדינה לקטגוריות כדי לעודד גלילה
+  // מנגנון תנועה עדינה לקטגוריות
   useEffect(() => {
     const container = catScrollRef.current;
     if (!container || categories.length <= 4) return;
@@ -88,7 +89,6 @@ function StoreContent() {
     const scroll = () => {
       if (container) {
         const now = Date.now();
-        // תנועה איטית מאוד שזזה מעט ימינה ושמאלה או קדימה כדי למשוך תשומת לב
         if (now - lastInteractionTime > 1500) {
           container.scrollLeft += 0.8;
           if (container.scrollLeft >= container.scrollWidth - container.clientWidth - 10) {
@@ -295,6 +295,14 @@ function StoreContent() {
     }
   };
 
+  // פונקציות גלילה בלחיצה על החיצים במחשב
+  const scrollContainer = (ref: React.RefObject<HTMLDivElement | null>, direction: 'left' | 'right') => {
+    if (ref.current) {
+      const scrollAmount = direction === 'left' ? -300 : 300;
+      ref.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
+
   const scrollingBrands = [...brands, ...brands, ...brands, ...brands];
   const saleProducts = products.filter(p => p.sale_price && Number(p.sale_price) > 0 && Number(p.sale_price) < Number(p.price));
 
@@ -336,7 +344,13 @@ function StoreContent() {
 
       {/* שורת מותגים רצה תמיד אוטומטית ברציפות */}
       {brands.length > 0 && (
-        <div className="w-full bg-white py-3 border-b border-gray-100 overflow-hidden">
+        <div className="w-full bg-white py-3 border-b border-gray-100 overflow-hidden relative group">
+          <div className="flex items-center justify-between px-4 mb-1">
+            <span className="text-[11px] font-bold text-gray-400">מותגים מובילים בחנות</span>
+            <Link href="/brands" className="text-[11px] font-bold text-orange-600 hover:underline">
+              לכל المותגים ➔
+            </Link>
+          </div>
           <div 
             ref={scrollRef}
             dir="ltr"
@@ -432,100 +446,149 @@ function StoreContent() {
 
       <div className="max-w-7xl mx-auto px-4 space-y-10 pt-8">
 
-        {/* קטגוריות מובילות ב-2 שורות עם גלילה אופקית חכמה ותנועה עדינה */}
+        {/* קטגוריות מובילות ב-2 שורות עם גלילה אופקית חכמה, מעבר לכל הקטגוריות וחיצי ניווט למחשב */}
         {categories.length > 0 && (
-          <section className="space-y-4">
-            <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">קטגוריות מובילות</h2>
-            <div 
-              ref={catScrollRef}
-              className="grid grid-flow-col grid-rows-2 gap-6 overflow-x-auto no-scrollbar pb-2 pt-1 cursor-grab active:cursor-grabbing select-none"
-              style={{ scrollBehavior: 'auto', WebkitOverflowScrolling: 'touch' }}
-            >
-              {categories.map((cat) => (
-                <Link 
-                  key={cat.id} 
-                  href={`/category/${encodeURIComponent(cat.name)}`}
-                  className="flex flex-col items-center text-center gap-2 cursor-pointer group shrink-0 w-28 sm:w-32"
-                >
-                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-white flex items-center justify-center overflow-hidden group-hover:scale-105 transition shadow-xs border border-orange-500/30">
-                    {cat.image_url ? (
-                      <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover pointer-events-none" />
-                    ) : (
-                      <span className="text-3xl">📦</span>
-                    )}
-                  </div>
-                  <span className="font-bold text-xs sm:text-sm text-gray-900 group-hover:text-orange-600 transition truncate w-full">{cat.name}</span>
-                </Link>
-              ))}
+          <section className="space-y-4 relative group">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
+                קטגוריות מובילות
+              </h2>
+              <Link href="/categories" className="text-xs sm:text-sm font-bold text-orange-600 hover:text-orange-700 transition flex items-center gap-1">
+                <span>לכל הקטגוריות</span>
+                <span>➔</span>
+              </Link>
+            </div>
+
+            <div className="relative">
+              {/* חיצים שקופים למחשב עבור הקטגוריות */}
+              <button 
+                onClick={() => scrollContainer(catScrollRef, 'right')}
+                className="hidden sm:flex absolute -right-4 top-1/2 -translate-y-1/2 z-20 bg-white/80 hover:bg-white text-gray-800 w-9 h-9 rounded-full shadow-md items-center justify-center border border-gray-200 transition backdrop-blur-xs cursor-pointer opacity-0 group-hover:opacity-100"
+                title="גלול ימינה"
+              >
+                ➔
+              </button>
+              <button 
+                onClick={() => scrollContainer(catScrollRef, 'left')}
+                className="hidden sm:flex absolute -left-4 top-1/2 -translate-y-1/2 z-20 bg-white/80 hover:bg-white text-gray-800 w-9 h-9 rounded-full shadow-md items-center justify-center border border-gray-200 transition backdrop-blur-xs cursor-pointer opacity-0 group-hover:opacity-100"
+                title="גלול שמאלה"
+              >
+                ➔
+              </button>
+
+              <div 
+                ref={catScrollRef}
+                className="grid grid-flow-col grid-rows-2 gap-6 overflow-x-auto no-scrollbar pb-2 pt-1 cursor-grab active:cursor-grabbing select-none"
+                style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}
+              >
+                {categories.map((cat) => (
+                  <Link 
+                    key={cat.id} 
+                    href={`/category/${encodeURIComponent(cat.name)}`}
+                    className="flex flex-col items-center text-center gap-2 cursor-pointer group shrink-0 w-28 sm:w-32"
+                  >
+                    <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-white flex items-center justify-center overflow-hidden group-hover:scale-105 transition shadow-xs border border-orange-500/30">
+                      {cat.image_url ? (
+                        <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover pointer-events-none" />
+                      ) : (
+                        <span className="text-3xl">📦</span>
+                      )}
+                    </div>
+                    <span className="font-bold text-xs sm:text-sm text-gray-900 group-hover:text-orange-600 transition truncate w-full">{cat.name}</span>
+                  </Link>
+                ))}
+              </div>
             </div>
           </section>
         )}
 
-        {/* שורת מבצעים חמים (יוצג רק אם יש מוצרים במבצע) עם כרטיסים קופצים (Pulse) */}
+        {/* שורת מבצעים חמים בתוך שקופית כתומה בהירה + חיצי ניווט למחשב */}
         {saleProducts.length > 0 && (
-          <section className="space-y-4">
-            <div className="flex justify-between items-center">
+          <section className="bg-orange-50/60 border border-orange-200/80 p-4 sm:p-6 rounded-3xl space-y-4 shadow-xs relative group">
+            <div className="flex justify-between items-center border-b border-orange-200/60 pb-3">
               <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
-                מבצעים חמים להיום 🔥
+                מבצעים חמים
               </h2>
             </div>
 
-            <div className="flex overflow-x-auto gap-4 no-scrollbar pb-3 pt-1" dir="rtl">
-              {saleProducts.map((product) => {
-                const primaryImg = getProductImage(product);
-                const currentBrandObj = brands.find(b => b.name?.trim().toLowerCase() === product.brand?.trim().toLowerCase());
-                const brandLogo = currentBrandObj?.image_url;
-                const kosherLogo = getKosherLogo(product);
+            <div className="relative">
+              {/* חיצים שקופים למחשב עבור המבצעים */}
+              <button 
+                onClick={() => scrollContainer(saleScrollRef, 'right')}
+                className="hidden sm:flex absolute -right-3 top-1/2 -translate-y-1/2 z-20 bg-white/90 hover:bg-white text-gray-800 w-9 h-9 rounded-full shadow-md items-center justify-center border border-gray-200 transition backdrop-blur-xs cursor-pointer opacity-0 group-hover:opacity-100"
+                title="גלול ימינה"
+              >
+                ➔
+              </button>
+              <button 
+                onClick={() => scrollContainer(saleScrollRef, 'left')}
+                className="hidden sm:flex absolute -left-3 top-1/2 -translate-y-1/2 z-20 bg-white/90 hover:bg-white text-gray-800 w-9 h-9 rounded-full shadow-md items-center justify-center border border-gray-200 transition backdrop-blur-xs cursor-pointer opacity-0 group-hover:opacity-100"
+                title="גלול שמאלה"
+              >
+                ➔
+              </button>
 
-                return (
-                  <div 
-                    key={`sale-${product.id}`} 
-                    className="w-48 sm:w-56 shrink-0 bg-white rounded-3xl border-2 border-orange-200 shadow-md flex flex-col justify-between p-3.5 animate-subtle-pulse hover:shadow-xl transition-all duration-300 relative"
-                  >
-                    <Link href={`/product/${product.id}`} className="block space-y-2.5">
-                      <div className="h-32 sm:h-36 w-full bg-gray-50 rounded-2xl flex items-center justify-center relative overflow-hidden group">
-                        <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-lg shadow-xs z-10">
-                          מבצע 🔥
-                        </span>
-                        <img 
-                          src={primaryImg} 
-                          alt={product.name} 
-                          className="w-full h-full object-contain transition duration-300 group-hover:scale-105" 
-                        />
-                        <div className="absolute top-2 right-2 flex flex-col gap-1 z-10">
-                          {brandLogo && (
-                            <div className="w-7 h-7 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border flex items-center justify-center">
-                              <img src={brandLogo} alt="" className="w-full h-full object-contain" />
-                            </div>
-                          )}
-                        </div>
-                      </div>
+              <div 
+                ref={saleScrollRef}
+                className="flex overflow-x-auto gap-4 no-scrollbar pb-2 pt-1" 
+                dir="rtl"
+                style={{ scrollBehavior: 'smooth' }}
+              >
+                {saleProducts.map((product) => {
+                  const primaryImg = getProductImage(product);
+                  const currentBrandObj = brands.find(b => b.name?.trim().toLowerCase() === product.brand?.trim().toLowerCase());
+                  const brandLogo = currentBrandObj?.image_url;
 
-                      <div className="space-y-1">
-                        <h2 className="font-bold text-gray-900 text-xs sm:text-sm text-right group-hover:text-orange-600 transition truncate" dir="auto">
-                          {product.name}
-                        </h2>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-black text-orange-600">
-                            ₪{product.sale_price}
-                          </span>
-                          <span className="text-xs text-gray-400 line-through">
-                            ₪{product.price}
-                          </span>
-                        </div>
-                      </div>
-                    </Link>
-
-                    <button
-                      onClick={(e) => handleQuickAddToCart(product, e)}
-                      className="mt-3 w-full bg-orange-600 hover:bg-orange-700 text-white py-2 rounded-xl text-xs font-bold transition shadow-sm text-center cursor-pointer flex items-center justify-center gap-1"
+                  return (
+                    <div 
+                      key={`sale-${product.id}`} 
+                      className="w-48 sm:w-56 shrink-0 bg-white rounded-3xl border-2 border-orange-200 shadow-md flex flex-col justify-between p-3.5 animate-subtle-pulse hover:shadow-xl transition-all duration-300 relative"
                     >
-                      <span>הוספה לעגלה</span>
-                      <span>🛒</span>
-                    </button>
-                  </div>
-                );
-              })}
+                      <Link href={`/product/${product.id}`} className="block space-y-2.5">
+                        <div className="h-32 sm:h-36 w-full bg-gray-50 rounded-2xl flex items-center justify-center relative overflow-hidden group">
+                          <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-lg shadow-xs z-10">
+                            מבצע
+                          </span>
+                          <img 
+                            src={primaryImg} 
+                            alt={product.name} 
+                            className="w-full h-full object-contain transition duration-300 group-hover:scale-105" 
+                          />
+                          <div className="absolute top-2 right-2 flex flex-col gap-1 z-10">
+                            {brandLogo && (
+                              <div className="w-7 h-7 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border flex items-center justify-center">
+                                <img src={brandLogo} alt="" className="w-full h-full object-contain" />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <h2 className="font-bold text-gray-900 text-xs sm:text-sm text-right group-hover:text-orange-600 transition truncate" dir="auto">
+                            {product.name}
+                          </h2>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-black text-orange-600">
+                              ₪{product.sale_price}
+                            </span>
+                            <span className="text-xs text-gray-400 line-through">
+                              ₪{product.price}
+                            </span>
+                          </div>
+                        </div>
+                      </Link>
+
+                      <button
+                        onClick={(e) => handleQuickAddToCart(product, e)}
+                        className="mt-3 w-full bg-orange-600 hover:bg-orange-700 text-white py-2 rounded-xl text-xs font-bold transition shadow-sm text-center cursor-pointer flex items-center justify-center gap-1"
+                      >
+                        <span>הוספה לעגלה</span>
+                        <span>🛒</span>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </section>
         )}
