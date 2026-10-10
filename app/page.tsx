@@ -3,7 +3,6 @@
 import React, { useEffect, useState, useRef, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import { playAddToCartSpeech } from '@/lib/speechHelper';
 
 function StoreContent() {
   const [products, setProducts] = useState<any[]>([]);
@@ -291,8 +290,8 @@ function StoreContent() {
       localStorage.setItem('cart', JSON.stringify(cart));
       window.dispatchEvent(new Event('cartUpdated'));
 
-      // הפעלת הדיבור הקולי החכם מלוח הניהול
-      playAddToCartSpeech();
+      // הודעת פופ-אפ אישור
+      alert('המוצר נוסף בהצלחה לעגלה! 🛒');
 
     } catch (err) {
       console.error('Add to cart error:', err);
