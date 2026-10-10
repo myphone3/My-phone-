@@ -440,16 +440,16 @@ function StoreContent() {
 
       <div className="max-w-7xl mx-auto px-4 space-y-10 pt-8">
 
-        {/* קטגוריות מובילות ב-2 שורות עם כפתור בלון כתום שקוף "לכל הקטגוריות והמותגים" */}
+        {/* קטגוריות מובילות ב-2 שורות עם כפתור בלון כתום שקוף "לכל הקטגוריות והמותגים" באותו השורה בצד שמאל */}
         {categories.length > 0 && (
           <section className="space-y-4 relative group">
-            <div className="flex justify-between items-center flex-wrap gap-2">
-              <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
+            <div className="flex justify-between items-center">
+              <h2 className="text-base sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3 shrink-0">
                 קטגוריות מובילות
               </h2>
               <Link 
                 href="/categories" 
-                className="bg-orange-100/80 hover:bg-orange-200/90 text-orange-700 border border-orange-300/60 px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 shadow-2xs backdrop-blur-xs"
+                className="bg-orange-100/80 hover:bg-orange-200/90 text-orange-700 border border-orange-300/60 px-3.5 py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition flex items-center gap-1 shrink-0 shadow-2xs backdrop-blur-xs"
               >
                 <span>לכל הקטגוריות והמותגים</span>
                 <span className="text-[10px]">➔</span>
