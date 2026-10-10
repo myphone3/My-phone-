@@ -16,13 +16,13 @@ function CategoryContent() {
   const [loading, setLoading] = useState(true);
   const [selectedColors, setSelectedColors] = useState<{ [key: string]: string }>({});
   
-  // מצב חדש לסינון לפי מותג
-  const [selectedBrand, setSelectedBrand] = useState<string>('all');
+  // מערך של מותגים נבחרים לבחירה מרובה
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
 
   useEffect(() => {
     if (categoryName) {
       fetchCategoryData();
-      setSelectedBrand('all'); // איפוס סינון מותג במעבר קטגוריה
+      setSelectedBrands([]); // איפוס סינון מותגים במעבר קטגוריה
     }
   }, [categoryName]);
 
@@ -146,10 +146,29 @@ function CategoryContent() {
     )
   );
 
-  // סינון המוצרים לפי המותג הנבחר
-  const filteredProducts = selectedBrand === 'all'
+  // פונקציה לניהול בחירה/הסרה של מותג
+  const toggleBrand = (brandName: string) => {
+    setSelectedBrands((prev) => {
+      const exists = prev.some((b) => b.toLowerCase() === brandName.toLowerCase());
+      if (exists) {
+        return prev.filter((b) => b.toLowerCase() !== brandName.toLowerCase());
+      } else {
+        return [...prev, brandName];
+      }
+    });
+  };
+
+  // איפוס לבחירת "הכל"
+  const clearBrandFilter = () => {
+    setSelectedBrands([]);
+  };
+
+  // סינון המוצרים - אם לא נבחר אף מותג (או שנבחר הכל), יופיעו כולם
+  const filteredProducts = selectedBrands.length === 0
     ? products
-    : products.filter((p) => p.brand?.trim().toLowerCase() === selectedBrand.toLowerCase());
+    : products.filter((p) =>
+        selectedBrands.some((sb) => sb.toLowerCase() === p.brand?.trim().toLowerCase())
+      );
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8" dir="rtl">
@@ -184,15 +203,25 @@ function CategoryContent() {
           )}
         </div>
 
-        {/* סרגל סינון לפי מותגים (מוצג רק אם יש מותגים בקטגוריה) */}
+        {/* סרגל סינון לפי מותגים (תומך בבחירה מרובה) */}
         {!loading && categoryBrands.length > 0 && (
           <div className="bg-orange-50/60 border border-orange-200/80 p-3 rounded-2xl space-y-2">
-            <span className="text-xs font-bold text-gray-600 block">סינון לפי מותג:</span>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-gray-600">סינון לפי מותג (ניתן לבחור כמה):</span>
+              {selectedBrands.length > 0 && (
+                <button 
+                  onClick={clearBrandFilter} 
+                  className="text-[11px] font-bold text-orange-600 hover:underline cursor-pointer"
+                >
+                  איפוס סינון ✕
+                </button>
+              )}
+            </div>
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
               <button
-                onClick={() => setSelectedBrand('all')}
+                onClick={clearBrandFilter}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
-                  selectedBrand === 'all'
+                  selectedBrands.length === 0
                     ? 'bg-gray-900 text-white shadow-xs'
                     : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-100'
                 }`}
@@ -201,19 +230,19 @@ function CategoryContent() {
               </button>
               {categoryBrands.map((brandName) => {
                 const count = products.filter((p) => p.brand?.trim().toLowerCase() === brandName.toLowerCase()).length;
-                const isSelected = selectedBrand.toLowerCase() === brandName.toLowerCase();
+                const isSelected = selectedBrands.some((sb) => sb.toLowerCase() === brandName.toLowerCase());
 
                 return (
                   <button
                     key={brandName}
-                    onClick={() => setSelectedBrand(brandName)}
+                    onClick={() => toggleBrand(brandName)}
                     className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer flex items-center gap-1.5 ${
                       isSelected
                         ? 'bg-orange-600 text-white shadow-xs'
                         : 'bg-white text-gray-700 border border-gray-200 hover:bg-orange-50 hover:border-orange-200'
                     }`}
                   >
-                    <span>{brandName}</span>
+                    <span>{isSelected ? '✓ ' : ''}{brandName}</span>
                     <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
                       isSelected ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
                     }`}>
@@ -231,7 +260,7 @@ function CategoryContent() {
         ) : filteredProducts.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-3xl border p-8 space-y-3 shadow-sm">
             <span className="text-4xl">📦</span>
-            <p className="text-gray-500 font-medium">אין מוצרים זמינים עבור המותג/הקטגוריה שנבחרו.</p>
+            <p className="text-gray-500 font-medium">אין מוצרים זמינים עבור המותגים שנבחרו.</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
@@ -281,7 +310,6 @@ function CategoryContent() {
                     </div>
 
                     <div className="space-y-1">
-                      {/* שם מוצר מלא בלי חיתוך ובדייקנות */}
                       <h2 className="font-bold text-gray-900 text-xs sm:text-sm text-right group-hover:text-orange-600 transition leading-snug break-words" dir="auto">
                         {product.name}
                       </h2>
@@ -292,7 +320,6 @@ function CategoryContent() {
                   </Link>
 
                   <div className="mt-3 pt-3 border-t border-gray-100 space-y-3">
-                    {/* צבעים קטנים עם מסגרת פנימית מלאה */}
                     {colors.length > 0 && (
                       <div className="flex items-center gap-1.5 overflow-x-auto py-1 px-0.5">
                         {colors.map((c: any, idx: number) => {
