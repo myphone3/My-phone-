@@ -8,6 +8,7 @@ function AllCategoriesAndBrandsContent() {
   const [categories, setCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'categories' | 'brands'>('categories');
 
   useEffect(() => {
     fetchData();
@@ -39,7 +40,7 @@ function AllCategoriesAndBrandsContent() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-12 pb-20" dir="rtl">
+    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8 pb-20" dir="rtl">
       {/* כותרת ראשית */}
       <div className="text-center space-y-2">
         <h1 className="text-2xl sm:text-3xl font-black text-gray-900">
@@ -50,57 +51,33 @@ function AllCategoriesAndBrandsContent() {
         </p>
       </div>
 
-      {/* חלק המותגים */}
-      {brands.length > 0 && (
-        <section className="space-y-6">
-          <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-            <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
-              מותגים מובילים
-            </h2>
-            <span className="text-xs text-gray-400 font-medium">
-              {brands.length} מותגים זמינים
-            </span>
-          </div>
+      {/* לשוניות מעבר (טאבים) מעוצבות */}
+      <div className="flex justify-center gap-3 pt-2">
+        <button
+          onClick={() => setActiveTab('categories')}
+          className={`px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition shadow-sm cursor-pointer ${
+            activeTab === 'categories'
+              ? 'bg-orange-600 text-white shadow-md'
+              : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+          }`}
+        >
+          📦 קטגוריות ({categories.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('brands')}
+          className={`px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition shadow-sm cursor-pointer ${
+            activeTab === 'brands'
+              ? 'bg-orange-600 text-white shadow-md'
+              : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+          }`}
+        >
+          🏷️ מותגים ({brands.length})
+        </button>
+      </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {brands.map((brand) => (
-              <Link
-                key={brand.id}
-                href={`/brand/${encodeURIComponent(brand.name)}`}
-                className="bg-white rounded-3xl border border-gray-100 p-4 flex flex-col items-center justify-center gap-3 shadow-sm hover:shadow-md hover:border-orange-300 transition group"
-              >
-                <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center p-2 rounded-2xl bg-gray-50 group-hover:scale-105 transition">
-                  {brand.image_url ? (
-                    <img
-                      src={brand.image_url}
-                      alt={brand.name}
-                      className="max-h-full max-w-full object-contain pointer-events-none"
-                    />
-                  ) : (
-                    <span className="text-2xl">🏷️</span>
-                  )}
-                </div>
-                <span className="font-bold text-xs sm:text-sm text-gray-800 group-hover:text-orange-600 transition text-center truncate w-full">
-                  {brand.name}
-                </span>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* חלק הקטגוריות */}
-      {categories.length > 0 && (
-        <section className="space-y-6 pt-6">
-          <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-            <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
-              כל הקטגוריות בחנות
-            </h2>
-            <span className="text-xs text-gray-400 font-medium">
-              {categories.length} קטגוריות זמינות
-            </span>
-          </div>
-
+      {/* תצוגת קטגוריות */}
+      {activeTab === 'categories' && (
+        <section className="space-y-6 pt-2">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
             {categories.map((cat) => (
               <Link
@@ -128,6 +105,36 @@ function AllCategoriesAndBrandsContent() {
                     <span>➔</span>
                   </span>
                 </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* תצוגת מותגים */}
+      {activeTab === 'brands' && (
+        <section className="space-y-6 pt-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {brands.map((brand) => (
+              <Link
+                key={brand.id}
+                href={`/brand/${encodeURIComponent(brand.name)}`}
+                className="bg-white rounded-3xl border border-gray-100 p-4 flex flex-col items-center justify-center gap-3 shadow-sm hover:shadow-md hover:border-orange-300 transition group"
+              >
+                <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center p-2 rounded-2xl bg-gray-50 group-hover:scale-105 transition">
+                  {brand.image_url ? (
+                    <img
+                      src={brand.image_url}
+                      alt={brand.name}
+                      className="max-h-full max-w-full object-contain pointer-events-none"
+                    />
+                  ) : (
+                    <span className="text-2xl">🏷️</span>
+                  )}
+                </div>
+                <span className="font-bold text-xs sm:text-sm text-gray-800 group-hover:text-orange-600 transition text-center truncate w-full">
+                  {brand.name}
+                </span>
               </Link>
             ))}
           </div>
