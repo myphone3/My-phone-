@@ -25,6 +25,18 @@ function StoreContent() {
     fetchData();
   }, []);
 
+  // פונקציית הקראה קולית מובנית בדפדפן (Text-to-Speech)
+  const speakAddToCart = () => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel(); // עצירת הקראה קודמת אם קיימת
+      const utterance = new SpeechSynthesisUtterance('תתחדש! עוד מעט וזה אצלך');
+      utterance.lang = 'he-IL';
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
   // מנגנון תנועה תמידי למותגים
   useEffect(() => {
     const container = scrollRef.current;
@@ -289,7 +301,10 @@ function StoreContent() {
 
       localStorage.setItem('cart', JSON.stringify(cart));
       window.dispatchEvent(new Event('cartUpdated'));
-      alert('המוצר נוסף בהצלחה לעגלה! 🛒');
+
+      // הפעלת הדיבור הקולי גם בעמוד הבית
+      speakAddToCart();
+
     } catch (err) {
       console.error('Add to cart error:', err);
     }
