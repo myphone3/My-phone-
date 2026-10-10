@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import CartSoundToggle from '@/app/components/CartSoundToggle';
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -35,14 +34,14 @@ export default function CartPage() {
     }
     setCartItems(updated);
     localStorage.setItem('cart', JSON.stringify(updated));
-    window.dispatchEvent(new Event('cartUpdated')); // עדכון מונה העגלה בתפריט
+    window.dispatchEvent(new Event('cartUpdated'));
   };
 
   const removeItem = (index: number) => {
     const updated = cartItems.filter((_, i) => i !== index);
     setCartItems(updated);
     localStorage.setItem('cart', JSON.stringify(updated));
-    window.dispatchEvent(new Event('cartUpdated')); // עדכון מונה העגלה בתפריט
+    window.dispatchEvent(new Event('cartUpdated'));
   };
 
   const subtotalPrice = cartItems.reduce((sum, item) => {
@@ -88,20 +87,16 @@ export default function CartPage() {
       alert('ההזמנה בוצעה בהצלחה! צוות NEW PHONE יצור איתך קשר בהקדם.');
       localStorage.removeItem('cart');
       setCartItems([]);
-      window.dispatchEvent(new Event('cartUpdated')); // איפוס מונה העגלה
+      window.dispatchEvent(new Event('cartUpdated'));
       window.location.href = '/';
     }
   };
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6" dir="rtl">
-      {/* כותרת העגלה וכפתור ההשתקה של הלקוח */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
-        <h1 className="text-2xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
-          עגלת קניות והשלמת הזמנה
-        </h1>
-        <CartSoundToggle />
-      </div>
+      <h1 className="text-2xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
+        עגלת קניות והשלמת הזמנה
+      </h1>
 
       {cartItems.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-3xl border p-8 space-y-4 shadow-sm">
