@@ -342,15 +342,9 @@ function StoreContent() {
         </div>
       )}
 
-      {/* שורת מותגים רצה תמיד אוטומטית ברציפות */}
+      {/* שורת מותגים רצה תמיד אוטומטית ברציפות - נקי לחלוטין */}
       {brands.length > 0 && (
-        <div className="w-full bg-white py-3 border-b border-gray-100 overflow-hidden relative group">
-          <div className="flex items-center justify-between px-4 mb-1">
-            <span className="text-[11px] font-bold text-gray-400">מותגים מובילים בחנות</span>
-            <Link href="/brands" className="text-[11px] font-bold text-orange-600 hover:underline">
-              לכל المותגים ➔
-            </Link>
-          </div>
+        <div className="w-full bg-white py-3 border-b border-gray-100 overflow-hidden relative">
           <div 
             ref={scrollRef}
             dir="ltr"
@@ -446,16 +440,19 @@ function StoreContent() {
 
       <div className="max-w-7xl mx-auto px-4 space-y-10 pt-8">
 
-        {/* קטגוריות מובילות ב-2 שורות עם גלילה אופקית חכמה, מעבר לכל הקטגוריות וחיצי ניווט למחשב */}
+        {/* קטגוריות מובילות ב-2 שורות עם כפתור בלון כתום שקוף "לכל הקטגוריות והמותגים" */}
         {categories.length > 0 && (
           <section className="space-y-4 relative group">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center flex-wrap gap-2">
               <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
                 קטגוריות מובילות
               </h2>
-              <Link href="/categories" className="text-xs sm:text-sm font-bold text-orange-600 hover:text-orange-700 transition flex items-center gap-1">
-                <span>לכל הקטגוריות</span>
-                <span>➔</span>
+              <Link 
+                href="/categories" 
+                className="bg-orange-100/80 hover:bg-orange-200/90 text-orange-700 border border-orange-300/60 px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 shadow-2xs backdrop-blur-xs"
+              >
+                <span>לכל הקטגוריות והמותגים</span>
+                <span className="text-[10px]">➔</span>
               </Link>
             </div>
 
