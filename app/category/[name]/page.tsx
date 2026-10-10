@@ -203,31 +203,44 @@ function CategoryContent() {
           )}
         </div>
 
-        {/* סרגל סינון לפי מותגים (תומך בבחירה מרובה) */}
+        {/* סרגל סינון מותגים ברור עם תיבות סימון (Checkboxes) */}
         {!loading && categoryBrands.length > 0 && (
-          <div className="bg-orange-50/60 border border-orange-200/80 p-3 rounded-2xl space-y-2">
+          <div className="bg-orange-50/60 border border-orange-200/80 p-3.5 rounded-2xl space-y-2.5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-gray-600">סינון לפי מותג (ניתן לבחור כמה):</span>
+              <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                <span>🔍</span>
+                <span>סינון לפי מותג:</span>
+              </span>
               {selectedBrands.length > 0 && (
                 <button 
                   onClick={clearBrandFilter} 
-                  className="text-[11px] font-bold text-orange-600 hover:underline cursor-pointer"
+                  className="text-[11px] font-bold text-orange-600 hover:underline cursor-pointer flex items-center gap-1"
                 >
-                  איפוס סינון ✕
+                  <span>איפוס בחירה</span>
+                  <span>✕</span>
                 </button>
               )}
             </div>
+
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+              {/* כפתור "הכל" */}
               <button
                 onClick={clearBrandFilter}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer flex items-center gap-1.5 ${
                   selectedBrands.length === 0
                     ? 'bg-gray-900 text-white shadow-xs'
                     : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-100'
                 }`}
               >
-                הכל ({products.length})
+                <span>הכל</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                  selectedBrands.length === 0 ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
+                }`}>
+                  {products.length}
+                </span>
               </button>
+
+              {/* כפתורי מותגים עם תיבת וי דינמית */}
               {categoryBrands.map((brandName) => {
                 const count = products.filter((p) => p.brand?.trim().toLowerCase() === brandName.toLowerCase()).length;
                 const isSelected = selectedBrands.some((sb) => sb.toLowerCase() === brandName.toLowerCase());
@@ -236,13 +249,24 @@ function CategoryContent() {
                   <button
                     key={brandName}
                     onClick={() => toggleBrand(brandName)}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer flex items-center gap-2 border ${
                       isSelected
-                        ? 'bg-orange-600 text-white shadow-xs'
-                        : 'bg-white text-gray-700 border border-gray-200 hover:bg-orange-50 hover:border-orange-200'
+                        ? 'bg-orange-600 text-white border-orange-600 shadow-xs'
+                        : 'bg-white text-gray-700 border-gray-200 hover:bg-orange-50 hover:border-orange-300'
                     }`}
                   >
-                    <span>{isSelected ? '✓ ' : ''}{brandName}</span>
+                    {/* תיבת הסימון (Checkbox) */}
+                    <div className={`w-4 h-4 rounded flex items-center justify-center transition border ${
+                      isSelected 
+                        ? 'bg-white text-orange-600 border-white' 
+                        : 'bg-gray-50 border-gray-300'
+                    }`}>
+                      {isSelected && <span className="text-[11px] font-black leading-none">✓</span>}
+                    </div>
+
+                    <span>{brandName}</span>
+
+                    {/* כמות המוצרים של המותג */}
                     <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
                       isSelected ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
                     }`}>
