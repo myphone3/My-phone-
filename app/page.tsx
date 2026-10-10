@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import { playAddToCartSpeech } from '@/lib/speechHelper';
 
 function StoreContent() {
   const [products, setProducts] = useState<any[]>([]);
@@ -24,18 +25,6 @@ function StoreContent() {
   useEffect(() => {
     fetchData();
   }, []);
-
-  // פונקציית הקראה קולית מובנית בדפדפן (Text-to-Speech)
-  const speakAddToCart = () => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel(); // עצירת הקראה קודמת אם קיימת
-      const utterance = new SpeechSynthesisUtterance('תתחדש! עוד מעט וזה אצלך');
-      utterance.lang = 'he-IL';
-      utterance.rate = 1.0;
-      utterance.pitch = 1.0;
-      window.speechSynthesis.speak(utterance);
-    }
-  };
 
   // מנגנון תנועה תמידי למותגים
   useEffect(() => {
@@ -302,8 +291,8 @@ function StoreContent() {
       localStorage.setItem('cart', JSON.stringify(cart));
       window.dispatchEvent(new Event('cartUpdated'));
 
-      // הפעלת הדיבור הקולי גם בעמוד הבית
-      speakAddToCart();
+      // הפעלת הדיבור הקולי החכם מלוח הניהול
+      playAddToCartSpeech();
 
     } catch (err) {
       console.error('Add to cart error:', err);
