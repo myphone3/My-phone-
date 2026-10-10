@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import CartSoundToggle from '@/app/components/CartSoundToggle';
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -94,7 +95,13 @@ export default function CartPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6" dir="rtl">
-      <h1 className="text-2xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">עגלת קניות והשלמת הזמנה</h1>
+      {/* כותרת העגלה וכפתור ההשתקה של הלקוח */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
+        <h1 className="text-2xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
+          עגלת קניות והשלמת הזמנה
+        </h1>
+        <CartSoundToggle />
+      </div>
 
       {cartItems.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-3xl border p-8 space-y-4 shadow-sm">
@@ -111,7 +118,6 @@ export default function CartPage() {
         <div className="space-y-6">
           <div className="bg-white rounded-3xl border shadow-sm divide-y">
             {cartItems.map((item, index) => {
-              // שליפת תמונת המוצר באופן מושלם מכל שדה אפשרי
               const itemImg = item.image || item.image_url || (Array.isArray(item.images) ? item.images[0] : '') || '';
               const itemPrice = item.sale_price || item.price || 0;
               const qty = item.quantity || 1;
