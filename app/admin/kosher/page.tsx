@@ -24,7 +24,6 @@ export default function AdminKosher() {
     if (data) setKosherList(data);
   };
 
-  // פונקציה מעודכנת שסורקת גם את תיקיות המשנה (כמו products) ומביאה את כל התמונות
   const fetchExistingImages = async () => {
     try {
       setLoadingGallery(true);
@@ -128,7 +127,7 @@ export default function AdminKosher() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      <h1 className="text-2xl font-bold text-gray-900">ניהול כשרות</h1>
+      <h1 className="text-2xl font-bold text-gray-900 border-r-4 border-orange-600 pr-3">ניהול כשרות 🛡️</h1>
 
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
         <h2 className="text-lg font-bold text-gray-800 border-b pb-2">
@@ -148,46 +147,13 @@ export default function AdminKosher() {
                 type="button"
                 onClick={() => {
                   if (!showGallery) fetchExistingImages();
-                  setShowGallery(!showGallery);
+                  setShowGallery(true);
                 }}
                 className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer shadow-xs"
               >
-                {showGallery ? 'סגור גלריה ✕' : 'בחר מתמונות קיימות 🖼️'}
+                בחר מתמונות קיימות 🖼️
               </button>
             </div>
-
-            {/* גלריית תמונות גדולה וברורה במיוחד */}
-            {showGallery && (
-              <div className="bg-gray-50 border-2 border-orange-200 p-4 rounded-2xl mb-3 space-y-3 shadow-inner">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-black text-gray-900">בחר סמל כשרות ברור וגדול מתוך האחסון:</span>
-                  <button type="button" onClick={() => setShowGallery(false)} className="text-xs text-gray-500 font-bold hover:text-red-600">סגור [X]</button>
-                </div>
-                {loadingGallery ? (
-                  <p className="text-xs text-gray-500 py-6 text-center font-bold">טוען תמונות בגודל מלא...</p>
-                ) : existingImages.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-72 overflow-y-auto p-2 bg-white border rounded-xl shadow-xs">
-                    {existingImages.map((url, idx) => (
-                      <div
-                        key={idx}
-                        onClick={() => {
-                          setImageUrl(url);
-                          setShowGallery(false);
-                        }}
-                        className={`cursor-pointer border-2 rounded-xl overflow-hidden bg-white hover:border-orange-600 transition flex flex-col items-center justify-between p-2 group shadow-xs ${imageUrl === url ? 'border-orange-600 ring-4 ring-orange-200 bg-orange-50/30' : 'border-gray-200'}`}
-                      >
-                        <div className="w-full h-24 flex items-center justify-center bg-gray-50 rounded-lg p-1 overflow-hidden">
-                          <img src={url} alt="" className="w-full h-full object-contain group-hover:scale-105 transition duration-200" />
-                        </div>
-                        <span className="text-[10px] font-bold text-gray-600 mt-2 text-center truncate w-full">בחר תמונה זו ✓</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-gray-400 text-center py-6">לא נמצאו תמונות באחסון.</p>
-                )}
-              </div>
-            )}
 
             {uploading && <p className="text-xs text-blue-600 mt-1 font-bold">מעלה קובץ לאחסון...</p>}
             
@@ -211,6 +177,45 @@ export default function AdminKosher() {
           )}
         </div>
       </form>
+
+      {/* חלון מודל מלא (Full-screen Modal) לבחירת תמונה ממאגר המדיה */}
+      {showGallery && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-5 space-y-4 max-h-[80vh] flex flex-col shadow-2xl border" dir="rtl">
+            <div className="flex justify-between items-center border-b pb-3 shrink-0">
+              <h3 className="font-black text-sm text-gray-900">בחר סמל כשרות ממאגר המדיה</h3>
+              <button 
+                type="button"
+                onClick={() => setShowGallery(false)} 
+                className="text-gray-400 hover:text-black font-bold p-1 cursor-pointer text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 overflow-y-auto p-1 flex-1">
+              {loadingGallery ? (
+                <div className="col-span-full text-center py-8 text-xs text-gray-500 font-bold">טוען תמונות מהאחסון...</div>
+              ) : existingImages.length === 0 ? (
+                <div className="col-span-full text-center py-8 text-xs text-gray-400">לא נמצאו תמונות באחסון.</div>
+              ) : (
+                existingImages.map((url, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => {
+                      setImageUrl(url);
+                      setShowGallery(false);
+                    }}
+                    className={`border rounded-2xl p-2 bg-gray-50 h-24 flex items-center justify-center cursor-pointer hover:border-orange-600 hover:scale-105 transition shadow-2xs ${imageUrl === url ? 'border-orange-600 ring-4 ring-orange-200 bg-orange-50/30' : 'border-gray-200'}`}
+                  >
+                    <img src={url} alt="" className="max-h-full max-w-full object-contain" />
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white p-6 rounded-2xl shadow-sm border space-y-3">
         <h2 className="text-lg font-bold text-gray-800">כשרויות קיימות ({kosherList.length})</h2>
