@@ -19,6 +19,10 @@ function CategoryContent() {
   // מערך של מותגים נבחרים לבחירה מרובה
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
 
+  // סטייט עבור פופ-אפ המבצעים וההמלצות החכם (Upsell)
+  const [upsellModalOpen, setUpsellModalOpen] = useState(false);
+  const [addedProductName, setAddedProductName] = useState('');
+
   useEffect(() => {
     if (categoryName) {
       fetchCategoryData();
@@ -132,8 +136,9 @@ function CategoryContent() {
       localStorage.setItem('cart', JSON.stringify(cart));
       window.dispatchEvent(new Event('cartUpdated'));
 
-      // הצגת פופ-אפ אישור הוספה לעגלה
-      alert('המוצר נוסף בהצלחה לעגלה! 🛒');
+      // פתיחת פופ-אפ המבצעים וההמלצות החכם
+      setAddedProductName(product.name);
+      setUpsellModalOpen(true);
 
     } catch (err) {
       console.error('Add to cart error:', err);
@@ -148,6 +153,9 @@ function CategoryContent() {
         .filter((brandName): brandName is string => Boolean(brandName && brandName.length > 0))
     )
   );
+
+  // מוצרי מבצע עבור פופ-אפ ההמלצות
+  const saleProducts = products.filter(p => p.sale_price && Number(p.sale_price) > 0 && Number(p.sale_price) < Number(p.price));
 
   // פונקציה לניהול בחירה/הסרה של מותג
   const toggleBrand = (brandName: string) => {
@@ -397,6 +405,73 @@ function CategoryContent() {
           </div>
         )}
       </div>
+
+      {/* פופ-אפ מבצעים והמלצות חכם (Upsell) בהוספה לעגלה */}
+      {upsellModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4" dir="rtl">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl border border-gray-100 animate-in fade-in zoom-in duration-200">
+            
+            {/* כותרת הצלחה */}
+            <div className="text-center space-y-2 border-b pb-4">
+              <div className="w-16 h-16 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mx-auto text-2xl">
+                🛒
+              </div>
+              <h3 className="text-lg font-black text-gray-900">המוצר נוסף בהצלחה לעגלה!</h3>
+              <p className="text-xs text-gray-500 font-medium truncate px-4">"{addedProductName}"</p>
+            </div>
+
+            {/* אזור מבצעים חמים נלווים */}
+            <div className="space-y-3">
+              <span className="text-xs font-bold text-gray-800 block flex items-center gap-1.5">
+                <span>🔥</span>
+                <span>לקוחות שקנו את זה הוסיפו גם:</span>
+              </span>
+
+              <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto no-scrollbar">
+                {(saleProducts.length > 0 ? saleProducts : products).slice(0, 2).map((promoProduct) => (
+                  <div key={promoProduct.id} className="bg-gray-50 border rounded-2xl p-2.5 flex flex-col justify-between text-right space-y-2">
+                    <img 
+                      src={getProductImage(promoProduct)} 
+                      alt={promoProduct.name} 
+                      className="w-full h-20 object-contain bg-white rounded-xl p-1" 
+                    />
+                    <div>
+                      <h4 className="text-[11px] font-bold text-gray-900 truncate">{promoProduct.name}</h4>
+                      <span className="text-xs font-black text-orange-600">₪{promoProduct.sale_price || promoProduct.price}</span>
+                    </div>
+                    <Link 
+                      href={`/product/${promoProduct.id}`}
+                      onClick={() => setUpsellModalOpen(false)}
+                      className="w-full bg-gray-900 hover:bg-orange-600 text-white py-1.5 rounded-xl text-[10px] font-bold transition text-center"
+                    >
+                      לצפייה במוצר
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* כפתורי פעולה */}
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => setUpsellModalOpen(false)}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 rounded-2xl text-xs font-bold transition cursor-pointer"
+              >
+                המשך בקניות
+              </button>
+              <Link
+                href="/cart"
+                onClick={() => setUpsellModalOpen(false)}
+                className="flex-1 bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-2xl text-xs font-black transition text-center shadow-md cursor-pointer"
+              >
+                לעגלת הקניות ➔
+              </Link>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
