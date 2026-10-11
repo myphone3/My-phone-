@@ -136,7 +136,7 @@ export default function AdminBanners() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('האם למחוק באנר זה?')) return;
-    await supabase.from('banners').delete().eq('id', id);
+    const { error } = await supabase.from('banners').delete().eq('id', id);
     fetchData();
   };
 
@@ -283,7 +283,7 @@ export default function AdminBanners() {
         </div>
       </form>
 
-      {/* חלון מודל רחב וענק לבחירת תמונה ממאגר המדיה (תצוגה רחבה של 12+ תמונות) */}
+      {/* חלון מודל רחב וענק לבחירת תמונה ממאגר המדיה (תצוגה רחבה של 12+ תמונות בו-זמנית) */}
       {mediaModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-4xl w-full p-6 space-y-4 max-h-[85vh] flex flex-col shadow-2xl border" dir="rtl">
