@@ -349,7 +349,7 @@ export default function AdminBanners() {
                 </button>
                 <button 
                   onClick={() => handleDelete(item.id)} 
-                  className="bg-red-50 hover:bg-red-100 text-red-600 px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-red-100 transition"
+                  className="bg-red-50 hover:bg-red-100 text-red-600 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer"
                 >
                   מחיקה
                 </button>
