@@ -15,7 +15,7 @@ export default function CartPage() {
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // לוגיקת קופונים ומבצעים
+  // קופונים ומבצעים
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [couponError, setCouponError] = useState('');
@@ -28,7 +28,6 @@ export default function CartPage() {
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
   useEffect(() => {
-    // טעינת המוצרים מהעגלה
     const saved = localStorage.getItem('cart');
     if (saved) {
       try {
@@ -38,18 +37,15 @@ export default function CartPage() {
       }
     }
 
-    // שליפת הגדרות מבצע סכום קנייה (משלוח חינם)
     fetchPromos();
   }, []);
 
   const fetchPromos = async () => {
-    // 1. מבצע סכום קנייה
     const { data: promoData } = await supabase.from('settings').select('*').eq('key', 'threshold_promo').single();
     if (promoData && promoData.value && promoData.value.active) {
       setThresholdPromo(promoData.value);
     }
 
-    // 2. קופון הצטרפות ללקוחות חדשים
     const { data: welcomeData } = await supabase
       .from('coupons')
       .select('*')
@@ -59,7 +55,6 @@ export default function CartPage() {
 
     if (welcomeData) {
       setWelcomeCoupon(welcomeData);
-      // בדיקה אם הלקוח כבר סגר את ההתראה או משתמש רשום
       const dismissed = localStorage.getItem('welcome_modal_dismissed');
       if (!dismissed) {
         setShowWelcomeModal(true);
@@ -85,7 +80,6 @@ export default function CartPage() {
     window.dispatchEvent(new Event('cartUpdated'));
   };
 
-  // הפעלת קוד קופון
   const handleApplyCoupon = async () => {
     if (!couponInput.trim()) return;
     setCouponError('');
@@ -112,13 +106,11 @@ export default function CartPage() {
     setCouponError('');
   };
 
-  // חישובי סכומים
   const subtotalPrice = cartItems.reduce((sum, item) => {
     const price = item.sale_price || item.price || 0;
     return sum + price * (item.quantity || 1);
   }, 0);
 
-  // חישוב הנחת קופון
   let discountAmount = 0;
   if (appliedCoupon) {
     const val = Number(appliedCoupon.discount_value) || 0;
@@ -130,12 +122,10 @@ export default function CartPage() {
     }
   }
 
-  // חישוב משלוח חינם אם עברו את סכום המינימום במבצע
   const thresholdMin = Number(thresholdPromo?.amount) || 400;
   const isFreeShippingEligible = thresholdPromo?.active && subtotalPrice >= thresholdMin;
   const shippingCost = isFreeShippingEligible ? 0 : 29;
 
-  // סה"כ לתשלום סופי
   const totalPrice = Math.max(0, subtotalPrice - discountAmount + shippingCost);
 
   const handleCheckout = async (e: React.FormEvent) => {
@@ -428,4 +418,42 @@ export default function CartPage() {
 
       {/* פופ-אפ התראה ללקוח חדש (מבצע הצטרפות בהרשמה) */}
       {showWelcomeModal && welcomeCoupon && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl border border-gray-100 text-center animate-in fade-in zoom-in duration-200">
+            <div className="w-14 h-14 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mx-auto text-2xl">
+              🎁
+            </div>
+            <h3 className="text-lg font-black text-gray-900">ברוך הבא ל-NEW PHONE!</h3>
+            <p className="text-xs text-gray-600 leading-relaxed">
+              הרשם כעת לאתר וקבל קופון הצטרפות מיוחד: <br />
+              <strong className="text-orange-600 text-sm">{welcomeCoupon.code}</strong> המקנה הנחה בהזמנה הראשונה שלך!
+            </p>
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setCouponInput(welcomeCoupon.code);
+                  setShowWelcomeModal(false);
+                  localStorage.setItem('welcome_modal_dismissed', 'true');
+                }}
+                className="flex-1 bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-2xl text-xs font-bold transition shadow-sm cursor-pointer"
+              >
+                השתמש בקופון עכשיו ⚡
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowWelcomeModal(false);
+                  localStorage.setItem('welcome_modal_dismissed', 'true');
+                }}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-2xl text-xs font-bold transition cursor-pointer"
+              >
+                סגור
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
