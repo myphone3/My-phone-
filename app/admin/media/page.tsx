@@ -107,10 +107,10 @@ export default function AdminMedia() {
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto" dir="rtl">
+    <div className="space-y-6 max-w-7xl mx-auto p-4 sm:p-6" dir="rtl">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-3xl shadow-sm border">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-gray-900">ספריית מדיה 🖼️</h1>
+          <h1 className="text-xl sm:text-2xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">ספריית מדיה 🖼️</h1>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">כל הקבצים והתמונות שהועלו למערכת (כולל תיקיות המוצרים).</p>
         </div>
 
@@ -130,28 +130,28 @@ export default function AdminMedia() {
         ) : mediaFiles.length === 0 ? (
           <div className="text-center py-20 text-gray-400 font-medium">אין קבצים זמינים במדיה כרגע.</div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
             {mediaFiles.map((file, idx) => (
-              <div key={idx} className="bg-gray-50 rounded-2xl border p-3 flex flex-col justify-between gap-3 shadow-xs group">
-                <div className="w-full h-36 bg-white rounded-xl overflow-hidden border flex items-center justify-center p-2 relative">
-                  <img src={file.url} alt="" className="w-full h-full object-contain group-hover:scale-105 transition" />
+              <div key={idx} className="bg-gray-50 rounded-2xl border p-2.5 flex flex-col justify-between gap-2 shadow-2xs group hover:border-orange-600 transition">
+                <div className="w-full h-28 bg-white rounded-xl overflow-hidden border flex items-center justify-center p-1.5 relative">
+                  <img src={file.url} alt="" className="max-h-full max-w-full object-contain group-hover:scale-105 transition" />
                 </div>
 
-                <div className="space-y-2">
-                  <p className="text-[11px] text-gray-700 font-medium truncate" title={file.name}>
+                <div className="space-y-1.5">
+                  <p className="text-[10px] text-gray-700 font-medium truncate text-center" title={file.name}>
                     {file.name}
                   </p>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     <button
                       onClick={() => copyToClipboard(file.url, idx)}
-                      className="flex-1 bg-black hover:bg-gray-800 text-white py-2 rounded-xl text-[11px] font-bold transition cursor-pointer text-center"
+                      className="flex-1 bg-black hover:bg-gray-800 text-white py-1.5 rounded-xl text-[10px] font-bold transition cursor-pointer text-center truncate px-1"
                     >
-                      {copiedIndex === idx ? 'הועתק! ✓' : 'העתק קישור 🔗'}
+                      {copiedIndex === idx ? 'הועתק! ✓' : 'העתק 🔗'}
                     </button>
                     <button
                       onClick={() => handleDelete(file.path)}
-                      className="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-xl text-[11px] font-bold transition cursor-pointer"
+                      className="bg-red-50 hover:bg-red-100 text-red-600 px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition cursor-pointer"
                       title="מחק קובץ"
                     >
                       🗑️
