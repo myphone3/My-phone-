@@ -26,8 +26,8 @@ export default function AdminCouponsPage() {
     const { data: couponsData } = await supabase.from('coupons').select('*').order('created_at', { ascending: false });
     if (couponsData) setCoupons(couponsData);
 
-    // שליפת הגדרות מבצע סכום קנייה מטבלת settings
-    const { data: settingsData } = await supabase.from('settings').select('*').single();
+    // שליפת הגדרות מבצע סכום קנייה מטבלת settings בצורה בטוחה
+    const { data: settingsData } = await supabase.from('settings').select('*').limit(1).maybeSingle();
     if (settingsData) {
       setThresholdActive(!!settingsData.threshold_active);
       if (settingsData.threshold_amount) setThresholdAmount(settingsData.threshold_amount);
@@ -70,8 +70,8 @@ export default function AdminCouponsPage() {
       threshold_banner_text: thresholdBannerText
     };
 
-    // שליפת מזהה השורה היחידה בטבלת settings לצורך עדכון
-    const { data: existing } = await supabase.from('settings').select('id').limit(1).single();
+    // בדיקה האם קיימת שורה בטבלת settings לעדכון
+    const { data: existing } = await supabase.from('settings').select('id').limit(1).maybeSingle();
 
     let error;
     if (existing?.id) {
@@ -86,6 +86,7 @@ export default function AdminCouponsPage() {
       alert('שגיאה בשמירת הגדרות המבצע: ' + error.message);
     } else {
       alert('הגדרות מבצע סכום קנייה והשורה מעל הבאנר עודכנו בהצלחה! ✨');
+      fetchData();
     }
   };
 
