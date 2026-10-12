@@ -16,7 +16,6 @@ export default function AdminMedia() {
   const fetchMediaFiles = async () => {
     try {
       setLoading(true);
-      // שליפת קבצים מהתיקייה הראשית
       const { data: rootData, error: rootError } = await supabase.storage.from('product-images').list('');
       if (rootError) throw rootError;
 
@@ -25,9 +24,7 @@ export default function AdminMedia() {
       if (rootData) {
         for (const item of rootData) {
           if (item.name && item.name !== '.gitkeep') {
-            // בדיקה האם מדובר בתיקייה או בקובץ
             if (!item.id || item.metadata === null || item.name === 'products') {
-              // זו תיקייה - ניכנס ונשלוף את הקבצים שבתוכה
               const { data: subData, error: subError } = await supabase.storage.from('product-images').list(item.name);
               if (!subError && subData) {
                 for (const subItem of subData) {
@@ -44,7 +41,6 @@ export default function AdminMedia() {
                 }
               }
             } else {
-              // קובץ רגיל בתיקייה הראשית
               const { data: pub } = await supabase.storage.from('product-images').getPublicUrl(item.name);
               allFiles.push({
                 name: item.name,
@@ -108,10 +104,11 @@ export default function AdminMedia() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto p-4 sm:p-6" dir="rtl">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-3xl shadow-sm border">
+      {/* כותרת ראשית ואזור העלאה */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">ספריית מדיה 🖼️</h1>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">כל הקבצים והתמונות שהועלו למערכת (כולל תיקיות המוצרים).</p>
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">ניהול כל הקבצים והתמונות במערכת (מוצרים, באנרים, קטגוריות).</p>
         </div>
 
         <label className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-3 rounded-2xl transition cursor-pointer shadow-md text-xs sm:text-sm flex items-center gap-2">
@@ -120,41 +117,55 @@ export default function AdminMedia() {
         </label>
       </div>
 
-      <div className="bg-white p-6 rounded-3xl shadow-sm border space-y-4">
-        <h2 className="text-base sm:text-lg font-bold text-gray-800 border-b pb-2">
-          קבצים במערכת ({mediaFiles.length})
-        </h2>
+      {/* רשת גלריית התמונות */}
+      <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 space-y-4">
+        <div className="flex justify-between items-center border-b pb-3">
+          <h2 className="text-base font-bold text-gray-800">
+            קבצים במערכת ({mediaFiles.length})
+          </h2>
+          <button 
+            onClick={fetchMediaFiles} 
+            className="text-xs text-orange-600 font-bold hover:underline cursor-pointer"
+          >
+            רענן מאגר 🔄
+          </button>
+        </div>
 
         {loading ? (
           <div className="text-center py-20 font-bold text-sm text-gray-500">טוען קבצים מהמדיה...</div>
         ) : mediaFiles.length === 0 ? (
           <div className="text-center py-20 text-gray-400 font-medium">אין קבצים זמינים במדיה כרגע.</div>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {mediaFiles.map((file, idx) => (
-              <div key={idx} className="bg-gray-50 rounded-2xl border p-2.5 flex flex-col justify-between gap-2 shadow-2xs group hover:border-orange-600 transition">
-                <div className="w-full h-28 bg-white rounded-xl overflow-hidden border flex items-center justify-center p-1.5 relative">
-                  <img src={file.url} alt="" className="max-h-full max-w-full object-contain group-hover:scale-105 transition" />
+              <div 
+                key={idx} 
+                className="bg-white rounded-2xl border border-gray-100 p-3 flex flex-col justify-between gap-3 shadow-2xs hover:shadow-md hover:border-orange-500 transition-all group"
+              >
+                {/* תצוגה מקדימה בריבוע מושלם */}
+                <div className="w-full aspect-square bg-gray-50 rounded-xl overflow-hidden border border-gray-100 flex items-center justify-center p-2 relative">
+                  <img src={file.url} alt="" className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition duration-300" />
                 </div>
 
-                <div className="space-y-1.5">
-                  <p className="text-[10px] text-gray-700 font-medium truncate text-center" title={file.name}>
+                {/* פרטי קובץ וכפתורים */}
+                <div className="space-y-2">
+                  <p className="text-[11px] text-gray-700 font-bold truncate text-center px-1" title={file.name}>
                     {file.name}
                   </p>
 
-                  <div className="flex items-center gap-1">
+                  <div className="grid grid-cols-2 gap-1.5 pt-1 border-t border-gray-100">
                     <button
                       onClick={() => copyToClipboard(file.url, idx)}
-                      className="flex-1 bg-black hover:bg-gray-800 text-white py-1.5 rounded-xl text-[10px] font-bold transition cursor-pointer text-center truncate px-1"
+                      className="bg-gray-100 hover:bg-black hover:text-white text-gray-800 py-2 rounded-xl text-[11px] font-bold transition cursor-pointer text-center truncate px-1 flex items-center justify-center"
                     >
                       {copiedIndex === idx ? 'הועתק! ✓' : 'העתק 🔗'}
                     </button>
                     <button
                       onClick={() => handleDelete(file.path)}
-                      className="bg-red-50 hover:bg-red-100 text-red-600 px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition cursor-pointer"
+                      className="bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-xl text-[11px] font-bold transition cursor-pointer flex items-center justify-center"
                       title="מחק קובץ"
                     >
-                      🗑️
+                      מחק 🗑️
                     </button>
                   </div>
                 </div>
