@@ -23,6 +23,16 @@ export default function AdminDashboard() {
     setLoading(false);
   };
 
+  // עדכון סטטוס הזמנה ישירות מדף הבית
+  const handleStatusChange = async (orderId: string, newStatus: string) => {
+    const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
+    if (error) {
+      alert('שגיאה בעדכון הסטטוס: ' + error.message);
+    } else {
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+    }
+  };
+
   // חישוב הכנסות החודש הנוכחי
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
@@ -36,33 +46,31 @@ export default function AdminDashboard() {
   // מוצרים עם מלאי נמוך (פחות מ-3 יחידות)
   const lowStockProducts = products.filter(p => (Number(p.stock) || 0) <= 3);
 
-  // הזמנות חדשות
+  // הזמנות חדשות שממתינות לטיפול
   const newOrders = orders.filter(o => o.status === 'חדש' || !o.status || o.status === 'pending');
 
   if (loading) return <div className="text-center py-20 text-gray-500 font-medium">טוען נתוני דף הבית...</div>;
 
   return (
     <div className="space-y-8" dir="rtl">
-      {/* כותרת וברכה */}
-      <div className="bg-white p-6 rounded-3xl border shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      {/* כותרת ראשית ללא ניווט כפתורים עליון */}
+      <div className="bg-white p-6 rounded-3xl border shadow-sm flex justify-between items-center">
         <div>
           <h1 className="text-xl font-black text-gray-900">ברוך הבא לניהול החנות, דניאל 👋</h1>
           <p className="text-xs text-gray-500 mt-1">הנה סיכום מצב החנות והעדכונים החשובים להיום.</p>
         </div>
-        <div className="flex gap-2">
-          <Link href="/admin/orders" className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm">
-            📦 ניהול הזמנות ({orders.length})
-          </Link>
-          <Link href="/admin/products" className="bg-black hover:bg-gray-800 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm">
-            📱 ניהול מוצרים ({products.length})
-          </Link>
-        </div>
+        <button 
+          onClick={fetchDashboardData}
+          className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+        >
+          <span>רענן נתונים</span> 🔄
+        </button>
       </div>
 
       {/* קוביות נתונים עיקריות (Widgets) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-2 border-r-4 border-r-orange-600">
-          <span className="text-xs font-bold text-gray-500 block">הזמנות חדשות שממתינות לטיפול</span>
+          <span className="text-xs font-bold text-gray-500 block">הזמנות חדשות לטיפול</span>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-black text-gray-900">{newOrders.length}</span>
             <span className="text-xs text-orange-600 font-bold">מתוך {orders.length} סה"כ</span>
@@ -86,60 +94,90 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* התראות ודגשים לטיפול */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* הזמנות אחרונות */}
-        <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
-          <div className="flex justify-between items-center border-b pb-3">
-            <h3 className="font-black text-sm text-gray-900">הזמנות אחרונות בחנות</h3>
-            <Link href="/admin/orders" className="text-xs font-bold text-orange-600 hover:underline">לכל ההזמנות ➔</Link>
+      {/* אזור מרכזי: הזמנות חדשות שממתינות לטיפול */}
+      <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
+        <div className="flex justify-between items-center border-b pb-3">
+          <div className="flex items-center gap-2">
+            <h3 className="font-black text-base text-gray-900">🚨 הזמנות חדשות שממתינות לטיפול ({newOrders.length})</h3>
           </div>
-          <div className="space-y-3">
-            {orders.slice(0, 5).length > 0 ? (
-              orders.slice(0, 5).map((ord, idx) => (
-                <div key={ord.id || idx} className="bg-gray-50 p-3.5 rounded-2xl border flex justify-between items-center">
-                  <div>
-                    <span className="text-xs font-bold text-gray-900 block">הזמנה #{ord.id?.slice(0, 8) || idx + 1} - {ord.customer_name || ord.name || 'לקוח'}</span>
-                    <span className="text-[11px] text-gray-500">{ord.created_at ? new Date(ord.created_at).toLocaleDateString('he-IL') : 'היום'}</span>
-                  </div>
-                  <div className="text-left">
-                    <span className="text-xs font-black text-orange-600 block">₪{ord.total_price || ord.price || 0}</span>
-                    <span className="text-[10px] bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full font-bold">{ord.status || 'חדש'}</span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-xs text-gray-400 text-center py-6">אין עדיין הזמנות במערכת.</p>
-            )}
-          </div>
+          <Link href="/admin/orders" className="text-xs font-bold text-orange-600 hover:underline">
+            לכל ההזמנות במערכת ➔
+          </Link>
         </div>
 
-        {/* מוצרים במלאי נמוך */}
-        <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
-          <div className="flex justify-between items-center border-b pb-3">
-            <h3 className="font-black text-sm text-gray-900">⚠️ מוצרים במלאי נמוך (דורש השלמה)</h3>
-            <Link href="/admin/products" className="text-xs font-bold text-orange-600 hover:underline">לניהול מוצרים ➔</Link>
-          </div>
-          <div className="space-y-3">
-            {lowStockProducts.length > 0 ? (
-              lowStockProducts.slice(0, 5).map((p) => (
-                <div key={p.id} className="bg-red-50/50 border border-red-100 p-3.5 rounded-2xl flex justify-between items-center">
+        <div className="space-y-3">
+          {newOrders.length > 0 ? (
+            newOrders.map((ord, idx) => (
+              <div key={ord.id || idx} className="bg-orange-50/40 border border-orange-100 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition hover:bg-orange-50/80">
+                <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <img src={p.image_url} alt="" className="w-8 h-8 object-contain bg-white rounded-lg border p-0.5" />
-                    <div>
-                      <h4 className="font-bold text-xs text-gray-900">{p.name}</h4>
-                      <span className="text-[11px] text-red-600 font-bold">נותרו רק {p.stock ?? 0} יחידות במלאי!</span>
-                    </div>
+                    <span className="font-black text-sm text-gray-900">
+                      הזמנה #{ord.id?.slice(0, 8) || idx + 1} - {ord.customer_name || ord.name || 'לקוח'}
+                    </span>
+                    <span className="text-[10px] bg-orange-200 text-orange-800 px-2.5 py-0.5 rounded-full font-bold">
+                      ממתין לטיפול
+                    </span>
                   </div>
-                  <Link href="/admin/products" className="bg-white border text-gray-800 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-gray-50">
-                    עדכן מלאי
-                  </Link>
+                  <div className="text-xs text-gray-600 flex flex-wrap gap-3">
+                    <span>📞 טלפון: <strong className="text-gray-800">{ord.phone || ord.customer_phone || 'לא צוין'}</strong></span>
+                    <span>📍 כתובת/סניף: <strong className="text-gray-800">{ord.address || ord.city || 'איסוף/משלוח'}</strong></span>
+                    <span>📅 תאריך: <strong className="text-gray-800">{ord.created_at ? new Date(ord.created_at).toLocaleString('he-IL') : 'היום'}</strong></span>
+                  </div>
                 </div>
-              ))
-            ) : (
-              <p className="text-xs text-gray-400 text-center py-6">מעולה! אין מוצרים במלאי נמוך כרגע.</p>
-            )}
-          </div>
+
+                <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0">
+                  <span className="text-base font-black text-orange-600">₪{ord.total_price || ord.price || 0}</span>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => handleStatusChange(ord.id, 'טופל')}
+                      className="bg-green-600 hover:bg-green-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer shadow-xs"
+                    >
+                      סמן כטופל ✓
+                    </button>
+                    <button 
+                      onClick={() => handleStatusChange(ord.id, 'בטיפול')}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer shadow-xs"
+                    >
+                      העבר לטיפול ⏳
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+              <span className="text-3xl block mb-2">🎉</span>
+              <p className="text-xs font-bold text-gray-600">כל הכבוד! אין הזמנות חדשות שממתינות לטיפול כרגע.</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* מוצרים במלאי נמוך */}
+      <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
+        <div className="flex justify-between items-center border-b pb-3">
+          <h3 className="font-black text-sm text-gray-900">⚠️ מוצרים במלאי נמוך (דורש השלמה)</h3>
+          <Link href="/admin/products" className="text-xs font-bold text-orange-600 hover:underline">לניהול מוצרים ➔</Link>
+        </div>
+        <div className="space-y-3">
+          {lowStockProducts.length > 0 ? (
+            lowStockProducts.slice(0, 5).map((p) => (
+              <div key={p.id} className="bg-red-50/50 border border-red-100 p-3.5 rounded-2xl flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <img src={p.image_url} alt="" className="w-8 h-8 object-contain bg-white rounded-lg border p-0.5" />
+                  <div>
+                    <h4 className="font-bold text-xs text-gray-900">{p.name}</h4>
+                    <span className="text-[11px] text-red-600 font-bold">נותרו רק {p.stock ?? 0} יחידות במלאי!</span>
+                  </div>
+                </div>
+                <Link href="/admin/products" className="bg-white border text-gray-800 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-gray-50">
+                  עדכן מלאי
+                </Link>
+              </div>
+            ))
+          ) : (
+            <p className="text-xs text-gray-400 text-center py-6">מעולה! אין מוצרים במלאי נמוך כרגע.</p>
+          )}
         </div>
       </div>
     </div>
