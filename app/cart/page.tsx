@@ -15,7 +15,20 @@ export default function CartPage() {
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // לוגיקת קופונים ומבצעים
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [couponError, setCouponError] = useState('');
+  
+  // מבצע סכום קנייה (משלוח חינם)
+  const [thresholdPromo, setThresholdPromo] = useState<any>(null);
+
+  // חלון התראה ללקוח חדש (קופון הצטרפות)
+  const [welcomeCoupon, setWelcomeCoupon] = useState<any>(null);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+
   useEffect(() => {
+    // טעינת המוצרים מהעגלה
     const saved = localStorage.getItem('cart');
     if (saved) {
       try {
@@ -24,7 +37,35 @@ export default function CartPage() {
         setCartItems([]);
       }
     }
+
+    // שליפת הגדרות מבצע סכום קנייה (משלוח חינם)
+    fetchPromos();
   }, []);
+
+  const fetchPromos = async () => {
+    // 1. מבצע סכום קנייה
+    const { data: promoData } = await supabase.from('settings').select('*').eq('key', 'threshold_promo').single();
+    if (promoData && promoData.value && promoData.value.active) {
+      setThresholdPromo(promoData.value);
+    }
+
+    // 2. קופון הצטרפות ללקוחות חדשים
+    const { data: welcomeData } = await supabase
+      .from('coupons')
+      .select('*')
+      .or('is_welcome.eq.true,is_welcome_gift.eq.true')
+      .limit(1)
+      .single();
+
+    if (welcomeData) {
+      setWelcomeCoupon(welcomeData);
+      // בדיקה אם הלקוח כבר סגר את ההתראה או משתמש רשום
+      const dismissed = localStorage.getItem('welcome_modal_dismissed');
+      if (!dismissed) {
+        setShowWelcomeModal(true);
+      }
+    }
+  };
 
   const updateQuantity = (index: number, delta: number) => {
     const updated = [...cartItems];
@@ -44,13 +85,58 @@ export default function CartPage() {
     window.dispatchEvent(new Event('cartUpdated'));
   };
 
+  // הפעלת קוד קופון
+  const handleApplyCoupon = async () => {
+    if (!couponInput.trim()) return;
+    setCouponError('');
+
+    const { data, error } = await supabase
+      .from('coupons')
+      .select('*')
+      .ilike('code', couponInput.trim())
+      .single();
+
+    if (error || !data) {
+      setCouponError('קופון שגוי או שאינו בתוקף');
+      setAppliedCoupon(null);
+    } else {
+      setAppliedCoupon(data);
+      setCouponError('');
+      alert(`הקופון "${data.code}" הופעל בהצלחה! 🎉`);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponInput('');
+    setCouponError('');
+  };
+
+  // חישובי סכומים
   const subtotalPrice = cartItems.reduce((sum, item) => {
     const price = item.sale_price || item.price || 0;
     return sum + price * (item.quantity || 1);
   }, 0);
 
-  const shippingCost = 29;
-  const totalPrice = subtotalPrice + shippingCost;
+  // חישוב הנחת קופון
+  let discountAmount = 0;
+  if (appliedCoupon) {
+    const val = Number(appliedCoupon.discount_value) || 0;
+    const type = appliedCoupon.discount_type;
+    if (type === 'percentage' || type === 'percent') {
+      discountAmount = (subtotalPrice * val) / 100;
+    } else {
+      discountAmount = val;
+    }
+  }
+
+  // חישוב משלוח חינם אם עברו את סכום המינימום במבצע
+  const thresholdMin = Number(thresholdPromo?.amount) || 400;
+  const isFreeShippingEligible = thresholdPromo?.active && subtotalPrice >= thresholdMin;
+  const shippingCost = isFreeShippingEligible ? 0 : 29;
+
+  // סה"כ לתשלום סופי
+  const totalPrice = Math.max(0, subtotalPrice - discountAmount + shippingCost);
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,6 +157,9 @@ export default function CartPage() {
       address: `${city}, ${street} ${building}`,
       notes,
       items: cartItems,
+      subtotal: subtotalPrice,
+      discount_amount: discountAmount,
+      coupon_code: appliedCoupon?.code || null,
       shipping_cost: shippingCost,
       total_price: totalPrice,
       status: 'חדש'
@@ -111,6 +200,7 @@ export default function CartPage() {
         </div>
       ) : (
         <div className="space-y-6">
+          {/* רשימת המוצרים בעגלה */}
           <div className="bg-white rounded-3xl border shadow-sm divide-y">
             {cartItems.map((item, index) => {
               const itemImg = item.image || item.image_url || (Array.isArray(item.images) ? item.images[0] : '') || '';
@@ -168,6 +258,46 @@ export default function CartPage() {
             })}
           </div>
 
+          {/* שדה הזנת קוד קופון */}
+          <div className="bg-white rounded-3xl border p-5 shadow-sm space-y-3">
+            <h3 className="font-bold text-xs text-gray-800">🎟️ יש לך קוד קופון?</h3>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={couponInput}
+                onChange={(e) => setCouponInput(e.target.value)}
+                placeholder="הקלד קוד קופון כאן..."
+                disabled={!!appliedCoupon}
+                className="flex-1 bg-gray-50 border rounded-xl px-4 py-2.5 text-xs uppercase outline-none focus:border-orange-600 disabled:bg-gray-100"
+              />
+              {appliedCoupon ? (
+                <button
+                  type="button"
+                  onClick={handleRemoveCoupon}
+                  className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer"
+                >
+                  הסר קופון
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleApplyCoupon}
+                  className="bg-black hover:bg-gray-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer"
+                >
+                  הפעל קופון
+                </button>
+              )}
+            </div>
+
+            {couponError && <p className="text-[11px] text-red-500 font-bold">{couponError}</p>}
+            {appliedCoupon && (
+              <p className="text-[11px] text-green-600 font-bold">
+                ✓ קופון "{appliedCoupon.code}" הופעל! מקנה הנחה של {appliedCoupon.discount_value}{appliedCoupon.discount_type === 'percentage' || appliedCoupon.discount_type === 'percent' ? '%' : '₪'}.
+              </p>
+            )}
+          </div>
+
+          {/* טופס פרטי לקוח וסיום הזמנה */}
           <form onSubmit={handleCheckout} className="bg-white rounded-3xl border p-6 shadow-sm space-y-4">
             <h3 className="font-black text-sm border-r-4 border-orange-600 pr-2">פרטי לקוח וכתובת למשלוח</h3>
             
@@ -254,18 +384,34 @@ export default function CartPage() {
               ></textarea>
             </div>
 
+            {/* סיכום כספי מפורט */}
             <div className="border-t pt-4 space-y-2 text-xs">
               <div className="flex justify-between items-center text-gray-700">
                 <span>סכום ביניים מוצרים:</span>
                 <span className="font-bold text-gray-900">₪{subtotalPrice}</span>
               </div>
+
+              {discountAmount > 0 && (
+                <div className="flex justify-between items-center text-green-600 font-bold">
+                  <span>הנחת קופון ({appliedCoupon?.code}):</span>
+                  <span>-₪{discountAmount.toFixed(0)}</span>
+                </div>
+              )}
+
               <div className="flex justify-between items-center text-gray-700">
                 <span>עלות משלוח מהיר עד הבית:</span>
-                <span className="font-bold text-gray-900">₪{shippingCost}</span>
+                {isFreeShippingEligible ? (
+                  <span className="font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-lg border border-green-200">
+                    חינם! (מבצע בקנייה מעל ₪{thresholdMin}) 🎉
+                  </span>
+                ) : (
+                  <span className="font-bold text-gray-900">₪{shippingCost}</span>
+                )}
               </div>
+
               <div className="border-t pt-2 flex justify-between items-center text-base font-black">
                 <span className="text-gray-900">סה"כ לתשלום:</span>
-                <span className="text-orange-600 text-lg">₪{totalPrice}</span>
+                <span className="text-orange-600 text-lg">₪{totalPrice.toFixed(0)}</span>
               </div>
             </div>
 
@@ -279,6 +425,7 @@ export default function CartPage() {
           </form>
         </div>
       )}
-    </div>
-  );
-}
+
+      {/* פופ-אפ התראה ללקוח חדש (מבצע הצטרפות בהרשמה) */}
+      {showWelcomeModal && welcomeCoupon && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center
