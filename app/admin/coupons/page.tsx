@@ -27,12 +27,12 @@ export default function AdminCouponsPage() {
     if (couponsData) setCoupons(couponsData);
 
     // שליפת הגדרות מבצע סכום קנייה מטבלת settings
-    const { data: settingsData } = await supabase.from('settings').select('*').eq('key', 'threshold_promo').single();
-    if (settingsData && settingsData.value) {
-      setThresholdActive(settingsData.value.active);
-      setThresholdAmount(settingsData.value.amount);
-      setThresholdType(settingsData.value.type);
-      setThresholdBannerText(settingsData.value.text);
+    const { data: settingsData } = await supabase.from('settings').select('*').single();
+    if (settingsData) {
+      setThresholdActive(!!settingsData.threshold_active);
+      if (settingsData.threshold_amount) setThresholdAmount(settingsData.threshold_amount);
+      if (settingsData.threshold_type) setThresholdType(settingsData.threshold_type);
+      if (settingsData.threshold_banner_text) setThresholdBannerText(settingsData.threshold_banner_text);
     }
   };
 
@@ -64,15 +64,23 @@ export default function AdminCouponsPage() {
 
   const handleSaveThresholdPromo = async () => {
     const promoData = {
-      active: thresholdActive,
-      amount: thresholdAmount,
-      type: thresholdType,
-      text: thresholdBannerText
+      threshold_active: thresholdActive,
+      threshold_amount: thresholdAmount,
+      threshold_type: thresholdType,
+      threshold_banner_text: thresholdBannerText
     };
 
-    const { error } = await supabase
-      .from('settings')
-      .upsert({ key: 'threshold_promo', value: promoData }, { onConflict: 'key' });
+    // שליפת מזהה השורה היחידה בטבלת settings לצורך עדכון
+    const { data: existing } = await supabase.from('settings').select('id').limit(1).single();
+
+    let error;
+    if (existing?.id) {
+      const res = await supabase.from('settings').update(promoData).eq('id', existing.id);
+      error = res.error;
+    } else {
+      const res = await supabase.from('settings').insert([promoData]);
+      error = res.error;
+    }
 
     if (error) {
       alert('שגיאה בשמירת הגדרות המבצע: ' + error.message);
@@ -148,7 +156,7 @@ export default function AdminCouponsPage() {
 
         <button 
           onClick={handleSaveThresholdPromo}
-          className="bg-black text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-gray-800 transition"
+          className="bg-black text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-gray-800 transition cursor-pointer"
         >
           שמור הגדרות מבצע סכום 💾
         </button>
@@ -222,7 +230,7 @@ export default function AdminCouponsPage() {
             )}
           </div>
 
-          <button type="submit" className="bg-black text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-gray-800 transition">
+          <button type="submit" className="bg-black text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-gray-800 transition cursor-pointer">
             צור קופון חדש ✨
           </button>
         </form>
@@ -258,7 +266,7 @@ export default function AdminCouponsPage() {
                     )}
                   </td>
                   <td className="p-4">
-                    <button onClick={() => handleDelete(coupon.id)} className="text-red-600 hover:text-red-800 text-xs font-bold">
+                    <button onClick={() => handleDelete(coupon.id)} className="text-red-600 hover:text-red-800 text-xs font-bold cursor-pointer">
                       מחק 🗑️
                     </button>
                   </td>
