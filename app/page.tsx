@@ -166,7 +166,7 @@ function StoreContent() {
         supabase.from('categories').select('*'),
         supabase.from('brands').select('*'),
         supabase.from('banners').select('*').eq('is_active', true),
-        supabase.from('settings').select('*').single(),
+        supabase.from('settings').select('*').limit(1).maybeSingle(), // תיקון כאן לשימוש ב-limit(1).maybeSingle()
       ]);
 
       if (prodRes.data) setProducts(prodRes.data);
