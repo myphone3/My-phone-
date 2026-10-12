@@ -21,12 +21,26 @@ function StoreContent() {
   const [upsellModalOpen, setUpsellModalOpen] = useState(false);
   const [addedProductName, setAddedProductName] = useState('');
 
+  // סטייט עבור מבצע סכום קנייה והשורה מעל הבאנר
+  const [thresholdPromo, setThresholdPromo] = useState<any>(null);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const catScrollRef = useRef<HTMLDivElement>(null);
   const saleScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchData();
+  }, []);
+
+  // שליפת הגדרות מבצע סכום קנייה והשורה מעל הבאנר
+  useEffect(() => {
+    async function fetchThresholdPromo() {
+      const { data } = await supabase.from('settings').select('*').eq('key', 'threshold_promo').single();
+      if (data && data.value && data.value.active) {
+        setThresholdPromo(data.value);
+      }
+    }
+    fetchThresholdPromo();
   }, []);
 
   // מנגנון תנועה תמידי למותגים
@@ -333,6 +347,13 @@ function StoreContent() {
           animation: subtle-pulse 2.2s infinite ease-in-out;
         }
       `}</style>
+
+      {/* שורה דקה מעל הבאנר למבצע סכום קנייה */}
+      {thresholdPromo && (
+        <div className="bg-black text-white text-center py-2 px-4 text-xs font-bold tracking-wide shadow-2xs" dir="rtl">
+          {thresholdPromo.text}
+        </div>
+      )}
 
       {/* פס מבצעים עליון עם טיימר */}
       {settings?.announcement_text && (
