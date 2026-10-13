@@ -779,7 +779,7 @@ function StoreContent() {
               </button>
               <Link
                 href="/cart"
-                onClick={() => setUps5ellModalOpen(false)}
+                onClick={() => setUpsellModalOpen(false)}
                 className="flex-1 bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-2xl text-xs font-black transition text-center shadow-md cursor-pointer"
               >
                 לעגלת הקניות ➔
