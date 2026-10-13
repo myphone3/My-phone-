@@ -17,7 +17,6 @@ function StoreContent() {
   const [loading, setLoading] = useState(true);
   const [selectedColors, setSelectedColors] = useState<{ [key: string]: string }>({});
 
-  // סטייט עבור פופ-אפ המבצעים וההמלצות החכם (Upsell)
   const [upsellModalOpen, setUpsellModalOpen] = useState(false);
   const [addedProductName, setAddedProductName] = useState('');
 
@@ -29,7 +28,6 @@ function StoreContent() {
     fetchData();
   }, []);
 
-  // מנגנון תנועה תמידי למותגים
   useEffect(() => {
     const container = scrollRef.current;
     if (!container || brands.length === 0) return;
@@ -73,7 +71,6 @@ function StoreContent() {
     };
   }, [brands]);
 
-  // מנגנון תנועה עדינה לקטגוריות
   useEffect(() => {
     const container = catScrollRef.current;
     if (!container || categories.length <= 4) return;
@@ -166,7 +163,7 @@ function StoreContent() {
         supabase.from('categories').select('*'),
         supabase.from('brands').select('*'),
         supabase.from('banners').select('*').eq('is_active', true),
-        supabase.from('settings').select('*').limit(1).maybeSingle(), // תיקון כאן לשימוש ב-limit(1).maybeSingle()
+        supabase.from('settings').select('*').limit(1).maybeSingle(),
       ]);
 
       if (prodRes.data) setProducts(prodRes.data);
@@ -294,7 +291,6 @@ function StoreContent() {
       localStorage.setItem('cart', JSON.stringify(cart));
       window.dispatchEvent(new Event('cartUpdated'));
 
-      // פתיחת פופ-אפ המבצעים וההמלצות החכם
       setAddedProductName(product.name);
       setUpsellModalOpen(true);
 
@@ -303,7 +299,6 @@ function StoreContent() {
     }
   };
 
-  // פונקציות גלילה בלחיצה על החיצים במחשב
   const scrollContainer = (ref: React.RefObject<HTMLDivElement | null>, direction: 'left' | 'right') => {
     if (ref.current) {
       const scrollAmount = direction === 'left' ? -300 : 300;
@@ -313,6 +308,10 @@ function StoreContent() {
 
   const scrollingBrands = [...brands, ...brands, ...brands, ...brands];
   const saleProducts = products.filter(p => p.sale_price && Number(p.sale_price) > 0 && Number(p.sale_price) < Number(p.price));
+
+  // בדיקה האם המבצע בתוקף לפי תאריך ושעה
+  const isPromoActive = settings?.threshold_active && 
+    (!settings?.announcement_end_time || (timeLeft && !timeLeft.isExpired));
 
   return (
     <div className="space-y-0 pb-16" dir="rtl">
@@ -334,30 +333,19 @@ function StoreContent() {
         }
       `}</style>
 
-      {/* שורה דקה מעל הבאנר למבצע סכום קנייה */}
-      {settings?.threshold_active && settings?.threshold_banner_text && (
-        <div className="bg-black text-white text-center py-2 px-4 text-xs font-bold tracking-wide shadow-2xs" dir="rtl">
-          {settings.threshold_banner_text}
-        </div>
-      )}
-
-      {/* פס מבצעים עליון עם טיימר */}
-      {settings?.announcement_text && (
-        <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2.5 text-xs sm:text-sm font-bold flex items-center justify-between gap-4 shadow-sm z-50">
-          {timeLeft && !timeLeft.isExpired && (
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="bg-black/30 px-2.5 py-1 rounded-lg text-xs font-mono tracking-wider">
-                {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')} ⏱️
-              </span>
-            </div>
+      {/* שורת מבצע עליונה יחידה עם שעון עצר אוטומטי אם הוגדר */}
+      {isPromoActive && settings?.threshold_banner_text && (
+        <div className="bg-black text-white text-center py-2.5 px-4 text-xs sm:text-sm font-bold tracking-wide shadow-xs flex items-center justify-center gap-3" dir="rtl">
+          {timeLeft && !timeLeft.isExpired && settings?.announcement_end_time && (
+            <span className="bg-white/20 px-2 py-0.5 rounded text-xs font-mono tracking-wider">
+              {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')} ⏱️
+            </span>
           )}
-          <div className="flex-1 text-right text-xs sm:text-sm truncate">
-            {settings.announcement_text}
-          </div>
+          <span>{settings.threshold_banner_text}</span>
         </div>
       )}
 
-      {/* שורת מותגים רצה תמיד אוטומטית ברציפות - נקי לחלוטין */}
+      {/* שורת מותגים רצה תמיד אוטומטית ברציפות */}
       {brands.length > 0 && (
         <div className="w-full bg-white py-3 border-b border-gray-100 overflow-hidden relative">
           <div 
@@ -455,7 +443,7 @@ function StoreContent() {
 
       <div className="max-w-7xl mx-auto px-4 space-y-10 pt-8">
 
-        {/* קטגוריות מובילות ב-2 שורות עם כפתור מותאם מעט קטן יותר */}
+        {/* קטגוריות מובילות ב-2 שורות */}
         {categories.length > 0 && (
           <section className="space-y-4 relative group">
             <div className="flex justify-between items-center">
@@ -472,18 +460,15 @@ function StoreContent() {
             </div>
 
             <div className="relative">
-              {/* חיצים שקופים למחשב עבור הקטגוריות */}
               <button 
                 onClick={() => scrollContainer(catScrollRef, 'right')}
                 className="hidden sm:flex absolute -right-4 top-1/2 -translate-y-1/2 z-20 bg-white/80 hover:bg-white text-gray-800 w-9 h-9 rounded-full shadow-md items-center justify-center border border-gray-200 transition backdrop-blur-xs cursor-pointer opacity-0 group-hover:opacity-100"
-                title="גלול ימינה"
               >
                 ➔
               </button>
               <button 
                 onClick={() => scrollContainer(catScrollRef, 'left')}
                 className="hidden sm:flex absolute -left-4 top-1/2 -translate-y-1/2 z-20 bg-white/80 hover:bg-white text-gray-800 w-9 h-9 rounded-full shadow-md items-center justify-center border border-gray-200 transition backdrop-blur-xs cursor-pointer opacity-0 group-hover:opacity-100"
-                title="גלול שמאלה"
               >
                 ➔
               </button>
@@ -514,7 +499,7 @@ function StoreContent() {
           </section>
         )}
 
-        {/* שורת מבצעים חמים בתוך שקופית כתומה בהירה + חיצי ניווט למחשב */}
+        {/* מבצעים חמים */}
         {saleProducts.length > 0 && (
           <section className="bg-orange-50/60 border border-orange-200/80 p-4 sm:p-6 rounded-3xl space-y-4 shadow-xs relative group">
             <div className="flex justify-between items-center border-b border-orange-200/60 pb-3">
@@ -524,18 +509,15 @@ function StoreContent() {
             </div>
 
             <div className="relative">
-              {/* חיצים שקופים למחשב עבור המבצעים */}
               <button 
                 onClick={() => scrollContainer(saleScrollRef, 'right')}
                 className="hidden sm:flex absolute -right-3 top-1/2 -translate-y-1/2 z-20 bg-white/90 hover:bg-white text-gray-800 w-9 h-9 rounded-full shadow-md items-center justify-center border border-gray-200 transition backdrop-blur-xs cursor-pointer opacity-0 group-hover:opacity-100"
-                title="גלול ימינה"
               >
                 ➔
               </button>
               <button 
                 onClick={() => scrollContainer(saleScrollRef, 'left')}
                 className="hidden sm:flex absolute -left-3 top-1/2 -translate-y-1/2 z-20 bg-white/90 hover:bg-white text-gray-800 w-9 h-9 rounded-full shadow-md items-center justify-center border border-gray-200 transition backdrop-blur-xs cursor-pointer opacity-0 group-hover:opacity-100"
-                title="גלול שמאלה"
               >
                 ➔
               </button>
@@ -742,12 +724,11 @@ function StoreContent() {
 
       </div>
 
-      {/* פופ-אפ מבצעים והמלצות חכם (Upsell) בהוספה לעגלה */}
+      {/* פופ-אפ מבצעים והמלצות חכם (Upsell) */}
       {upsellModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4" dir="rtl">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl border border-gray-100 animate-in fade-in zoom-in duration-200">
             
-            {/* כותרת הצלחה */}
             <div className="text-center space-y-2 border-b pb-4">
               <div className="w-16 h-16 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mx-auto text-2xl">
                 🛒
@@ -756,7 +737,6 @@ function StoreContent() {
               <p className="text-xs text-gray-500 font-medium truncate px-4">"{addedProductName}"</p>
             </div>
 
-            {/* אזור מבצעים חמים נלווים */}
             <div className="space-y-3">
               <span className="text-xs font-bold text-gray-800 block flex items-center gap-1.5">
                 <span>🔥</span>
@@ -787,7 +767,6 @@ function StoreContent() {
               </div>
             </div>
 
-            {/* כפתורי פעולה */}
             <div className="flex gap-2 pt-2">
               <button
                 onClick={() => setUpsellModalOpen(false)}
