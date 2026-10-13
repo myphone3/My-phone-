@@ -82,13 +82,25 @@ export default function Header() {
 
   const checkAdmin = async (email?: string) => {
     if (!email) return;
-    // הגדרה ישירה למייל שלך כמנהל ראשי
-    if (email.toLowerCase() === 'myphone3393@gmail.com') {
+    const cleanEmail = email.trim().toLowerCase();
+
+    // בדיקה ישירה מול טבלת admins במסד הנתונים
+    const { data, error } = await supabase
+      .from('admins')
+      .select('id, email')
+      .ilike('email', cleanEmail)
+      .maybeSingle();
+
+    if (data) {
       setIsAdmin(true);
-      return;
+    } else {
+      // גיבוי למקרה שהטבלה ריקה או שלא נמצאה רשומה מדויקת אבל המייל הוא שלך
+      if (cleanEmail === 'myphone3393@gmail.com' || cleanEmail === 'd0587223040@gmail.com') {
+        setIsAdmin(true);
+      } else {
+        setIsAdmin(false);
+      }
     }
-    const { data } = await supabase.from('admins').select('id').eq('email', email).maybeSingle();
-    if (data) setIsAdmin(true);
   };
 
   const checkUserOrders = async (email?: string) => {
@@ -145,7 +157,6 @@ export default function Header() {
   };
 
   const hasUnreadNotification = promoConfig?.welcome_active && !isNotificationDismissed && (!user || !hasUsedPromo);
-  const isUserAdmin = isAdmin || (user?.email?.toLowerCase() === 'myphone3393@gmail.com');
 
   return (
     <header className="bg-white border-b sticky top-0 z-40 shadow-sm" dir="rtl">
@@ -286,12 +297,12 @@ export default function Header() {
                     </div>
                   </div>
 
-                  {/* כפתור כניסה לפאנל ניהול (מוצג למנהלים) */}
-                  {isUserAdmin && (
+                  {/* כפתור כניסה לפאנל ניהול (מוצג מיד למנהלים) */}
+                  {isAdmin && (
                     <Link
                       href="/admin"
                       onClick={() => setDropdownOpen(false)}
-                      className="w-full bg-black hover:bg-gray-800 text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+                      className="w-full bg-black hover:bg-gray-800 text-white font-black py-3 rounded-xl text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-md"
                     >
                       <span>פנאל ניהול אתר 🛠️</span>
                     </Link>
@@ -319,7 +330,7 @@ export default function Header() {
           )}
         </div>
 
-        {/* אמצע: לוגו מלא (ללא חיתוך עיגול) והשם באמצע */}
+        {/* אמצע: לוגו מלא והשם באמצע */}
         <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center cursor-pointer group shrink-0">
           <img src="/Logo.JPG" alt="NEW PHONE" className="w-12 h-12 object-contain shadow-xs group-hover:scale-105 transition mb-1" />
           <div className="flex flex-col items-center text-center">
