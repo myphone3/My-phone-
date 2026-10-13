@@ -7,6 +7,7 @@ export default function AdminCouponsPage() {
   const [coupons, setCoupons] = useState<any[]>([]);
   const [productsList, setProductsList] = useState<any[]>([]);
   const [productSearch, setProductSearch] = useState('');
+  const [isGiftDropdownOpen, setIsGiftDropdownOpen] = useState(false);
   
   const [code, setCode] = useState('');
   const [couponName, setCouponName] = useState('');
@@ -215,27 +216,29 @@ export default function AdminCouponsPage() {
           )}
         </div>
 
-        {/* תיקון יציב של מסגרת התאריך והשעה */}
+        {/* שדה תאריך ושעה לסיום אוטומטי */}
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1">תאריך ושעה לסיום אוטומטי ⏱️</label>
-          <div className="w-full max-w-full overflow-hidden box-border">
+          <div className="w-full">
             <input 
               type="datetime-local" 
+              dir="ltr"
               value={announcementEndTime} 
               onChange={(e) => setAnnouncementEndTime(e.target.value)} 
-              className="w-full border border-gray-200 px-3 py-2.5 rounded-xl text-xs sm:text-sm bg-white font-bold text-gray-800 outline-none focus:border-orange-500 block box-border" 
+              className="w-full border border-gray-300 px-4 py-3 rounded-xl text-sm bg-white font-mono font-bold text-gray-800 shadow-2xs outline-none focus:border-orange-500 block box-border text-right" 
             />
           </div>
         </div>
 
+        {/* תיבת טקסט מורחבת (Textarea) לצפייה מלאה בטקסט השורה */}
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1">טקסט השורה שתוצג בראש האתר</label>
-          <input 
-            type="text" 
+          <textarea 
+            rows={3}
             value={thresholdBannerText} 
             onChange={(e) => setThresholdBannerText(e.target.value)} 
             placeholder="למשל: 🎉 מבצע מיוחד: משלוח חינם בקנייה מעל ₪399!"
-            className="w-full border p-3 rounded-xl text-sm font-medium" 
+            className="w-full border p-3 rounded-xl text-sm font-medium leading-relaxed bg-white outline-none focus:border-orange-500 box-border resize-y" 
           />
         </div>
 
@@ -260,7 +263,7 @@ export default function AdminCouponsPage() {
         </button>
       </div>
 
-      {/* 2. מבצע הצטרפות עם חיפוש מוצר ותצוגת תמונה */}
+      {/* 2. מבצע הצטרפות */}
       <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border space-y-4">
         <h2 className="text-base sm:text-lg font-black text-gray-900 border-b pb-2">🎁 מבצע הצטרפות</h2>
         
@@ -289,42 +292,74 @@ export default function AdminCouponsPage() {
         </div>
 
         {welcomeType === 'מתנה' ? (
-          <div className="bg-gray-50 p-4 rounded-2xl border space-y-3">
+          <div className="bg-gray-50 p-4 rounded-2xl border space-y-3 relative">
             <label className="block text-xs font-bold text-gray-800">בחר מוצר מתנה מהחנות 🎁</label>
             
-            {/* שדה חיפוש מוצר */}
-            <input 
-              type="text" 
-              value={productSearch}
-              onChange={(e) => setProductSearch(e.target.value)}
-              placeholder="🔍 חפש מוצר לפי שם..."
-              className="w-full border p-2.5 rounded-xl text-xs bg-white"
-            />
-
-            <select 
-              value={welcomeGiftProductId} 
-              onChange={(e) => setWelcomeGiftProductId(e.target.value)}
-              className="w-full border p-3 rounded-xl text-sm bg-white font-bold"
+            <div 
+              onClick={() => setIsGiftDropdownOpen(!isGiftDropdownOpen)}
+              className="w-full border bg-white p-3 rounded-xl text-sm font-bold flex items-center justify-between cursor-pointer shadow-2xs"
             >
-              <option value="">-- בחר מוצר מתנה --</option>
-              {filteredProducts.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-
-            {/* תצוגת המוצר שנבחר + התמונה שלו */}
-            {selectedGiftProduct && (
-              <div className="flex items-center gap-3 bg-white p-3 rounded-xl border mt-2">
-                <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden border shrink-0">
-                  {getProductImage(selectedGiftProduct) ? (
-                    <img src={getProductImage(selectedGiftProduct)} alt="" className="w-full h-full object-contain" />
-                  ) : (
-                    <span className="text-xl">🎁</span>
-                  )}
+              {selectedGiftProduct ? (
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden border shrink-0">
+                    {getProductImage(selectedGiftProduct) ? (
+                      <img src={getProductImage(selectedGiftProduct)} alt="" className="w-full h-full object-contain" />
+                    ) : (
+                      <span>🎁</span>
+                    )}
+                  </div>
+                  <span className="text-gray-900 text-xs sm:text-sm">{selectedGiftProduct.name}</span>
                 </div>
-                <div>
-                  <span className="text-[10px] text-orange-600 font-bold block">המוצר שנבחר כמתנה:</span>
-                  <h4 className="text-xs font-black text-gray-900">{selectedGiftProduct.name}</h4>
+              ) : (
+                <span className="text-gray-400 text-xs sm:text-sm">-- לחץ לבחירת מוצר מתנה מהרשימה --</span>
+              )}
+              <span className="text-xs text-gray-500">▼</span>
+            </div>
+
+            {isGiftDropdownOpen && (
+              <div className="absolute top-24 right-4 left-4 z-50 bg-white border border-gray-200 rounded-2xl shadow-2xl p-3 space-y-3 max-h-72 overflow-y-auto">
+                <input 
+                  type="text" 
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  placeholder="🔍 חפש מוצר מהיר לפי שם..."
+                  className="w-full border p-2.5 rounded-xl text-xs bg-gray-50 outline-none focus:border-orange-500 font-medium"
+                  autoFocus
+                />
+
+                <div 
+                  onClick={() => { setWelcomeGiftProductId(''); setIsGiftDropdownOpen(false); }}
+                  className="p-2.5 hover:bg-gray-100 rounded-xl cursor-pointer text-xs font-bold text-gray-500 border-b"
+                >
+                  -- ללא מוצר מתנה --
+                </div>
+
+                <div className="space-y-1">
+                  {filteredProducts.map((p) => {
+                    const img = getProductImage(p);
+                    const isSelected = welcomeGiftProductId === p.id;
+                    return (
+                      <div 
+                        key={p.id}
+                        onClick={() => { setWelcomeGiftProductId(p.id); setIsGiftDropdownOpen(false); }}
+                        className={`flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition ${
+                          isSelected ? 'bg-orange-50 border border-orange-200' : 'hover:bg-gray-50 border border-transparent'
+                        }`}
+                      >
+                        <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center overflow-hidden border shrink-0">
+                          {img ? (
+                            <img src={img} alt="" className="w-full h-full object-contain" />
+                          ) : (
+                            <span>🎁</span>
+                          )}
+                        </div>
+                        <span className="text-xs font-bold text-gray-800">{p.name}</span>
+                      </div>
+                    );
+                  })}
+                  {filteredProducts.length === 0 && (
+                    <p className="text-center text-xs text-gray-400 py-4">לא נמצאו מוצרים תואמים לחיפוש</p>
+                  )}
                 </div>
               </div>
             )}
