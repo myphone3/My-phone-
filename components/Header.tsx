@@ -84,8 +84,12 @@ export default function Header() {
     if (!email) return;
     const cleanEmail = email.trim().toLowerCase();
 
-    // בדיקה ישירה מול טבלת admins במסד הנתונים
-    const { data, error } = await supabase
+    if (cleanEmail === 'myphone3393@gmail.com' || cleanEmail === 'd0587223040@gmail.com') {
+      setIsAdmin(true);
+      return;
+    }
+
+    const { data } = await supabase
       .from('admins')
       .select('id, email')
       .ilike('email', cleanEmail)
@@ -94,12 +98,7 @@ export default function Header() {
     if (data) {
       setIsAdmin(true);
     } else {
-      // גיבוי למקרה שהטבלה ריקה או שלא נמצאה רשומה מדויקת אבל המייל הוא שלך
-      if (cleanEmail === 'myphone3393@gmail.com' || cleanEmail === 'd0587223040@gmail.com') {
-        setIsAdmin(true);
-      } else {
-        setIsAdmin(false);
-      }
+      setIsAdmin(false);
     }
   };
 
@@ -157,6 +156,7 @@ export default function Header() {
   };
 
   const hasUnreadNotification = promoConfig?.welcome_active && !isNotificationDismissed && (!user || !hasUsedPromo);
+  const isUserAdmin = isAdmin || (user?.email && ['myphone3393@gmail.com', 'd0587223040@gmail.com'].includes(user.email.toLowerCase()));
 
   return (
     <header className="bg-white border-b sticky top-0 z-40 shadow-sm" dir="rtl">
@@ -298,7 +298,7 @@ export default function Header() {
                   </div>
 
                   {/* כפתור כניסה לפאנל ניהול (מוצג מיד למנהלים) */}
-                  {isAdmin && (
+                  {isUserAdmin && (
                     <Link
                       href="/admin"
                       onClick={() => setDropdownOpen(false)}
@@ -330,13 +330,9 @@ export default function Header() {
           )}
         </div>
 
-        {/* אמצע: לוגו מלא והשם באמצע */}
-        <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center cursor-pointer group shrink-0">
-          <img src="/Logo.JPG" alt="NEW PHONE" className="w-12 h-12 object-contain shadow-xs group-hover:scale-105 transition mb-1" />
-          <div className="flex flex-col items-center text-center">
-            <span className="font-black text-sm text-gray-950 tracking-wider">NEW PHONE</span>
-            <span className="text-[9px] text-gray-500 font-bold -mt-0.5">הפלאפון החדש שלי</span>
-          </div>
+        {/* אמצע: לוגו גדול בלבד (ללא שום טקסט מתחתיו) בדיוק במרכז */}
+        <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center cursor-pointer group shrink-0">
+          <img src="/Logo.JPG" alt="NEW PHONE" className="w-16 h-16 object-contain shadow-xs group-hover:scale-105 transition" />
         </Link>
 
         {/* צד שמאל: כפתור עגלה בהיר עם מסגרת כתומה ופינות מעוגלות טבעיות */}
