@@ -3,7 +3,6 @@
 import React, { useEffect, useState, useRef, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import WelcomeTooltip from '@/components/WelcomeTooltip';
 
 function StoreContent() {
   const [products, setProducts] = useState<any[]>([]);
@@ -315,9 +314,6 @@ function StoreContent() {
 
   return (
     <div className="space-y-0 pb-16" dir="rtl">
-      
-      {/* התראת הצטרפות ממוקדת לכפתור ההתחברות */}
-      <WelcomeTooltip />
 
       <style>{`
         .no-scrollbar::-webkit-scrollbar {
