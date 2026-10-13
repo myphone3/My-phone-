@@ -39,7 +39,7 @@ export default function WelcomeTooltip() {
         }
       }
     } catch (e) {
-      // במידה והשדה עדיין אינו בפורמט JSON
+      // במידה והשדה אינו בפורמט JSON
     }
 
     // 3. בדיקה אם משתמש מחובר כבר ביצע הזמנה ומימש
@@ -58,13 +58,13 @@ export default function WelcomeTooltip() {
 
   if (!promoConfig || !promoConfig.welcome_active) return null;
 
-  // תרחיש 1: אורח לא מחובר -> התראה שמצביעה לכפתור התחברות Google
+  // תרחיש 1: אורח לא מחובר -> התראה בצד ימין למעלה שמצביעה לכפתור ההתחברות עם Google
   if (!user) {
     return (
-      <div className="fixed top-16 left-4 sm:left-12 z-50 animate-bounce duration-1000">
-        <div className="relative bg-orange-600 text-white p-4 rounded-2xl shadow-2xl max-w-xs border-2 border-white">
-          {/* חץ שמצביע למעלה לכפתור Google */}
-          <div className="absolute -top-2 left-8 w-4 h-4 bg-orange-600 rotate-45 border-t-2 border-l-2 border-white"></div>
+      <div className="absolute top-16 right-4 sm:right-8 z-50 animate-bounce duration-1000">
+        <div className="relative bg-orange-600 text-white p-4 rounded-2xl shadow-2xl max-w-xs border-2 border-white text-right" dir="rtl">
+          {/* חץ קטן שמצביע למעלה ימינה לעבר כפתור Google */}
+          <div className="absolute -top-2 right-8 w-4 h-4 bg-orange-600 rotate-45 border-t-2 border-l-2 border-white"></div>
           
           <div className="flex items-start gap-3">
             <span className="text-2xl shrink-0">🎁</span>
@@ -88,7 +88,7 @@ export default function WelcomeTooltip() {
   if (user && !hasUsedPromo) {
     return (
       <div className="fixed bottom-4 left-4 z-50 animate-in slide-in-from-bottom duration-300">
-        <div className="bg-gray-900 text-white p-3.5 px-5 rounded-2xl shadow-2xl border border-orange-500/40 flex items-center gap-3">
+        <div className="bg-gray-900 text-white p-3.5 px-5 rounded-2xl shadow-2xl border border-orange-500/40 flex items-center gap-3 text-right" dir="rtl">
           <div className="w-8 h-8 bg-orange-500/20 text-orange-400 rounded-xl flex items-center justify-center text-lg shrink-0">
             ⏳
           </div>
