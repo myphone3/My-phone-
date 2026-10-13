@@ -12,11 +12,12 @@ export default function AdminCouponsPage() {
   const [isWelcomeGift, setIsWelcomeGift] = useState(false);
   const [welcomeDaysValid, setWelcomeDaysValid] = useState('7');
 
-  // הגדרות מבצע סכום קנייה ושורה מעל הבאנר
+  // הגדרות שורת המבצע העליונה ותפוגה אוטומטית
   const [thresholdActive, setThresholdActive] = useState(false);
   const [thresholdAmount, setThresholdAmount] = useState('400');
   const [thresholdType, setThresholdType] = useState('משלוח חינם');
   const [thresholdBannerText, setThresholdBannerText] = useState('🎉 מבצע מיוחד: משלוח חינם בהזמנה מעל 400₪!');
+  const [announcementEndTime, setAnnouncementEndTime] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -26,13 +27,21 @@ export default function AdminCouponsPage() {
     const { data: couponsData } = await supabase.from('coupons').select('*').order('created_at', { ascending: false });
     if (couponsData) setCoupons(couponsData);
 
-    // שליפת הגדרות מבצע סכום קנייה מטבלת settings בצורה בטוחה
     const { data: settingsData } = await supabase.from('settings').select('*').limit(1).maybeSingle();
     if (settingsData) {
       setThresholdActive(!!settingsData.threshold_active);
       if (settingsData.threshold_amount) setThresholdAmount(settingsData.threshold_amount);
       if (settingsData.threshold_type) setThresholdType(settingsData.threshold_type);
       if (settingsData.threshold_banner_text) setThresholdBannerText(settingsData.threshold_banner_text);
+      if (settingsData.announcement_end_time) {
+        const d = new Date(settingsData.announcement_end_time);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        setAnnouncementEndTime(`${year}-${month}-${day}T${hours}:${minutes}`);
+      }
     }
   };
 
@@ -67,10 +76,11 @@ export default function AdminCouponsPage() {
       threshold_active: thresholdActive,
       threshold_amount: thresholdAmount,
       threshold_type: thresholdType,
-      threshold_banner_text: thresholdBannerText
+      threshold_banner_text: thresholdBannerText,
+      announcement_text: thresholdBannerText,
+      announcement_end_time: announcementEndTime ? new Date(announcementEndTime).toISOString() : null
     };
 
-    // בדיקה האם קיימת שורה בטבלת settings לעדכון
     const { data: existing } = await supabase.from('settings').select('id').limit(1).maybeSingle();
 
     let error;
@@ -85,7 +95,7 @@ export default function AdminCouponsPage() {
     if (error) {
       alert('שגיאה בשמירת הגדרות המבצע: ' + error.message);
     } else {
-      alert('הגדרות מבצע סכום קנייה והשורה מעל הבאנר עודכנו בהצלחה! ✨');
+      alert('הגדרות המבצע והתפוגה האוטומטית עודכנו בהצלחה! ✨');
       fetchData();
     }
   };
@@ -105,9 +115,9 @@ export default function AdminCouponsPage() {
         </Link>
       </div>
 
-      {/* 1. הגדרת מבצע קנייה מעל סכום ושורה מעל הבאנר */}
+      {/* שורת מבצע עליונה יחידה עם תפוגה אוטומטית */}
       <div className="bg-white p-6 rounded-3xl shadow-sm border space-y-4">
-        <h2 className="text-lg font-bold border-b pb-2">📦 מבצע קנייה מעל סכום (כולל שורה מעל הבאנר)</h2>
+        <h2 className="text-lg font-bold border-b pb-2">📢 שורת מבצע עליונה ותפוגה אוטומטית</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
@@ -130,40 +140,50 @@ export default function AdminCouponsPage() {
               <option value="הנחה נוספת">הנחה נוספת</option>
             </select>
           </div>
-          <div className="flex items-center gap-2 pt-6">
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">תאריך ושעה לסיום אוטומטי ⏱️</label>
             <input 
-              type="checkbox" 
-              id="threshActive"
-              checked={thresholdActive} 
-              onChange={(e) => setThresholdActive(e.target.checked)}
-              className="w-4 h-4 accent-black rounded"
+              type="datetime-local" 
+              value={announcementEndTime} 
+              onChange={(e) => setAnnouncementEndTime(e.target.value)} 
+              className="w-full border p-3 rounded-xl text-sm bg-white" 
             />
-            <label htmlFor="threshActive" className="text-sm font-medium text-gray-800">
-              הפעל מבצע ושורה מעל הבאנר
-            </label>
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-gray-700 mb-1">טקסט השורה שתוצג מעל הבאנר באתר</label>
+          <label className="block text-xs font-bold text-gray-700 mb-1">טקסט השורה שתוצג בראש האתר</label>
           <input 
             type="text" 
             value={thresholdBannerText} 
             onChange={(e) => setThresholdBannerText(e.target.value)} 
-            placeholder="למשל: 🎉 משלוח חינם בקניה מעל 400₪!"
+            placeholder="למשל: 🎉 מבצע מיוחד: משלוח חינם בהזמנה מעל 400₪!"
             className="w-full border p-3 rounded-xl text-sm" 
           />
+        </div>
+
+        <div className="flex items-center gap-2 pt-2">
+          <input 
+            type="checkbox" 
+            id="threshActive"
+            checked={thresholdActive} 
+            onChange={(e) => setThresholdActive(e.target.checked)}
+            className="w-4 h-4 accent-black rounded cursor-pointer"
+          />
+          <label htmlFor="threshActive" className="text-sm font-bold text-gray-800 cursor-pointer">
+            הצג שורת מבצע בראש האתר (אם כבוי, השורה לא תוצג)
+          </label>
         </div>
 
         <button 
           onClick={handleSaveThresholdPromo}
           className="bg-black text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-gray-800 transition cursor-pointer"
         >
-          שמור הגדרות מבצע סכום 💾
+          שמור הגדרות מבצע ותפוגה 💾
         </button>
       </div>
 
-      {/* 2. הוספת קופון רגיל / מתנת הצטרפות */}
+      {/* הוספת קופון רגיל / מתנת הצטרפות */}
       <div className="bg-white p-6 rounded-3xl shadow-sm border">
         <h2 className="text-lg font-bold mb-4">➕ הוספת קופון חדש</h2>
         <form onSubmit={handleAddCoupon} className="space-y-4">
