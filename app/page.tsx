@@ -333,11 +333,11 @@ function StoreContent() {
         }
       `}</style>
 
-      {/* שורת מבצע עליונה יחידה עם שעון עצר אוטומטי אם הוגדר */}
+      {/* שורת מבצע עליונה כתובה בכתום מעוצב עם שעון עצר */}
       {isPromoActive && settings?.threshold_banner_text && (
-        <div className="bg-black text-white text-center py-2.5 px-4 text-xs sm:text-sm font-bold tracking-wide shadow-xs flex items-center justify-center gap-3" dir="rtl">
+        <div className="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 text-white text-center py-2.5 px-4 text-xs sm:text-sm font-bold tracking-wide shadow-sm flex items-center justify-center gap-3" dir="rtl">
           {timeLeft && !timeLeft.isExpired && settings?.announcement_end_time && (
-            <span className="bg-white/20 px-2 py-0.5 rounded text-xs font-mono tracking-wider">
+            <span className="bg-black/25 text-white px-2.5 py-1 rounded-lg text-xs font-mono tracking-wider shadow-xs">
               {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')} ⏱️
             </span>
           )}
