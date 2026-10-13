@@ -2,10 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import Link from 'next/link';
 
 export default function AdminCouponsPage() {
   const [coupons, setCoupons] = useState<any[]>([]);
+  const [productsList, setProductsList] = useState<any[]>([]);
   const [code, setCode] = useState('');
   const [couponName, setCouponName] = useState('');
   const [discountType, setDiscountType] = useState('percent');
@@ -22,6 +22,7 @@ export default function AdminCouponsPage() {
   // הגדרות מבצע הצטרפות
   const [welcomeActive, setWelcomeActive] = useState(false);
   const [welcomeType, setWelcomeType] = useState('מתנה'); // מתנה או אחוזים
+  const [welcomeGiftProductId, setWelcomeGiftProductId] = useState('');
   const [welcomeDiscountValue, setWelcomeDiscountValue] = useState('10');
   const [welcomeDaysValid, setWelcomeDaysValid] = useState('7');
 
@@ -30,9 +31,15 @@ export default function AdminCouponsPage() {
   }, []);
 
   const fetchData = async () => {
+    // שליפת קופונים
     const { data: couponsData } = await supabase.from('coupons').select('*').order('created_at', { ascending: false });
     if (couponsData) setCoupons(couponsData);
 
+    // שליפת מוצרים לבחירת מוצר מתנה
+    const { data: prodsData } = await supabase.from('products').select('id, name').order('name', { ascending: true });
+    if (prodsData) setProductsList(prodsData);
+
+    // שליפת הגדרות
     const { data: settingsData } = await supabase.from('settings').select('*').limit(1).maybeSingle();
     if (settingsData) {
       setThresholdActive(!!settingsData.threshold_active);
@@ -53,6 +60,7 @@ export default function AdminCouponsPage() {
 
       if (settingsData.welcome_active !== undefined) setWelcomeActive(!!settingsData.welcome_active);
       if (settingsData.welcome_type) setWelcomeType(settingsData.welcome_type);
+      if (settingsData.welcome_gift_product_id) setWelcomeGiftProductId(settingsData.welcome_gift_product_id);
       if (settingsData.welcome_discount_value) setWelcomeDiscountValue(settingsData.welcome_discount_value);
       if (settingsData.welcome_days_valid) setWelcomeDaysValid(settingsData.welcome_days_valid);
     }
@@ -116,6 +124,7 @@ export default function AdminCouponsPage() {
     const welcomeData = {
       welcome_active: welcomeActive,
       welcome_type: welcomeType,
+      welcome_gift_product_id: welcomeGiftProductId || null,
       welcome_discount_value: welcomeDiscountValue,
       welcome_days_valid: Number(welcomeDaysValid) || 7
     };
@@ -148,19 +157,6 @@ export default function AdminCouponsPage() {
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-8" dir="rtl">
       
-      {/* סרגל ניווט עליון בלשוניות */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b">
-        <Link href="/admin/media" className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-xs font-bold shrink-0">
-          🖼️ ספריית מדיה
-        </Link>
-        <Link href="/admin/coupons" className="bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-bold shrink-0 shadow-sm">
-          🎟️ מבצעים וקופונים
-        </Link>
-        <Link href="/admin/customers" className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-xs font-bold shrink-0">
-          👥 לקוחות והודעות
-        </Link>
-      </div>
-
       <div className="mb-2">
         <h1 className="text-2xl font-black text-gray-900">🎁 ניהול מבצעים וקופונים</h1>
       </div>
@@ -206,12 +202,12 @@ export default function AdminCouponsPage() {
 
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1">תאריך ושעה לסיום אוטומטי ⏱️</label>
-          <div className="w-full md:w-1/2">
+          <div className="w-full">
             <input 
               type="datetime-local" 
               value={announcementEndTime} 
               onChange={(e) => setAnnouncementEndTime(e.target.value)} 
-              className="w-full border border-gray-300 px-4 py-3 rounded-xl text-sm bg-white font-mono font-bold text-gray-800 shadow-2xs outline-none focus:border-orange-500" 
+              className="w-full border border-gray-200 px-3.5 py-3 rounded-xl text-sm bg-white font-bold text-gray-800 shadow-2xs outline-none focus:border-orange-500 block box-border" 
             />
           </div>
         </div>
@@ -265,7 +261,21 @@ export default function AdminCouponsPage() {
             </select>
           </div>
 
-          {welcomeType === 'הנחה לפי אחוזים' && (
+          {welcomeType === 'מתנה' ? (
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">בחר מוצר מתנה מהחנות 🎁</label>
+              <select 
+                value={welcomeGiftProductId} 
+                onChange={(e) => setWelcomeGiftProductId(e.target.value)}
+                className="w-full border p-3 rounded-xl text-sm bg-white font-bold"
+              >
+                <option value="">-- בחר מוצר מתנה --</option>
+                {productsList.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+          ) : (
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">אחוז הנחה להצטרפות (%)</label>
               <input 
