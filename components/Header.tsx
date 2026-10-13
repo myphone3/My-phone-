@@ -82,7 +82,8 @@ export default function Header() {
 
   const checkAdmin = async (email?: string) => {
     if (!email) return;
-    if (email === 'myphone3393@gmail.com') {
+    // הגדרה ישירה למייל שלך כמנהל ראשי
+    if (email.toLowerCase() === 'myphone3393@gmail.com') {
       setIsAdmin(true);
       return;
     }
@@ -144,6 +145,7 @@ export default function Header() {
   };
 
   const hasUnreadNotification = promoConfig?.welcome_active && !isNotificationDismissed && (!user || !hasUsedPromo);
+  const isUserAdmin = isAdmin || (user?.email?.toLowerCase() === 'myphone3393@gmail.com');
 
   return (
     <header className="bg-white border-b sticky top-0 z-40 shadow-sm" dir="rtl">
@@ -284,8 +286,8 @@ export default function Header() {
                     </div>
                   </div>
 
-                  {/* כפתור כניסה לפאנל ניהול (מנהלים בלבד) */}
-                  {isAdmin && (
+                  {/* כפתור כניסה לפאנל ניהול (מוצג למנהלים) */}
+                  {isUserAdmin && (
                     <Link
                       href="/admin"
                       onClick={() => setDropdownOpen(false)}
@@ -317,25 +319,25 @@ export default function Header() {
           )}
         </div>
 
-        {/* אמצע: לוגו החנות והשם מדויקים באמצע */}
+        {/* אמצע: לוגו מלא (ללא חיתוך עיגול) והשם באמצע */}
         <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center cursor-pointer group shrink-0">
-          <img src="/Logo.JPG" alt="NEW PHONE" className="w-12 h-12 object-contain rounded-full shadow-xs group-hover:scale-105 transition mb-1" />
+          <img src="/Logo.JPG" alt="NEW PHONE" className="w-12 h-12 object-contain shadow-xs group-hover:scale-105 transition mb-1" />
           <div className="flex flex-col items-center text-center">
             <span className="font-black text-sm text-gray-950 tracking-wider">NEW PHONE</span>
             <span className="text-[9px] text-gray-500 font-bold -mt-0.5">הפלאפון החדש שלי</span>
           </div>
         </Link>
 
-        {/* צד שמאל: כפתור עגלה בהיר עם מסגרת כתומה ומספר עגול בולט */}
+        {/* צד שמאל: כפתור עגלה בהיר עם מסגרת כתומה ופינות מעוגלות טבעיות */}
         <div className="relative z-10 flex items-center">
           <Link 
             href="/cart" 
-            className="relative w-12 h-12 bg-orange-50 hover:bg-orange-100 border-2 border-orange-500 text-orange-700 rounded-full text-base transition shadow-sm flex items-center justify-center shrink-0"
+            className="relative px-3.5 py-2.5 bg-orange-50 hover:bg-orange-100 border-2 border-orange-500 text-orange-700 rounded-2xl text-base transition shadow-sm flex items-center justify-center gap-2 shrink-0 font-bold"
             title="עגלה"
           >
-            🛒
+            <span>🛒</span>
             {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-orange-600 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center font-black border-2 border-white shadow-xs">
+              <span className="absolute -top-1.5 -right-1.5 bg-orange-600 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center font-black border-2 border-white shadow-xs">
                 {cartCount}
               </span>
             )}
