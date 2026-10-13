@@ -25,6 +25,7 @@ export default function AdminCouponsPage() {
   const [welcomeActive, setWelcomeActive] = useState(false);
   const [welcomeType, setWelcomeType] = useState('מתנה'); // מתנה או אחוזים
   const [welcomeGiftProductId, setWelcomeGiftProductId] = useState('');
+  const [welcomeDiscountValue, setWelcomeDiscountValue] = useState('10');
   const [welcomeDaysValid, setWelcomeDaysValid] = useState('7');
 
   useEffect(() => {
@@ -58,8 +59,19 @@ export default function AdminCouponsPage() {
         setAnnouncementEndTime(`${year}-${month}-${day}T${hours}:${minutes}`);
       }
 
-      if (settingsData.announcement_text !== undefined) {
-        setWelcomeActive(!!settingsData.announcement_text?.includes('WELCOME_ACTIVE:TRUE') || false);
+      if (settingsData.announcement_text) {
+        try {
+          const parsed = JSON.parse(settingsData.announcement_text);
+          if (parsed && typeof parsed === 'object') {
+            setWelcomeActive(!!parsed.welcome_active);
+            if (parsed.welcome_type) setWelcomeType(parsed.welcome_type);
+            if (parsed.welcome_gift_product_id) setWelcomeGiftProductId(parsed.welcome_gift_product_id);
+            if (parsed.welcome_discount_value) setWelcomeDiscountValue(parsed.welcome_discount_value);
+            if (parsed.welcome_days_valid) setWelcomeDaysValid(parsed.welcome_days_valid);
+          }
+        } catch {
+          setWelcomeActive(settingsData.announcement_text.includes('WELCOME_ACTIVE:TRUE'));
+        }
       }
     }
   };
@@ -107,7 +119,6 @@ export default function AdminCouponsPage() {
       threshold_amount: thresholdAmount,
       threshold_type: thresholdType,
       threshold_banner_text: thresholdBannerText,
-      announcement_text: thresholdBannerText,
       announcement_end_time: announcementEndTime ? new Date(announcementEndTime).toISOString() : null
     };
 
@@ -131,8 +142,16 @@ export default function AdminCouponsPage() {
   };
 
   const handleSaveWelcomePromo = async () => {
+    const welcomeConfig = {
+      welcome_active: welcomeActive,
+      welcome_type: welcomeType,
+      welcome_gift_product_id: welcomeGiftProductId || null,
+      welcome_discount_value: welcomeDiscountValue,
+      welcome_days_valid: welcomeDaysValid
+    };
+
     const welcomePayload = {
-      announcement_text: welcomeActive ? 'WELCOME_ACTIVE:TRUE' : 'WELCOME_ACTIVE:FALSE',
+      announcement_text: JSON.stringify(welcomeConfig),
     };
 
     const { data: existing } = await supabase.from('settings').select('id').limit(1).maybeSingle();
@@ -194,7 +213,7 @@ export default function AdminCouponsPage() {
           </div>
         </div>
 
-        {/* שדה תאריך ושעה מעוצב בדיוק 1 ל-1 כמו שאר השדות */}
+        {/* שדה תאריך ושעה מעוצב 1 ל-1 כמו שאר השדות */}
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1">תאריך ושעה לסיום אוטומטי ⏱️</label>
           <input 
@@ -344,6 +363,8 @@ export default function AdminCouponsPage() {
             <label className="block text-xs font-bold text-gray-700 mb-1">אחוז הנחה להצטרפות (%)</label>
             <input 
               type="number" 
+              value={welcomeDiscountValue}
+              onChange={(e) => setWelcomeDiscountValue(e.target.value)}
               className="w-full border p-3 rounded-xl text-sm bg-white font-bold box-border" 
             />
           </div>
