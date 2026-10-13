@@ -147,22 +147,23 @@ export default function Header() {
 
   return (
     <header className="bg-white border-b sticky top-0 z-40 shadow-sm" dir="rtl">
-      <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between relative gap-4">
+      <div className="max-w-7xl mx-auto px-4 h-24 flex items-center justify-between relative gap-4">
         
-        {/* צד ימין: כפתור התחברות עם גוגל / תמונת פרופיל + מסגרת כתומה + אינדיקטור פועם וחלונית בועה */}
-        <div className="relative z-10" ref={dropdownRef}>
+        {/* צד ימין: כפתור התחברות / תמונת פרופיל עגולה ומסוגננת + בועת התראות */}
+        <div className="relative z-10 flex items-center" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="relative flex items-center gap-2 bg-white hover:bg-orange-50 text-gray-800 border-2 border-orange-600 px-4 py-2.5 rounded-2xl shadow-xs transition duration-200 cursor-pointer font-bold text-xs"
+            className="relative flex items-center justify-center w-12 h-12 bg-white hover:bg-orange-50 border-2 border-orange-500 rounded-full shadow-sm transition duration-200 cursor-pointer overflow-hidden p-0.5"
+            title={user ? (user.user_metadata?.full_name || 'החשבון שלי') : 'התחברות עם גוגל'}
           >
             {user?.user_metadata?.avatar_url ? (
-              <img src={user.user_metadata.avatar_url} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
+              <img src={user.user_metadata.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
             ) : user ? (
-              <div className="w-5 h-5 bg-orange-600 text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">
+              <div className="w-full h-full bg-orange-600 text-white rounded-full flex items-center justify-center font-black text-sm">
                 {user.email?.[0]?.toUpperCase() || 'U'}
               </div>
             ) : (
-              <div className="w-4 h-4 flex items-center justify-center shrink-0">
+              <div className="w-6 h-6 flex items-center justify-center">
                 <svg className="w-full h-full" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                   <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -172,22 +173,18 @@ export default function Header() {
               </div>
             )}
 
-            <span className="max-w-[120px] sm:max-w-[150px] truncate">
-              {user ? (user.user_metadata?.full_name || 'החשבון שלי') : 'התחברות עם גוגל'}
-            </span>
-
             {/* אינדיקטור התראה פועם */}
             {hasUnreadNotification && (
-              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+              <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-600"></span>
+                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-orange-600 border-2 border-white"></span>
               </span>
             )}
           </button>
 
           {/* חלונית בועה נפתחת (Dropdown) */}
           {dropdownOpen && (
-            <div className="absolute top-14 right-0 z-50 w-80 bg-white rounded-3xl shadow-2xl border border-gray-100 p-4 space-y-4 animate-in fade-in zoom-in duration-150">
+            <div className="absolute top-16 right-0 z-50 w-80 bg-white rounded-3xl shadow-2xl border border-gray-100 p-4 space-y-4 animate-in fade-in zoom-in duration-150">
               
               {/* כותרת החלונית */}
               <div className="flex items-center justify-between border-b pb-2.5">
@@ -320,25 +317,25 @@ export default function Header() {
           )}
         </div>
 
-        {/* אמצע: לוגו החנות בדיוק באמצע */}
-        <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2.5 cursor-pointer group shrink-0">
-          <img src="/Logo.JPG" alt="NEW PHONE" className="w-11 h-11 object-contain rounded-full shadow-xs group-hover:scale-105 transition" />
-          <div className="flex flex-col text-center">
-            <span className="font-black text-base text-gray-950 tracking-wider">NEW PHONE</span>
-            <span className="text-[10px] text-gray-500 font-bold">הפלאפון החדש שלי</span>
+        {/* אמצע: לוגו החנות והשם מדויקים באמצע */}
+        <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center cursor-pointer group shrink-0">
+          <img src="/Logo.JPG" alt="NEW PHONE" className="w-12 h-12 object-contain rounded-full shadow-xs group-hover:scale-105 transition mb-1" />
+          <div className="flex flex-col items-center text-center">
+            <span className="font-black text-sm text-gray-950 tracking-wider">NEW PHONE</span>
+            <span className="text-[9px] text-gray-500 font-bold -mt-0.5">הפלאפון החדש שלי</span>
           </div>
         </Link>
 
-        {/* צד שמאל: כפתור עגלה בהיר עם מסגרת כתומה כהה */}
+        {/* צד שמאל: כפתור עגלה בהיר עם מסגרת כתומה ומספר עגול בולט */}
         <div className="relative z-10 flex items-center">
           <Link 
             href="/cart" 
-            className="relative p-3 bg-orange-50 hover:bg-orange-100 border-2 border-orange-600 text-orange-700 rounded-2xl text-base transition shadow-sm flex items-center justify-center shrink-0"
+            className="relative w-12 h-12 bg-orange-50 hover:bg-orange-100 border-2 border-orange-500 text-orange-700 rounded-full text-base transition shadow-sm flex items-center justify-center shrink-0"
             title="עגלה"
           >
             🛒
             {cartCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-orange-600 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center font-black border-2 border-white">
+              <span className="absolute -top-1 -right-1 bg-orange-600 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center font-black border-2 border-white shadow-xs">
                 {cartCount}
               </span>
             )}
