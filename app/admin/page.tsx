@@ -14,16 +14,20 @@ export default function AdminDashboard() {
   }, []);
 
   const fetchDashboardData = async () => {
-    setLoading(true);
-    const { data: ordersData } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
-    const { data: productsData } = await supabase.from('products').select('*');
-    
-    if (ordersData) setOrders(ordersData);
-    if (productsData) setProducts(productsData);
-    setLoading(false);
+    try {
+      setLoading(true);
+      const { data: ordersData } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+      const { data: productsData } = await supabase.from('products').select('*');
+      
+      if (ordersData) setOrders(ordersData);
+      if (productsData) setProducts(productsData);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // עדכון סטטוס הזמנה ישירות מדף הבית
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
     if (error) {
@@ -33,27 +37,25 @@ export default function AdminDashboard() {
     }
   };
 
-  // חישוב הכנסות החודש הנוכחי
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
+  
   const monthlyRevenue = orders
     .filter(o => {
+      if (!o || (!o.created_at && !o.date)) return false;
       const orderDate = new Date(o.created_at || o.date);
       return orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear;
     })
     .reduce((sum, o) => sum + (Number(o.total_price || o.price || o.amount) || 0), 0);
 
-  // מוצרים עם מלאי נמוך (פחות מ-3 יחידות)
-  const lowStockProducts = products.filter(p => (Number(p.stock) || 0) <= 3);
-
-  // הזמנות חדשות שממתינות לטיפול
-  const newOrders = orders.filter(o => o.status === 'חדש' || !o.status || o.status === 'pending');
+  const lowStockProducts = products.filter(p => p && (Number(p.stock) || 0) <= 3);
+  const newOrders = orders.filter(o => o && (o.status === 'חדש' || !o.status || o.status === 'pending'));
 
   if (loading) return <div className="text-center py-20 text-gray-500 font-medium">טוען נתוני דף הבית...</div>;
 
   return (
     <div className="space-y-8" dir="rtl">
-      {/* כותרת ראשית ללא ניווט כפתורים עליון */}
+      {/* כותרת ראשית */}
       <div className="bg-white p-6 rounded-3xl border shadow-sm flex justify-between items-center">
         <div>
           <h1 className="text-xl font-black text-gray-900">ברוך הבא לניהול החנות, דניאל 👋</h1>
@@ -67,7 +69,7 @@ export default function AdminDashboard() {
         </button>
       </div>
 
-      {/* קוביות נתונים עיקריות (Widgets) */}
+      {/* קוביות נתונים עיקריות */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-2 border-r-4 border-r-orange-600">
           <span className="text-xs font-bold text-gray-500 block">הזמנות חדשות לטיפול</span>
@@ -94,7 +96,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* אזור מרכזי: הזמנות חדשות שממתינות לטיפול */}
+      {/* הזמנות חדשות */}
       <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
         <div className="flex justify-between items-center border-b pb-3">
           <div className="flex items-center gap-2">
@@ -108,28 +110,28 @@ export default function AdminDashboard() {
         <div className="space-y-3">
           {newOrders.length > 0 ? (
             newOrders.map((ord, idx) => {
-              const orderIdStr = String(ord.id || '');
+              const orderIdStr = String(ord?.id || '');
               const displayId = orderIdStr.length > 8 ? orderIdStr.slice(0, 8) : (orderIdStr || String(idx + 1));
               return (
-                <div key={ord.id || idx} className="bg-orange-50/40 border border-orange-100 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition hover:bg-orange-50/80">
+                <div key={ord?.id || idx} className="bg-orange-50/40 border border-orange-100 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition hover:bg-orange-50/80">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="font-black text-sm text-gray-900">
-                        הזמנה #{displayId} - {ord.customer_name || ord.name || 'לקוח'}
+                        הזמנה #{displayId} - {ord?.customer_name || ord?.name || 'לקוח'}
                       </span>
                       <span className="text-[10px] bg-orange-200 text-orange-800 px-2.5 py-0.5 rounded-full font-bold">
                         ממתין לטיפול
                       </span>
                     </div>
                     <div className="text-xs text-gray-600 flex flex-wrap gap-3">
-                      <span>📞 טלפון: <strong className="text-gray-800">{ord.phone || ord.customer_phone || 'לא צוין'}</strong></span>
-                      <span>📍 כתובת/סניף: <strong className="text-gray-800">{ord.address || ord.city || 'איסוף/משלוח'}</strong></span>
-                      <span>📅 תאריך: <strong className="text-gray-800">{ord.created_at ? new Date(ord.created_at).toLocaleString('he-IL') : 'היום'}</strong></span>
+                      <span>📞 טלפון: <strong className="text-gray-800">{ord?.phone || ord?.customer_phone || 'לא צוין'}</strong></span>
+                      <span>📍 כתובת/סניף: <strong className="text-gray-800">{ord?.address || ord?.city || 'איסוף/משלוח'}</strong></span>
+                      <span>📅 תאריך: <strong className="text-gray-800">{ord?.created_at ? new Date(ord.created_at).toLocaleString('he-IL') : 'היום'}</strong></span>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0">
-                    <span className="text-base font-black text-orange-600">₪{ord.total_price || ord.price || 0}</span>
+                    <span className="text-base font-black text-orange-600">₪{ord?.total_price || ord?.price || 0}</span>
                     <div className="flex gap-2">
                       <button 
                         onClick={() => handleStatusChange(ord.id, 'טופל')}
@@ -153,34 +155,6 @@ export default function AdminDashboard() {
               <span className="text-3xl block mb-2">🎉</span>
               <p className="text-xs font-bold text-gray-600">כל הכבוד! אין הזמנות חדשות שממתינות לטיפול כרגע.</p>
             </div>
-          )}
-        </div>
-      </div>
-
-      {/* מוצרים במלאי נמוך */}
-      <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
-        <div className="flex justify-between items-center border-b pb-3">
-          <h3 className="font-black text-sm text-gray-900">⚠️ מוצרים במלאי נמוך (דורש השלמה)</h3>
-          <Link href="/admin/products" className="text-xs font-bold text-orange-600 hover:underline">לניהול מוצרים ➔</Link>
-        </div>
-        <div className="space-y-3">
-          {lowStockProducts.length > 0 ? (
-            lowStockProducts.slice(0, 5).map((p) => (
-              <div key={p.id} className="bg-red-50/50 border border-red-100 p-3.5 rounded-2xl flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <img src={p.image_url} alt="" className="w-8 h-8 object-contain bg-white rounded-lg border p-0.5" />
-                  <div>
-                    <h4 className="font-bold text-xs text-gray-900">{p.name}</h4>
-                    <span className="text-[11px] text-red-600 font-bold">נותרו רק {p.stock ?? 0} יחידות במלאי!</span>
-                  </div>
-                </div>
-                <Link href="/admin/products" className="bg-white border text-gray-800 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-gray-50">
-                  עדכן מלאי
-                </Link>
-              </div>
-            ))
-          ) : (
-            <p className="text-xs text-gray-400 text-center py-6">מעולה! אין מוצרים במלאי נמוך כרגע.</p>
           )}
         </div>
       </div>
