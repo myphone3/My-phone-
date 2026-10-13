@@ -107,43 +107,47 @@ export default function AdminDashboard() {
 
         <div className="space-y-3">
           {newOrders.length > 0 ? (
-            newOrders.map((ord, idx) => (
-              <div key={ord.id || idx} className="bg-orange-50/40 border border-orange-100 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition hover:bg-orange-50/80">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-black text-sm text-gray-900">
-                      הזמנה #{ord.id?.slice(0, 8) || idx + 1} - {ord.customer_name || ord.name || 'לקוח'}
-                    </span>
-                    <span className="text-[10px] bg-orange-200 text-orange-800 px-2.5 py-0.5 rounded-full font-bold">
-                      ממתין לטיפול
-                    </span>
+            newOrders.map((ord, idx) => {
+              const orderIdStr = String(ord.id || '');
+              const displayId = orderIdStr.length > 8 ? orderIdStr.slice(0, 8) : (orderIdStr || String(idx + 1));
+              return (
+                <div key={ord.id || idx} className="bg-orange-50/40 border border-orange-100 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition hover:bg-orange-50/80">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-black text-sm text-gray-900">
+                        הזמנה #{displayId} - {ord.customer_name || ord.name || 'לקוח'}
+                      </span>
+                      <span className="text-[10px] bg-orange-200 text-orange-800 px-2.5 py-0.5 rounded-full font-bold">
+                        ממתין לטיפול
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-600 flex flex-wrap gap-3">
+                      <span>📞 טלפון: <strong className="text-gray-800">{ord.phone || ord.customer_phone || 'לא צוין'}</strong></span>
+                      <span>📍 כתובת/סניף: <strong className="text-gray-800">{ord.address || ord.city || 'איסוף/משלוח'}</strong></span>
+                      <span>📅 תאריך: <strong className="text-gray-800">{ord.created_at ? new Date(ord.created_at).toLocaleString('he-IL') : 'היום'}</strong></span>
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-600 flex flex-wrap gap-3">
-                    <span>📞 טלפון: <strong className="text-gray-800">{ord.phone || ord.customer_phone || 'לא צוין'}</strong></span>
-                    <span>📍 כתובת/סניף: <strong className="text-gray-800">{ord.address || ord.city || 'איסוף/משלוח'}</strong></span>
-                    <span>📅 תאריך: <strong className="text-gray-800">{ord.created_at ? new Date(ord.created_at).toLocaleString('he-IL') : 'היום'}</strong></span>
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0">
-                  <span className="text-base font-black text-orange-600">₪{ord.total_price || ord.price || 0}</span>
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => handleStatusChange(ord.id, 'טופל')}
-                      className="bg-green-600 hover:bg-green-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer shadow-xs"
-                    >
-                      סמן כטופל ✓
-                    </button>
-                    <button 
-                      onClick={() => handleStatusChange(ord.id, 'בטיפול')}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer shadow-xs"
-                    >
-                      העבר לטיפול ⏳
-                    </button>
+                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0">
+                    <span className="text-base font-black text-orange-600">₪{ord.total_price || ord.price || 0}</span>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => handleStatusChange(ord.id, 'טופל')}
+                        className="bg-green-600 hover:bg-green-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer shadow-xs"
+                      >
+                        סמן כטופל ✓
+                      </button>
+                      <button 
+                        onClick={() => handleStatusChange(ord.id, 'בטיפול')}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer shadow-xs"
+                      >
+                        העבר לטיפול ⏳
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
               <span className="text-3xl block mb-2">🎉</span>
