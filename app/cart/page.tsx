@@ -20,8 +20,9 @@ export default function CartPage() {
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [couponError, setCouponError] = useState('');
   
-  // מבצע סכום קנייה (משלוח חינם)
-  const [thresholdPromo, setThresholdPromo] = useState<any>(null);
+  // הגדרות מערכת ומבצע משלוח חינם
+  const [settings, setSettings] = useState<any>(null);
+  const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number; isExpired: boolean } | null>(null);
 
   // חלון התראה ללקוח חדש (קופון הצטרפות)
   const [welcomeCoupon, setWelcomeCoupon] = useState<any>(null);
@@ -40,10 +41,35 @@ export default function CartPage() {
     fetchPromos();
   }, []);
 
+  useEffect(() => {
+    if (!settings?.announcement_end_time) return;
+
+    const targetTime = new Date(settings.announcement_end_time).getTime();
+
+    const updateTimer = () => {
+      const now = new Date().getTime();
+      const difference = targetTime - now;
+
+      if (difference <= 0) {
+        setTimeLeft({ hours: 0, minutes: 0, seconds: 0, isExpired: true });
+      } else {
+        const hours = Math.floor(difference / (1000 * 60 * 60));
+        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+        setTimeLeft({ hours, minutes, seconds, isExpired: false });
+      }
+    };
+
+    updateTimer();
+    const timerInterval = setInterval(updateTimer, 1000);
+    return () => clearInterval(timerInterval);
+  }, [settings]);
+
   const fetchPromos = async () => {
-    const { data: promoData } = await supabase.from('settings').select('*').eq('key', 'threshold_promo').single();
-    if (promoData && promoData.value && promoData.value.active) {
-      setThresholdPromo(promoData.value);
+    // שליפה נכונה של ההגדרות מהטבלה בדיוק כמו בעמוד הבית
+    const { data: settingsData } = await supabase.from('settings').select('*').limit(1).maybeSingle();
+    if (settingsData) {
+      setSettings(settingsData);
     }
 
     const { data: welcomeData } = await supabase
@@ -122,8 +148,12 @@ export default function CartPage() {
     }
   }
 
-  const thresholdMin = Number(thresholdPromo?.amount) || 400;
-  const isFreeShippingEligible = thresholdPromo?.active && subtotalPrice >= thresholdMin;
+  // בדיקה האם מבצע המשלוח החינם פעיל ותקף (כולל תפוגת זמן)
+  const isPromoActive = settings?.threshold_active && 
+    (!settings?.announcement_end_time || (timeLeft && !timeLeft.isExpired));
+
+  const thresholdMin = Number(settings?.threshold_amount) || 400;
+  const isFreeShippingEligible = isPromoActive && subtotalPrice >= thresholdMin;
   const shippingCost = isFreeShippingEligible ? 0 : 29;
 
   const totalPrice = Math.max(0, subtotalPrice - discountAmount + shippingCost);
