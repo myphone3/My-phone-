@@ -61,7 +61,6 @@ export default function AdminCouponsPage() {
       }
 
       if (settingsData.announcement_text !== undefined) {
-        // שימוש בשדות קיימים לשמירת מצב מבצע הצטרפות למניעת שגיאות מבנה קבצים
         setWelcomeActive(!!settingsData.announcement_text?.includes('WELCOME_ACTIVE:TRUE') || false);
       }
     }
@@ -135,7 +134,6 @@ export default function AdminCouponsPage() {
   };
 
   const handleSaveWelcomePromo = async () => {
-    // שמירה בטוחה ללא צורך בהוספת עמודות חדשות לטבלה
     const welcomePayload = {
       announcement_text: welcomeActive ? 'WELCOME_ACTIVE:TRUE' : 'WELCOME_ACTIVE:FALSE',
     };
@@ -172,8 +170,8 @@ export default function AdminCouponsPage() {
         <h1 className="text-2xl font-black text-gray-900">🎁 ניהול מבצעים וקופונים</h1>
       </div>
 
-      {/* 1. מבצע קנייה מעל סכום מסוים */}
-      <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border space-y-4">
+      {/* 1. מבצע קנייה מעל סכום מסוים (כולל overflow-hidden למניעת זליגה) */}
+      <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border space-y-4 overflow-hidden">
         <h2 className="text-base sm:text-lg font-black text-gray-900 border-b pb-2">📢 מבצע קנייה מעל סכום מסוים (שורה עליונה)</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -183,7 +181,7 @@ export default function AdminCouponsPage() {
               type="number" 
               value={thresholdAmount} 
               onChange={(e) => setThresholdAmount(e.target.value)} 
-              className="w-full border p-3 rounded-xl text-sm bg-gray-50/50 font-bold" 
+              className="w-full border p-3 rounded-xl text-sm bg-gray-50/50 font-bold box-border" 
             />
           </div>
           <div>
@@ -191,7 +189,7 @@ export default function AdminCouponsPage() {
             <select 
               value={thresholdType} 
               onChange={(e) => setThresholdType(e.target.value)}
-              className="w-full border p-3 rounded-xl text-sm bg-white font-bold"
+              className="w-full border p-3 rounded-xl text-sm bg-white font-bold box-border"
             >
               <option value="משלוח חינם">משלוח חינם</option>
               <option value="הנחה לפי אחוזים">הנחה לפי אחוזים</option>
@@ -205,26 +203,25 @@ export default function AdminCouponsPage() {
                 value={thresholdDiscountPercent} 
                 onChange={(e) => setThresholdDiscountPercent(e.target.value)} 
                 placeholder="למשל: 10"
-                className="w-full border p-3 rounded-xl text-sm bg-white font-bold" 
+                className="w-full border p-3 rounded-xl text-sm bg-white font-bold box-border" 
               />
             </div>
           )}
         </div>
 
-        {/* שדה תאריך ושעה מתוקן ומסודר בתוך המסגרת */}
+        {/* שדה תאריך ושעה מעוגן ובטוח במסגרת */}
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1">תאריך ושעה לסיום אוטומטי ⏱️</label>
-          <div className="w-full">
+          <div className="w-full max-w-full box-border">
             <input 
               type="datetime-local" 
               value={announcementEndTime} 
               onChange={(e) => setAnnouncementEndTime(e.target.value)} 
-              className="w-full border border-gray-300 px-4 py-3 rounded-xl text-sm bg-white font-bold text-gray-800 shadow-2xs outline-none focus:border-orange-500 block box-border text-right" 
+              className="w-full max-w-full border border-gray-300 px-3 py-3 rounded-xl text-xs sm:text-sm bg-white font-bold text-gray-800 shadow-2xs outline-none focus:border-orange-500 block box-border text-right" 
             />
           </div>
         </div>
 
-        {/* תיבת טקסט מורחבת (Textarea) לצפייה מלאה בטקסט השורה */}
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1">טקסט השורה שתוצג בראש האתר</label>
           <textarea 
@@ -258,7 +255,7 @@ export default function AdminCouponsPage() {
       </div>
 
       {/* 2. מבצע הצטרפות */}
-      <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border space-y-4">
+      <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border space-y-4 overflow-hidden">
         <h2 className="text-base sm:text-lg font-black text-gray-900 border-b pb-2">🎁 מבצע הצטרפות</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -267,7 +264,7 @@ export default function AdminCouponsPage() {
             <select 
               value={welcomeType} 
               onChange={(e) => setWelcomeType(e.target.value)}
-              className="w-full border p-3 rounded-xl text-sm bg-white font-bold"
+              className="w-full border p-3 rounded-xl text-sm bg-white font-bold box-border"
             >
               <option value="מתנה">מתנה בהצטרפות</option>
               <option value="הנחה לפי אחוזים">הנחת אחוזים בהצטרפות</option>
@@ -280,7 +277,7 @@ export default function AdminCouponsPage() {
               type="number" 
               value={welcomeDaysValid} 
               onChange={(e) => setWelcomeDaysValid(e.target.value)} 
-              className="w-full border p-3 rounded-xl text-sm bg-white font-bold" 
+              className="w-full border p-3 rounded-xl text-sm bg-white font-bold box-border" 
             />
           </div>
         </div>
@@ -291,7 +288,7 @@ export default function AdminCouponsPage() {
             
             <div 
               onClick={() => setIsGiftDropdownOpen(!isGiftDropdownOpen)}
-              className="w-full border bg-white p-3 rounded-xl text-sm font-bold flex items-center justify-between cursor-pointer shadow-2xs"
+              className="w-full border bg-white p-3 rounded-xl text-sm font-bold flex items-center justify-between cursor-pointer shadow-2xs box-border"
             >
               {selectedGiftProduct ? (
                 <div className="flex items-center gap-3">
@@ -317,7 +314,7 @@ export default function AdminCouponsPage() {
                   value={productSearch}
                   onChange={(e) => setProductSearch(e.target.value)}
                   placeholder="🔍 חפש מוצר מהיר לפי שם..."
-                  className="w-full border p-2.5 rounded-xl text-xs bg-gray-50 outline-none focus:border-orange-500 font-medium"
+                  className="w-full border p-2.5 rounded-xl text-xs bg-gray-50 outline-none focus:border-orange-500 font-medium box-border"
                   autoFocus
                 />
 
@@ -363,7 +360,7 @@ export default function AdminCouponsPage() {
             <label className="block text-xs font-bold text-gray-700 mb-1">אחוז הנחה להצטרפות (%)</label>
             <input 
               type="number" 
-              className="w-full border p-3 rounded-xl text-sm bg-white font-bold" 
+              className="w-full border p-3 rounded-xl text-sm bg-white font-bold box-border" 
             />
           </div>
         )}
@@ -390,7 +387,7 @@ export default function AdminCouponsPage() {
       </div>
 
       {/* 3. הוספת קופון רגיל */}
-      <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border">
+      <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border overflow-hidden">
         <h2 className="text-base sm:text-lg font-black text-gray-900 mb-4 border-b pb-2">➕ הוספת קופון חדש</h2>
         <form onSubmit={handleAddCoupon} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -401,7 +398,7 @@ export default function AdminCouponsPage() {
                 value={code} 
                 onChange={(e) => setCode(e.target.value)} 
                 placeholder="לדוגמה: PESACH20"
-                className="w-full border p-3 rounded-xl uppercase text-sm font-bold"
+                className="w-full border p-3 rounded-xl uppercase text-sm font-bold box-border"
                 required 
               />
             </div>
@@ -412,7 +409,7 @@ export default function AdminCouponsPage() {
                 value={couponName} 
                 onChange={(e) => setCouponName(e.target.value)} 
                 placeholder="לדוגמה: קופון דניאל"
-                className="w-full border p-3 rounded-xl text-sm" 
+                className="w-full border p-3 rounded-xl text-sm box-border" 
               />
             </div>
             <div>
@@ -420,7 +417,7 @@ export default function AdminCouponsPage() {
               <select 
                 value={discountType} 
                 onChange={(e) => setDiscountType(e.target.value)}
-                className="w-full border p-3 rounded-xl text-sm bg-white font-bold"
+                className="w-full border p-3 rounded-xl text-sm bg-white font-bold box-border"
               >
                 <option value="percent">אחוזים (%)</option>
                 <option value="fixed">סכום קבוע (₪)</option>
@@ -433,7 +430,7 @@ export default function AdminCouponsPage() {
                 value={discountValue} 
                 onChange={(e) => setDiscountValue(e.target.value)} 
                 placeholder="לדוגמה: 15"
-                className="w-full border p-3 rounded-xl text-sm font-bold"
+                className="w-full border p-3 rounded-xl text-sm font-bold box-border"
                 required 
               />
             </div>
