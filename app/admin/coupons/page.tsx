@@ -18,7 +18,6 @@ export default function AdminCouponsPage() {
   const [thresholdActive, setThresholdActive] = useState(false);
   const [thresholdAmount, setThresholdAmount] = useState('399');
   const [thresholdType, setThresholdType] = useState('משלוח חינם');
-  const [thresholdDiscountPercent, setThresholdDiscountPercent] = useState('10');
   const [thresholdBannerText, setThresholdBannerText] = useState('🎉 מבצע מיוחד: משלוח חינם בקנייה מעל ₪399!');
   const [announcementEndTime, setAnnouncementEndTime] = useState('');
 
@@ -47,7 +46,6 @@ export default function AdminCouponsPage() {
       setThresholdActive(!!settingsData.threshold_active);
       if (settingsData.threshold_amount) setThresholdAmount(settingsData.threshold_amount);
       if (settingsData.threshold_type) setThresholdType(settingsData.threshold_type);
-      if (settingsData.threshold_discount_percent) setThresholdDiscountPercent(settingsData.threshold_discount_percent);
       if (settingsData.threshold_banner_text) setThresholdBannerText(settingsData.threshold_banner_text);
       
       if (settingsData.announcement_end_time) {
@@ -108,7 +106,6 @@ export default function AdminCouponsPage() {
       threshold_active: thresholdActive,
       threshold_amount: thresholdAmount,
       threshold_type: thresholdType,
-      threshold_discount_percent: thresholdDiscountPercent,
       threshold_banner_text: thresholdBannerText,
       announcement_text: thresholdBannerText,
       announcement_end_time: announcementEndTime ? new Date(announcementEndTime).toISOString() : null
@@ -174,7 +171,7 @@ export default function AdminCouponsPage() {
       <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border space-y-4">
         <h2 className="text-base sm:text-lg font-black text-gray-900 border-b pb-2">📢 מבצע קנייה מעל סכום מסוים (שורה עליונה)</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">סכום מינימום לקנייה (₪)</label>
             <input 
@@ -195,21 +192,9 @@ export default function AdminCouponsPage() {
               <option value="הנחה לפי אחוזים">הנחה לפי אחוזים</option>
             </select>
           </div>
-          {thresholdType === 'הנחה לפי אחוזים' && (
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">אחוז הנחה (%)</label>
-              <input 
-                type="number" 
-                value={thresholdDiscountPercent} 
-                onChange={(e) => setThresholdDiscountPercent(e.target.value)} 
-                placeholder="למשל: 10"
-                className="w-full border p-3 rounded-xl text-sm bg-white font-bold box-border" 
-              />
-            </div>
-          )}
         </div>
 
-        {/* שדה תאריך ושעה שמעוצב 1 ל-1 כמו השדות מעל */}
+        {/* שדה תאריך ושעה מעוצב בדיוק 1 ל-1 כמו שאר השדות */}
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1">תאריך ושעה לסיום אוטומטי ⏱️</label>
           <input 
