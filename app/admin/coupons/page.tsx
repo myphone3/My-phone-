@@ -7,17 +7,24 @@ import Link from 'next/link';
 export default function AdminCouponsPage() {
   const [coupons, setCoupons] = useState<any[]>([]);
   const [code, setCode] = useState('');
+  const [couponName, setCouponName] = useState('');
   const [discountType, setDiscountType] = useState('percent');
   const [discountValue, setDiscountValue] = useState('');
-  const [isWelcomeGift, setIsWelcomeGift] = useState(false);
-  const [welcomeDaysValid, setWelcomeDaysValid] = useState('7');
 
-  // הגדרות שורת המבצע העליונה ותפוגה אוטומטית
+  // הגדרות שורת המבצע העליונה (מעל סכום מינימום)
   const [thresholdActive, setThresholdActive] = useState(false);
-  const [thresholdAmount, setThresholdAmount] = useState('400');
+  const [thresholdAmount, setThresholdAmount] = useState('399');
   const [thresholdType, setThresholdType] = useState('משלוח חינם');
-  const [thresholdBannerText, setThresholdBannerText] = useState('🎉 מבצע מיוחד: משלוח חינם בהזמנה מעל 400₪!');
+  const [thresholdDiscountPercent, setThresholdDiscountPercent] = useState('10');
+  const [thresholdBannerText, setThresholdBannerText] = useState('🎉 מבצע מיוחד: משלוח חינם בקנייה מעל ₪399!');
   const [announcementEndTime, setAnnouncementEndTime] = useState('');
+
+  // הגדרות מתנת / מבצע הצטרפות נפרד ללקוחות חדשים
+  const [welcomeActive, setWelcomeActive] = useState(false);
+  const [welcomeType, setWelcomeType] = useState('מתנה'); // מתנה או אחוזים
+  const [welcomeDiscountValue, setWelcomeDiscountValue] = useState('10');
+  const [welcomeCode, setWelcomeCode] = useState('WELCOME10');
+  const [welcomeDaysValid, setWelcomeDaysValid] = useState('7');
 
   useEffect(() => {
     fetchData();
@@ -32,7 +39,9 @@ export default function AdminCouponsPage() {
       setThresholdActive(!!settingsData.threshold_active);
       if (settingsData.threshold_amount) setThresholdAmount(settingsData.threshold_amount);
       if (settingsData.threshold_type) setThresholdType(settingsData.threshold_type);
+      if (settingsData.threshold_discount_percent) setThresholdDiscountPercent(settingsData.threshold_discount_percent);
       if (settingsData.threshold_banner_text) setThresholdBannerText(settingsData.threshold_banner_text);
+      
       if (settingsData.announcement_end_time) {
         const d = new Date(settingsData.announcement_end_time);
         const year = d.getFullYear();
@@ -42,20 +51,25 @@ export default function AdminCouponsPage() {
         const minutes = String(d.getMinutes()).padStart(2, '0');
         setAnnouncementEndTime(`${year}-${month}-${day}T${hours}:${minutes}`);
       }
+
+      if (settingsData.welcome_active !== undefined) setWelcomeActive(!!settingsData.welcome_active);
+      if (settingsData.welcome_type) setWelcomeType(settingsData.welcome_type);
+      if (settingsData.welcome_discount_value) setWelcomeDiscountValue(settingsData.welcome_discount_value);
+      if (settingsData.welcome_code) setWelcomeCode(settingsData.welcome_code);
+      if (settingsData.welcome_days_valid) setWelcomeDaysValid(settingsData.welcome_days_valid);
     }
   };
 
   const handleAddCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!code || !discountValue) return alert('נא למלא את כל השדות');
+    if (!code || !discountValue) return alert('נא למלא את קוד הקופון וגובה ההנחה');
 
     const { error } = await supabase.from('coupons').insert([
       {
         code: code.trim().toUpperCase(),
+        name: couponName.trim() || null,
         discount_type: discountType,
-        discount_value: Number(discountValue),
-        is_welcome_gift: isWelcomeGift,
-        welcome_days_valid: Number(welcomeDaysValid) || 7
+        discount_value: Number(discountValue)
       }
     ]);
 
@@ -64,9 +78,8 @@ export default function AdminCouponsPage() {
     } else {
       alert('הקופון נוצר בהצלחה! 🎟️');
       setCode('');
+      setCouponName('');
       setDiscountValue('');
-      setIsWelcomeGift(false);
-      setWelcomeDaysValid('7');
       fetchData();
     }
   };
@@ -76,6 +89,7 @@ export default function AdminCouponsPage() {
       threshold_active: thresholdActive,
       threshold_amount: thresholdAmount,
       threshold_type: thresholdType,
+      threshold_discount_percent: thresholdDiscountPercent,
       threshold_banner_text: thresholdBannerText,
       announcement_text: thresholdBannerText,
       announcement_end_time: announcementEndTime ? new Date(announcementEndTime).toISOString() : null
@@ -95,7 +109,35 @@ export default function AdminCouponsPage() {
     if (error) {
       alert('שגיאה בשמירת הגדרות המבצע: ' + error.message);
     } else {
-      alert('הגדרות המבצע והתפוגה האוטומטית עודכנו בהצלחה! ✨');
+      alert('הגדרות מבצע סכום קנייה עודכנו בהצלחה! ✨');
+      fetchData();
+    }
+  };
+
+  const handleSaveWelcomePromo = async () => {
+    const welcomeData = {
+      welcome_active: welcomeActive,
+      welcome_type: welcomeType,
+      welcome_discount_value: welcomeDiscountValue,
+      welcome_code: welcomeCode.trim().toUpperCase(),
+      welcome_days_valid: Number(welcomeDaysValid) || 7
+    };
+
+    const { data: existing } = await supabase.from('settings').select('id').limit(1).maybeSingle();
+
+    let error;
+    if (existing?.id) {
+      const res = await supabase.from('settings').update(welcomeData).eq('id', existing.id);
+      error = res.error;
+    } else {
+      const res = await supabase.from('settings').insert([welcomeData]);
+      error = res.error;
+    }
+
+    if (error) {
+      alert('שגיאה בשמירת מתנת הצטרפות: ' + error.message);
+    } else {
+      alert('הגדרות מתנת/מבצע הצטרפות עודכנו בהצלחה! 🎁');
       fetchData();
     }
   };
@@ -109,15 +151,15 @@ export default function AdminCouponsPage() {
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8" dir="rtl">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-black text-gray-900">🎟️ ניהול קופונים ומבצעים</h1>
+        <h1 className="text-2xl font-black text-gray-900">🎁 ניהול מבצעים וקופונים</h1>
         <Link href="/admin/products" className="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-xl text-sm font-bold text-gray-700">
           חזרה לניהול מוצרים 🔙
         </Link>
       </div>
 
-      {/* שורת מבצע עליונה יחידה עם תפוגה אוטומטית */}
+      {/* 1. מבצע סכום קנייה (משלוח חינם או הנחת אחוזים) */}
       <div className="bg-white p-6 rounded-3xl shadow-sm border space-y-4">
-        <h2 className="text-lg font-bold border-b pb-2">📢 שורת מבצע עליונה ותפוגה אוטומטית</h2>
+        <h2 className="text-lg font-black text-gray-900 border-b pb-2">📢 מבצע קנייה מעל סכום מסוים (שורה עליונה)</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
@@ -126,7 +168,7 @@ export default function AdminCouponsPage() {
               type="number" 
               value={thresholdAmount} 
               onChange={(e) => setThresholdAmount(e.target.value)} 
-              className="w-full border p-3 rounded-xl text-sm" 
+              className="w-full border p-3 rounded-xl text-sm bg-gray-50/50" 
             />
           </div>
           <div>
@@ -134,21 +176,34 @@ export default function AdminCouponsPage() {
             <select 
               value={thresholdType} 
               onChange={(e) => setThresholdType(e.target.value)}
-              className="w-full border p-3 rounded-xl text-sm bg-white"
+              className="w-full border p-3 rounded-xl text-sm bg-white font-bold"
             >
               <option value="משלוח חינם">משלוח חינם</option>
-              <option value="הנחה נוספת">הנחה נוספת</option>
+              <option value="הנחה לפי אחוזים">הנחה לפי אחוזים</option>
             </select>
           </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">תאריך ושעה לסיום אוטומטי ⏱️</label>
-            <input 
-              type="datetime-local" 
-              value={announcementEndTime} 
-              onChange={(e) => setAnnouncementEndTime(e.target.value)} 
-              className="w-full border p-3 rounded-xl text-sm bg-white" 
-            />
-          </div>
+          {thresholdType === 'הנחה לפי אחוזים' && (
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">אחוז הנחה (%)</label>
+              <input 
+                type="number" 
+                value={thresholdDiscountPercent} 
+                onChange={(e) => setThresholdDiscountPercent(e.target.value)} 
+                placeholder="למשל: 10"
+                className="w-full border p-3 rounded-xl text-sm bg-white font-bold" 
+              />
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-gray-700 mb-1">תאריך ושעה לסיום אוטומטי ⏱️</label>
+          <input 
+            type="datetime-local" 
+            value={announcementEndTime} 
+            onChange={(e) => setAnnouncementEndTime(e.target.value)} 
+            className="w-full md:w-1/2 border p-3 rounded-xl text-sm bg-white font-medium text-right" 
+          />
         </div>
 
         <div>
@@ -157,7 +212,7 @@ export default function AdminCouponsPage() {
             type="text" 
             value={thresholdBannerText} 
             onChange={(e) => setThresholdBannerText(e.target.value)} 
-            placeholder="למשל: 🎉 מבצע מיוחד: משלוח חינם בהזמנה מעל 400₪!"
+            placeholder="למשל: 🎉 מבצע מיוחד: משלוח חינם בקנייה מעל ₪399!"
             className="w-full border p-3 rounded-xl text-sm" 
           />
         </div>
@@ -179,24 +234,105 @@ export default function AdminCouponsPage() {
           onClick={handleSaveThresholdPromo}
           className="bg-black text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-gray-800 transition cursor-pointer"
         >
-          שמור הגדרות מבצע ותפוגה 💾
+          שמור הגדרות מבצע סכום קנייה 💾
         </button>
       </div>
 
-      {/* הוספת קופון רגיל / מתנת הצטרפות */}
-      <div className="bg-white p-6 rounded-3xl shadow-sm border">
-        <h2 className="text-lg font-bold mb-4">➕ הוספת קופון חדש</h2>
-        <form onSubmit={handleAddCoupon} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* 2. מתנת / מבצע הצטרפות נפרד ללקוחות חדשים */}
+      <div className="bg-white p-6 rounded-3xl shadow-sm border space-y-4">
+        <h2 className="text-lg font-black text-gray-900 border-b pb-2">🎁 מבצע / מתנת הצטרפות ללקוחות חדשים (בנפרד)</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">סוג מבצע הצטרפות</label>
+            <select 
+              value={welcomeType} 
+              onChange={(e) => setWelcomeType(e.target.value)}
+              className="w-full border p-3 rounded-xl text-sm bg-white font-bold"
+            >
+              <option value="מתנה">מתנה בהצטרפות</option>
+              <option value="הנחה לפי אחוזים">הנחת אחוזים בהצטרפות</option>
+            </select>
+          </div>
+
+          {welcomeType === 'הנחה לפי אחוזים' && (
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">קוד קופון</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">אחוז הנחה להצטרפות (%)</label>
+              <input 
+                type="number" 
+                value={welcomeDiscountValue} 
+                onChange={(e) => setWelcomeDiscountValue(e.target.value)} 
+                className="w-full border p-3 rounded-xl text-sm bg-white font-bold" 
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">קוד קופון הצטרפות</label>
+            <input 
+              type="text" 
+              value={welcomeCode} 
+              onChange={(e) => setWelcomeCode(e.target.value)} 
+              className="w-full border p-3 rounded-xl text-sm uppercase font-bold" 
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">תוקף לאחר הרשמה (בימים)</label>
+            <input 
+              type="number" 
+              value={welcomeDaysValid} 
+              onChange={(e) => setWelcomeDaysValid(e.target.value)} 
+              className="w-full border p-3 rounded-xl text-sm bg-white" 
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 pt-2">
+          <input 
+            type="checkbox" 
+            id="welcomeActive"
+            checked={welcomeActive} 
+            onChange={(e) => setWelcomeActive(e.target.checked)}
+            className="w-4 h-4 accent-black rounded cursor-pointer"
+          />
+          <label htmlFor="welcomeActive" className="text-sm font-bold text-gray-800 cursor-pointer">
+            הפעל פופ-אפ מתנת / מבצע הצטרפות ללקוחות חדשים באתר 🌟
+          </label>
+        </div>
+
+        <button 
+          onClick={handleSaveWelcomePromo}
+          className="bg-black text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-gray-800 transition cursor-pointer"
+        >
+          שמור הגדרות הצטרפות 💾
+        </button>
+      </div>
+
+      {/* 3. הוספת קופון רגיל עם שדה שם */}
+      <div className="bg-white p-6 rounded-3xl shadow-sm border">
+        <h2 className="text-lg font-black text-gray-900 mb-4 border-b pb-2">➕ הוספת קופון חדש</h2>
+        <form onSubmit={handleAddCoupon} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">קוד קופון <span className="text-red-500">*</span></label>
               <input 
                 type="text" 
                 value={code} 
                 onChange={(e) => setCode(e.target.value)} 
-                placeholder="לדוגמה: WELCOME10"
+                placeholder="לדוגמה: PESACH20"
                 className="w-full border p-3 rounded-xl uppercase text-sm font-bold"
                 required 
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">שם הקופון / יוצר (אופציונלי)</label>
+              <input 
+                type="text" 
+                value={couponName} 
+                onChange={(e) => setCouponName(e.target.value)} 
+                placeholder="לדוגמה: קופון דניאל / מבצע חגים"
+                className="w-full border p-3 rounded-xl text-sm" 
               />
             </div>
             <div>
@@ -204,51 +340,23 @@ export default function AdminCouponsPage() {
               <select 
                 value={discountType} 
                 onChange={(e) => setDiscountType(e.target.value)}
-                className="w-full border p-3 rounded-xl text-sm bg-white"
+                className="w-full border p-3 rounded-xl text-sm bg-white font-bold"
               >
                 <option value="percent">אחוזים (%)</option>
                 <option value="fixed">סכום קבוע (₪)</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">גובה ההנחה</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">גובה ההנחה <span className="text-red-500">*</span></label>
               <input 
                 type="number" 
                 value={discountValue} 
                 onChange={(e) => setDiscountValue(e.target.value)} 
                 placeholder="לדוגמה: 15"
-                className="w-full border p-3 rounded-xl text-sm"
+                className="w-full border p-3 rounded-xl text-sm font-bold"
                 required 
               />
             </div>
-          </div>
-
-          <div className="space-y-3 pt-2 bg-gray-50 p-4 rounded-2xl border">
-            <div className="flex items-center gap-2">
-              <input 
-                type="checkbox" 
-                id="welcomeGift"
-                checked={isWelcomeGift} 
-                onChange={(e) => setIsWelcomeGift(e.target.checked)}
-                className="w-4 h-4 accent-black rounded"
-              />
-              <label htmlFor="welcomeGift" className="text-sm font-bold text-gray-800">
-                הגדר כמתנת הצטרפות אוטומטית ללקוחות חדשים 🎁
-              </label>
-            </div>
-
-            {isWelcomeGift && (
-              <div className="w-full md:w-1/3">
-                <label className="block text-xs font-bold text-gray-700 mb-1">תוקף הקופון לאחר הרשמה (בימים)</label>
-                <input 
-                  type="number" 
-                  value={welcomeDaysValid} 
-                  onChange={(e) => setWelcomeDaysValid(e.target.value)} 
-                  placeholder="7"
-                  className="w-full border p-2.5 rounded-xl text-sm bg-white" 
-                />
-              </div>
-            )}
           </div>
 
           <button type="submit" className="bg-black text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-gray-800 transition cursor-pointer">
@@ -267,8 +375,8 @@ export default function AdminCouponsPage() {
             <thead>
               <tr className="border-b bg-gray-50/50 text-gray-500 text-xs">
                 <th className="p-4">קוד קופון</th>
+                <th className="p-4">שם / יוצר</th>
                 <th className="p-4">הנחה</th>
-                <th className="p-4">סוג קופון</th>
                 <th className="p-4">פעולות</th>
               </tr>
             </thead>
@@ -276,16 +384,8 @@ export default function AdminCouponsPage() {
               {coupons.map((coupon) => (
                 <tr key={coupon.id} className="border-b hover:bg-gray-50/50">
                   <td className="p-4 font-black">{coupon.code}</td>
+                  <td className="p-4 text-gray-700 font-medium">{coupon.name || <span className="text-gray-400 italic">ללא שם</span>}</td>
                   <td className="p-4 font-bold">{coupon.discount_value}{coupon.discount_type === 'percent' ? '%' : '₪'}</td>
-                  <td className="p-4">
-                    {coupon.is_welcome_gift ? (
-                      <span className="bg-amber-100 text-amber-800 text-xs px-2.5 py-1 rounded-full font-bold">
-                        מתנת הצטרפות ({coupon.welcome_days_valid || 7} ימים) 🎁
-                      </span>
-                    ) : (
-                      <span className="bg-gray-100 text-gray-700 text-xs px-2.5 py-1 rounded-full font-medium">רגיל</span>
-                    )}
-                  </td>
                   <td className="p-4">
                     <button onClick={() => handleDelete(coupon.id)} className="text-red-600 hover:text-red-800 text-xs font-bold cursor-pointer">
                       מחק 🗑️
