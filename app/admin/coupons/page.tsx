@@ -6,6 +6,8 @@ import { supabase } from '@/lib/supabase';
 export default function AdminCouponsPage() {
   const [coupons, setCoupons] = useState<any[]>([]);
   const [productsList, setProductsList] = useState<any[]>([]);
+  const [productSearch, setProductSearch] = useState('');
+  
   const [code, setCode] = useState('');
   const [couponName, setCouponName] = useState('');
   const [discountType, setDiscountType] = useState('percent');
@@ -35,8 +37,8 @@ export default function AdminCouponsPage() {
     const { data: couponsData } = await supabase.from('coupons').select('*').order('created_at', { ascending: false });
     if (couponsData) setCoupons(couponsData);
 
-    // שליפת מוצרים לבחירת מוצר מתנה
-    const { data: prodsData } = await supabase.from('products').select('id, name').order('name', { ascending: true });
+    // שליפת מוצרים לחיפוש ובחירת מוצר מתנה (כולל תמונות)
+    const { data: prodsData } = await supabase.from('products').select('id, name, image_url, images').order('name', { ascending: true });
     if (prodsData) setProductsList(prodsData);
 
     // שליפת הגדרות
@@ -65,6 +67,19 @@ export default function AdminCouponsPage() {
       if (settingsData.welcome_days_valid) setWelcomeDaysValid(settingsData.welcome_days_valid);
     }
   };
+
+  const getProductImage = (p: any) => {
+    if (!p) return '';
+    if (p.image_url && typeof p.image_url === 'string' && p.image_url.trim().length > 0) return p.image_url;
+    if (Array.isArray(p.images) && p.images.length > 0) return p.images[0];
+    return '';
+  };
+
+  const filteredProducts = productsList.filter(p => 
+    p.name?.toLowerCase().includes(productSearch.toLowerCase())
+  );
+
+  const selectedGiftProduct = productsList.find(p => p.id === welcomeGiftProductId);
 
   const handleAddCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -200,14 +215,15 @@ export default function AdminCouponsPage() {
           )}
         </div>
 
+        {/* תיקון יציב של מסגרת התאריך והשעה */}
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1">תאריך ושעה לסיום אוטומטי ⏱️</label>
-          <div className="w-full">
+          <div className="w-full max-w-full overflow-hidden box-border">
             <input 
               type="datetime-local" 
               value={announcementEndTime} 
               onChange={(e) => setAnnouncementEndTime(e.target.value)} 
-              className="w-full border border-gray-200 px-3.5 py-3 rounded-xl text-sm bg-white font-bold text-gray-800 shadow-2xs outline-none focus:border-orange-500 block box-border" 
+              className="w-full border border-gray-200 px-3 py-2.5 rounded-xl text-xs sm:text-sm bg-white font-bold text-gray-800 outline-none focus:border-orange-500 block box-border" 
             />
           </div>
         </div>
@@ -244,11 +260,11 @@ export default function AdminCouponsPage() {
         </button>
       </div>
 
-      {/* 2. מבצע הצטרפות */}
+      {/* 2. מבצע הצטרפות עם חיפוש מוצר ותצוגת תמונה */}
       <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border space-y-4">
         <h2 className="text-base sm:text-lg font-black text-gray-900 border-b pb-2">🎁 מבצע הצטרפות</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">סוג מבצע הצטרפות</label>
             <select 
@@ -261,32 +277,6 @@ export default function AdminCouponsPage() {
             </select>
           </div>
 
-          {welcomeType === 'מתנה' ? (
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">בחר מוצר מתנה מהחנות 🎁</label>
-              <select 
-                value={welcomeGiftProductId} 
-                onChange={(e) => setWelcomeGiftProductId(e.target.value)}
-                className="w-full border p-3 rounded-xl text-sm bg-white font-bold"
-              >
-                <option value="">-- בחר מוצר מתנה --</option>
-                {productsList.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
-            </div>
-          ) : (
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">אחוז הנחה להצטרפות (%)</label>
-              <input 
-                type="number" 
-                value={welcomeDiscountValue} 
-                onChange={(e) => setWelcomeDiscountValue(e.target.value)} 
-                className="w-full border p-3 rounded-xl text-sm bg-white font-bold" 
-              />
-            </div>
-          )}
-
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">תוקף לאחר הרשמה (בימים)</label>
             <input 
@@ -297,6 +287,59 @@ export default function AdminCouponsPage() {
             />
           </div>
         </div>
+
+        {welcomeType === 'מתנה' ? (
+          <div className="bg-gray-50 p-4 rounded-2xl border space-y-3">
+            <label className="block text-xs font-bold text-gray-800">בחר מוצר מתנה מהחנות 🎁</label>
+            
+            {/* שדה חיפוש מוצר */}
+            <input 
+              type="text" 
+              value={productSearch}
+              onChange={(e) => setProductSearch(e.target.value)}
+              placeholder="🔍 חפש מוצר לפי שם..."
+              className="w-full border p-2.5 rounded-xl text-xs bg-white"
+            />
+
+            <select 
+              value={welcomeGiftProductId} 
+              onChange={(e) => setWelcomeGiftProductId(e.target.value)}
+              className="w-full border p-3 rounded-xl text-sm bg-white font-bold"
+            >
+              <option value="">-- בחר מוצר מתנה --</option>
+              {filteredProducts.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+
+            {/* תצוגת המוצר שנבחר + התמונה שלו */}
+            {selectedGiftProduct && (
+              <div className="flex items-center gap-3 bg-white p-3 rounded-xl border mt-2">
+                <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden border shrink-0">
+                  {getProductImage(selectedGiftProduct) ? (
+                    <img src={getProductImage(selectedGiftProduct)} alt="" className="w-full h-full object-contain" />
+                  ) : (
+                    <span className="text-xl">🎁</span>
+                  )}
+                </div>
+                <div>
+                  <span className="text-[10px] text-orange-600 font-bold block">המוצר שנבחר כמתנה:</span>
+                  <h4 className="text-xs font-black text-gray-900">{selectedGiftProduct.name}</h4>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">אחוז הנחה להצטרפות (%)</label>
+            <input 
+              type="number" 
+              value={welcomeDiscountValue} 
+              onChange={(e) => setWelcomeDiscountValue(e.target.value)} 
+              className="w-full border p-3 rounded-xl text-sm bg-white font-bold" 
+            />
+          </div>
+        )}
 
         <div className="flex items-center gap-2 pt-2">
           <input 
