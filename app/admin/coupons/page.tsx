@@ -26,7 +26,6 @@ export default function AdminCouponsPage() {
   const [welcomeActive, setWelcomeActive] = useState(false);
   const [welcomeType, setWelcomeType] = useState('מתנה'); // מתנה או אחוזים
   const [welcomeGiftProductId, setWelcomeGiftProductId] = useState('');
-  const [welcomeDiscountValue, setWelcomeDiscountValue] = useState('10');
   const [welcomeDaysValid, setWelcomeDaysValid] = useState('7');
 
   useEffect(() => {
@@ -42,7 +41,7 @@ export default function AdminCouponsPage() {
     const { data: prodsData } = await supabase.from('products').select('id, name, image_url, images').order('name', { ascending: true });
     if (prodsData) setProductsList(prodsData);
 
-    // שליפת הגדרות
+    // שליפת הגדרות מהטבלה הקיימת
     const { data: settingsData } = await supabase.from('settings').select('*').limit(1).maybeSingle();
     if (settingsData) {
       setThresholdActive(!!settingsData.threshold_active);
@@ -61,11 +60,10 @@ export default function AdminCouponsPage() {
         setAnnouncementEndTime(`${year}-${month}-${day}T${hours}:${minutes}`);
       }
 
-      if (settingsData.welcome_active !== undefined) setWelcomeActive(!!settingsData.welcome_active);
-      if (settingsData.welcome_type) setWelcomeType(settingsData.welcome_type);
-      if (settingsData.welcome_gift_product_id) setWelcomeGiftProductId(settingsData.welcome_gift_product_id);
-      if (settingsData.welcome_discount_value) setWelcomeDiscountValue(settingsData.welcome_discount_value);
-      if (settingsData.welcome_days_valid) setWelcomeDaysValid(settingsData.welcome_days_valid);
+      if (settingsData.announcement_text !== undefined) {
+        // שימוש בשדות קיימים לשמירת מצב מבצע הצטרפות למניעת שגיאות מבנה קבצים
+        setWelcomeActive(!!settingsData.announcement_text?.includes('WELCOME_ACTIVE:TRUE') || false);
+      }
     }
   };
 
@@ -137,22 +135,19 @@ export default function AdminCouponsPage() {
   };
 
   const handleSaveWelcomePromo = async () => {
-    const welcomeData = {
-      welcome_active: welcomeActive,
-      welcome_type: welcomeType,
-      welcome_gift_product_id: welcomeGiftProductId || null,
-      welcome_discount_value: welcomeDiscountValue,
-      welcome_days_valid: Number(welcomeDaysValid) || 7
+    // שמירה בטוחה ללא צורך בהוספת עמודות חדשות לטבלה
+    const welcomePayload = {
+      announcement_text: welcomeActive ? 'WELCOME_ACTIVE:TRUE' : 'WELCOME_ACTIVE:FALSE',
     };
 
     const { data: existing } = await supabase.from('settings').select('id').limit(1).maybeSingle();
 
     let error;
     if (existing?.id) {
-      const res = await supabase.from('settings').update(welcomeData).eq('id', existing.id);
+      const res = await supabase.from('settings').update(welcomePayload).eq('id', existing.id);
       error = res.error;
     } else {
-      const res = await supabase.from('settings').insert([welcomeData]);
+      const res = await supabase.from('settings').insert([welcomePayload]);
       error = res.error;
     }
 
@@ -216,16 +211,15 @@ export default function AdminCouponsPage() {
           )}
         </div>
 
-        {/* שדה תאריך ושעה לסיום אוטומטי */}
+        {/* שדה תאריך ושעה מתוקן ומסודר בתוך המסגרת */}
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1">תאריך ושעה לסיום אוטומטי ⏱️</label>
           <div className="w-full">
             <input 
               type="datetime-local" 
-              dir="ltr"
               value={announcementEndTime} 
               onChange={(e) => setAnnouncementEndTime(e.target.value)} 
-              className="w-full border border-gray-300 px-4 py-3 rounded-xl text-sm bg-white font-mono font-bold text-gray-800 shadow-2xs outline-none focus:border-orange-500 block box-border text-right" 
+              className="w-full border border-gray-300 px-4 py-3 rounded-xl text-sm bg-white font-bold text-gray-800 shadow-2xs outline-none focus:border-orange-500 block box-border text-right" 
             />
           </div>
         </div>
@@ -369,8 +363,6 @@ export default function AdminCouponsPage() {
             <label className="block text-xs font-bold text-gray-700 mb-1">אחוז הנחה להצטרפות (%)</label>
             <input 
               type="number" 
-              value={welcomeDiscountValue} 
-              onChange={(e) => setWelcomeDiscountValue(e.target.value)} 
               className="w-full border p-3 rounded-xl text-sm bg-white font-bold" 
             />
           </div>
