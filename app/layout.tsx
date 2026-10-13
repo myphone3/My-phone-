@@ -1,5 +1,5 @@
 import './globals.css';
-import Header from '../components/Header';
+import Header from '@/components/Header';
 
 // הגדרת מטא-דאטה לשם האפליקציה והלוגו בהוספה למסך הבית
 export const metadata = {
