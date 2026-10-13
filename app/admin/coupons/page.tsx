@@ -19,11 +19,10 @@ export default function AdminCouponsPage() {
   const [thresholdBannerText, setThresholdBannerText] = useState('🎉 מבצע מיוחד: משלוח חינם בקנייה מעל ₪399!');
   const [announcementEndTime, setAnnouncementEndTime] = useState('');
 
-  // הגדרות מתנת / מבצע הצטרפות נפרד ללקוחות חדשים
+  // הגדרות מבצע הצטרפות
   const [welcomeActive, setWelcomeActive] = useState(false);
   const [welcomeType, setWelcomeType] = useState('מתנה'); // מתנה או אחוזים
   const [welcomeDiscountValue, setWelcomeDiscountValue] = useState('10');
-  const [welcomeCode, setWelcomeCode] = useState('WELCOME10');
   const [welcomeDaysValid, setWelcomeDaysValid] = useState('7');
 
   useEffect(() => {
@@ -55,7 +54,6 @@ export default function AdminCouponsPage() {
       if (settingsData.welcome_active !== undefined) setWelcomeActive(!!settingsData.welcome_active);
       if (settingsData.welcome_type) setWelcomeType(settingsData.welcome_type);
       if (settingsData.welcome_discount_value) setWelcomeDiscountValue(settingsData.welcome_discount_value);
-      if (settingsData.welcome_code) setWelcomeCode(settingsData.welcome_code);
       if (settingsData.welcome_days_valid) setWelcomeDaysValid(settingsData.welcome_days_valid);
     }
   };
@@ -109,7 +107,7 @@ export default function AdminCouponsPage() {
     if (error) {
       alert('שגיאה בשמירת הגדרות המבצע: ' + error.message);
     } else {
-      alert('הגדרות מבצע סכום קנייה עודכנו בהצלחה! ✨');
+      alert('הגדרות המבצע עודכנו בהצלחה! ✨');
       fetchData();
     }
   };
@@ -119,7 +117,6 @@ export default function AdminCouponsPage() {
       welcome_active: welcomeActive,
       welcome_type: welcomeType,
       welcome_discount_value: welcomeDiscountValue,
-      welcome_code: welcomeCode.trim().toUpperCase(),
       welcome_days_valid: Number(welcomeDaysValid) || 7
     };
 
@@ -135,9 +132,9 @@ export default function AdminCouponsPage() {
     }
 
     if (error) {
-      alert('שגיאה בשמירת מתנת הצטרפות: ' + error.message);
+      alert('שגיאה בשמירת מבצע הצטרפות: ' + error.message);
     } else {
-      alert('הגדרות מתנת/מבצע הצטרפות עודכנו בהצלחה! 🎁');
+      alert('הגדרות מבצע הצטרפות עודכנו בהצלחה! 🎁');
       fetchData();
     }
   };
@@ -149,17 +146,28 @@ export default function AdminCouponsPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-8" dir="rtl">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-black text-gray-900">🎁 ניהול מבצעים וקופונים</h1>
-        <Link href="/admin/products" className="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-xl text-sm font-bold text-gray-700">
-          חזרה לניהול מוצרים 🔙
+    <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-8" dir="rtl">
+      
+      {/* סרגל ניווט עליון בלשוניות */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b">
+        <Link href="/admin/media" className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-xs font-bold shrink-0">
+          🖼️ ספריית מדיה
+        </Link>
+        <Link href="/admin/coupons" className="bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-bold shrink-0 shadow-sm">
+          🎟️ מבצעים וקופונים
+        </Link>
+        <Link href="/admin/customers" className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-xs font-bold shrink-0">
+          👥 לקוחות והודעות
         </Link>
       </div>
 
-      {/* 1. מבצע סכום קנייה (משלוח חינם או הנחת אחוזים) */}
-      <div className="bg-white p-6 rounded-3xl shadow-sm border space-y-4">
-        <h2 className="text-lg font-black text-gray-900 border-b pb-2">📢 מבצע קנייה מעל סכום מסוים (שורה עליונה)</h2>
+      <div className="mb-2">
+        <h1 className="text-2xl font-black text-gray-900">🎁 ניהול מבצעים וקופונים</h1>
+      </div>
+
+      {/* 1. מבצע קנייה מעל סכום מסוים */}
+      <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border space-y-4">
+        <h2 className="text-base sm:text-lg font-black text-gray-900 border-b pb-2">📢 מבצע קנייה מעל סכום מסוים (שורה עליונה)</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
@@ -168,7 +176,7 @@ export default function AdminCouponsPage() {
               type="number" 
               value={thresholdAmount} 
               onChange={(e) => setThresholdAmount(e.target.value)} 
-              className="w-full border p-3 rounded-xl text-sm bg-gray-50/50" 
+              className="w-full border p-3 rounded-xl text-sm bg-gray-50/50 font-bold" 
             />
           </div>
           <div>
@@ -198,12 +206,14 @@ export default function AdminCouponsPage() {
 
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1">תאריך ושעה לסיום אוטומטי ⏱️</label>
-          <input 
-            type="datetime-local" 
-            value={announcementEndTime} 
-            onChange={(e) => setAnnouncementEndTime(e.target.value)} 
-            className="w-full md:w-1/2 border p-3 rounded-xl text-sm bg-white font-medium text-right" 
-          />
+          <div className="w-full md:w-1/2">
+            <input 
+              type="datetime-local" 
+              value={announcementEndTime} 
+              onChange={(e) => setAnnouncementEndTime(e.target.value)} 
+              className="w-full border border-gray-300 px-4 py-3 rounded-xl text-sm bg-white font-mono font-bold text-gray-800 shadow-2xs outline-none focus:border-orange-500" 
+            />
+          </div>
         </div>
 
         <div>
@@ -213,7 +223,7 @@ export default function AdminCouponsPage() {
             value={thresholdBannerText} 
             onChange={(e) => setThresholdBannerText(e.target.value)} 
             placeholder="למשל: 🎉 מבצע מיוחד: משלוח חינם בקנייה מעל ₪399!"
-            className="w-full border p-3 rounded-xl text-sm" 
+            className="w-full border p-3 rounded-xl text-sm font-medium" 
           />
         </div>
 
@@ -232,15 +242,15 @@ export default function AdminCouponsPage() {
 
         <button 
           onClick={handleSaveThresholdPromo}
-          className="bg-black text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-gray-800 transition cursor-pointer"
+          className="bg-black text-white px-6 py-3 rounded-xl text-xs font-bold hover:bg-gray-800 transition cursor-pointer"
         >
           שמור הגדרות מבצע סכום קנייה 💾
         </button>
       </div>
 
-      {/* 2. מתנת / מבצע הצטרפות נפרד ללקוחות חדשים */}
-      <div className="bg-white p-6 rounded-3xl shadow-sm border space-y-4">
-        <h2 className="text-lg font-black text-gray-900 border-b pb-2">🎁 מבצע / מתנת הצטרפות ללקוחות חדשים (בנפרד)</h2>
+      {/* 2. מבצע הצטרפות */}
+      <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border space-y-4">
+        <h2 className="text-base sm:text-lg font-black text-gray-900 border-b pb-2">🎁 מבצע הצטרפות</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
@@ -268,22 +278,12 @@ export default function AdminCouponsPage() {
           )}
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">קוד קופון הצטרפות</label>
-            <input 
-              type="text" 
-              value={welcomeCode} 
-              onChange={(e) => setWelcomeCode(e.target.value)} 
-              className="w-full border p-3 rounded-xl text-sm uppercase font-bold" 
-            />
-          </div>
-
-          <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">תוקף לאחר הרשמה (בימים)</label>
             <input 
               type="number" 
               value={welcomeDaysValid} 
               onChange={(e) => setWelcomeDaysValid(e.target.value)} 
-              className="w-full border p-3 rounded-xl text-sm bg-white" 
+              className="w-full border p-3 rounded-xl text-sm bg-white font-bold" 
             />
           </div>
         </div>
@@ -297,21 +297,21 @@ export default function AdminCouponsPage() {
             className="w-4 h-4 accent-black rounded cursor-pointer"
           />
           <label htmlFor="welcomeActive" className="text-sm font-bold text-gray-800 cursor-pointer">
-            הפעל פופ-אפ מתנת / מבצע הצטרפות ללקוחות חדשים באתר 🌟
+            הפעל פופ-אפ מבצע הצטרפות ללקוחות חדשים באתר 🌟
           </label>
         </div>
 
         <button 
           onClick={handleSaveWelcomePromo}
-          className="bg-black text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-gray-800 transition cursor-pointer"
+          className="bg-black text-white px-6 py-3 rounded-xl text-xs font-bold hover:bg-gray-800 transition cursor-pointer"
         >
           שמור הגדרות הצטרפות 💾
         </button>
       </div>
 
-      {/* 3. הוספת קופון רגיל עם שדה שם */}
-      <div className="bg-white p-6 rounded-3xl shadow-sm border">
-        <h2 className="text-lg font-black text-gray-900 mb-4 border-b pb-2">➕ הוספת קופון חדש</h2>
+      {/* 3. הוספת קופון רגיל */}
+      <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border">
+        <h2 className="text-base sm:text-lg font-black text-gray-900 mb-4 border-b pb-2">➕ הוספת קופון חדש</h2>
         <form onSubmit={handleAddCoupon} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
@@ -331,7 +331,7 @@ export default function AdminCouponsPage() {
                 type="text" 
                 value={couponName} 
                 onChange={(e) => setCouponName(e.target.value)} 
-                placeholder="לדוגמה: קופון דניאל / מבצע חגים"
+                placeholder="לדוגמה: קופון דניאל"
                 className="w-full border p-3 rounded-xl text-sm" 
               />
             </div>
