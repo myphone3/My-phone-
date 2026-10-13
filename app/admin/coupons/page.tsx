@@ -170,7 +170,7 @@ export default function AdminCouponsPage() {
         <h1 className="text-2xl font-black text-gray-900">🎁 ניהול מבצעים וקופונים</h1>
       </div>
 
-      {/* 1. מבצע קנייה מעל סכום מסוים (כולל overflow-hidden למניעת זליגה) */}
+      {/* 1. מבצע קנייה מעל סכום מסוים */}
       <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border space-y-4 overflow-hidden">
         <h2 className="text-base sm:text-lg font-black text-gray-900 border-b pb-2">📢 מבצע קנייה מעל סכום מסוים (שורה עליונה)</h2>
         
@@ -209,15 +209,15 @@ export default function AdminCouponsPage() {
           )}
         </div>
 
-        {/* שדה תאריך ושעה מעוגן ובטוח במסגרת */}
+        {/* שדה תאריך ושעה מעוגן ובטוח במסגרת עם min-w-0 */}
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1">תאריך ושעה לסיום אוטומטי ⏱️</label>
-          <div className="w-full max-w-full box-border">
+          <div className="w-full max-w-full overflow-hidden box-border">
             <input 
               type="datetime-local" 
               value={announcementEndTime} 
               onChange={(e) => setAnnouncementEndTime(e.target.value)} 
-              className="w-full max-w-full border border-gray-300 px-3 py-3 rounded-xl text-xs sm:text-sm bg-white font-bold text-gray-800 shadow-2xs outline-none focus:border-orange-500 block box-border text-right" 
+              className="w-full max-w-full min-w-0 border border-gray-300 px-3 py-3 rounded-xl text-xs sm:text-sm bg-white font-bold text-gray-800 shadow-2xs outline-none focus:border-orange-500 block box-border text-right" 
             />
           </div>
         </div>
