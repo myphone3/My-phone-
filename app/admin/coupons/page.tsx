@@ -171,7 +171,7 @@ export default function AdminCouponsPage() {
       </div>
 
       {/* 1. מבצע קנייה מעל סכום מסוים */}
-      <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border space-y-4 overflow-hidden">
+      <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border space-y-4">
         <h2 className="text-base sm:text-lg font-black text-gray-900 border-b pb-2">📢 מבצע קנייה מעל סכום מסוים (שורה עליונה)</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -209,17 +209,16 @@ export default function AdminCouponsPage() {
           )}
         </div>
 
-        {/* שדה תאריך ושעה מעוגן ובטוח במסגרת עם min-w-0 */}
+        {/* שדה תאריך ושעה שמעוצב 1 ל-1 כמו השדות מעל */}
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1">תאריך ושעה לסיום אוטומטי ⏱️</label>
-          <div className="w-full max-w-full overflow-hidden box-border">
-            <input 
-              type="datetime-local" 
-              value={announcementEndTime} 
-              onChange={(e) => setAnnouncementEndTime(e.target.value)} 
-              className="w-full max-w-full min-w-0 border border-gray-300 px-3 py-3 rounded-xl text-xs sm:text-sm bg-white font-bold text-gray-800 shadow-2xs outline-none focus:border-orange-500 block box-border text-right" 
-            />
-          </div>
+          <input 
+            type="datetime-local" 
+            value={announcementEndTime} 
+            onChange={(e) => setAnnouncementEndTime(e.target.value)} 
+            className="w-full border p-3 rounded-xl text-sm bg-white font-bold text-gray-800 shadow-none outline-none focus:border-orange-500 box-border rounded-xl appearance-none" 
+            style={{ WebkitAppearance: 'none' }}
+          />
         </div>
 
         <div>
@@ -255,7 +254,7 @@ export default function AdminCouponsPage() {
       </div>
 
       {/* 2. מבצע הצטרפות */}
-      <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border space-y-4 overflow-hidden">
+      <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border space-y-4">
         <h2 className="text-base sm:text-lg font-black text-gray-900 border-b pb-2">🎁 מבצע הצטרפות</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -387,7 +386,7 @@ export default function AdminCouponsPage() {
       </div>
 
       {/* 3. הוספת קופון רגיל */}
-      <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border overflow-hidden">
+      <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border">
         <h2 className="text-base sm:text-lg font-black text-gray-900 mb-4 border-b pb-2">➕ הוספת קופון חדש</h2>
         <form onSubmit={handleAddCoupon} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
