@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import WelcomeTooltip from '@/components/WelcomeTooltip';
 
 function StoreContent() {
   const [products, setProducts] = useState<any[]>([]);
@@ -309,12 +310,14 @@ function StoreContent() {
   const scrollingBrands = [...brands, ...brands, ...brands, ...brands];
   const saleProducts = products.filter(p => p.sale_price && Number(p.sale_price) > 0 && Number(p.sale_price) < Number(p.price));
 
-  // בדיקה האם המבצע בתוקף לפי תאריך ושעה
   const isPromoActive = settings?.threshold_active && 
     (!settings?.announcement_end_time || (timeLeft && !timeLeft.isExpired));
 
   return (
     <div className="space-y-0 pb-16" dir="rtl">
+      
+      {/* התראת הצטרפות ממוקדת לכפתור ההתחברות */}
+      <WelcomeTooltip />
 
       <style>{`
         .no-scrollbar::-webkit-scrollbar {
@@ -776,7 +779,7 @@ function StoreContent() {
               </button>
               <Link
                 href="/cart"
-                onClick={() => setUpsellModalOpen(false)}
+                onClick={() => setUps5ellModalOpen(false)}
                 className="flex-1 bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-2xl text-xs font-black transition text-center shadow-md cursor-pointer"
               >
                 לעגלת הקניות ➔
