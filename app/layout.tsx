@@ -1,5 +1,5 @@
 import './globals.css';
-import ClientHeader from './components/ClientHeader';
+import Header from './components/Header';
 
 // הגדרת מטא-דאטה לשם האפליקציה והלוגו בהוספה למסך הבית
 export const metadata = {
@@ -26,8 +26,8 @@ export default function RootLayout({
     <html lang="he" dir="rtl">
       <body className="bg-gray-50 text-gray-900 font-sans antialiased">
         
-        {/* הדר בקומפוננטת לקוח נפרדת */}
-        <ClientHeader />
+        {/* הדר ראשי */}
+        <Header />
 
         <main className="min-h-screen">
           {children}
