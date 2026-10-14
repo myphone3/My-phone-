@@ -174,10 +174,10 @@ export default function Header() {
         {/* שורה עליונה מרווחת וגבוהה יותר */}
         <div className="flex items-center justify-between relative pt-1 pb-1">
           
-          {/* צד שמאל: כפתור עגלה קטן ומרובע יותר עם הגנה על תגית המספר */}
+          {/* צד שמאל: כפתור עגלה מוקטן ומרובע יותר עם הגנה על תגית המספר */}
           <Link 
             href="/cart" 
-            className="relative p-2 bg-orange-50/40 hover:bg-orange-50 border-2 border-orange-200 text-orange-700 rounded-xl transition shadow-2xs flex items-center justify-center shrink-0 font-bold mr-2"
+            className="relative p-1.5 bg-orange-50/40 hover:bg-orange-50 border-2 border-orange-200 text-orange-700 rounded-xl transition shadow-2xs flex items-center justify-center shrink-0 font-bold mr-2"
             title="עגלה"
           >
             <span className="text-base">🛒</span>
@@ -226,9 +226,9 @@ export default function Header() {
               )}
             </button>
 
-            {/* חלונית בועה נפתחת (Dropdown) מיושרת ובטוחה בתוך המסך */}
+            {/* חלונית בועה נפתחת (Dropdown) מיושרת לשמאל (left-0) ביחס לכפתור הימני כדי שתפתח שמאלה אל داخل המסך */}
             {dropdownOpen && (
-              <div className="absolute top-16 right-0 sm:right-auto sm:left-0 z-50 w-72 sm:w-80 bg-white rounded-3xl shadow-2xl border border-gray-100 p-4 space-y-4 animate-in fade-in zoom-in duration-150">
+              <div className="absolute top-16 left-0 z-50 w-72 sm:w-80 bg-white rounded-3xl shadow-2xl border border-gray-100 p-4 space-y-4 animate-in fade-in zoom-in duration-150">
                 
                 <div className="flex items-center justify-between border-b pb-2.5">
                   <span className="font-black text-sm text-gray-900 flex items-center gap-1.5">
