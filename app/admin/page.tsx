@@ -22,18 +22,22 @@ export default function AdminDashboard() {
       if (ordersData) setOrders(ordersData);
       if (productsData) setProducts(productsData);
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching admin data:', err);
     } finally {
       setLoading(false);
     }
   };
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
-    const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
-    if (error) {
-      alert('שגיאה בעדכון הסטטוס: ' + error.message);
-    } else {
-      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+    try {
+      const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
+      if (error) {
+        alert('שגיאה בעדכון הסטטוס: ' + error.message);
+      } else {
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -42,24 +46,34 @@ export default function AdminDashboard() {
   
   const monthlyRevenue = orders
     .filter(o => {
-      if (!o || (!o.created_at && !o.date)) return false;
-      const orderDate = new Date(o.created_at || o.date);
-      return orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear;
+      try {
+        if (!o || (!o.created_at && !o.date)) return false;
+        const orderDate = new Date(o.created_at || o.date);
+        return orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear;
+      } catch {
+        return false;
+      }
     })
     .reduce((sum, o) => sum + (Number(o.total_price || o.price || o.amount) || 0), 0);
 
   const lowStockProducts = products.filter(p => p && (Number(p.stock) || 0) <= 3);
   const newOrders = orders.filter(o => o && (o.status === 'חדש' || !o.status || o.status === 'pending'));
 
-  if (loading) return <div className="text-center py-20 text-gray-500 font-medium">טוען נתוני דף הבית...</div>;
+  if (loading) {
+    return (
+      <div className="text-center py-20 text-gray-500 font-medium" dir="rtl">
+        טוען את נתוני פאנל הניהול...
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8" dir="rtl">
+    <div className="space-y-6" dir="rtl">
       {/* כותרת ראשית */}
-      <div className="bg-white p-6 rounded-3xl border shadow-sm flex justify-between items-center">
+      <div className="bg-white p-6 rounded-3xl border shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-xl font-black text-gray-900">ברוך הבא לניהול החנות, דניאל 👋</h1>
-          <p className="text-xs text-gray-500 mt-1">הנה סיכום מצב החנות והעדכונים החשובים להיום.</p>
+          <p className="text-xs text-gray-500 mt-1">מערכת הניהול פועלת כשורה. להלן נתוני החנות המעודכנים.</p>
         </div>
         <button 
           onClick={fetchDashboardData}
@@ -69,7 +83,7 @@ export default function AdminDashboard() {
         </button>
       </div>
 
-      {/* קוביות נתונים עיקריות */}
+      {/* קוביות נתונים */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-2 border-r-4 border-r-orange-600">
           <span className="text-xs font-bold text-gray-500 block">הזמנות חדשות לטיפול</span>
@@ -99,9 +113,7 @@ export default function AdminDashboard() {
       {/* הזמנות חדשות */}
       <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
         <div className="flex justify-between items-center border-b pb-3">
-          <div className="flex items-center gap-2">
-            <h3 className="font-black text-base text-gray-900">🚨 הזמנות חדשות שממתינות לטיפול ({newOrders.length})</h3>
-          </div>
+          <h3 className="font-black text-base text-gray-900">🚨 הזמנות חדשות שממתינות לטיפול ({newOrders.length})</h3>
           <Link href="/admin/orders" className="text-xs font-bold text-orange-600 hover:underline">
             לכל ההזמנות במערכת ➔
           </Link>
