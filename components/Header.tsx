@@ -246,9 +246,9 @@ export default function Header() {
               )}
             </button>
 
-            {/* חלונית התראות ופרופיל נפתחת */}
+            {/* חלונית התראות ופרופיל נפתחת מתוקנת ובטוחה למסך */}
             {dropdownOpen && (
-              <div className="absolute top-16 right-0 z-50 w-72 sm:w-80 bg-white rounded-3xl shadow-2xl border border-gray-100 p-4 space-y-4 animate-in fade-in zoom-in duration-150">
+              <div className="absolute top-16 right-0 z-50 w-80 max-w-[calc(100vw-24px)] bg-white rounded-3xl shadow-2xl border border-gray-100 p-4 space-y-4 animate-in fade-in zoom-in duration-150">
                 
                 <div className="flex items-center justify-between border-b pb-2.5">
                   <span className="font-black text-sm text-gray-900 flex items-center gap-1.5">
