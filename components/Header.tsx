@@ -169,31 +169,31 @@ export default function Header() {
 
   return (
     <header className="bg-white border-b sticky top-0 z-40 shadow-sm" dir="rtl">
-      <div className="max-w-7xl mx-auto px-4 py-3 space-y-3">
+      <div className="max-w-7xl mx-auto px-4 pt-3 pb-4 space-y-2">
         
-        {/* שורה עליונה: עגלה בשמאל, לוגו מוגדל נקי במרכז, פרופיל בימין */}
-        <div className="flex items-center justify-between relative">
+        {/* שורה עליונה: עגלה בשמאל, לוגו מוגדל במרכז שיושב מעט כלפי מטה, פרופיל בימין */}
+        <div className="flex items-center justify-between relative h-14">
           
-          {/* צד שמאל: כפתור עגלה עם מסגרת עדינה בצבע של שורת החיפוש */}
+          {/* צד שמאל: כפתור עגלה מעט יותר קטן עם מסגרת עדינה */}
           <Link 
             href="/cart" 
-            className="relative px-3.5 py-2.5 bg-orange-50/40 hover:bg-orange-50 border-2 border-orange-200 text-orange-700 rounded-2xl text-base transition shadow-2xs flex items-center justify-center shrink-0 font-bold"
+            className="relative px-3 py-2 bg-orange-50/40 hover:bg-orange-50 border-2 border-orange-200 text-orange-700 rounded-2xl text-sm transition shadow-2xs flex items-center justify-center shrink-0 font-bold"
             title="עגלה"
           >
-            <span className="text-xl">🛒</span>
+            <span className="text-lg">🛒</span>
             {cartCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-orange-600 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center font-black border-2 border-white shadow-xs">
+              <span className="absolute -top-1.5 -right-1.5 bg-orange-600 text-white w-4.5 h-4.5 rounded-full text-[10px] flex items-center justify-center font-black border-2 border-white shadow-xs">
                 {cartCount}
               </span>
             )}
           </Link>
 
-          {/* אמצע: לוגו גדול ונוכח במרכז (ללא שום טקסט מתחתיו) */}
-          <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center cursor-pointer group shrink-0">
-            <img src="/Logo.JPG" alt="NEW PHONE" className="w-20 h-20 object-contain shadow-xs group-hover:scale-105 transition" />
+          {/* אמצע: לוגו גדול שחורג כלפי מטה ומכסה חלקית את אזור החיפוש */}
+          <Link href="/" className="absolute left-1/2 -translate-x-1/2 top-1 flex items-center justify-center cursor-pointer group shrink-0 z-20">
+            <img src="/Logo.JPG" alt="NEW PHONE" className="w-20 h-20 object-contain shadow-sm group-hover:scale-105 transition" />
           </Link>
 
-          {/* צד ימין: כפתור פרופיל עגול עם מסגרת עדינה בצבע של שורת החיפוש */}
+          {/* צד ימין: כפתור פרופיל עגול עם מסגרת עדינה */}
           <div className="relative z-10 flex items-center" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -348,8 +348,8 @@ export default function Header() {
 
         </div>
 
-        {/* שורה תחתונה: תיבת חיפוש רחבה ומעוגלת */}
-        <form onSubmit={handleSearchSubmit} className="relative w-full">
+        {/* שורה תחתונה: תיבת חיפוש יורדת יותר למטה וממוקמת באלגנטיות מתחת ללוגו המוסתר */}
+        <form onSubmit={handleSearchSubmit} className="relative w-full pt-2">
           <input
             type="text"
             value={searchQuery}
@@ -357,7 +357,7 @@ export default function Header() {
             placeholder="חיפוש מוצרים, מכשירים, נגנים או קטגוריות..."
             className="w-full bg-white border-2 border-orange-200 hover:border-orange-300 focus:border-orange-500 rounded-2xl py-2.5 pr-4 pl-10 text-xs font-medium text-gray-800 shadow-2xs outline-none transition"
           />
-          <button type="submit" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-600 transition cursor-pointer">
+          <button type="submit" className="absolute left-3 top-[calc(50%+4px)] -translate-y-1/2 text-gray-400 hover:text-orange-600 transition cursor-pointer">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
