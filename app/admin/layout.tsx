@@ -8,6 +8,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
 
   const navItems = [
+    { name: 'ראשי 🏠', href: '/admin' },
     { name: 'ניהול מוצרים 📦', href: '/admin/products' },
     { name: 'ניהול הזמנות 📋', href: '/admin/orders' },
     { name: 'ניהול קטגוריות 📁', href: '/admin/categories' },
