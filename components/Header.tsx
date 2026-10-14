@@ -171,10 +171,10 @@ export default function Header() {
     <header className="bg-white border-b sticky top-0 z-40 shadow-sm" dir="rtl">
       <div className="max-w-7xl mx-auto px-4 py-3 space-y-3">
         
-        {/* שורה עליונה: עגלה בשמאל, לוגו עם כיתוב מתחתיו במרכז, פרופיל בימין */}
+        {/* שורה עליונה: עגלה בשמאל, לוגו נקי במרכז, פרופיל בימין */}
         <div className="flex items-center justify-between relative">
           
-          {/* צד שמאל: כפתור עגלה עם מסגרת כתומה בולטת */}
+          {/* צד שמאל: כפתור עגלה עם מסגרת כתומה */}
           <Link 
             href="/cart" 
             className="relative px-4 py-3 bg-orange-50 hover:bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-3xl text-base transition shadow-xs flex items-center justify-center shrink-0 font-bold"
@@ -188,13 +188,9 @@ export default function Header() {
             )}
           </Link>
 
-          {/* אמצע: לוגו עם טקסט מתחתיו בדיוק כמו בתמונה הישנה */}
-          <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center justify-center cursor-pointer group shrink-0 text-center">
-            <img src="/Logo.JPG" alt="NEW PHONE" className="w-12 h-12 object-contain group-hover:scale-105 transition" />
-            <div className="flex flex-col items-center mt-0.5">
-              <span className="text-[11px] font-black tracking-widest text-gray-900 leading-none">NEW PHONE</span>
-              <span className="text-[9px] font-medium text-gray-500 mt-0.5">הפלאפון החדש שלי</span>
-            </div>
+          {/* אמצע: לוגו גדול ונקי במרכז (ללא טקסט מיותר מתחתיו) */}
+          <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center cursor-pointer group shrink-0">
+            <img src="/Logo.JPG" alt="NEW PHONE" className="w-16 h-16 object-contain shadow-xs group-hover:scale-105 transition" />
           </Link>
 
           {/* צד ימין: כפתור פרופיל/התחברות עגול עם מסגרת כתומה */}
@@ -352,7 +348,7 @@ export default function Header() {
 
         </div>
 
-        {/* שורה תחתונה: תיבת חיפוש רחבה ומעוגלת בדיוק כמו בתמונה */}
+        {/* שורה תחתונה: תיבת חיפוש רחבה ומעוגלת */}
         <form onSubmit={handleSearchSubmit} className="relative w-full">
           <input
             type="text"
