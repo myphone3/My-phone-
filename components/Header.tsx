@@ -174,21 +174,21 @@ export default function Header() {
         {/* שורה עליונה מרווחת וגבוהה יותר */}
         <div className="flex items-center justify-between relative pt-1 pb-1">
           
-          {/* צד שמאל: כפתור עגלה מוקטן ומרווח עם מקום למספר שלא ייחתך */}
+          {/* צד שמאל: כפתור עגלה קטן ומרובע יותר עם הגנה על תגית המספר */}
           <Link 
             href="/cart" 
-            className="relative p-2.5 bg-orange-50/40 hover:bg-orange-50 border-2 border-orange-200 text-orange-700 rounded-2xl transition shadow-2xs flex items-center justify-center shrink-0 font-bold mr-1"
+            className="relative p-2 bg-orange-50/40 hover:bg-orange-50 border-2 border-orange-200 text-orange-700 rounded-xl transition shadow-2xs flex items-center justify-center shrink-0 font-bold mr-2"
             title="עגלה"
           >
-            <span className="text-lg">🛒</span>
+            <span className="text-base">🛒</span>
             {cartCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-orange-600 text-white w-5 h-5 rounded-full text-[10px] flex items-center justify-center font-black border-2 border-white shadow-xs">
+              <span className="absolute -top-1.5 -right-1.5 bg-orange-600 text-white w-4.5 h-4.5 rounded-full text-[10px] flex items-center justify-center font-black border-2 border-white shadow-xs">
                 {cartCount}
               </span>
             )}
           </Link>
 
-          {/* אמצע: שורת לוגו גדולה, מרווחת ונקייה לחלוטין בלי חסימות */}
+          {/* אמצע: שורת לוגו גדולה, מרווחת ונקייה לחלוטין */}
           <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center cursor-pointer group shrink-0">
             <img src="/Logo.JPG" alt="NEW PHONE" className="w-20 h-20 object-contain shadow-xs group-hover:scale-105 transition" />
           </Link>
@@ -197,13 +197,13 @@ export default function Header() {
           <div className="relative z-10 flex items-center" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="relative flex items-center justify-center w-12 h-12 bg-white hover:bg-orange-50/50 border-2 border-orange-200 rounded-full shadow-2xs transition duration-200 cursor-pointer overflow-hidden p-1 ml-1"
+              className="relative flex items-center justify-center w-12 h-12 bg-white hover:bg-orange-50/50 border-2 border-orange-200 rounded-full shadow-2xs transition duration-200 cursor-pointer overflow-hidden p-1 ml-2"
               title={user ? (user.user_metadata?.full_name || 'החשבון שלי') : 'התחברות עם גוגל'}
             >
               {user?.user_metadata?.avatar_url ? (
                 <img src={user.user_metadata.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
               ) : user ? (
-                <div className="w-full h-full bg-orange-600 text-white rounded-full flex items-center justify-center font-black text-xs">
+                <div className="w-full h-full bg-orange-600 text-white rounded-full flex items-center justify-center font-black text-sm">
                   {user.email?.[0]?.toUpperCase() || 'U'}
                 </div>
               ) : (
@@ -226,9 +226,9 @@ export default function Header() {
               )}
             </button>
 
-            {/* חלונית בועה נפתחת (Dropdown) */}
+            {/* חלונית בועה נפתחת (Dropdown) מיושרת ובטוחה בתוך המסך */}
             {dropdownOpen && (
-              <div className="absolute top-16 right-0 z-50 w-80 bg-white rounded-3xl shadow-2xl border border-gray-100 p-4 space-y-4 animate-in fade-in zoom-in duration-150">
+              <div className="absolute top-16 right-0 sm:right-auto sm:left-0 z-50 w-72 sm:w-80 bg-white rounded-3xl shadow-2xl border border-gray-100 p-4 space-y-4 animate-in fade-in zoom-in duration-150">
                 
                 <div className="flex items-center justify-between border-b pb-2.5">
                   <span className="font-black text-sm text-gray-900 flex items-center gap-1.5">
@@ -348,7 +348,7 @@ export default function Header() {
 
         </div>
 
-        {/* שורה תחתונה: תיבת חיפוש במרחק נכון ומונמכת למטה בצורה מושלמת */}
+        {/* שורה תחתונה: תיבת חיפוש נמוכה ומרווחת */}
         <form onSubmit={handleSearchSubmit} className="relative w-full pt-2">
           <input
             type="text"
