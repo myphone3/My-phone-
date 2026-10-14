@@ -169,22 +169,45 @@ export default function Header() {
 
   return (
     <header className="bg-white border-b sticky top-0 z-40 shadow-sm" dir="rtl">
-      <div className="max-w-7xl mx-auto px-4 py-4 space-y-3.5">
+      <div className="max-w-7xl mx-auto px-4 py-3 space-y-3">
         
-        {/* שורה עליונה: פרופיל בימין, לוגו מוגדל במרכז, עגלה קטנה יותר ומרובעת בשמאל */}
+        {/* שורה עליונה: עגלה בשמאל, לוגו עם כיתוב מתחתיו במרכז, פרופיל בימין */}
         <div className="flex items-center justify-between relative">
           
-          {/* צד ימין: כפתור פרופיל/התחברות עגול עם מסגרת עדינה ורווח פנימי כמו בתמונה */}
+          {/* צד שמאל: כפתור עגלה עם מסגרת כתומה בולטת */}
+          <Link 
+            href="/cart" 
+            className="relative px-4 py-3 bg-orange-50 hover:bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-3xl text-base transition shadow-xs flex items-center justify-center shrink-0 font-bold"
+            title="עגלה"
+          >
+            <span className="text-xl">🛒</span>
+            {cartCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-orange-600 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center font-black border-2 border-white shadow-xs">
+                {cartCount}
+              </span>
+            )}
+          </Link>
+
+          {/* אמצע: לוגו עם טקסט מתחתיו בדיוק כמו בתמונה הישנה */}
+          <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center justify-center cursor-pointer group shrink-0 text-center">
+            <img src="/Logo.JPG" alt="NEW PHONE" className="w-12 h-12 object-contain group-hover:scale-105 transition" />
+            <div className="flex flex-col items-center mt-0.5">
+              <span className="text-[11px] font-black tracking-widest text-gray-900 leading-none">NEW PHONE</span>
+              <span className="text-[9px] font-medium text-gray-500 mt-0.5">הפלאפון החדש שלי</span>
+            </div>
+          </Link>
+
+          {/* צד ימין: כפתור פרופיל/התחברות עגול עם מסגרת כתומה */}
           <div className="relative z-10 flex items-center" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="relative flex items-center justify-center w-12 h-12 bg-white hover:bg-orange-50/50 border-2 border-orange-300 rounded-full shadow-2xs transition duration-200 cursor-pointer overflow-hidden p-1.5"
+              className="relative flex items-center justify-center w-12 h-12 bg-white hover:bg-orange-50 border-2 border-orange-400 rounded-full shadow-xs transition duration-200 cursor-pointer overflow-hidden p-0.5"
               title={user ? (user.user_metadata?.full_name || 'החשבון שלי') : 'התחברות עם גוגל'}
             >
               {user?.user_metadata?.avatar_url ? (
                 <img src={user.user_metadata.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
               ) : user ? (
-                <div className="w-full h-full bg-orange-600 text-white rounded-full flex items-center justify-center font-black text-xs">
+                <div className="w-full h-full bg-orange-600 text-white rounded-full flex items-center justify-center font-black text-sm">
                   {user.email?.[0]?.toUpperCase() || 'U'}
                 </div>
               ) : (
@@ -327,29 +350,10 @@ export default function Header() {
             )}
           </div>
 
-          {/* אמצע: לוגו גדול ומרשים במרכז (ללא שום טקסט מתחתיו) */}
-          <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center cursor-pointer group shrink-0">
-            <img src="/Logo.JPG" alt="NEW PHONE" className="w-20 h-20 object-contain shadow-xs group-hover:scale-105 transition" />
-          </Link>
-
-          {/* צד שמאל: כפתור עגלה מרובע יותר, קטן יותר, עם מסגרת עדינה (פחות כהה) */}
-          <Link 
-            href="/cart" 
-            className="relative px-3 py-2 bg-orange-50/60 hover:bg-orange-100 border-2 border-orange-300 text-orange-700 rounded-xl text-sm transition shadow-2xs flex items-center justify-center gap-1.5 shrink-0 font-bold"
-            title="עגלה"
-          >
-            <span className="text-base">🛒</span>
-            {cartCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-orange-600 text-white w-4.5 h-4.5 rounded-full text-[10px] flex items-center justify-center font-black border-2 border-white shadow-xs">
-                {cartCount}
-              </span>
-            )}
-          </Link>
-
         </div>
 
-        {/* שורה תחתונה: תיבת חיפוש רחבה ומעוגלת */}
-        <form onSubmit={handleSearchSubmit} className="relative w-full pt-1">
+        {/* שורה תחתונה: תיבת חיפוש רחבה ומעוגלת בדיוק כמו בתמונה */}
+        <form onSubmit={handleSearchSubmit} className="relative w-full">
           <input
             type="text"
             value={searchQuery}
