@@ -171,13 +171,13 @@ export default function Header() {
     <header className="bg-white border-b sticky top-0 z-40 shadow-sm" dir="rtl">
       <div className="max-w-7xl mx-auto px-4 py-3 space-y-3">
         
-        {/* שורה עליונה: עגלה בשמאל, לוגו נקי במרכז, פרופיל בימין */}
+        {/* שורה עליונה: עגלה בשמאל, לוגו מוגדל נקי במרכז, פרופיל בימין */}
         <div className="flex items-center justify-between relative">
           
-          {/* צד שמאל: כפתור עגלה עם מסגרת כתומה */}
+          {/* צד שמאל: כפתור עגלה עם מסגרת עדינה בצבע של שורת החיפוש */}
           <Link 
             href="/cart" 
-            className="relative px-4 py-3 bg-orange-50 hover:bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-3xl text-base transition shadow-xs flex items-center justify-center shrink-0 font-bold"
+            className="relative px-3.5 py-2.5 bg-orange-50/40 hover:bg-orange-50 border-2 border-orange-200 text-orange-700 rounded-2xl text-base transition shadow-2xs flex items-center justify-center shrink-0 font-bold"
             title="עגלה"
           >
             <span className="text-xl">🛒</span>
@@ -188,22 +188,22 @@ export default function Header() {
             )}
           </Link>
 
-          {/* אמצע: לוגו גדול ונקי במרכז (ללא טקסט מיותר מתחתיו) */}
+          {/* אמצע: לוגו גדול ונוכח במרכז (ללא שום טקסט מתחתיו) */}
           <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center cursor-pointer group shrink-0">
-            <img src="/Logo.JPG" alt="NEW PHONE" className="w-16 h-16 object-contain shadow-xs group-hover:scale-105 transition" />
+            <img src="/Logo.JPG" alt="NEW PHONE" className="w-20 h-20 object-contain shadow-xs group-hover:scale-105 transition" />
           </Link>
 
-          {/* צד ימין: כפתור פרופיל/התחברות עגול עם מסגרת כתומה */}
+          {/* צד ימין: כפתור פרופיל עגול עם מסגרת עדינה בצבע של שורת החיפוש */}
           <div className="relative z-10 flex items-center" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="relative flex items-center justify-center w-12 h-12 bg-white hover:bg-orange-50 border-2 border-orange-400 rounded-full shadow-xs transition duration-200 cursor-pointer overflow-hidden p-0.5"
+              className="relative flex items-center justify-center w-12 h-12 bg-white hover:bg-orange-50/50 border-2 border-orange-200 rounded-full shadow-2xs transition duration-200 cursor-pointer overflow-hidden p-1"
               title={user ? (user.user_metadata?.full_name || 'החשבון שלי') : 'התחברות עם גוגל'}
             >
               {user?.user_metadata?.avatar_url ? (
                 <img src={user.user_metadata.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
               ) : user ? (
-                <div className="w-full h-full bg-orange-600 text-white rounded-full flex items-center justify-center font-black text-sm">
+                <div className="w-full h-full bg-orange-600 text-white rounded-full flex items-center justify-center font-black text-xs">
                   {user.email?.[0]?.toUpperCase() || 'U'}
                 </div>
               ) : (
