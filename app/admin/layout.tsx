@@ -1,8 +1,45 @@
 'use client';
 
-import React from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+
+// מחלקת הגנה מפני קריסות (ErrorBoundary)
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("Admin error caught:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-6 max-w-xl mx-auto mt-12 bg-white rounded-3xl border shadow-lg text-center space-y-4" dir="rtl">
+          <span className="text-4xl">⚠️</span>
+          <h2 className="text-lg font-black text-gray-900">אופס, אירעה שגיאה באזור הניהול</h2>
+          <p className="text-xs text-red-600 bg-red-50 p-3 rounded-xl font-mono break-all text-left" dir="ltr">
+            {this.state.error?.message || 'Unknown error'}
+          </p>
+          <button
+            onClick={() => window.location.href = '/admin'}
+            className="bg-orange-600 hover:bg-orange-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer shadow-sm"
+          >
+            איפוס וחזרה לדשבורד הראשי ➔
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -43,7 +80,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         })}
       </div>
 
-      <main>{children}</main>
+      <ErrorBoundary>
+        <main>{children}</main>
+      </ErrorBoundary>
     </div>
   );
 }
