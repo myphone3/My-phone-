@@ -8,11 +8,12 @@ export default function CartPage() {
   const [step, setStep] = useState<'cart' | 'checkout'>('cart');
   const [cartItems, setCartItems] = useState<any[]>([]);
 
-  // פרטי לקוח
+  // פרטי לקוח וכתובת מופרדת
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [address, setAddress] = useState(''); // כתובת מלאה מ-Google Places
+  const [city, setCity] = useState('');
+  const [street, setStreet] = useState('');
   const [building, setBuilding] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -23,7 +24,7 @@ export default function CartPage() {
   const [cardHolderId, setCardHolderId] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
-  const addressInputRef = useRef<HTMLInputElement>(null);
+  const streetInputRef = useRef<HTMLInputElement>(null);
 
   // קופונים ומבצעים
   const [couponInput, setCouponInput] = useState('');
@@ -47,19 +48,36 @@ export default function CartPage() {
     fetchPromos();
   }, []);
 
-  // טעינת Google Places Autocomplete לכתובות
+  // חיבור השלמת רחובות וערים דרך Google Places Autocomplete
   useEffect(() => {
-    if (step === 'checkout' && addressInputRef.current) {
+    if (step === 'checkout' && streetInputRef.current) {
       if (typeof window !== 'undefined' && (window as any).google) {
-        const autocomplete = new (window as any).google.maps.places.Autocomplete(addressInputRef.current, {
+        const autocomplete = new (window as any).google.maps.places.Autocomplete(streetInputRef.current, {
           componentRestrictions: { country: 'il' },
-          fields: ['formatted_address', 'geometry'],
+          fields: ['address_components', 'formatted_address'],
         });
 
         autocomplete.addListener('place_changed', () => {
           const place = autocomplete.getPlace();
-          if (place.formatted_address) {
-            setAddress(place.formatted_address);
+          if (place.address_components) {
+            let foundCity = '';
+            let foundStreet = '';
+
+            for (const component of place.address_components) {
+              const types = component.types;
+              if (types.includes('locality') || types.includes('administrative_area_level_1')) {
+                foundCity = component.long_name;
+              }
+              if (types.includes('route')) {
+                foundStreet = component.long_name;
+              }
+            }
+
+            if (foundCity) setCity(foundCity);
+            if (foundStreet) setStreet(foundStreet);
+            else if (place.formatted_address) {
+              setStreet(place.formatted_address);
+            }
           }
         });
       }
@@ -168,8 +186,8 @@ export default function CartPage() {
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !phone || !email || !address || !building) {
-      alert('נא למלא את כל שדות החובה ולבחור כתובת תקנית מהרשימה');
+    if (!name || !phone || !email || !city || !street || !building) {
+      alert('נא למלא את כל שדות החובה (שם, טלפון, עיר, רחוב ומספר בניין)');
       return;
     }
 
@@ -184,7 +202,10 @@ export default function CartPage() {
       customer_name: name,
       phone,
       email,
-      address: `${address}, מס' בניין: ${building}`,
+      city,
+      street,
+      building,
+      address: `עיר: ${city}, רחוב: ${street}, מס' בניין/דירה: ${building}`,
       notes,
       payment_method: 'credit',
       items: cartItems,
@@ -324,7 +345,7 @@ export default function CartPage() {
             ➔ חזרה לעריכת העגלה
           </button>
 
-          {/* 1. פרטי לקוח וכתובת */}
+          {/* 1. פרטי לקוח וכתובת מפורטת */}
           <div className="bg-white rounded-3xl border p-6 shadow-sm space-y-4">
             <h3 className="font-black text-sm border-r-4 border-orange-600 pr-2">1. פרטי לקוח וכתובת למשלוח</h3>
             
@@ -364,17 +385,28 @@ export default function CartPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">עיר <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="תל אביב"
+                  className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
+                  required
+                />
+              </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">
-                  כתובת מדויקת (חובה לבחור מהרשימה) <span className="text-red-500">*</span>
+                  רחוב (חובה לבחור מהרשימה) <span className="text-red-500">*</span>
                 </label>
                 <input
-                  ref={addressInputRef}
+                  ref={streetInputRef}
                   type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="הקלד כתובת ובחר מהרשימה..."
+                  value={street}
+                  onChange={(e) => setStreet(e.target.value)}
+                  placeholder="הקלד רחוב ובחר מהרשימה..."
                   className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
                   required
                 />
@@ -519,7 +551,7 @@ export default function CartPage() {
                   <input
                     type="password"
                     maxLength={4}
-                    value={cardCvv}
+                    value={cardCurv => setCardCvv(e.target.value)}
                     onChange={(e) => setCardCvv(e.target.value)}
                     placeholder="123"
                     className="w-full bg-white border rounded-xl p-3 text-xs outline-none focus:border-orange-600 text-center font-mono"
