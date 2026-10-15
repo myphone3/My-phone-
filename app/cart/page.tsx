@@ -48,7 +48,7 @@ export default function CartPage() {
     fetchPromos();
   }, []);
 
-  // חיבור השלמת רחובות וערים דרך Google Places Autocomplete
+  // חיבור השלמת רחובות דרך Google Places Autocomplete
   useEffect(() => {
     if (step === 'checkout' && streetInputRef.current) {
       if (typeof window !== 'undefined' && (window as any).google) {
@@ -551,7 +551,7 @@ export default function CartPage() {
                   <input
                     type="password"
                     maxLength={4}
-                    value={cardCurv => setCardCvv(e.target.value)}
+                    value={cardCvv}
                     onChange={(e) => setCardCvv(e.target.value)}
                     placeholder="123"
                     className="w-full bg-white border rounded-xl p-3 text-xs outline-none focus:border-orange-600 text-center font-mono"
