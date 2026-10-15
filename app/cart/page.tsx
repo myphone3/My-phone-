@@ -8,7 +8,7 @@ export default function CartPage() {
   const [step, setStep] = useState<'cart' | 'checkout'>('cart');
   const [cartItems, setCartItems] = useState<any[]>([]);
 
-  // פרטי לקוח וכתובת מופרדת
+  // פרטי לקוח
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -17,6 +17,12 @@ export default function CartPage() {
   const [building, setBuilding] = useState('');
   const [notes, setNotes] = useState('');
 
+  // השלמת ערים ורחובות
+  const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
+  const [streetSuggestions, setStreetSuggestions] = useState<string[]>([]);
+  const [showCityList, setShowCityList] = useState(false);
+  const [showStreetList, setShowStreetList] = useState(false);
+
   // פרטי אשראי ותעודת זהות
   const [cardNumber, setCardNumber] = useState('');
   const [cardExpiry, setCardExpiry] = useState('');
@@ -24,14 +30,13 @@ export default function CartPage() {
   const [cardHolderId, setCardHolderId] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
-  const streetInputRef = useRef<HTMLInputElement>(null);
 
   // קופונים ומבצעים
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [couponError, setCouponError] = useState('');
   
-  // הגדרות מערכת ומבצע משלוח חינם
+  // הגדרות מערכת
   const [settings, setSettings] = useState<any>(null);
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number; isExpired: boolean } | null>(null);
 
@@ -48,41 +53,46 @@ export default function CartPage() {
     fetchPromos();
   }, []);
 
-  // חיבור השלמת רחובות דרך Google Places Autocomplete
-  useEffect(() => {
-    if (step === 'checkout' && streetInputRef.current) {
-      if (typeof window !== 'undefined' && (window as any).google) {
-        const autocomplete = new (window as any).google.maps.places.Autocomplete(streetInputRef.current, {
-          componentRestrictions: { country: 'il' },
-          fields: ['address_components', 'formatted_address'],
-        });
-
-        autocomplete.addListener('place_changed', () => {
-          const place = autocomplete.getPlace();
-          if (place.address_components) {
-            let foundCity = '';
-            let foundStreet = '';
-
-            for (const component of place.address_components) {
-              const types = component.types;
-              if (types.includes('locality') || types.includes('administrative_area_level_1')) {
-                foundCity = component.long_name;
-              }
-              if (types.includes('route')) {
-                foundStreet = component.long_name;
-              }
-            }
-
-            if (foundCity) setCity(foundCity);
-            if (foundStreet) setStreet(foundStreet);
-            else if (place.formatted_address) {
-              setStreet(place.formatted_address);
-            }
-          }
-        });
+  // חיפוש עיר מתוך מאגר הערים החינמי של הלמ"ש
+  const handleCityChange = async (val: string) => {
+    setCity(val);
+    if (val.trim().length >= 2) {
+      try {
+        const res = await fetch(`https://data.gov.il/api/3/action/datastore_search?resource_id=5c70e413-2105-471f-ab91-8f78ff7fc35f&q=${encodeURIComponent(val.trim())}&limit=8`);
+        const data = await res.json();
+        if (data?.result?.records) {
+          const cities = Array.from(new Set(data.result.records.map((r: any) => r['שם_ישוב']?.trim()))).filter(Boolean) as string[];
+          setCitySuggestions(cities);
+          setShowCityList(true);
+        }
+      } catch {
+        // fallback
       }
+    } else {
+      setShowCityList(false);
     }
-  }, [step]);
+  };
+
+  // חיפוש רחוב מתוך מאגר הרחובות
+  const handleStreetChange = async (val: string) => {
+    setStreet(val);
+    if (val.trim().length >= 2) {
+      try {
+        const query = city ? `${city} ${val.trim()}` : val.trim();
+        const res = await fetch(`https://data.gov.il/api/3/action/datastore_search?resource_id=a70b0d10-8b1e-4320-9418-872376f5a373&q=${encodeURIComponent(query)}&limit=10`);
+        const data = await res.json();
+        if (data?.result?.records) {
+          const streets = Array.from(new Set(data.result.records.map((r: any) => r['שם_רחוב']?.trim()))).filter(Boolean) as string[];
+          setStreetSuggestions(streets);
+          setShowStreetList(true);
+        }
+      } catch {
+        // fallback
+      }
+    } else {
+      setShowStreetList(false);
+    }
+  };
 
   useEffect(() => {
     if (!settings?.announcement_end_time) return;
@@ -345,7 +355,7 @@ export default function CartPage() {
             ➔ חזרה לעריכת העגלה
           </button>
 
-          {/* 1. פרטי לקוח וכתובת מפורטת */}
+          {/* 1. פרטי לקוח וכתובת */}
           <div className="bg-white rounded-3xl border p-6 shadow-sm space-y-4">
             <h3 className="font-black text-sm border-r-4 border-orange-600 pr-2">1. פרטי לקוח וכתובת למשלוח</h3>
             
@@ -386,31 +396,67 @@ export default function CartPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-              <div>
+              
+              {/* שדה עיר עם רשימת השלמה מהלמ"ש */}
+              <div className="relative">
                 <label className="block text-xs font-bold text-gray-700 mb-1">עיר <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="תל אביב"
+                  onChange={(e) => handleCityChange(e.target.value)}
+                  onFocus={() => citySuggestions.length > 0 && setShowCityList(true)}
+                  placeholder="הקלד עיר..."
                   className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
                   required
                 />
+                {showCityList && citySuggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 z-50 bg-white border rounded-xl shadow-lg mt-1 max-h-48 overflow-y-auto divide-y">
+                    {citySuggestions.map((item, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => {
+                          setCity(item);
+                          setShowCityList(false);
+                        }}
+                        className="p-2.5 text-xs hover:bg-orange-50 cursor-pointer font-medium text-gray-800"
+                      >
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">
-                  רחוב (חובה לבחור מהרשימה) <span className="text-red-500">*</span>
-                </label>
+
+              {/* שדה רחוב עם רשימת השלמה */}
+              <div className="relative">
+                <label className="block text-xs font-bold text-gray-700 mb-1">רחוב <span className="text-red-500">*</span></label>
                 <input
-                  ref={streetInputRef}
                   type="text"
                   value={street}
-                  onChange={(e) => setStreet(e.target.value)}
-                  placeholder="הקלד רחוב ובחר מהרשימה..."
+                  onChange={(e) => handleStreetChange(e.target.value)}
+                  onFocus={() => streetSuggestions.length > 0 && setShowStreetList(true)}
+                  placeholder="הקלד רחוב..."
                   className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
                   required
                 />
+                {showStreetList && streetSuggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 z-50 bg-white border rounded-xl shadow-lg mt-1 max-h-48 overflow-y-auto divide-y">
+                    {streetSuggestions.map((item, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => {
+                          setStreet(item);
+                          setShowStreetList(false);
+                        }}
+                        className="p-2.5 text-xs hover:bg-orange-50 cursor-pointer font-medium text-gray-800"
+                      >
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
+
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">מספר דירה / בניין <span className="text-red-500">*</span></label>
                 <input
@@ -478,9 +524,9 @@ export default function CartPage() {
             )}
           </div>
 
-          {/* 3. פירוט מחירים ותשלום באשראי */}
+          {/* 3. פירוט מחירים ותשלום באשראי מאובטח */}
           <div className="bg-white rounded-3xl border p-6 shadow-sm space-y-5">
-            <h3 className="font-black text-sm border-r-4 border-orange-600 pr-2">3. פירוט מחירים ותשלום באשראי</h3>
+            <h3 className="font-black text-sm border-r-4 border-orange-600 pr-2">3. פירוט מחירים ותשלום באשראי מאובטח</h3>
 
             {/* פירוט המחירים */}
             <div className="space-y-2 text-xs bg-gray-50 p-4 rounded-2xl border">
@@ -579,7 +625,7 @@ export default function CartPage() {
               disabled={submitting}
               className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-2xl text-sm font-black transition shadow-md cursor-pointer flex items-center justify-center gap-2"
             >
-              <span>{submitting ? 'מעבד תשלום...' : `שלם ₪${totalPrice.toFixed(0)} באשראי`}</span>
+              <span>{submitting ? 'מעבד תשלום...' : `שלם ₪${totalPrice.toFixed(0)} באשראי מאובטח 🔒`}</span>
             </button>
           </div>
 
