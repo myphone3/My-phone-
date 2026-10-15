@@ -194,7 +194,7 @@ export default function Header() {
         {/* שורה עליונה */}
         <div className="flex items-center justify-between relative pt-1 pb-1">
           
-          {/* צד שמאל: כפתור פרופיל והתראות עם חלונית ברוחב קבוע ויציב */}
+          {/* צד שמאל: כפתור פרופיל והתראות עם חלונית נפתחת פנימה */}
           <div className="relative z-10 flex items-center ml-2" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -227,9 +227,9 @@ export default function Header() {
               )}
             </button>
 
-            {/* חלונית התראות ופרופיל ברוחב קבוע ויציב מצד שמאל */}
+            {/* חלונית התראות ופרופיל נפתחת פנימה לתוך המסך עם right-0 */}
             {dropdownOpen && (
-              <div className="absolute top-16 left-0 z-50 w-80 max-w-[calc(100vw-24px)] bg-white rounded-3xl shadow-2xl border border-gray-100 p-4 space-y-4 animate-in fade-in zoom-in duration-150">
+              <div className="absolute top-16 right-0 z-50 w-80 max-w-[calc(100vw-24px)] bg-white rounded-3xl shadow-2xl border border-gray-100 p-4 space-y-4 animate-in fade-in zoom-in duration-150">
                 
                 <div className="flex items-center justify-between border-b pb-2.5">
                   <span className="font-black text-sm text-gray-900 flex items-center gap-1.5">
