@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
@@ -12,12 +12,17 @@ export default function CartPage() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [city, setCity] = useState('');
-  const [street, setStreet] = useState('');
+  const [address, setAddress] = useState(''); // כתובת מלאה מ-Google Places
   const [building, setBuilding] = useState('');
   const [notes, setNotes] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'credit' | 'phone' | 'cash'>('credit');
+
+  // פרטי אשראי
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+
   const [submitting, setSubmitting] = useState(false);
+  const addressInputRef = useRef<HTMLInputElement>(null);
 
   // קופונים ומבצעים
   const [couponInput, setCouponInput] = useState('');
@@ -40,6 +45,25 @@ export default function CartPage() {
 
     fetchPromos();
   }, []);
+
+  // טעינת Google Places Autocomplete לכתובות
+  useEffect(() => {
+    if (step === 'checkout' && addressInputRef.current) {
+      if (typeof window !== 'undefined' && (window as any).google) {
+        const autocomplete = new (window as any).google.maps.places.Autocomplete(addressInputRef.current, {
+          componentRestrictions: { country: 'il' },
+          fields: ['formatted_address', 'geometry'],
+        });
+
+        autocomplete.addListener('place_changed', () => {
+          const place = autocomplete.getPlace();
+          if (place.formatted_address) {
+            setAddress(place.formatted_address);
+          }
+        });
+      }
+    }
+  }, [step]);
 
   useEffect(() => {
     if (!settings?.announcement_end_time) return;
@@ -143,8 +167,13 @@ export default function CartPage() {
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !phone || !email || !city || !street || !building) {
-      alert('נא למלא את כל שדות החובה (שם, טלפון, מייל, עיר, רחוב ומספר בניין)');
+    if (!name || !phone || !email || !address || !building) {
+      alert('נא למלא את כל שדות החובה ולבחור כתובת תקנית מהרשימה');
+      return;
+    }
+
+    if (!cardNumber || cardNumber.length < 12 || !cardExpiry || !cardCvv) {
+      alert('נא למלא פרטי אשראי תקינים להשלמת התשלום');
       return;
     }
 
@@ -154,16 +183,12 @@ export default function CartPage() {
       customer_name: name,
       phone,
       email,
-      city,
-      street,
-      building,
-      address: `${city}, ${street} ${building}`,
+      address: `${address}, מס' בניין: ${building}`,
       notes,
-      payment_method: paymentMethod,
+      payment_method: 'credit',
       items: cartItems,
       subtotal: subtotalPrice,
       discount_amount: discountAmount,
-      coupon_code: appliedCoupon?.code || null,
       shipping_cost: shippingCost,
       total_price: totalPrice,
       status: 'חדש'
@@ -177,7 +202,7 @@ export default function CartPage() {
       console.error('Supabase error:', error);
       alert('שגיאה בשליחת ההזמנה לשרת: ' + error.message);
     } else {
-      alert('ההזמנה בוצעה בהצלחה! צוות NEW PHONE יצור איתך קשר בהקדם.');
+      alert('התשלום בוצע בהצלחה וההזמנה נקלטה! צוות NEW PHONE יצור איתך קשר בהקדם.');
       localStorage.removeItem('cart');
       setCartItems([]);
       window.dispatchEvent(new Event('cartUpdated'));
@@ -191,7 +216,7 @@ export default function CartPage() {
       {/* כותרת ושלבים */}
       <div className="flex items-center justify-between border-b pb-4">
         <h1 className="text-2xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
-          {step === 'cart' ? 'עגלת קניות' : 'קופה ותשלום'}
+          {step === 'cart' ? 'עגלת קניות' : 'קופה ותשלום אשראי'}
         </h1>
 
         {cartItems.length > 0 && (
@@ -216,7 +241,7 @@ export default function CartPage() {
         </div>
       ) : step === 'cart' ? (
         
-        /* === שלב 1: עגלת קניות (רק מוצרים וכפתור מעבר לתשלום) === */
+        /* === שלב 1: עגלת קניות === */
         <div className="space-y-6">
           <div className="bg-white rounded-3xl border shadow-sm divide-y">
             {cartItems.map((item, index) => {
@@ -280,14 +305,14 @@ export default function CartPage() {
             onClick={() => setStep('checkout')}
             className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-2xl text-sm font-black transition shadow-md cursor-pointer flex items-center justify-center gap-2"
           >
-            <span>המשך לתשלום</span>
+            <span>המשך לתשלום אשראי</span>
             <span>➔</span>
           </button>
         </div>
 
       ) : (
 
-        /* === שלב 2: עמוד התשלום (פרטי לקוח, פירוט מחירים, קופון ואמצעי תשלום) === */
+        /* === שלב 2: עמוד התשלום === */
         <form onSubmit={handleCheckout} className="space-y-6">
           
           <button
@@ -298,7 +323,7 @@ export default function CartPage() {
             ➔ חזרה לעריכת העגלה
           </button>
 
-          {/* 1. פרטי לקוח */}
+          {/* 1. פרטי לקוח וכתובת מגוגל */}
           <div className="bg-white rounded-3xl border p-6 shadow-sm space-y-4">
             <h3 className="font-black text-sm border-r-4 border-orange-600 pr-2">1. פרטי לקוח וכתובת למשלוח</h3>
             
@@ -338,36 +363,28 @@ export default function CartPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">עיר <span className="text-red-500">*</span></label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  כתובת מדויקת (חובה לבחור מההשלמה של Google) <span className="text-red-500">*</span>
+                </label>
                 <input
+                  ref={addressInputRef}
                   type="text"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="תל אביב"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="הקלד כתובת ובחר מהרשימה..."
                   className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
                   required
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">רחוב <span className="text-red-500">*</span></label>
-                <input
-                  type="text"
-                  value={street}
-                  onChange={(e) => setStreet(e.target.value)}
-                  placeholder="הרצל"
-                  className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">מספר בניין <span className="text-red-500">*</span></label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">מספר דירה / בניין <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   value={building}
                   onChange={(e) => setBuilding(e.target.value)}
-                  placeholder="12"
+                  placeholder="דירה 4, קומה 2"
                   className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
                   required
                 />
@@ -428,9 +445,9 @@ export default function CartPage() {
             )}
           </div>
 
-          {/* 3. פירוט מחירים ואמצעי תשלום */}
+          {/* 3. פירוט מחירים ותשלום באשראי */}
           <div className="bg-white rounded-3xl border p-6 shadow-sm space-y-5">
-            <h3 className="font-black text-sm border-r-4 border-orange-600 pr-2">3. פירוט מחירים ואמצעי תשלום</h3>
+            <h3 className="font-black text-sm border-r-4 border-orange-600 pr-2">3. פירוט מחירים ותשלום מאובטח באשראי</h3>
 
             {/* פירוט המחירים */}
             <div className="space-y-2 text-xs bg-gray-50 p-4 rounded-2xl border">
@@ -463,46 +480,60 @@ export default function CartPage() {
               </div>
             </div>
 
-            {/* בחירת אמצעי תשלום */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-gray-700">אופן התשלום:</label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('credit')}
-                  className={`p-3 rounded-xl border text-xs font-bold transition text-center cursor-pointer ${
-                    paymentMethod === 'credit' ? 'border-orange-600 bg-orange-50 text-orange-700' : 'bg-gray-50 text-gray-700'
-                  }`}
-                >
-                  💳 אשראי אונליין
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('phone')}
-                  className={`p-3 rounded-xl border text-xs font-bold transition text-center cursor-pointer ${
-                    paymentMethod === 'phone' ? 'border-orange-600 bg-orange-50 text-orange-700' : 'bg-gray-50 text-gray-700'
-                  }`}
-                >
-                  📞 תשלום טלפוני
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('cash')}
-                  className={`p-3 rounded-xl border text-xs font-bold transition text-center cursor-pointer ${
-                    paymentMethod === 'cash' ? 'border-orange-600 bg-orange-50 text-orange-700' : 'bg-gray-50 text-gray-700'
-                  }`}
-                >
-                  💵 מזומן לשליח
-                </button>
+            {/* שדות פרטי אשראי */}
+            <div className="space-y-3 bg-orange-50/40 p-4 rounded-2xl border border-orange-100">
+              <h4 className="text-xs font-black text-gray-800 flex items-center gap-1.5">
+                <span>💳</span>
+                <span>הזנת פרטי כרטיס אשראי</span>
+              </h4>
+
+              <div>
+                <label className="block text-[11px] font-bold text-gray-700 mb-1">מספר כרטיס אשראי <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  maxLength={19}
+                  value={cardNumber}
+                  onChange={(e) => setCardNumber(e.target.value)}
+                  placeholder="XXXX XXXX XXXX XXXX"
+                  className="w-full bg-white border rounded-xl p-3 text-xs outline-none focus:border-orange-600 tracking-widest font-mono"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-700 mb-1">תוקף (MM/YY) <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    maxLength={5}
+                    value={cardExpiry}
+                    onChange={(e) => setCardExpiry(e.target.value)}
+                    placeholder="MM/YY"
+                    className="w-full bg-white border rounded-xl p-3 text-xs outline-none focus:border-orange-600 text-center font-mono"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-700 mb-1">CVV (3 ספרות בגב) <span className="text-red-500">*</span></label>
+                  <input
+                    type="password"
+                    maxLength={4}
+                    value={cardCvv}
+                    onChange={(e) => setCardCvv(e.target.value)}
+                    placeholder="123"
+                    className="w-full bg-white border rounded-xl p-3 text-xs outline-none focus:border-orange-600 text-center font-mono"
+                    required
+                  />
+                </div>
               </div>
             </div>
 
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-2xl text-sm font-black transition shadow-md cursor-pointer"
+              className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-2xl text-sm font-black transition shadow-md cursor-pointer flex items-center justify-center gap-2"
             >
-              {submitting ? 'שולח הזמנה...' : 'אישור הזמנה ותשלום ➔'}
+              <span>{submitting ? 'מעבד תשלום...' : `שלם ₪${totalPrice.toFixed(0)} באשראי מאובטח 🔒`}</span>
             </button>
           </div>
 
