@@ -4,18 +4,6 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
-// רשימת ערים נפוצות בישראל להשלמה מיידית ומהירה
-const ISRAEL_CITIES = [
-  'ירושלים', 'תל אביב-יפו', 'חיפה', 'ראשון לציון', 'פתח תקווה', 
-  'אשדוד', 'נתניה', 'בני ברק', 'באר שבע', 'חולון', 'רמת גן', 
-  'אשקלון', 'בת ים', 'בית שמש', 'הרצליה', 'כפר סבא', 'חדרה', 
-  'מודיעין-מכבים-רעות', 'נצרת', 'לוד', 'רמלה', 'רחובות', 'נתניה',
-  'אופקים', 'אילת', 'אלעד', 'אריאל', 'בית שאן', 'דימונה', 'הוד השרון',
-  'טבריה', 'טירה', 'יבנה', 'כרמיאל', 'מעלה אדומים', 'נהריה', 'נתיבות',
-  'עכו', 'עפולה', 'צפת', 'קריית אתא', 'קריית גת', 'קריית מוצקין',
-  'קריית מלאכי', 'קריית שמונה', 'ראש העין', 'שדרות', 'שפרעם'
-];
-
 export default function CartPage() {
   const [step, setStep] = useState<'cart' | 'checkout'>('cart');
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -28,6 +16,12 @@ export default function CartPage() {
   const [street, setStreet] = useState('');
   const [building, setBuilding] = useState('');
   const [notes, setNotes] = useState('');
+
+  // ניהול הצעות חיות מהשרת
+  const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
+  const [streetSuggestions, setStreetSuggestions] = useState<string[]>([]);
+  const [showCityList, setShowCityList] = useState(false);
+  const [showStreetList, setShowStreetList] = useState(false);
 
   // פרטי אשראי ותעודת זהות
   const [cardNumber, setCardNumber] = useState('');
@@ -58,6 +52,46 @@ export default function CartPage() {
 
     fetchPromos();
   }, []);
+
+  // פונקציית חיפוש ערים חיה אונליין דרך השרת שלנו
+  const handleCityInput = async (val: string) => {
+    setCity(val);
+    if (val.trim().length >= 2) {
+      try {
+        const res = await fetch(`/api/addresses?type=city&q=${encodeURIComponent(val)}`);
+        const data = await res.json();
+        if (data?.results) {
+          setCitySuggestions(data.results);
+          setShowCityList(true);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    } else {
+      setCitySuggestions([]);
+      setShowCityList(false);
+    }
+  };
+
+  // פונקציית חיפוש רחובות חיה אונליין בהתאם לעיר הנבחרת
+  const handleStreetInput = async (val: string) => {
+    setStreet(val);
+    if (val.trim().length >= 2) {
+      try {
+        const res = await fetch(`/api/addresses?type=street&q=${encodeURIComponent(val)}&city=${encodeURIComponent(city)}`);
+        const data = await res.json();
+        if (data?.results) {
+          setStreetSuggestions(data.results);
+          setShowStreetList(true);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    } else {
+      setStreetSuggestions([]);
+      setShowStreetList(false);
+    }
+  };
 
   useEffect(() => {
     if (!settings?.announcement_end_time) return;
@@ -362,36 +396,62 @@ export default function CartPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
               
-              {/* שדה עיר עם datalist מובנה שקופץ אוטומטית */}
-              <div>
+              {/* שדה עיר עם השלמה אונליין מהשרת */}
+              <div className="relative">
                 <label className="block text-xs font-bold text-gray-700 mb-1">עיר <span className="text-red-500">*</span></label>
                 <input
                   type="text"
-                  list="cities-list"
                   value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="הקלד או בחר עיר..."
+                  onChange={(e) => handleCityInput(e.target.value)}
+                  placeholder="הקלד עיר..."
                   className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
                   required
                 />
-                <datalist id="cities-list">
-                  {ISRAEL_CITIES.map((c, idx) => (
-                    <option key={idx} value={c} />
-                  ))}
-                </datalist>
+                {showCityList && citySuggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 z-50 bg-white border rounded-xl shadow-lg mt-1 max-h-48 overflow-y-auto divide-y">
+                    {citySuggestions.map((item, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => {
+                          setCity(item);
+                          setShowCityList(false);
+                        }}
+                        className="p-2.5 text-xs hover:bg-orange-50 cursor-pointer font-medium text-gray-800"
+                      >
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* שדה רחוב */}
-              <div>
+              {/* שדה רחוב עם השלמה אונליין מהשרת */}
+              <div className="relative">
                 <label className="block text-xs font-bold text-gray-700 mb-1">רחוב <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   value={street}
-                  onChange={(e) => setStreet(e.target.value)}
+                  onChange={(e) => handleStreetInput(e.target.value)}
                   placeholder="הקלד רחוב..."
                   className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
                   required
                 />
+                {showStreetList && streetSuggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 z-50 bg-white border rounded-xl shadow-lg mt-1 max-h-48 overflow-y-auto divide-y">
+                    {streetSuggestions.map((item, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => {
+                          setStreet(item);
+                          setShowStreetList(false);
+                        }}
+                        className="p-2.5 text-xs hover:bg-orange-50 cursor-pointer font-medium text-gray-800"
+                      >
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>
