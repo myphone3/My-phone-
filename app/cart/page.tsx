@@ -5,7 +5,10 @@ import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
 export default function CartPage() {
+  const [step, setStep] = useState<'cart' | 'checkout'>('cart');
   const [cartItems, setCartItems] = useState<any[]>([]);
+
+  // פרטי לקוח
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -13,6 +16,7 @@ export default function CartPage() {
   const [street, setStreet] = useState('');
   const [building, setBuilding] = useState('');
   const [notes, setNotes] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'credit' | 'phone' | 'cash'>('credit');
   const [submitting, setSubmitting] = useState(false);
 
   // קופונים ומבצעים
@@ -23,10 +27,6 @@ export default function CartPage() {
   // הגדרות מערכת ומבצע משלוח חינם
   const [settings, setSettings] = useState<any>(null);
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number; isExpired: boolean } | null>(null);
-
-  // חלון התראה ללקוח חדש (קופון הצטרפות)
-  const [welcomeCoupon, setWelcomeCoupon] = useState<any>(null);
-  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('cart');
@@ -66,25 +66,9 @@ export default function CartPage() {
   }, [settings]);
 
   const fetchPromos = async () => {
-    // שליפה נכונה של ההגדרות מהטבלה בדיוק כמו בעמוד הבית
     const { data: settingsData } = await supabase.from('settings').select('*').limit(1).maybeSingle();
     if (settingsData) {
       setSettings(settingsData);
-    }
-
-    const { data: welcomeData } = await supabase
-      .from('coupons')
-      .select('*')
-      .or('is_welcome.eq.true,is_welcome_gift.eq.true')
-      .limit(1)
-      .single();
-
-    if (welcomeData) {
-      setWelcomeCoupon(welcomeData);
-      const dismissed = localStorage.getItem('welcome_modal_dismissed');
-      if (!dismissed) {
-        setShowWelcomeModal(true);
-      }
     }
   };
 
@@ -148,7 +132,6 @@ export default function CartPage() {
     }
   }
 
-  // בדיקה האם מבצע המשלוח החינם פעיל ותקף (כולל תפוגת זמן)
   const isPromoActive = settings?.threshold_active && 
     (!settings?.announcement_end_time || (timeLeft && !timeLeft.isExpired));
 
@@ -161,7 +144,7 @@ export default function CartPage() {
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !phone || !email || !city || !street || !building) {
-      alert('נא למלא את כל שדות חובה (שם, טלפון, מייל, עיר, רחוב ומספר בניין)');
+      alert('נא למלא את כל שדות החובה (שם, טלפון, מייל, עיר, רחוב ומספר בניין)');
       return;
     }
 
@@ -176,6 +159,7 @@ export default function CartPage() {
       building,
       address: `${city}, ${street} ${building}`,
       notes,
+      payment_method: paymentMethod,
       items: cartItems,
       subtotal: subtotalPrice,
       discount_amount: discountAmount,
@@ -203,9 +187,21 @@ export default function CartPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6" dir="rtl">
-      <h1 className="text-2xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
-        עגלת קניות והשלמת הזמנה
-      </h1>
+      
+      {/* כותרת ושלבים */}
+      <div className="flex items-center justify-between border-b pb-4">
+        <h1 className="text-2xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
+          {step === 'cart' ? 'עגלת קניות' : 'קופה ותשלום'}
+        </h1>
+
+        {cartItems.length > 0 && (
+          <div className="flex items-center gap-2 text-xs font-bold">
+            <span className={step === 'cart' ? 'text-orange-600 underline' : 'text-gray-400'}>1. עגלה</span>
+            <span className="text-gray-300">➔</span>
+            <span className={step === 'checkout' ? 'text-orange-600 underline' : 'text-gray-400'}>2. תשלום</span>
+          </div>
+        )}
+      </div>
 
       {cartItems.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-3xl border p-8 space-y-4 shadow-sm">
@@ -218,9 +214,10 @@ export default function CartPage() {
             🏠 למעבר לקטלוג
           </Link>
         </div>
-      ) : (
+      ) : step === 'cart' ? (
+        
+        /* === שלב 1: עגלת קניות (רק מוצרים וכפתור מעבר לתשלום) === */
         <div className="space-y-6">
-          {/* רשימת המוצרים בעגלה */}
           <div className="bg-white rounded-3xl border shadow-sm divide-y">
             {cartItems.map((item, index) => {
               const itemImg = item.image || item.image_url || (Array.isArray(item.images) ? item.images[0] : '') || '';
@@ -278,48 +275,32 @@ export default function CartPage() {
             })}
           </div>
 
-          {/* שדה הזנת קוד קופון */}
-          <div className="bg-white rounded-3xl border p-5 shadow-sm space-y-3">
-            <h3 className="font-bold text-xs text-gray-800">🎟️ יש לך קוד קופון?</h3>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={couponInput}
-                onChange={(e) => setCouponInput(e.target.value)}
-                placeholder="הקלד קוד קופון כאן..."
-                disabled={!!appliedCoupon}
-                className="flex-1 bg-gray-50 border rounded-xl px-4 py-2.5 text-xs uppercase outline-none focus:border-orange-600 disabled:bg-gray-100"
-              />
-              {appliedCoupon ? (
-                <button
-                  type="button"
-                  onClick={handleRemoveCoupon}
-                  className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer"
-                >
-                  הסר קופון
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleApplyCoupon}
-                  className="bg-black hover:bg-gray-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer"
-                >
-                  הפעל קופון
-                </button>
-              )}
-            </div>
+          <button
+            type="button"
+            onClick={() => setStep('checkout')}
+            className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-2xl text-sm font-black transition shadow-md cursor-pointer flex items-center justify-center gap-2"
+          >
+            <span>המשך לתשלום</span>
+            <span>➔</span>
+          </button>
+        </div>
 
-            {couponError && <p className="text-[11px] text-red-500 font-bold">{couponError}</p>}
-            {appliedCoupon && (
-              <p className="text-[11px] text-green-600 font-bold">
-                ✓ קופון "{appliedCoupon.code}" הופעל! מקנה הנחה של {appliedCoupon.discount_value}{appliedCoupon.discount_type === 'percentage' || appliedCoupon.discount_type === 'percent' ? '%' : '₪'}.
-              </p>
-            )}
-          </div>
+      ) : (
 
-          {/* טופס פרטי לקוח וסיום הזמנה */}
-          <form onSubmit={handleCheckout} className="bg-white rounded-3xl border p-6 shadow-sm space-y-4">
-            <h3 className="font-black text-sm border-r-4 border-orange-600 pr-2">פרטי לקוח וכתובת למשלוח</h3>
+        /* === שלב 2: עמוד התשלום (פרטי לקוח, פירוט מחירים, קופון ואמצעי תשלום) === */
+        <form onSubmit={handleCheckout} className="space-y-6">
+          
+          <button
+            type="button"
+            onClick={() => setStep('cart')}
+            className="text-xs font-bold text-gray-500 hover:text-orange-600 flex items-center gap-1 cursor-pointer"
+          >
+            ➔ חזרה לעריכת העגלה
+          </button>
+
+          {/* 1. פרטי לקוח */}
+          <div className="bg-white rounded-3xl border p-6 shadow-sm space-y-4">
+            <h3 className="font-black text-sm border-r-4 border-orange-600 pr-2">1. פרטי לקוח וכתובת למשלוח</h3>
             
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
@@ -403,9 +384,56 @@ export default function CartPage() {
                 className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
               ></textarea>
             </div>
+          </div>
 
-            {/* סיכום כספי מפורט */}
-            <div className="border-t pt-4 space-y-2 text-xs">
+          {/* 2. קוד קופון */}
+          <div className="bg-white rounded-3xl border p-6 shadow-sm space-y-3">
+            <h3 className="font-bold text-xs text-gray-800 flex items-center gap-1.5">
+              <span>🎟️</span>
+              <span>2. יש לך קוד קופון?</span>
+            </h3>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={couponInput}
+                onChange={(e) => setCouponInput(e.target.value)}
+                placeholder="הקלד קוד קופון כאן..."
+                disabled={!!appliedCoupon}
+                className="flex-1 bg-gray-50 border rounded-xl px-4 py-2.5 text-xs uppercase outline-none focus:border-orange-600 disabled:bg-gray-100"
+              />
+              {appliedCoupon ? (
+                <button
+                  type="button"
+                  onClick={handleRemoveCoupon}
+                  className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer"
+                >
+                  הסר קופון
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleApplyCoupon}
+                  className="bg-black hover:bg-gray-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer"
+                >
+                  הפעל קופון
+                </button>
+              )}
+            </div>
+
+            {couponError && <p className="text-[11px] text-red-500 font-bold">{couponError}</p>}
+            {appliedCoupon && (
+              <p className="text-[11px] text-green-600 font-bold">
+                ✓ קופון "{appliedCoupon.code}" הופעל! מקנה הנחה של {appliedCoupon.discount_value}{appliedCoupon.discount_type === 'percentage' || appliedCoupon.discount_type === 'percent' ? '%' : '₪'}.
+              </p>
+            )}
+          </div>
+
+          {/* 3. פירוט מחירים ואמצעי תשלום */}
+          <div className="bg-white rounded-3xl border p-6 shadow-sm space-y-5">
+            <h3 className="font-black text-sm border-r-4 border-orange-600 pr-2">3. פירוט מחירים ואמצעי תשלום</h3>
+
+            {/* פירוט המחירים */}
+            <div className="space-y-2 text-xs bg-gray-50 p-4 rounded-2xl border">
               <div className="flex justify-between items-center text-gray-700">
                 <span>סכום ביניים מוצרים:</span>
                 <span className="font-bold text-gray-900">₪{subtotalPrice}</span>
@@ -435,6 +463,40 @@ export default function CartPage() {
               </div>
             </div>
 
+            {/* בחירת אמצעי תשלום */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-gray-700">אופן התשלום:</label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('credit')}
+                  className={`p-3 rounded-xl border text-xs font-bold transition text-center cursor-pointer ${
+                    paymentMethod === 'credit' ? 'border-orange-600 bg-orange-50 text-orange-700' : 'bg-gray-50 text-gray-700'
+                  }`}
+                >
+                  💳 אשראי אונליין
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('phone')}
+                  className={`p-3 rounded-xl border text-xs font-bold transition text-center cursor-pointer ${
+                    paymentMethod === 'phone' ? 'border-orange-600 bg-orange-50 text-orange-700' : 'bg-gray-50 text-gray-700'
+                  }`}
+                >
+                  📞 תשלום טלפוני
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('cash')}
+                  className={`p-3 rounded-xl border text-xs font-bold transition text-center cursor-pointer ${
+                    paymentMethod === 'cash' ? 'border-orange-600 bg-orange-50 text-orange-700' : 'bg-gray-50 text-gray-700'
+                  }`}
+                >
+                  💵 מזומן לשליח
+                </button>
+              </div>
+            </div>
+
             <button
               type="submit"
               disabled={submitting}
@@ -442,48 +504,12 @@ export default function CartPage() {
             >
               {submitting ? 'שולח הזמנה...' : 'אישור הזמנה ותשלום ➔'}
             </button>
-          </form>
-        </div>
+          </div>
+
+        </form>
+
       )}
 
-      {/* פופ-אפ התראה ללקוח חדש (מבצע הצטרפות בהרשמה) */}
-      {showWelcomeModal && welcomeCoupon && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl border border-gray-100 text-center animate-in fade-in zoom-in duration-200">
-            <div className="w-14 h-14 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mx-auto text-2xl">
-              🎁
-            </div>
-            <h3 className="text-lg font-black text-gray-900">ברוך הבא ל-NEW PHONE!</h3>
-            <p className="text-xs text-gray-600 leading-relaxed">
-              הרשם כעת לאתר וקבל קופון הצטרפות מיוחד: <br />
-              <strong className="text-orange-600 text-sm">{welcomeCoupon.code}</strong> המקנה הנחה בהזמנה הראשונה שלך!
-            </p>
-            <div className="flex gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setCouponInput(welcomeCoupon.code);
-                  setShowWelcomeModal(false);
-                  localStorage.setItem('welcome_modal_dismissed', 'true');
-                }}
-                className="flex-1 bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-2xl text-xs font-bold transition shadow-sm cursor-pointer"
-              >
-                השתמש בקופון עכשיו ⚡
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowWelcomeModal(false);
-                  localStorage.setItem('welcome_modal_dismissed', 'true');
-                }}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-2xl text-xs font-bold transition cursor-pointer"
-              >
-                סגור
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
