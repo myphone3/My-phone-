@@ -16,10 +16,11 @@ export default function CartPage() {
   const [building, setBuilding] = useState('');
   const [notes, setNotes] = useState('');
 
-  // פרטי אשראי
+  // פרטי אשראי ותעודת זהות
   const [cardNumber, setCardNumber] = useState('');
   const [cardExpiry, setCardExpiry] = useState('');
   const [cardCvv, setCardCvv] = useState('');
+  const [cardHolderId, setCardHolderId] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
   const addressInputRef = useRef<HTMLInputElement>(null);
@@ -172,8 +173,8 @@ export default function CartPage() {
       return;
     }
 
-    if (!cardNumber || cardNumber.length < 12 || !cardExpiry || !cardCvv) {
-      alert('נא למלא פרטי אשראי תקינים להשלמת התשלום');
+    if (!cardNumber || cardNumber.length < 12 || !cardExpiry || !cardCvv || !cardHolderId) {
+      alert('נא למלא את כל פרטי האשראי ותעודת הזהות להשלמת התשלום');
       return;
     }
 
@@ -305,7 +306,7 @@ export default function CartPage() {
             onClick={() => setStep('checkout')}
             className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-2xl text-sm font-black transition shadow-md cursor-pointer flex items-center justify-center gap-2"
           >
-            <span>המשך לתשלום אשראי</span>
+            <span>המשך לתשלום</span>
             <span>➔</span>
           </button>
         </div>
@@ -323,7 +324,7 @@ export default function CartPage() {
             ➔ חזרה לעריכת העגלה
           </button>
 
-          {/* 1. פרטי לקוח וכתובת מגוגל */}
+          {/* 1. פרטי לקוח וכתובת */}
           <div className="bg-white rounded-3xl border p-6 shadow-sm space-y-4">
             <h3 className="font-black text-sm border-r-4 border-orange-600 pr-2">1. פרטי לקוח וכתובת למשלוח</h3>
             
@@ -366,7 +367,7 @@ export default function CartPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">
-                  כתובת מדויקת (חובה לבחור מההשלמה של Google) <span className="text-red-500">*</span>
+                  כתובת מדויקת (חובה לבחור מהרשימה) <span className="text-red-500">*</span>
                 </label>
                 <input
                   ref={addressInputRef}
@@ -447,7 +448,7 @@ export default function CartPage() {
 
           {/* 3. פירוט מחירים ותשלום באשראי */}
           <div className="bg-white rounded-3xl border p-6 shadow-sm space-y-5">
-            <h3 className="font-black text-sm border-r-4 border-orange-600 pr-2">3. פירוט מחירים ותשלום מאובטח באשראי</h3>
+            <h3 className="font-black text-sm border-r-4 border-orange-600 pr-2">3. פירוט מחירים ותשלום באשראי</h3>
 
             {/* פירוט המחירים */}
             <div className="space-y-2 text-xs bg-gray-50 p-4 rounded-2xl border">
@@ -480,7 +481,7 @@ export default function CartPage() {
               </div>
             </div>
 
-            {/* שדות פרטי אשראי */}
+            {/* שדות פרטי אשראי ותעודת זהות */}
             <div className="space-y-3 bg-orange-50/40 p-4 rounded-2xl border border-orange-100">
               <h4 className="text-xs font-black text-gray-800 flex items-center gap-1.5">
                 <span>💳</span>
@@ -526,6 +527,19 @@ export default function CartPage() {
                   />
                 </div>
               </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-gray-700 mb-1">תעודת זהות של בעל הכרטיס <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  maxLength={9}
+                  value={cardHolderId}
+                  onChange={(e) => setCardHolderId(e.target.value)}
+                  placeholder="012345678"
+                  className="w-full bg-white border rounded-xl p-3 text-xs outline-none focus:border-orange-600 font-mono"
+                  required
+                />
+              </div>
             </div>
 
             <button
@@ -533,7 +547,7 @@ export default function CartPage() {
               disabled={submitting}
               className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-2xl text-sm font-black transition shadow-md cursor-pointer flex items-center justify-center gap-2"
             >
-              <span>{submitting ? 'מעבד תשלום...' : `שלם ₪${totalPrice.toFixed(0)} באשראי מאובטח 🔒`}</span>
+              <span>{submitting ? 'מעבד תשלום...' : `שלם ₪${totalPrice.toFixed(0)} באשראי`}</span>
             </button>
           </div>
 
