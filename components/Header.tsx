@@ -194,30 +194,11 @@ export default function Header() {
         {/* שורה עליונה */}
         <div className="flex items-center justify-between relative pt-1 pb-1">
           
-          {/* צד שמאל: כפתור עגלה מוקטן ומרובע עם מספר בולט */}
-          <Link 
-            href="/cart" 
-            className="relative p-2 bg-orange-50/40 hover:bg-orange-50 border-2 border-orange-200 text-orange-700 rounded-xl transition shadow-2xs flex items-center justify-center shrink-0 font-bold mr-2"
-            title="עגלה"
-          >
-            <span className="text-lg">🛒</span>
-            {cartCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-orange-600 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center font-black border-2 border-white shadow-md">
-                {cartCount}
-              </span>
-            )}
-          </Link>
-
-          {/* אמצע: לוגו */}
-          <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center cursor-pointer group shrink-0">
-            <img src="/Logo.JPG" alt="NEW PHONE" className="w-20 h-20 object-contain shadow-xs group-hover:scale-105 transition" />
-          </Link>
-
-          {/* צד ימין: כפתור פרופיל עגול עם התראות ותפריט נפתח */}
-          <div className="relative z-10 flex items-center" ref={dropdownRef}>
+          {/* צד שמאל (הפך להיות צד הפרופיל וההתראות) */}
+          <div className="relative z-10 flex items-center ml-2" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="relative flex items-center justify-center w-12 h-12 bg-white hover:bg-orange-50/50 border-2 border-orange-200 rounded-full shadow-2xs transition duration-200 cursor-pointer overflow-hidden p-1 ml-2"
+              className="relative flex items-center justify-center w-12 h-12 bg-white hover:bg-orange-50/50 border-2 border-orange-200 rounded-full shadow-2xs transition duration-200 cursor-pointer overflow-hidden p-1"
               title={user ? (user.user_metadata?.full_name || 'החשבון שלי') : 'התחברות והתראות'}
             >
               {user?.user_metadata?.avatar_url ? (
@@ -246,9 +227,9 @@ export default function Header() {
               )}
             </button>
 
-            {/* חלונית התראות ופרופיל נפתחת ברוחב מותאם ובטוח למסך */}
+            {/* חלונית התראות ופרופיל נפתחת עכשיו בבטחה מצד שמאל */}
             {dropdownOpen && (
-              <div className="absolute top-16 right-0 z-50 w-[calc(100vw-24px)] sm:w-80 bg-white rounded-3xl shadow-2xl border border-gray-100 p-4 space-y-4 animate-in fade-in zoom-in duration-150">
+              <div className="absolute top-16 left-0 z-50 w-80 max-w-[calc(100vw-24px)] bg-white rounded-3xl shadow-2xl border border-gray-100 p-4 space-y-4 animate-in fade-in zoom-in duration-150">
                 
                 <div className="flex items-center justify-between border-b pb-2.5">
                   <span className="font-black text-sm text-gray-900 flex items-center gap-1.5">
@@ -372,6 +353,25 @@ export default function Header() {
               </div>
             )}
           </div>
+
+          {/* אמצע: לוגו */}
+          <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center cursor-pointer group shrink-0">
+            <img src="/Logo.JPG" alt="NEW PHONE" className="w-20 h-20 object-contain shadow-xs group-hover:scale-105 transition" />
+          </Link>
+
+          {/* צד ימין (הפך להיות כפתור העגלה) */}
+          <Link 
+            href="/cart" 
+            className="relative p-2 bg-orange-50/40 hover:bg-orange-50 border-2 border-orange-200 text-orange-700 rounded-xl transition shadow-2xs flex items-center justify-center shrink-0 font-bold ml-2"
+            title="עגלה"
+          >
+            <span className="text-lg">🛒</span>
+            {cartCount > 0 && (
+              <span className="absolute -top-2 -right-2 bg-orange-600 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center font-black border-2 border-white shadow-md">
+                {cartCount}
+              </span>
+            )}
+          </Link>
 
         </div>
 
