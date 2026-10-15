@@ -248,7 +248,7 @@ export default function Header() {
 
             {/* חלונית התראות ופרופיל נפתחת מתוקנת ובטוחה למסך */}
             {dropdownOpen && (
-              <div className="absolute top-16 left-4 right-4 sm:left-auto sm:right-0 z-50 sm:w-80 bg-white rounded-3xl shadow-2xl border border-gray-100 p-4 space-y-4 animate-in fade-in zoom-in duration-150">
+              <div className="absolute top-16 right-0 left-auto sm:left-auto sm:right-0 z-50 w-[calc(100vw-24px)] sm:w-80 bg-white rounded-3xl shadow-2xl border border-gray-100 p-4 space-y-4 animate-in fade-in zoom-in duration-150">
                 
                 <div className="flex items-center justify-between border-b pb-2.5">
                   <span className="font-black text-sm text-gray-900 flex items-center gap-1.5">
