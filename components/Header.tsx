@@ -194,7 +194,7 @@ export default function Header() {
         {/* שורה עליונה */}
         <div className="flex items-center justify-between relative pt-1 pb-1">
           
-          {/* צד שמאל (הפך להיות צד הפרופיל וההתראות) */}
+          {/* צד שמאל: כפתור פרופיל והתראות עם חלונית נפתחת */}
           <div className="relative z-10 flex items-center ml-2" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -227,7 +227,7 @@ export default function Header() {
               )}
             </button>
 
-            {/* חלונית התראות ופרופיל נפתחת עכשיו בבטחה מצד שמאל */}
+            {/* חלונית התראות ופרופיל נפתחת לכיוון שמאל בבטחה */}
             {dropdownOpen && (
               <div className="absolute top-16 left-0 z-50 w-80 max-w-[calc(100vw-24px)] bg-white rounded-3xl shadow-2xl border border-gray-100 p-4 space-y-4 animate-in fade-in zoom-in duration-150">
                 
@@ -359,7 +359,7 @@ export default function Header() {
             <img src="/Logo.JPG" alt="NEW PHONE" className="w-20 h-20 object-contain shadow-xs group-hover:scale-105 transition" />
           </Link>
 
-          {/* צד ימין (הפך להיות כפתור העגלה) */}
+          {/* צד ימין: כפתור עגלה */}
           <Link 
             href="/cart" 
             className="relative p-2 bg-orange-50/40 hover:bg-orange-50 border-2 border-orange-200 text-orange-700 rounded-xl transition shadow-2xs flex items-center justify-center shrink-0 font-bold ml-2"
