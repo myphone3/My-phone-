@@ -17,7 +17,7 @@ export default function CartPage() {
   const [building, setBuilding] = useState('');
   const [notes, setNotes] = useState('');
 
-  // ניהול הצעות חיות מהשרת
+  // ניהול הצעות חיות מגוגל מפות
   const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
   const [streetSuggestions, setStreetSuggestions] = useState<string[]>([]);
   const [showCityList, setShowCityList] = useState(false);
@@ -53,40 +53,57 @@ export default function CartPage() {
     fetchPromos();
   }, []);
 
-  // פונקציית חיפוש ערים חיה אונליין דרך השרת שלנו
-  const handleCityInput = async (val: string) => {
+  // חיפוש ערים חיה דרך Google Places API
+  const handleCityInput = (val: string) => {
     setCity(val);
-    if (val.trim().length >= 2) {
-      try {
-        const res = await fetch(`/api/addresses?type=city&q=${encodeURIComponent(val)}`);
-        const data = await res.json();
-        if (data?.results) {
-          setCitySuggestions(data.results);
-          setShowCityList(true);
+    if (val.trim().length >= 2 && typeof window !== 'undefined' && (window as any).google?.maps?.places) {
+      const service = new (window as any).google.maps.places.AutocompleteService();
+      service.getPlacePredictions(
+        {
+          input: val,
+          componentRestrictions: { country: 'il' },
+          types: ['(cities)'],
+        },
+        (predictions: any[], status: string) => {
+          if (status === 'OK' && predictions) {
+            const results = predictions.map((p) => p.structured_formatting.main_text);
+            setCitySuggestions(results);
+            setShowCityList(true);
+          } else {
+            setCitySuggestions([]);
+            setShowCityList(false);
+          }
         }
-      } catch (err) {
-        console.error(err);
-      }
+      );
     } else {
       setCitySuggestions([]);
       setShowCityList(false);
     }
   };
 
-  // פונקציית חיפוש רחובות חיה אונליין בהתאם לעיר הנבחרת
-  const handleStreetInput = async (val: string) => {
+  // חיפוש רחובות חי דרך Google Places API (ממוקד בישראל, ואופציונלית בעיר הנבחרת)
+  const handleStreetInput = (val: string) => {
     setStreet(val);
-    if (val.trim().length >= 2) {
-      try {
-        const res = await fetch(`/api/addresses?type=street&q=${encodeURIComponent(val)}&city=${encodeURIComponent(city)}`);
-        const data = await res.json();
-        if (data?.results) {
-          setStreetSuggestions(data.results);
-          setShowStreetList(true);
+    if (val.trim().length >= 2 && typeof window !== 'undefined' && (window as any).google?.maps?.places) {
+      const service = new (window as any).google.maps.places.AutocompleteService();
+      const query = city ? `${val}, ${city}` : val;
+      service.getPlacePredictions(
+        {
+          input: query,
+          componentRestrictions: { country: 'il' },
+          types: ['geocode'],
+        },
+        (predictions: any[], status: string) => {
+          if (status === 'OK' && predictions) {
+            const results = predictions.map((p) => p.structured_formatting.main_text);
+            setStreetSuggestions(results);
+            setShowStreetList(true);
+          } else {
+            setStreetSuggestions([]);
+            setShowStreetList(false);
+          }
         }
-      } catch (err) {
-        console.error(err);
-      }
+      );
     } else {
       setStreetSuggestions([]);
       setShowStreetList(false);
@@ -396,7 +413,7 @@ export default function CartPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
               
-              {/* שדה עיר עם השלמה אונליין מהשרת */}
+              {/* שדה עיר עם השלמה אוטומטית מ-Google Maps */}
               <div className="relative">
                 <label className="block text-xs font-bold text-gray-700 mb-1">עיר <span className="text-red-500">*</span></label>
                 <input
@@ -425,7 +442,7 @@ export default function CartPage() {
                 )}
               </div>
 
-              {/* שדה רחוב עם השלמה אונליין מהשרת */}
+              {/* שדה רחוב עם השלמה אוטומטית מ-Google Maps */}
               <div className="relative">
                 <label className="block text-xs font-bold text-gray-700 mb-1">רחוב <span className="text-red-500">*</span></label>
                 <input
