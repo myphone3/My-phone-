@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
-// מאגר ערים
+// מאגר ערים מלא בישראל
 const ISRAEL_CITIES = [
   "אופקים", "אור יהודה", "אור עקיבא", "אילת", "אלעד", "אריאל", "אשדוד", "אשקלון", 
   "באקה אל-גרבייה", "באר שבע", "בית שאן", "בית שמש", "ביתר עילית", "בני ברק", 
@@ -17,31 +17,26 @@ const ISRAEL_CITIES = [
   "רמת גן", "רמת השרון", "רעננה", "שדרות", "תל אביב - יפו"
 ];
 
-// מאגר רחובות
-const ISRAEL_STREETS = [
-  "הרצל", "ז'בוטינסקי", "בן גוריון", "רבי עקיבא", "חזון איש", "דיזנגוף", 
-  "אבן גבירול", "אלנבי", "שדרות רוטשילד", "ויצמן", "הנשיא", "ירושלים", 
-  "העצמאות", "ארלוזורוב", "סוקולוב", "ביאליק", "ההגנה", "יצחק רבין", 
-  "שדרות ירושלים", "הירקון", "מנחם בגין", "הפלמ\"ח", "האורגים", "המלכים",
-  "השרון", "הכרמל", "הגלבוע", "החרמון", "התאנה", "הזית", "הגפן"
-];
-
 export default function CartPage() {
   const [step, setStep] = useState<'cart' | 'checkout'>('cart');
   const [cartItems, setCartItems] = useState<any[]>([]);
 
-  // פרטי לקוח וכתובת
+  // פרטי לקוח
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   
-  // ערכים שנבחרו בפועל מהרשימה (לחובת בחירה)
+  // ערכים שנבחרו בפועל מהרשימה
   const [selectedCity, setSelectedCity] = useState('');
   const [selectedStreet, setSelectedStreet] = useState('');
 
   // קלט טקסט בשדות
   const [cityInput, setCityInput] = useState('');
   const [streetInput, setStreetInput] = useState('');
+
+  // רשימת רחובות שמתקבלת אונליין מהשרת
+  const [fetchedStreets, setFetchedStreets] = useState<string[]>([]);
+  const [loadingStreets, setLoadingStreets] = useState(false);
 
   // שליטה בהצגת הרשימות הנפתחות
   const [showCityDropdown, setShowCityDropdown] = useState(false);
@@ -79,23 +74,19 @@ export default function CartPage() {
     fetchPromos();
   }, []);
 
-  // סינון ערים לפי מה שהשתמש מקליד
+  // סינון ערים מקומי
   const filteredCities = cityInput.trim()
     ? ISRAEL_CITIES.filter(c => c.includes(cityInput.trim()))
     : ISRAEL_CITIES;
-
-  // סינון רחובות לפי מה שהשתמש מקליד
-  const filteredStreets = streetInput.trim()
-    ? ISRAEL_STREETS.filter(s => s.includes(streetInput.trim()))
-    : ISRAEL_STREETS;
 
   // טיפול בהקלדת עיר
   const handleCityInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setCityInput(val);
-    setSelectedCity(''); // מאפס בחירה עד שיקליק על ברשימה
-    setSelectedStreet(''); // מאפס רחוב
+    setSelectedCity('');
+    setSelectedStreet('');
     setStreetInput('');
+    setFetchedStreets([]);
     setShowCityDropdown(true);
   };
 
@@ -106,12 +97,32 @@ export default function CartPage() {
     setShowCityDropdown(false);
   };
 
-  // טיפול בהקלדת רחוב
-  const handleStreetInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // טיפול בהקלדת רחוב - שליפת רחובות חיים מה-API לפי העיר שנבחרה
+  const handleStreetInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setStreetInput(val);
-    setSelectedStreet(''); // מאפס בחירה עד שיקליק ברשימה
+    setSelectedStreet('');
     setShowStreetDropdown(true);
+
+    if (val.trim().length >= 1 && selectedCity) {
+      setLoadingStreets(true);
+      try {
+        const res = await fetch(`/api/addresses?type=street&q=${encodeURIComponent(val)}&city=${encodeURIComponent(selectedCity)}`);
+        const data = await res.json();
+        if (data?.results) {
+          setFetchedStreets(data.results);
+        } else {
+          setFetchedStreets([]);
+        }
+      } catch (err) {
+        console.error(err);
+        setFetchedStreets([]);
+      } finally {
+        setLoadingStreets(false);
+      }
+    } else {
+      setFetchedStreets([]);
+    }
   };
 
   // בחירת רחוב מהרשימה
@@ -223,7 +234,6 @@ export default function CartPage() {
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // בדיקת חובת בחירה מהרשימה
     if (!selectedCity) {
       alert('נא לבחור עיר מתוך רשימת ההצעות שנפתחת');
       return;
@@ -435,7 +445,7 @@ export default function CartPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
               
-              {/* שדה עיר עם Dropdown מותאם לאייפון ולכל מכשיר */}
+              {/* שדה עיר */}
               <div className="relative">
                 <label className="block text-xs font-bold text-gray-700 mb-1">
                   עיר <span className="text-red-500">*</span>
@@ -469,7 +479,7 @@ export default function CartPage() {
                 )}
               </div>
 
-              {/* שדה רחוב - נפתח רק לאחר שמבחנים עיר */}
+              {/* שדה רחוב - פתוח רק לאחר בחירת עיר, נשלף חי לפי העיר */}
               <div className="relative">
                 <label className="block text-xs font-bold text-gray-700 mb-1">
                   רחוב <span className="text-red-500">*</span>
@@ -481,25 +491,31 @@ export default function CartPage() {
                   onChange={handleStreetInputChange}
                   onFocus={() => selectedCity && setShowStreetDropdown(true)}
                   disabled={!selectedCity}
-                  placeholder={selectedCity ? "הקלד ובחר רחוב..." : "חובה לבחור עיר תחילה"}
+                  placeholder={selectedCity ? "הקלד רחוב ב-" + selectedCity + "..." : "חובה לבחור עיר תחילה"}
                   className={`w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600 font-bold disabled:bg-gray-100 disabled:cursor-not-allowed ${
                     selectedStreet ? 'border-green-500 bg-green-50/20' : ''
                   }`}
                   required
                 />
 
-                {showStreetDropdown && selectedCity && filteredStreets.length > 0 && (
+                {showStreetDropdown && selectedCity && (
                   <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-300 rounded-xl shadow-2xl mt-1 max-h-48 overflow-y-auto divide-y">
-                    {filteredStreets.map((item, idx) => (
-                      <div
-                        key={idx}
-                        onTouchStart={() => handleSelectStreet(item)}
-                        onClick={() => handleSelectStreet(item)}
-                        className="p-3 text-xs font-bold text-gray-900 hover:bg-orange-50 bg-white cursor-pointer"
-                      >
-                        {item}
-                      </div>
-                    ))}
+                    {loadingStreets ? (
+                      <div className="p-3 text-xs font-bold text-gray-500 text-center">מחפש רחובות ב{selectedCity}...</div>
+                    ) : fetchedStreets.length > 0 ? (
+                      fetchedStreets.map((item, idx) => (
+                        <div
+                          key={idx}
+                          onTouchStart={() => handleSelectStreet(item)}
+                          onClick={() => handleSelectStreet(item)}
+                          className="p-3 text-xs font-bold text-gray-900 hover:bg-orange-50 bg-white cursor-pointer"
+                        >
+                          {item}
+                        </div>
+                      ))
+                    ) : streetInput.trim().length >= 1 ? (
+                      <div className="p-3 text-xs font-bold text-gray-500 text-center">לא נמצאו רחובות תואמים ב{selectedCity}</div>
+                    ) : null}
                   </div>
                 )}
               </div>
