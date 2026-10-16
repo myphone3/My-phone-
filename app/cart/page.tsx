@@ -17,7 +17,7 @@ export default function CartPage() {
   const [building, setBuilding] = useState('');
   const [notes, setNotes] = useState('');
 
-  // ניהול הצעות חיות ממשרד הפנים
+  // ניהול הצעות חיות מהשרת הפנימי
   const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
   const [streetSuggestions, setStreetSuggestions] = useState<string[]>([]);
   const [showCityList, setShowCityList] = useState(false);
@@ -53,17 +53,15 @@ export default function CartPage() {
     fetchPromos();
   }, []);
 
-  // חיפוש ערים חי מתוך מאגר הנתונים הממשלתי הרשמי בישראל
+  // פונקציית חיפוש ערים חי דרך השרת הפנימי
   const handleCityInput = async (val: string) => {
     setCity(val);
     if (val.trim().length >= 2) {
       try {
-        const res = `https://data.gov.il/api/3/action/datastore_search?resource_id=9ad3862c-8391-4b2f-84a4-24c465ff64ec&q=${encodeURIComponent(val)}`;
-        const response = await fetch(res);
-        const data = await response.json();
-        if (data?.result?.records) {
-          const results = Array.from(new Set(data.result.records.map((r: any) => r.שם_ישוב?.trim()).filter(Boolean)));
-          setCitySuggestions(results.slice(0, 10) as string[]);
+        const res = await fetch(`/api/addresses?type=city&q=${encodeURIComponent(val)}`);
+        const data = await res.json();
+        if (data?.results) {
+          setCitySuggestions(data.results);
           setShowCityList(true);
         }
       } catch (err) {
@@ -75,22 +73,15 @@ export default function CartPage() {
     }
   };
 
-  // חיפוש רחובות חי מתוך מאגר הרחובות הרשמי של ממשלת ישראל
+  // פונקציית חיפוש רחובות חי דרך השרת הפנימי
   const handleStreetInput = async (val: string) => {
     setStreet(val);
     if (val.trim().length >= 2) {
       try {
-        const res = `https://data.gov.il/api/3/action/datastore_search?resource_id=1b16aacd-f8d9-493c-a1cb-cc2ecca0f98e&q=${encodeURIComponent(val)}`;
-        const response = await fetch(res);
-        const data = await response.json();
-        if (data?.result?.records) {
-          const records = data.result.records;
-          const filtered = city 
-            ? records.filter((r: any) => r.שם_ישוב?.trim() === city.trim())
-            : records;
-          
-          const results = Array.from(new Set(filtered.map((r: any) => r.שם_רחוב?.trim()).filter(Boolean)));
-          setStreetSuggestions(results.slice(0, 10) as string[]);
+        const res = await fetch(`/api/addresses?type=street&q=${encodeURIComponent(val)}&city=${encodeURIComponent(city)}`);
+        const data = await res.json();
+        if (data?.results) {
+          setStreetSuggestions(data.results);
           setShowStreetList(true);
         }
       } catch (err) {
