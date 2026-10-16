@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
-// רשימת ערים מלאה בישראל
+// מאגר ערים
 const ISRAEL_CITIES = [
   "אופקים", "אור יהודה", "אור עקיבא", "אילת", "אלעד", "אריאל", "אשדוד", "אשקלון", 
   "באקה אל-גרבייה", "באר שבע", "בית שאן", "בית שמש", "ביתר עילית", "בני ברק", 
@@ -12,12 +12,12 @@ const ISRAEL_CITIES = [
   "טבריה", "טירה", "טמרה", "יבנה", "יהוד-מונוסון", "ירושלים", "כפר סבא", "כרמיאל", 
   "לוד", "מגדל העמק", "מודיעין-מכבים-רעות", "מודיעין עילית", "מעלות-תרשיחא", "נהריה", 
   "נס ציונה", "נצרת", "נשר", "נתניה", "סח'נין", "עכו", "עפולה", "ערד", "פתח תקווה", 
-  "צפת", "קריית אתא", "קריית ביאליק", "קריית גת", "קריית אתא", "קריית מוצקין", 
+  "צפת", "קריית אתא", "קריית ביאליק", "קריית גת", "קריית מוצקין", 
   "קריית אונו", "קריית שמונה", "ראש העין", "ראשון לציון", "רהט", "רחובות", "רמלה", 
   "רמת גן", "רמת השרון", "רעננה", "שדרות", "תל אביב - יפו"
 ];
 
-// רשימת רחובות מרכזית וכללית שמתעדכנת לפי הקלדה
+// מאגר רחובות
 const ISRAEL_STREETS = [
   "הרצל", "ז'בוטינסקי", "בן גוריון", "רבי עקיבא", "חזון איש", "דיזנגוף", 
   "אבן גבירול", "אלנבי", "שדרות רוטשילד", "ויצמן", "הנשיא", "ירושלים", 
@@ -34,16 +34,23 @@ export default function CartPage() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [city, setCity] = useState('');
-  const [street, setStreet] = useState('');
+  
+  // ערכים שנבחרו בפועל מהרשימה (לחובת בחירה)
+  const [selectedCity, setSelectedCity] = useState('');
+  const [selectedStreet, setSelectedStreet] = useState('');
+
+  // קלט טקסט בשדות
+  const [cityInput, setCityInput] = useState('');
+  const [streetInput, setStreetInput] = useState('');
+
+  // שליטה בהצגת הרשימות הנפתחות
+  const [showCityDropdown, setShowCityDropdown] = useState(false);
+  const [showStreetDropdown, setShowStreetDropdown] = useState(false);
+
   const [building, setBuilding] = useState('');
   const [notes, setNotes] = useState('');
 
-  // סינון מקומי מהיר וחלק
-  const [filteredCities, setFilteredCities] = useState<string[]>([]);
-  const [filteredStreets, setFilteredStreets] = useState<string[]>([]);
-
-  // פרטי אשראי ותעודת זהות
+  // פרטי אשראי
   const [cardNumber, setCardNumber] = useState('');
   const [cardExpiry, setCardExpiry] = useState('');
   const [cardCvv, setCardCvv] = useState('');
@@ -72,26 +79,46 @@ export default function CartPage() {
     fetchPromos();
   }, []);
 
-  // סינון ערים מקומי
-  const handleCityChange = (val: string) => {
-    setCity(val);
-    if (val.trim().length > 0) {
-      const matches = ISRAEL_CITIES.filter(c => c.includes(val.trim()));
-      setFilteredCities(matches);
-    } else {
-      setFilteredCities([]);
-    }
+  // סינון ערים לפי מה שהשתמש מקליד
+  const filteredCities = cityInput.trim()
+    ? ISRAEL_CITIES.filter(c => c.includes(cityInput.trim()))
+    : ISRAEL_CITIES;
+
+  // סינון רחובות לפי מה שהשתמש מקליד
+  const filteredStreets = streetInput.trim()
+    ? ISRAEL_STREETS.filter(s => s.includes(streetInput.trim()))
+    : ISRAEL_STREETS;
+
+  // טיפול בהקלדת עיר
+  const handleCityInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setCityInput(val);
+    setSelectedCity(''); // מאפס בחירה עד שיקליק על ברשימה
+    setSelectedStreet(''); // מאפס רחוב
+    setStreetInput('');
+    setShowCityDropdown(true);
   };
 
-  // סינון רחובות מקומי
-  const handleStreetChange = (val: string) => {
-    setStreet(val);
-    if (val.trim().length > 0) {
-      const matches = ISRAEL_STREETS.filter(s => s.includes(val.trim()));
-      setFilteredStreets(matches);
-    } else {
-      setFilteredStreets([]);
-    }
+  // בחירת עיר מהרשימה
+  const handleSelectCity = (city: string) => {
+    setSelectedCity(city);
+    setCityInput(city);
+    setShowCityDropdown(false);
+  };
+
+  // טיפול בהקלדת רחוב
+  const handleStreetInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setStreetInput(val);
+    setSelectedStreet(''); // מאפס בחירה עד שיקליק ברשימה
+    setShowStreetDropdown(true);
+  };
+
+  // בחירת רחוב מהרשימה
+  const handleSelectStreet = (street: string) => {
+    setSelectedStreet(street);
+    setStreetInput(street);
+    setShowStreetDropdown(false);
   };
 
   useEffect(() => {
@@ -195,8 +222,20 @@ export default function CartPage() {
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !phone || !email || !city || !street || !building) {
-      alert('נא למלא את כל שדות החובה (שם, טלפון, עיר, רחוב ומספר בניין)');
+    
+    // בדיקת חובת בחירה מהרשימה
+    if (!selectedCity) {
+      alert('נא לבחור עיר מתוך רשימת ההצעות שנפתחת');
+      return;
+    }
+
+    if (!selectedStreet) {
+      alert('נא לבחור רחוב מתוך רשימת ההצעות שנפתחת');
+      return;
+    }
+
+    if (!name || !phone || !email || !building) {
+      alert('נא למלא את כל שדות החובה');
       return;
     }
 
@@ -211,10 +250,10 @@ export default function CartPage() {
       customer_name: name,
       phone,
       email,
-      city,
-      street,
+      city: selectedCity,
+      street: selectedStreet,
       building,
-      address: `עיר: ${city}, רחוב: ${street}, מס' בניין/דירה: ${building}`,
+      address: `עיר: ${selectedCity}, רחוב: ${selectedStreet}, מס' בניין/דירה: ${building}`,
       notes,
       payment_method: 'credit',
       items: cartItems,
@@ -396,42 +435,73 @@ export default function CartPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
               
-              {/* שדה עיר עם Datalist מובנה לאייפון */}
+              {/* שדה עיר עם Dropdown מותאם לאייפון ולכל מכשיר */}
               <div className="relative">
-                <label className="block text-xs font-bold text-gray-700 mb-1">עיר <span className="text-red-500">*</span></label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  עיר <span className="text-red-500">*</span>
+                  {selectedCity && <span className="text-green-600 text-[10px] mr-1">✓ נבחר</span>}
+                </label>
                 <input
                   type="text"
-                  list="cities-options"
-                  value={city}
-                  onChange={(e) => handleCityChange(e.target.value)}
-                  placeholder="בחר או הקלד עיר..."
-                  className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600 font-bold"
+                  value={cityInput}
+                  onChange={handleCityInputChange}
+                  onFocus={() => setShowCityDropdown(true)}
+                  placeholder="הקלד ובחר עיר..."
+                  className={`w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600 font-bold ${
+                    selectedCity ? 'border-green-500 bg-green-50/20' : ''
+                  }`}
                   required
                 />
-                <datalist id="cities-options">
-                  {ISRAEL_CITIES.map((c, idx) => (
-                    <option key={idx} value={c} />
-                  ))}
-                </datalist>
+                
+                {showCityDropdown && filteredCities.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-300 rounded-xl shadow-2xl mt-1 max-h-48 overflow-y-auto divide-y">
+                    {filteredCities.map((item, idx) => (
+                      <div
+                        key={idx}
+                        onTouchStart={() => handleSelectCity(item)}
+                        onClick={() => handleSelectCity(item)}
+                        className="p-3 text-xs font-bold text-gray-900 hover:bg-orange-50 bg-white cursor-pointer"
+                      >
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* שדה רחוב עם Datalist מובנה לאייפון */}
+              {/* שדה רחוב - נפתח רק לאחר שמבחנים עיר */}
               <div className="relative">
-                <label className="block text-xs font-bold text-gray-700 mb-1">רחוב <span className="text-red-500">*</span></label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  רחוב <span className="text-red-500">*</span>
+                  {selectedStreet && <span className="text-green-600 text-[10px] mr-1">✓ נבחר</span>}
+                </label>
                 <input
                   type="text"
-                  list="streets-options"
-                  value={street}
-                  onChange={(e) => handleStreetChange(e.target.value)}
-                  placeholder="הקלד רחוב..."
-                  className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600 font-bold"
+                  value={streetInput}
+                  onChange={handleStreetInputChange}
+                  onFocus={() => selectedCity && setShowStreetDropdown(true)}
+                  disabled={!selectedCity}
+                  placeholder={selectedCity ? "הקלד ובחר רחוב..." : "חובה לבחור עיר תחילה"}
+                  className={`w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600 font-bold disabled:bg-gray-100 disabled:cursor-not-allowed ${
+                    selectedStreet ? 'border-green-500 bg-green-50/20' : ''
+                  }`}
                   required
                 />
-                <datalist id="streets-options">
-                  {ISRAEL_STREETS.map((s, idx) => (
-                    <option key={idx} value={s} />
-                  ))}
-                </datalist>
+
+                {showStreetDropdown && selectedCity && filteredStreets.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-300 rounded-xl shadow-2xl mt-1 max-h-48 overflow-y-auto divide-y">
+                    {filteredStreets.map((item, idx) => (
+                      <div
+                        key={idx}
+                        onTouchStart={() => handleSelectStreet(item)}
+                        onClick={() => handleSelectStreet(item)}
+                        className="p-3 text-xs font-bold text-gray-900 hover:bg-orange-50 bg-white cursor-pointer"
+                      >
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>
