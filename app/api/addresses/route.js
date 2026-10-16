@@ -1,31 +1,39 @@
 import { NextResponse } from 'next/server';
 
+// מאגר ערים ורחובות ישראלי מהיר ומקומי למניעת שגיאות רשת
+const CITIES_DATA = [
+  "ירושלים", "תל אביב - יפו", "חיפה", "ראשון לציון", "פתח תקווה", "אשדוד", "נתניה", 
+  "בני ברק", "באר שבע", "חולון", "רמת גן", "אשקלון", "רחובות", "בת ים", "בית שמש", 
+  "כפר סבא", "הרצליה", "חדרה", "מודיעין-מכבים-רעות", "נצרת", "לוד", "רמלה", "רעננה", 
+  "מודיעין עילית", "רהט", "הוד השרון", "גבעתיים", "קריית אתא", "נהריה", "ביתר עילית", 
+  "אום אל-פחם", "קריית גת", "ראש העין", "עפולה", "טבריה", "עכו", "שדרות", "אילת"
+];
+
+const STREETS_DATA = [
+  "הרצל", "ז'בוטינסקי", "בן גוריון", "רבי עקיבא", "חזון איש", "הלחי", "רשב\"י",
+  "דיזנגוף", "אבן גבירול", "אלנבי", "שדרות רוטשילד", "ויצמן", "שז\"ר", "הנשיא",
+  "ירושלים", "העצמאות", "ארלוזורוב", "סוקולוב", "ביאליק", "ההגנה", "יצחק רבין",
+  "שדרות ירושלים", "הירקון", "בגין", "מנחם בגין", "הפלמ\"ח", "דרך עכו", "האורגים"
+];
+
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const type = searchParams.get('type');
-  const q = searchParams.get('q') || '';
-  const city = searchParams.get('city') || '';
+  const q = (searchParams.get('q') || '').trim();
 
-  try {
-    if (type === 'city') {
-      const res = await fetch(`https://data.gov.il/api/3/action/datastore_search?resource_id=9ad3862c-8391-4b2f-84a4-24c465ff64ec&q=${encodeURIComponent(q)}`);
-      const data = await res.json();
-      const records = data?.result?.records || [];
-      const results = Array.from(new Set(records.map((r) => r.שם_ישוב?.trim()).filter(Boolean)));
-      return NextResponse.json({ results: results.slice(0, 15) });
-    } 
-    
-    if (type === 'street') {
-      const res = await fetch(`https://data.gov.il/api/3/action/datastore_search?resource_id=1b16aacd-f8d9-493c-a1cb-cc2ecca0f98e&q=${encodeURIComponent(q)}`);
-      const data = await res.json();
-      const records = data?.result?.records || [];
-      const filtered = city ? records.filter((r) => r.שם_ישוב?.trim() === city.trim()) : records;
-      const results = Array.from(new Set(filtered.map((r) => r.שם_רחוב?.trim()).filter(Boolean)));
-      return NextResponse.json({ results: results.slice(0, 15) });
-    }
-
+  if (!q) {
     return NextResponse.json({ results: [] });
-  } catch (err) {
-    return NextResponse.json({ results: [] }, { status: 500 });
   }
+
+  if (type === 'city') {
+    const filtered = CITIES_DATA.filter(c => c.includes(q));
+    return NextResponse.json({ results: filtered });
+  }
+
+  if (type === 'street') {
+    const filtered = STREETS_DATA.filter(s => s.includes(q));
+    return NextResponse.json({ results: filtered });
+  }
+
+  return NextResponse.json({ results: [] });
 }
