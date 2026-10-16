@@ -17,11 +17,9 @@ export default function CartPage() {
   const [building, setBuilding] = useState('');
   const [notes, setNotes] = useState('');
 
-  // ניהול הצעות חיות מהשרת הפנימי
+  // הצעות לערים ולרחובות
   const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
   const [streetSuggestions, setStreetSuggestions] = useState<string[]>([]);
-  const [showCityList, setShowCityList] = useState(false);
-  const [showStreetList, setShowStreetList] = useState(false);
 
   // פרטי אשראי ותעודת זהות
   const [cardNumber, setCardNumber] = useState('');
@@ -53,53 +51,42 @@ export default function CartPage() {
     fetchPromos();
   }, []);
 
-  // פונקציית חיפוש ערים חי דרך השרת הפנימי
+  // חיפוש ערים בזמן אמת מול השרת הפנימי
   const handleCityInput = async (val: string) => {
     setCity(val);
+    setStreet(''); // איפוס רחוב בעת שינוי עיר
+    setStreetSuggestions([]);
+
     if (val.trim().length >= 1) {
       try {
         const res = await fetch(`/api/addresses?type=city&q=${encodeURIComponent(val)}`);
         const data = await res.json();
-        if (data?.results && data.results.length > 0) {
+        if (data?.results) {
           setCitySuggestions(data.results);
-          setShowCityList(true);
-        } else {
-          setCitySuggestions([]);
-          setShowCityList(false);
         }
       } catch (err) {
         console.error(err);
-        setCitySuggestions([]);
-        setShowCityList(false);
       }
     } else {
       setCitySuggestions([]);
-      setShowCityList(false);
     }
   };
 
-  // פונקציית חיפוש רחובות חי דרך השרת הפנימי
+  // חיפוש רחובות בזמן אמת מול השרת הפנימי לפי העיר שנבחרה
   const handleStreetInput = async (val: string) => {
     setStreet(val);
-    if (val.trim().length >= 1) {
+    if (val.trim().length >= 1 && city) {
       try {
         const res = await fetch(`/api/addresses?type=street&q=${encodeURIComponent(val)}&city=${encodeURIComponent(city)}`);
         const data = await res.json();
-        if (data?.results && data.results.length > 0) {
+        if (data?.results) {
           setStreetSuggestions(data.results);
-          setShowStreetList(true);
-        } else {
-          setStreetSuggestions([]);
-          setShowStreetList(false);
         }
       } catch (err) {
         console.error(err);
-        setStreetSuggestions([]);
-        setShowStreetList(false);
       }
     } else {
       setStreetSuggestions([]);
-      setShowStreetList(false);
     }
   };
 
@@ -205,6 +192,7 @@ export default function CartPage() {
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!name || !phone || !email || !city || !street || !building) {
       alert('נא למלא את כל שדות החובה (שם, טלפון, עיר, רחוב ומספר בניין)');
       return;
@@ -406,66 +394,43 @@ export default function CartPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
               
-              {/* שדה עיר עם השלמה אוטומטית */}
-              <div className="relative">
+              {/* שדה עיר */}
+              <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">עיר <span className="text-red-500">*</span></label>
                 <input
                   type="text"
+                  list="cities-list"
                   value={city}
                   onChange={(e) => handleCityInput(e.target.value)}
-                  placeholder="הקלד עיר (למשל: תל אביב)..."
-                  className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
+                  placeholder="הקלד עיר..."
+                  className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600 font-bold"
                   required
                 />
-                {showCityList && citySuggestions.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-xl shadow-2xl mt-1 max-h-48 overflow-y-auto divide-y">
-                    {citySuggestions.map((item, idx) => (
-                      <div
-                        key={idx}
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => {
-                          setCity(item);
-                          setShowCityList(false);
-                          setCitySuggestions([]);
-                        }}
-                        className="p-3 text-xs hover:bg-orange-50 cursor-pointer font-bold text-gray-900 bg-white"
-                      >
-                        {item}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <datalist id="cities-list">
+                  {citySuggestions.map((item, idx) => (
+                    <option key={idx} value={item} />
+                  ))}
+                </datalist>
               </div>
 
-              {/* שדה רחוב עם השלמה אוטומטית */}
-              <div className="relative">
+              {/* שדה רחוב - פתוח רק לאחר בחירת עיר */}
+              <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">רחוב <span className="text-red-500">*</span></label>
                 <input
                   type="text"
+                  list="streets-list"
                   value={street}
                   onChange={(e) => handleStreetInput(e.target.value)}
-                  placeholder="הקלד רחוב..."
-                  className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
+                  placeholder={city ? "הקלד רחוב..." : "בחר עיר תחילה"}
+                  disabled={!city}
+                  className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600 font-bold disabled:bg-gray-100 disabled:cursor-not-allowed"
                   required
                 />
-                {showStreetList && streetSuggestions.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-xl shadow-2xl mt-1 max-h-48 overflow-y-auto divide-y">
-                    {streetSuggestions.map((item, idx) => (
-                      <div
-                        key={idx}
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => {
-                          setStreet(item);
-                          setShowStreetList(false);
-                          setStreetSuggestions([]);
-                        }}
-                        className="p-3 text-xs hover:bg-orange-50 cursor-pointer font-bold text-gray-900 bg-white"
-                      >
-                        {item}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <datalist id="streets-list">
+                  {streetSuggestions.map((item, idx) => (
+                    <option key={idx} value={item} />
+                  ))}
+                </datalist>
               </div>
 
               <div>
