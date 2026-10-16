@@ -4,6 +4,28 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
+// רשימת ערים מלאה בישראל
+const ISRAEL_CITIES = [
+  "אופקים", "אור יהודה", "אור עקיבא", "אילת", "אלעד", "אריאל", "אשדוד", "אשקלון", 
+  "באקה אל-גרבייה", "באר שבע", "בית שאן", "בית שמש", "ביתר עילית", "בני ברק", 
+  "בת ים", "גבעתיים", "דימונה", "הוד השרון", "הרצליה", "חדרה", "חולון", "חיפה", 
+  "טבריה", "טירה", "טמרה", "יבנה", "יהוד-מונוסון", "ירושלים", "כפר סבא", "כרמיאל", 
+  "לוד", "מגדל העמק", "מודיעין-מכבים-רעות", "מודיעין עילית", "מעלות-תרשיחא", "נהריה", 
+  "נס ציונה", "נצרת", "נשר", "נתניה", "סח'נין", "עכו", "עפולה", "ערד", "פתח תקווה", 
+  "צפת", "קריית אתא", "קריית ביאליק", "קריית גת", "קריית אתא", "קריית מוצקין", 
+  "קריית אונו", "קריית שמונה", "ראש העין", "ראשון לציון", "רהט", "רחובות", "רמלה", 
+  "רמת גן", "רמת השרון", "רעננה", "שדרות", "תל אביב - יפו"
+];
+
+// רשימת רחובות מרכזית וכללית שמתעדכנת לפי הקלדה
+const ISRAEL_STREETS = [
+  "הרצל", "ז'בוטינסקי", "בן גוריון", "רבי עקיבא", "חזון איש", "דיזנגוף", 
+  "אבן גבירול", "אלנבי", "שדרות רוטשילד", "ויצמן", "הנשיא", "ירושלים", 
+  "העצמאות", "ארלוזורוב", "סוקולוב", "ביאליק", "ההגנה", "יצחק רבין", 
+  "שדרות ירושלים", "הירקון", "מנחם בגין", "הפלמ\"ח", "האורגים", "המלכים",
+  "השרון", "הכרמל", "הגלבוע", "החרמון", "התאנה", "הזית", "הגפן"
+];
+
 export default function CartPage() {
   const [step, setStep] = useState<'cart' | 'checkout'>('cart');
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -17,9 +39,9 @@ export default function CartPage() {
   const [building, setBuilding] = useState('');
   const [notes, setNotes] = useState('');
 
-  // הצעות לערים ולרחובות
-  const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
-  const [streetSuggestions, setStreetSuggestions] = useState<string[]>([]);
+  // סינון מקומי מהיר וחלק
+  const [filteredCities, setFilteredCities] = useState<string[]>([]);
+  const [filteredStreets, setFilteredStreets] = useState<string[]>([]);
 
   // פרטי אשראי ותעודת זהות
   const [cardNumber, setCardNumber] = useState('');
@@ -47,52 +69,33 @@ export default function CartPage() {
         setCartItems([]);
       }
     }
-
     fetchPromos();
   }, []);
 
-  // חיפוש ערים בזמן אמת מול השרת הפנימי
-  const handleCityInput = async (val: string) => {
+  // סינון ערים מקומי
+  const handleCityChange = (val: string) => {
     setCity(val);
-    setStreet(''); // איפוס רחוב בעת שינוי עיר
-    setStreetSuggestions([]);
-
-    if (val.trim().length >= 1) {
-      try {
-        const res = await fetch(`/api/addresses?type=city&q=${encodeURIComponent(val)}`);
-        const data = await res.json();
-        if (data?.results) {
-          setCitySuggestions(data.results);
-        }
-      } catch (err) {
-        console.error(err);
-      }
+    if (val.trim().length > 0) {
+      const matches = ISRAEL_CITIES.filter(c => c.includes(val.trim()));
+      setFilteredCities(matches);
     } else {
-      setCitySuggestions([]);
+      setFilteredCities([]);
     }
   };
 
-  // חיפוש רחובות בזמן אמת מול השרת הפנימי לפי העיר שנבחרה
-  const handleStreetInput = async (val: string) => {
+  // סינון רחובות מקומי
+  const handleStreetChange = (val: string) => {
     setStreet(val);
-    if (val.trim().length >= 1 && city) {
-      try {
-        const res = await fetch(`/api/addresses?type=street&q=${encodeURIComponent(val)}&city=${encodeURIComponent(city)}`);
-        const data = await res.json();
-        if (data?.results) {
-          setStreetSuggestions(data.results);
-        }
-      } catch (err) {
-        console.error(err);
-      }
+    if (val.trim().length > 0) {
+      const matches = ISRAEL_STREETS.filter(s => s.includes(val.trim()));
+      setFilteredStreets(matches);
     } else {
-      setStreetSuggestions([]);
+      setFilteredStreets([]);
     }
   };
 
   useEffect(() => {
     if (!settings?.announcement_end_time) return;
-
     const targetTime = new Date(settings.announcement_end_time).getTime();
 
     const updateTimer = () => {
@@ -192,7 +195,6 @@ export default function CartPage() {
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!name || !phone || !email || !city || !street || !building) {
       alert('נא למלא את כל שדות החובה (שם, טלפון, עיר, רחוב ומספר בניין)');
       return;
@@ -394,41 +396,40 @@ export default function CartPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
               
-              {/* שדה עיר */}
-              <div>
+              {/* שדה עיר עם Datalist מובנה לאייפון */}
+              <div className="relative">
                 <label className="block text-xs font-bold text-gray-700 mb-1">עיר <span className="text-red-500">*</span></label>
                 <input
                   type="text"
-                  list="cities-list"
+                  list="cities-options"
                   value={city}
-                  onChange={(e) => handleCityInput(e.target.value)}
-                  placeholder="הקלד עיר..."
+                  onChange={(e) => handleCityChange(e.target.value)}
+                  placeholder="בחר או הקלד עיר..."
                   className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600 font-bold"
                   required
                 />
-                <datalist id="cities-list">
-                  {citySuggestions.map((item, idx) => (
-                    <option key={idx} value={item} />
+                <datalist id="cities-options">
+                  {ISRAEL_CITIES.map((c, idx) => (
+                    <option key={idx} value={c} />
                   ))}
                 </datalist>
               </div>
 
-              {/* שדה רחוב - פתוח רק לאחר בחירת עיר */}
-              <div>
+              {/* שדה רחוב עם Datalist מובנה לאייפון */}
+              <div className="relative">
                 <label className="block text-xs font-bold text-gray-700 mb-1">רחוב <span className="text-red-500">*</span></label>
                 <input
                   type="text"
-                  list="streets-list"
+                  list="streets-options"
                   value={street}
-                  onChange={(e) => handleStreetInput(e.target.value)}
-                  placeholder={city ? "הקלד רחוב..." : "בחר עיר תחילה"}
-                  disabled={!city}
-                  className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600 font-bold disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  onChange={(e) => handleStreetChange(e.target.value)}
+                  placeholder="הקלד רחוב..."
+                  className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600 font-bold"
                   required
                 />
-                <datalist id="streets-list">
-                  {streetSuggestions.map((item, idx) => (
-                    <option key={idx} value={item} />
+                <datalist id="streets-options">
+                  {ISRAEL_STREETS.map((s, idx) => (
+                    <option key={idx} value={s} />
                   ))}
                 </datalist>
               </div>
