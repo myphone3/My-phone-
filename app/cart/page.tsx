@@ -17,7 +17,7 @@ export default function CartPage() {
   const [building, setBuilding] = useState('');
   const [notes, setNotes] = useState('');
 
-  // ניהול הצעות חיות מגוגל מפות
+  // ניהול הצעות חיות ממשרד הפנים
   const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
   const [streetSuggestions, setStreetSuggestions] = useState<string[]>([]);
   const [showCityList, setShowCityList] = useState(false);
@@ -53,57 +53,49 @@ export default function CartPage() {
     fetchPromos();
   }, []);
 
-  // חיפוש ערים חיה דרך Google Places API
-  const handleCityInput = (val: string) => {
+  // חיפוש ערים חי מתוך מאגר הנתונים הממשלתי הרשמי בישראל
+  const handleCityInput = async (val: string) => {
     setCity(val);
-    if (val.trim().length >= 2 && typeof window !== 'undefined' && (window as any).google?.maps?.places) {
-      const service = new (window as any).google.maps.places.AutocompleteService();
-      service.getPlacePredictions(
-        {
-          input: val,
-          componentRestrictions: { country: 'il' },
-          types: ['(cities)'],
-        },
-        (predictions: any[], status: string) => {
-          if (status === 'OK' && predictions) {
-            const results = predictions.map((p) => p.structured_formatting.main_text);
-            setCitySuggestions(results);
-            setShowCityList(true);
-          } else {
-            setCitySuggestions([]);
-            setShowCityList(false);
-          }
+    if (val.trim().length >= 2) {
+      try {
+        const res = `https://data.gov.il/api/3/action/datastore_search?resource_id=9ad3862c-8391-4b2f-84a4-24c465ff64ec&q=${encodeURIComponent(val)}`;
+        const response = await fetch(res);
+        const data = await response.json();
+        if (data?.result?.records) {
+          const results = Array.from(new Set(data.result.records.map((r: any) => r.שם_ישוב?.trim()).filter(Boolean)));
+          setCitySuggestions(results.slice(0, 10) as string[]);
+          setShowCityList(true);
         }
-      );
+      } catch (err) {
+        console.error(err);
+      }
     } else {
       setCitySuggestions([]);
       setShowCityList(false);
     }
   };
 
-  // חיפוש רחובות חי דרך Google Places API (ממוקד בישראל, ואופציונלית בעיר הנבחרת)
-  const handleStreetInput = (val: string) => {
+  // חיפוש רחובות חי מתוך מאגר הרחובות הרשמי של ממשלת ישראל
+  const handleStreetInput = async (val: string) => {
     setStreet(val);
-    if (val.trim().length >= 2 && typeof window !== 'undefined' && (window as any).google?.maps?.places) {
-      const service = new (window as any).google.maps.places.AutocompleteService();
-      const query = city ? `${val}, ${city}` : val;
-      service.getPlacePredictions(
-        {
-          input: query,
-          componentRestrictions: { country: 'il' },
-          types: ['geocode'],
-        },
-        (predictions: any[], status: string) => {
-          if (status === 'OK' && predictions) {
-            const results = predictions.map((p) => p.structured_formatting.main_text);
-            setStreetSuggestions(results);
-            setShowStreetList(true);
-          } else {
-            setStreetSuggestions([]);
-            setShowStreetList(false);
-          }
+    if (val.trim().length >= 2) {
+      try {
+        const res = `https://data.gov.il/api/3/action/datastore_search?resource_id=1b16aacd-f8d9-493c-a1cb-cc2ecca0f98e&q=${encodeURIComponent(val)}`;
+        const response = await fetch(res);
+        const data = await response.json();
+        if (data?.result?.records) {
+          const records = data.result.records;
+          const filtered = city 
+            ? records.filter((r: any) => r.שם_ישוב?.trim() === city.trim())
+            : records;
+          
+          const results = Array.from(new Set(filtered.map((r: any) => r.שם_רחוב?.trim()).filter(Boolean)));
+          setStreetSuggestions(results.slice(0, 10) as string[]);
+          setShowStreetList(true);
         }
-      );
+      } catch (err) {
+        console.error(err);
+      }
     } else {
       setStreetSuggestions([]);
       setShowStreetList(false);
@@ -413,7 +405,7 @@ export default function CartPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
               
-              {/* שדה עיר עם השלמה אוטומטית מ-Google Maps */}
+              {/* שדה עיר עם השלמה אוטומטית */}
               <div className="relative">
                 <label className="block text-xs font-bold text-gray-700 mb-1">עיר <span className="text-red-500">*</span></label>
                 <input
@@ -442,7 +434,7 @@ export default function CartPage() {
                 )}
               </div>
 
-              {/* שדה רחוב עם השלמה אוטומטית מ-Google Maps */}
+              {/* שדה רחוב עם השלמה אוטומטית */}
               <div className="relative">
                 <label className="block text-xs font-bold text-gray-700 mb-1">רחוב <span className="text-red-500">*</span></label>
                 <input
