@@ -12,7 +12,7 @@ export async function GET(request) {
       const data = await res.json();
       const records = data?.result?.records || [];
       const results = Array.from(new Set(records.map((r) => r.שם_ישוב?.trim()).filter(Boolean)));
-      return NextResponse.json({ results: results.slice(0, 10) });
+      return NextResponse.json({ results: results.slice(0, 15) });
     } 
     
     if (type === 'street') {
@@ -21,7 +21,7 @@ export async function GET(request) {
       const records = data?.result?.records || [];
       const filtered = city ? records.filter((r) => r.שם_ישוב?.trim() === city.trim()) : records;
       const results = Array.from(new Set(filtered.map((r) => r.שם_רחוב?.trim()).filter(Boolean)));
-      return NextResponse.json({ results: results.slice(0, 10) });
+      return NextResponse.json({ results: results.slice(0, 15) });
     }
 
     return NextResponse.json({ results: [] });
