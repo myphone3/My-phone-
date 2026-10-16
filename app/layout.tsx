@@ -24,6 +24,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="he" dir="rtl">
+      <head>
+        <script
+          src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-fzkOn_MnGATKsLfCbQC3KaRgQmVlcso&libraries=places&language=he"
+          async
+          defer
+        ></script>
+      </head>
       <body className="bg-gray-50 text-gray-900 font-sans antialiased">
         
         {/* הדר ראשי */}
