@@ -56,16 +56,21 @@ export default function CartPage() {
   // פונקציית חיפוש ערים חי דרך השרת הפנימי
   const handleCityInput = async (val: string) => {
     setCity(val);
-    if (val.trim().length >= 2) {
+    if (val.trim().length >= 1) {
       try {
         const res = await fetch(`/api/addresses?type=city&q=${encodeURIComponent(val)}`);
         const data = await res.json();
-        if (data?.results) {
+        if (data?.results && data.results.length > 0) {
           setCitySuggestions(data.results);
           setShowCityList(true);
+        } else {
+          setCitySuggestions([]);
+          setShowCityList(false);
         }
       } catch (err) {
         console.error(err);
+        setCitySuggestions([]);
+        setShowCityList(false);
       }
     } else {
       setCitySuggestions([]);
@@ -76,16 +81,21 @@ export default function CartPage() {
   // פונקציית חיפוש רחובות חי דרך השרת הפנימי
   const handleStreetInput = async (val: string) => {
     setStreet(val);
-    if (val.trim().length >= 2) {
+    if (val.trim().length >= 1) {
       try {
         const res = await fetch(`/api/addresses?type=street&q=${encodeURIComponent(val)}&city=${encodeURIComponent(city)}`);
         const data = await res.json();
-        if (data?.results) {
+        if (data?.results && data.results.length > 0) {
           setStreetSuggestions(data.results);
           setShowStreetList(true);
+        } else {
+          setStreetSuggestions([]);
+          setShowStreetList(false);
         }
       } catch (err) {
         console.error(err);
+        setStreetSuggestions([]);
+        setShowStreetList(false);
       }
     } else {
       setStreetSuggestions([]);
@@ -403,20 +413,22 @@ export default function CartPage() {
                   type="text"
                   value={city}
                   onChange={(e) => handleCityInput(e.target.value)}
-                  placeholder="הקלד עיר..."
+                  placeholder="הקלד עיר (למשל: תל אביב)..."
                   className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
                   required
                 />
                 {showCityList && citySuggestions.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 z-50 bg-white border rounded-xl shadow-lg mt-1 max-h-48 overflow-y-auto divide-y">
+                  <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-xl shadow-2xl mt-1 max-h-48 overflow-y-auto divide-y">
                     {citySuggestions.map((item, idx) => (
                       <div
                         key={idx}
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={() => {
                           setCity(item);
                           setShowCityList(false);
+                          setCitySuggestions([]);
                         }}
-                        className="p-2.5 text-xs hover:bg-orange-50 cursor-pointer font-medium text-gray-800"
+                        className="p-3 text-xs hover:bg-orange-50 cursor-pointer font-bold text-gray-900 bg-white"
                       >
                         {item}
                       </div>
@@ -437,15 +449,17 @@ export default function CartPage() {
                   required
                 />
                 {showStreetList && streetSuggestions.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 z-50 bg-white border rounded-xl shadow-lg mt-1 max-h-48 overflow-y-auto divide-y">
+                  <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-xl shadow-2xl mt-1 max-h-48 overflow-y-auto divide-y">
                     {streetSuggestions.map((item, idx) => (
                       <div
                         key={idx}
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={() => {
                           setStreet(item);
                           setShowStreetList(false);
+                          setStreetSuggestions([]);
                         }}
-                        className="p-2.5 text-xs hover:bg-orange-50 cursor-pointer font-medium text-gray-800"
+                        className="p-3 text-xs hover:bg-orange-50 cursor-pointer font-bold text-gray-900 bg-white"
                       >
                         {item}
                       </div>
