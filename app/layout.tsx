@@ -1,5 +1,6 @@
 import './globals.css';
 import Header from '../components/Header';
+import Script from 'next/script';
 
 // הגדרת מטא-דאטה לשם האפליקציה והלוגו בהוספה למסך הבית
 export const metadata = {
@@ -25,11 +26,10 @@ export default function RootLayout({
   return (
     <html lang="he" dir="rtl">
       <head>
-        <script
+        <Script
           src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-fzkOn_MnGATKsLfCbQC3KaRgQmVlcso&libraries=places&language=he"
-          async
-          defer
-        ></script>
+          strategy="beforeInteractive"
+        />
       </head>
       <body className="bg-gray-50 text-gray-900 font-sans antialiased">
         
