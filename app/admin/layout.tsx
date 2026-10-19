@@ -65,7 +65,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* תפריט ניהול עליון הכולל את כפתור המעבר לחנות */}
       <div className="flex items-center gap-2 overflow-x-auto pb-4 border-b">
         
-        {/* כפתור מעבר לחנות בולט בצד */}
+        {/* כפתור מעבר לחנות בולט */}
         <Link
           href="/"
           className="px-4 py-2.5 rounded-xl text-xs font-black transition whitespace-nowrap cursor-pointer shrink-0 bg-white border-2 border-orange-200 text-orange-600 hover:bg-orange-50 shadow-xs flex items-center gap-1.5"
