@@ -73,7 +73,13 @@ export default function AdminSEO() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto" dir="rtl">
-      <h1 className="text-2xl font-black text-gray-900">SEO ומעקב 🔍</h1>
+      {/* כותרת נקייה בדיוק כמו בניהול קטגוריות */}
+      <div className="flex items-center justify-between my-2">
+        <h1 className="text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3 flex items-center gap-2">
+          <span>🔍</span>
+          <span>SEO ומעקב</span>
+        </h1>
+      </div>
       
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-3xl shadow-sm border space-y-6">
         
