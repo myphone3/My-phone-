@@ -19,7 +19,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'ניהול גירסאות ⚙️', href: '/admin/versions' },
     { name: 'ספריית מדיה 🖼️', href: '/admin/media' },
     { name: 'מבצעים וקופונים 🎟️', href: '/admin/coupons' },
-    { name: 'לקוחות והודעות 👥', href: '/admin/customers' },
+    { name: 'לקוחות 👥', href: '/admin/customers' },
     { name: 'ניהול ושליחת מייל ✉️', href: '/admin/email' },
     { name: 'SEO ומעקב 🔍', href: '/admin/seo' },
   ];
