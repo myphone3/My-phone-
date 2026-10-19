@@ -1,6 +1,11 @@
+'use client';
+
 import React from 'react';
+import { usePathname } from 'next/navigation';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname() || '';
+
   const navItems = [
     { name: 'ראשי 🏠', href: '/admin' },
     { name: 'ניהול מוצרים 📦', href: '/admin/products' },
@@ -37,15 +42,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         <div className="h-6 w-[1px] bg-gray-200 mx-1 shrink-0"></div>
 
-        {navItems.map((item) => (
-          <a
-            key={item.href}
-            href={item.href}
-            className="px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer shrink-0 bg-orange-600 text-white hover:bg-orange-700 shadow-sm"
-          >
-            {item.name}
-          </a>
-        ))}
+        {navItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <a
+              key={item.href}
+              href={item.href}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer shrink-0 shadow-sm ${
+                isActive
+                  ? 'bg-orange-800 text-white border-2 border-orange-950 shadow-md scale-105'
+                  : 'bg-orange-600 text-white hover:bg-orange-700'
+              }`}
+            >
+              {item.name}
+            </a>
+          );
+        })}
       </div>
 
       <main>{children}</main>
