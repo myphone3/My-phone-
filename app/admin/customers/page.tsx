@@ -33,19 +33,13 @@ export default function AdminCustomersPage() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      <div className="bg-white p-6 rounded-3xl border shadow-sm flex justify-between items-center">
-        <div>
-          <h1 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">
-            ניהול לקוחות רשומים ({customers.length})
-          </h1>
-          <p className="text-xs text-gray-500 mt-1">רשימת לקוחות ייחודית המזוהה לפי כתובת אימייל במערכת.</p>
-        </div>
-        <button
-          onClick={fetchCustomers}
-          className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer"
-        >
-          🔄 רענן רשימה
-        </button>
+      {/* כותרת נקייה בדיוק כמו בניהול קטגוריות */}
+      <div className="flex items-center justify-between my-2">
+        <h1 className="text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3 flex items-center gap-2">
+          <span>👥</span>
+          <span>ניהול לקוחות רשומים</span>
+          <span className="text-sm font-normal text-gray-500">({customers.length})</span>
+        </h1>
       </div>
 
       <div className="bg-white rounded-3xl border shadow-sm overflow-hidden">
