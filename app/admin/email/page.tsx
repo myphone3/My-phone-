@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import Link from 'next/link';
 
 export default function AdminEmailPage() {
   const [emails, setEmails] = useState<string[]>([]);
@@ -59,16 +58,13 @@ export default function AdminEmailPage() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto" dir="rtl">
-      <div className="flex justify-between items-center bg-white p-6 rounded-3xl border shadow-sm">
-        <div>
-          <h1 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">
-            ניהול ושליחת אימייל ללקוחות ({emails.length} לקוחות רשומים)
-          </h1>
-          <p className="text-xs text-gray-500 mt-1">שלח מבצעים, עדכונים או תזכורות לכל הלקוחות במכה אחת.</p>
-        </div>
-        <Link href="/admin/orders" className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-xl text-xs font-bold transition">
-          🔙 חזרה להזמנות
-        </Link>
+      {/* כותרת נקייה בדיוק כמו בניהול קטגוריות */}
+      <div className="flex items-center justify-between my-2">
+        <h1 className="text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3 flex items-center gap-2">
+          <span>✉️</span>
+          <span>ניהול ושליחת אימייל ללקוחות</span>
+          <span className="text-sm font-normal text-gray-500">({emails.length} לקוחות רשומים)</span>
+        </h1>
       </div>
 
       <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-6">
@@ -114,7 +110,7 @@ export default function AdminEmailPage() {
 
           <div className="bg-gray-50 p-4 rounded-2xl border text-xs text-gray-600 space-y-1">
             <strong>למי יישלח המייל?</strong>
-            <p>המערכת תאסוף אוטומטית את כל כתובות האימייל של הלקוחות שהזמינו (${emails.length} כתובות) ותכניס אותן להסתרת כתובות (BCC) כך שכל לקוח יקבל את המייל באופן אישי ומכובד.</p>
+            <p>המערכת תאסוף אוטומטית את כל כתובות האימייל של הלקוחות שהזמינו ({emails.length} כתובות) ותכניס אותן להסתרת כתובות (BCC) כך שכל לקוח יקבל את המייל באופן אישי ומכובד.</p>
           </div>
 
           <button
