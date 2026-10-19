@@ -1,10 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || '';
+  const activeRef = useRef<HTMLAnchorElement | null>(null);
 
   const navItems = [
     { name: 'ראשי 🏠', href: '/admin' },
@@ -22,13 +24,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'SEO ומעקב 🔍', href: '/admin/seo' },
   ];
 
+  // גלילה אוטומטית שומרת על הלשונית הפעילה גלויה בסרגל
+  useEffect(() => {
+    if (activeRef.current) {
+      activeRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      });
+    }
+  }, [pathname]);
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-4 space-y-4" dir="rtl">
       {/* תפריט ניהול עליון */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-4 border-b">
+      <div className="flex items-center gap-2 overflow-x-auto pb-4 border-b no-scrollbar">
         
-        {/* כפתור מעבר ישיר לחנות עם הלוגו האמיתי Logo.JPG */}
-        <a
+        {/* כפתור מעבר ישיר לחנות */}
+        <Link
           href="/"
           className="px-4 py-2 rounded-xl text-xs font-black transition whitespace-nowrap cursor-pointer shrink-0 bg-white border-2 border-orange-300 text-orange-700 hover:bg-orange-50 shadow-xs flex items-center gap-2"
         >
@@ -38,16 +51,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             className="w-6 h-6 object-contain rounded-md"
           />
           <span>מעבר לחנות</span>
-        </a>
+        </Link>
 
         <div className="h-6 w-[1px] bg-gray-200 mx-1 shrink-0"></div>
 
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
-            <a
+            <Link
               key={item.href}
               href={item.href}
+              ref={isActive ? activeRef : null}
               className={`px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer shrink-0 shadow-sm ${
                 isActive
                   ? 'bg-orange-800 text-white border-2 border-orange-950 shadow-md scale-105'
@@ -55,7 +69,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               }`}
             >
               {item.name}
-            </a>
+            </Link>
           );
         })}
       </div>
