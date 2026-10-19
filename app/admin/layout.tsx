@@ -1,5 +1,4 @@
 import React from 'react';
-import Link from 'next/link';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const navItems = [
@@ -12,7 +11,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'ניהול באנרים 🖼️', href: '/admin/banners' },
     { name: 'ניהול גירסאות ⚙️', href: '/admin/versions' },
     { name: 'ספריית מדיה 🖼️', href: '/admin/media' },
-    { name: 'קופונים 🎟️', href: '/admin/coupons' },
+    { name: 'מבצעים וקופונים 🎟️', href: '/admin/coupons' },
     { name: 'לקוחות והודעות 👥', href: '/admin/customers' },
     { name: 'ניהול ושליחת מייל ✉️', href: '/admin/email' },
     { name: 'SEO ומעקב 🔍', href: '/admin/seo' },
@@ -23,12 +22,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* תפריט ניהול עליון */}
       <div className="flex items-center gap-2 overflow-x-auto pb-4 border-b">
         
-        {/* כפתור מעבר ישיר לחנות עם לוגו החנות */}
+        {/* כפתור מעבר ישיר לחנות עם עיצוב לוגו נקי ובולט */}
         <a
           href="/"
-          className="px-4 py-2 rounded-xl text-xs font-black transition whitespace-nowrap cursor-pointer shrink-0 bg-white border-2 border-orange-200 text-orange-600 hover:bg-orange-50 shadow-xs flex items-center gap-2"
+          className="px-4 py-2 rounded-xl text-xs font-black transition whitespace-nowrap cursor-pointer shrink-0 bg-white border-2 border-orange-300 text-orange-700 hover:bg-orange-50 shadow-xs flex items-center gap-2"
         >
-          <img src="/logo.png" alt="My Phone" className="w-5 h-5 object-contain rounded-md" />
+          <div className="w-5 h-5 rounded-full bg-orange-600 text-white flex items-center justify-center text-[10px] shadow-sm">
+            🛒
+          </div>
           <span>מעבר לחנות</span>
         </a>
 
@@ -38,7 +39,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <a
             key={item.href}
             href={item.href}
-            className="px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer shrink-0 bg-orange-50 text-orange-900 border border-orange-200 hover:bg-orange-600 hover:text-white shadow-xs"
+            className="px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer shrink-0 bg-orange-600 text-white hover:bg-orange-700 shadow-sm"
           >
             {item.name}
           </a>
