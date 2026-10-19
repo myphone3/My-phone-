@@ -16,6 +16,9 @@ export default function Header() {
   const [promoConfig, setPromoConfig] = useState<any>(null);
   const [giftProduct, setGiftProduct] = useState<any>(null);
   const [hasUsedPromo, setHasUsedPromo] = useState(false);
+  
+  // ניהול הפופאפ המרכזי והתראות
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [isNotificationDismissed, setIsNotificationDismissed] = useState(false);
   
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -35,6 +38,12 @@ export default function Header() {
         if (currentUser) {
           checkAdmin(currentUser.email);
           checkUserOrders(currentUser.email);
+        } else {
+          // אם המשתמש לא מחובר, נבדוק אם כבר ראה את הפופאפ בסשן הנוכחי
+          const hasSeenWelcome = sessionStorage.getItem('seenWelcomeModal');
+          if (!hasSeenWelcome) {
+            setShowWelcomeModal(true);
+          }
         }
 
         fetchPromoSettings();
@@ -51,6 +60,7 @@ export default function Header() {
       if (currentUser) {
         checkAdmin(currentUser.email);
         checkUserOrders(currentUser.email);
+        setShowWelcomeModal(false); // סגירת הפופאפ אם התחבר
       } else {
         setIsAdmin(false);
         setHasUsedPromo(false);
@@ -170,6 +180,12 @@ export default function Header() {
     }
   };
 
+  const handleCloseWelcomeModal = () => {
+    setShowWelcomeModal(false);
+    sessionStorage.setItem('seenWelcomeModal', 'true');
+    setIsNotificationDismissed(false); // פותח את סימון ההתראה הבולט בכפתור האישי
+  };
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -188,210 +204,284 @@ export default function Header() {
   const isUserAdmin = isAdmin || (user?.email && ['myphone3393@gmail.com', 'd0587223040@gmail.com'].includes(user.email.toLowerCase()));
 
   return (
-    <header className="bg-white border-b sticky top-0 z-40 shadow-sm" dir="rtl">
-      <div className="max-w-7xl mx-auto px-4 pt-4 pb-4 space-y-3.5">
-        
-        {/* שורה עליונה */}
-        <div className="flex items-center justify-between relative pt-1 pb-1">
-          
-          {/* צד שמאל: כפתור פרופיל והתראות עם חלונית נפתחת */}
-          <div className="relative z-10 flex items-center ml-2" ref={dropdownRef}>
+    <>
+      {/* ===== פופאפ מרכזי קופץ באמצע המסך למשתמש לא מחובר ===== */}
+      {showWelcomeModal && promoConfig?.welcome_active && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200" dir="rtl">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-5 shadow-2xl relative border border-gray-100">
+            
             <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="relative flex items-center justify-center w-12 h-12 bg-white hover:bg-orange-50/50 border-2 border-orange-200 rounded-full shadow-2xs transition duration-200 cursor-pointer overflow-hidden p-1"
-              title={user ? (user.user_metadata?.full_name || 'החשבון שלי') : 'התחברות והתראות'}
+              onClick={handleCloseWelcomeModal}
+              className="absolute top-4 left-4 w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold text-sm transition cursor-pointer"
             >
-              {user?.user_metadata?.avatar_url ? (
-                <img src={user.user_metadata.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
-              ) : user ? (
-                <div className="w-full h-full bg-orange-600 text-white rounded-full flex items-center justify-center font-black text-sm">
-                  {user.email?.[0]?.toUpperCase() || 'U'}
+              ✕
+            </button>
+
+            <div className="w-16 h-16 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center mx-auto text-3xl shadow-inner">
+              🎁
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-xl font-black text-gray-900">מתנת הצטרפות מיוחדת!</h3>
+              <p className="text-xs text-gray-600 leading-relaxed font-medium">
+                ברוכים הבאים ל-NEW PHONE[span_0](start_span)[span_0](end_span)! התחברו עכשיו וקבלו במתנה את ההטבה הבלעדית שלכם להזמנה הראשונה.
+              </p>
+            </div>
+
+            {promoConfig.welcome_type === 'מתנה' && giftProduct ? (
+              <div className="flex items-center gap-3 bg-orange-50/60 p-3 rounded-2xl border border-orange-200 text-right">
+                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center overflow-hidden border shrink-0">
+                  {getProductImage(giftProduct) ? (
+                    <img src={getProductImage(giftProduct)} alt="" className="w-full h-full object-contain" />
+                  ) : (
+                    <span>🎁</span>
+                  )}
                 </div>
-              ) : (
-                <div className="w-6 h-6 flex items-center justify-center">
-                  <svg className="w-full h-full" viewBox="0 0 24 24">
+                <div className="overflow-hidden">
+                  <span className="text-[10px] font-extrabold text-orange-600 block">מתנה בהזמנה ראשונה:</span>
+                  <span className="text-xs font-black text-gray-900 block truncate">{giftProduct.name}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-orange-50/60 p-3 rounded-2xl border border-orange-200 text-xs font-bold text-orange-900">
+                קבלו {promoConfig?.welcome_discount_value}% הנחה שווה על ההזמנה הראשונה שלכם באתר!
+              </div>
+            )}
+
+            <div className="space-y-2 pt-2">
+              <button
+                onClick={handleGoogleLogin}
+                className="w-full bg-orange-600 hover:bg-orange-700 text-white font-black py-3.5 rounded-2xl text-xs transition shadow-md flex items-center justify-center gap-2.5 cursor-pointer"
+              >
+                <span className="bg-white p-1 rounded-full flex items-center justify-center w-5 h-5">
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                     <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
                     <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                   </svg>
-                </div>
-              )}
-
-              {/* אינדיקטור התראה פועם */}
-              {hasUnreadNotification && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-orange-600 border-2 border-white"></span>
                 </span>
-              )}
-            </button>
+                <span>התחברות מהירה עם Google למימוש המתנה</span>
+              </button>
 
-            {/* חלונית התראות ופרופיל */}
-            {dropdownOpen && (
-              <div className="absolute top-16 right-0 z-50 w-80 max-w-[calc(100vw-24px)] bg-white rounded-3xl shadow-2xl border border-gray-100 p-4 space-y-4 animate-in fade-in zoom-in duration-150">
-                
-                <div className="flex items-center justify-between border-b pb-2.5">
-                  <span className="font-black text-sm text-gray-900 flex items-center gap-1.5">
-                    <span>🔔</span>
-                    <span>התראות ואישי</span>
-                  </span>
-                  <button 
-                    onClick={() => setDropdownOpen(false)}
-                    className="text-gray-400 hover:text-gray-600 text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100"
-                  >
-                    ✕
-                  </button>
-                </div>
+              <button
+                onClick={handleCloseWelcomeModal}
+                className="text-xs font-bold text-gray-400 hover:text-gray-600 transition cursor-pointer pt-1"
+              >
+                אולי אחר כך, המשך לגלישה
+              </button>
+            </div>
 
-                {!user && (
-                  <div className="space-y-3">
-                    <button
-                      onClick={handleGoogleLogin}
-                      className="w-full bg-orange-600 hover:bg-orange-700 text-white font-black py-2.5 rounded-xl text-xs transition shadow-xs flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <span className="bg-white p-1 rounded-full flex items-center justify-center w-5 h-5">
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
-                          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                        </svg>
-                      </span>
-                      <span>התחברות מהירה עם Google</span>
-                    </button>
+          </div>
+        </div>
+      )}
 
-                    {promoConfig?.welcome_active && !isNotificationDismissed && (
-                      <div className="bg-orange-50 border border-orange-200/80 rounded-2xl p-3 space-y-2.5 relative">
-                        <div className="flex items-start justify-between gap-2">
-                          <span className="text-xs font-black text-orange-900 flex items-center gap-1">
-                            <span>🎁</span>
-                            <span>מתנת הצטרפות מחכה לך!</span>
-                          </span>
-                          <button 
-                            onClick={() => setIsNotificationDismissed(true)}
-                            className="text-[10px] text-gray-400 hover:text-red-500 font-bold"
-                          >
-                            מחק
-                          </button>
-                        </div>
-
-                        {promoConfig.welcome_type === 'מתנה' && giftProduct ? (
-                          <div className="flex items-center gap-2.5 bg-white p-2 rounded-xl border border-orange-100 shadow-2xs">
-                            <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden border shrink-0">
-                              {getProductImage(giftProduct) ? (
-                                <img src={getProductImage(giftProduct)} alt="" className="w-full h-full object-contain" />
-                              ) : (
-                                <span>🎁</span>
-                              )}
-                            </div>
-                            <div className="overflow-hidden">
-                              <span className="text-[10px] font-bold text-orange-600 block">מתנה בהזמנה ראשונה:</span>
-                              <span className="text-xs font-extrabold text-gray-900 block truncate">{giftProduct.name}</span>
-                            </div>
-                          </div>
-                        ) : (
-                          <p className="text-xs text-orange-800 font-medium">
-                            הרשם עכשיו וקבל {promoConfig?.welcome_discount_value}% הנחה על ההזמנה הראשונה שלך!
-                          </p>
-                        )}
-
-                        <div className="flex items-center justify-between pt-1 border-t border-orange-200/50">
-                          <button
-                            onClick={handleGoogleLogin}
-                            className="text-xs font-bold text-orange-700 hover:underline cursor-pointer"
-                          >
-                            מימוש מתנה ➔
-                          </button>
-                          <button
-                            onClick={() => setIsNotificationDismissed(true)}
-                            className="text-[10px] text-gray-500 hover:text-gray-700 font-bold"
-                          >
-                            סמן כנקרא ✓
-                          </button>
-                        </div>
-                      </div>
-                    )}
+      {/* ===== תפריט עליון (Header) ===== */}
+      <header className="bg-white border-b sticky top-0 z-40 shadow-sm" dir="rtl">
+        <div className="max-w-7xl mx-auto px-4 pt-4 pb-4 space-y-3.5">
+          
+          {/* שורה עליונה */}
+          <div className="flex items-center justify-between relative pt-1 pb-1">
+            
+            {/* צד שמאל: כפתור פרופיל והתראות עם אינדיקטור בולט */}
+            <div className="relative z-10 flex items-center ml-2" ref={dropdownRef}>
+              <button
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="relative flex items-center justify-center w-12 h-12 bg-white hover:bg-orange-50/50 border-2 border-orange-200 rounded-full shadow-2xs transition duration-200 cursor-pointer overflow-hidden p-1"
+                title={user ? (user.user_metadata?.full_name || 'החשבון שלי') : 'התחברות והתראות'}
+              >
+                {user?.user_metadata?.avatar_url ? (
+                  <img src={user.user_metadata.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
+                ) : user ? (
+                  <div className="w-full h-full bg-orange-600 text-white rounded-full flex items-center justify-center font-black text-sm">
+                    {user.email?.[0]?.toUpperCase() || 'U'}
+                  </div>
+                ) : (
+                  <div className="w-6 h-6 flex items-center justify-center">
+                    <svg className="w-full h-full" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                    </svg>
                   </div>
                 )}
 
-                {user && (
-                  <div className="space-y-3">
-                    <div className="bg-gray-50 p-3 rounded-2xl border flex items-center gap-3">
-                      {user.user_metadata?.avatar_url ? (
-                        <img src={user.user_metadata.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
-                      ) : (
-                        <div className="w-9 h-9 bg-orange-100 text-orange-700 rounded-xl flex items-center justify-center font-black text-sm shrink-0">
-                          {user.email?.[0]?.toUpperCase() || 'U'}
+                {/* אינדיקטור התראה פועם ובולט אם המשתמש סגר את הפופאפ ולא מחובר */}
+                {hasUnreadNotification && (
+                  <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-4 w-4 bg-orange-600 border-2 border-white text-[9px] text-white font-black items-center justify-center">1</span>
+                  </span>
+                )}
+              </button>
+
+              {/* חלונית נפתחת */}
+              {dropdownOpen && (
+                <div className="absolute top-16 right-0 z-50 w-80 max-w-[calc(100vw-24px)] bg-white rounded-3xl shadow-2xl border border-gray-100 p-4 space-y-4 animate-in fade-in zoom-in duration-150">
+                  
+                  <div className="flex items-center justify-between border-b pb-2.5">
+                    <span className="font-black text-sm text-gray-900 flex items-center gap-1.5">
+                      <span>🔔</span>
+                      <span>התראות ואישי</span>
+                    </span>
+                    <button 
+                      onClick={() => setDropdownOpen(false)}
+                      className="text-gray-400 hover:text-gray-600 text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {!user && (
+                    <div className="space-y-3">
+                      <button
+                        onClick={handleGoogleLogin}
+                        className="w-full bg-orange-600 hover:bg-orange-700 text-white font-black py-2.5 rounded-xl text-xs transition shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <span className="bg-white p-1 rounded-full flex items-center justify-center w-5 h-5">
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                          </svg>
+                        </span>
+                        <span>התחברות מהירה עם Google</span>
+                      </button>
+
+                      {promoConfig?.welcome_active && !isNotificationDismissed && (
+                        <div className="bg-orange-50 border border-orange-200/80 rounded-2xl p-3 space-y-2.5 relative">
+                          <div className="flex items-start justify-between gap-2">
+                            <span className="text-xs font-black text-orange-900 flex items-center gap-1">
+                              <span>🎁</span>
+                              <span>מתנת הצטרפות מחכה לך!</span>
+                            </span>
+                            <button 
+                              onClick={() => setIsNotificationDismissed(true)}
+                              className="text-[10px] text-gray-400 hover:text-red-500 font-bold cursor-pointer"
+                            >
+                              מחק
+                            </button>
+                          </div>
+
+                          {promoConfig.welcome_type === 'מתנה' && giftProduct ? (
+                            <div className="flex items-center gap-2.5 bg-white p-2 rounded-xl border border-orange-100 shadow-2xs">
+                              <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden border shrink-0">
+                                {getProductImage(giftProduct) ? (
+                                  <img src={getProductImage(giftProduct)} alt="" className="w-full h-full object-contain" />
+                                ) : (
+                                  <span>🎁</span>
+                                )}
+                              </div>
+                              <div className="overflow-hidden">
+                                <span className="text-[10px] font-bold text-orange-600 block">מתנה בהזמנה ראשונה:</span>
+                                <span className="text-xs font-extrabold text-gray-900 block truncate">{giftProduct.name}</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-orange-800 font-medium">
+                              הרשם עכשיו וקבל {promoConfig?.welcome_discount_value}% הנחה על ההזמנה הראשונה שלך!
+                            </p>
+                          )}
+
+                          <div className="flex items-center justify-between pt-1 border-t border-orange-200/50">
+                            <button
+                              onClick={handleGoogleLogin}
+                              className="text-xs font-bold text-orange-700 hover:underline cursor-pointer"
+                            >
+                              מימוש מתנה ➔
+                            </button>
+                            <button
+                              onClick={() => setIsNotificationDismissed(true)}
+                              className="text-[10px] text-gray-500 hover:text-gray-700 font-bold cursor-pointer"
+                            >
+                              סמן כנקרא ✓
+                            </button>
+                          </div>
                         </div>
                       )}
-                      <div className="overflow-hidden text-xs">
-                        <span className="font-bold text-gray-900 block truncate">{user.user_metadata?.full_name || 'משתמש מחובר'}</span>
-                        <span className="text-gray-400 block truncate">{user.email}</span>
-                      </div>
                     </div>
+                  )}
 
-                    {isUserAdmin && (
-                      <a
-                        href="/admin"
-                        onClick={() => setDropdownOpen(false)}
-                        className="w-full bg-black hover:bg-gray-800 text-white font-black py-3 rounded-xl text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                  {user && (
+                    <div className="space-y-3">
+                      <div className="bg-gray-50 p-3 rounded-2xl border flex items-center gap-3">
+                        {user.user_metadata?.avatar_url ? (
+                          <img src={user.user_metadata.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
+                        ) : (
+                          <div className="w-9 h-9 bg-orange-100 text-orange-700 rounded-xl flex items-center justify-center font-black text-sm shrink-0">
+                            {user.email?.[0]?.toUpperCase() || 'U'}
+                          </div>
+                        )}
+                        <div className="overflow-hidden text-xs">
+                          <span className="font-bold text-gray-900 block truncate">{user.user_metadata?.full_name || 'משתמש מחובר'}</span>
+                          <span className="text-gray-400 block truncate">{user.email}</span>
+                        </div>
+                      </div>
+
+                      {isUserAdmin && (
+                        <a
+                          href="/admin"
+                          onClick={() => setDropdownOpen(false)}
+                          className="w-full bg-black hover:bg-gray-800 text-white font-black py-3 rounded-xl text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                        >
+                          <span>פאנל ניהול אתר 🛠️</span>
+                        </a>
+                      )}
+
+                      <button
+                        onClick={handleLogout}
+                        className="w-full bg-gray-100 hover:bg-red-50 text-red-600 font-bold py-2 rounded-xl text-xs transition cursor-pointer text-center"
                       >
-                        <span>פאנל ניהול אתר 🛠️</span>
-                      </a>
-                    )}
+                        התנתק מהחשבון 🚪
+                      </button>
+                    </div>
+                  )}
 
-                    <button
-                      onClick={handleLogout}
-                      className="w-full bg-gray-100 hover:bg-red-50 text-red-600 font-bold py-2 rounded-xl text-xs transition cursor-pointer text-center"
-                    >
-                      התנתק מהחשבון 🚪
-                    </button>
-                  </div>
-                )}
+                </div>
+              )}
+            </div>
 
-              </div>
-            )}
+            {/* אמצע: לוגו */}
+            <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center cursor-pointer group shrink-0">
+              <img src="/Logo.JPG" alt="NEW PHONE" className="w-20 h-20 object-contain shadow-xs group-hover:scale-105 transition" />
+            </Link>
+
+            {/* צד ימין: כפתור עגלה */}
+            <Link 
+              href="/cart" 
+              className="relative p-2 bg-orange-50/40 hover:bg-orange-50 border-2 border-orange-200 text-orange-700 rounded-xl transition shadow-2xs flex items-center justify-center shrink-0 font-bold ml-2 cursor-pointer"
+              title="עגלה"
+            >
+              <span className="text-lg">🛒</span>
+              {cartCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-orange-600 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center font-black border-2 border-white shadow-md">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
+
           </div>
 
-          {/* אמצע: לוגו */}
-          <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center cursor-pointer group shrink-0">
-            <img src="/Logo.JPG" alt="NEW PHONE" className="w-20 h-20 object-contain shadow-xs group-hover:scale-105 transition" />
-          </Link>
-
-          {/* צד ימין: כפתור עגלה */}
-          <Link 
-            href="/cart" 
-            className="relative p-2 bg-orange-50/40 hover:bg-orange-50 border-2 border-orange-200 text-orange-700 rounded-xl transition shadow-2xs flex items-center justify-center shrink-0 font-bold ml-2"
-            title="עגלה"
-          >
-            <span className="text-lg">🛒</span>
-            {cartCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-orange-600 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center font-black border-2 border-white shadow-md">
-                {cartCount}
-              </span>
-            )}
-          </Link>
+          {/* שורה תחתונה: חיפוש */}
+          <form onSubmit={handleSearchSubmit} className="relative w-full pt-2">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="חיפוש מוצרים, מכשירים, נגנים או קטגוריות..."
+              className="w-full bg-white border-2 border-orange-200 hover:border-orange-300 focus:border-orange-500 rounded-2xl py-2.5 pr-4 pl-10 text-xs font-medium text-gray-800 shadow-2xs outline-none transition"
+            />
+            <button type="submit" className="absolute left-3 top-[calc(50%+4px)] -translate-y-1/2 text-gray-400 hover:text-orange-600 transition cursor-pointer">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+          </form>
 
         </div>
-
-        {/* שורה תחתונה: חיפוש */}
-        <form onSubmit={handleSearchSubmit} className="relative w-full pt-2">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="חיפוש מוצרים, מכשירים, נגנים או קטגוריות..."
-            className="w-full bg-white border-2 border-orange-200 hover:border-orange-300 focus:border-orange-500 rounded-2xl py-2.5 pr-4 pl-10 text-xs font-medium text-gray-800 shadow-2xs outline-none transition"
-          />
-          <button type="submit" className="absolute left-3 top-[calc(50%+4px)] -translate-y-1/2 text-gray-400 hover:text-orange-600 transition cursor-pointer">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </button>
-        </form>
-
-      </div>
-    </header>
+      </header>
+    </>
   );
 }
