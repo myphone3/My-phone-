@@ -24,7 +24,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'SEO ומעקב 🔍', href: '/admin/seo' },
   ];
 
-  // גלילה אוטומטית שומרת על הלשונית הפעילה גלויה בסרגל
+  // שומר על הלשונית הפעילה במרכז הסרגל ללא קפיצות
   useEffect(() => {
     if (activeRef.current) {
       activeRef.current.scrollIntoView({
@@ -38,9 +38,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="max-w-6xl mx-auto px-4 py-4 space-y-4" dir="rtl">
       {/* תפריט ניהול עליון */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-4 border-b no-scrollbar">
+      <div className="flex items-center gap-2 overflow-x-auto pb-4 border-b">
         
-        {/* כפתור מעבר ישיר לחנות */}
+        {/* כפתור מעבר לחנות */}
         <Link
           href="/"
           className="px-4 py-2 rounded-xl text-xs font-black transition whitespace-nowrap cursor-pointer shrink-0 bg-white border-2 border-orange-300 text-orange-700 hover:bg-orange-50 shadow-xs flex items-center gap-2"
