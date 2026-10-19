@@ -22,14 +22,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* תפריט ניהול עליון */}
       <div className="flex items-center gap-2 overflow-x-auto pb-4 border-b">
         
-        {/* כפתור מעבר ישיר לחנות עם עיצוב לוגו נקי ובולט */}
+        {/* כפתור מעבר ישיר לחנות עם לוגו החנות המקורי */}
         <a
           href="/"
           className="px-4 py-2 rounded-xl text-xs font-black transition whitespace-nowrap cursor-pointer shrink-0 bg-white border-2 border-orange-300 text-orange-700 hover:bg-orange-50 shadow-xs flex items-center gap-2"
         >
-          <div className="w-5 h-5 rounded-full bg-orange-600 text-white flex items-center justify-center text-[10px] shadow-sm">
-            🛒
-          </div>
+          <img 
+            src="/logo.png" 
+            alt="My Phone" 
+            className="w-5 h-5 object-contain rounded-md"
+            onError={(e) => {
+              // במקרה שהתמונה לא נטענת, נציג אייקון עגלה חלופי
+              e.currentTarget.style.display = 'none';
+            }}
+          />
           <span>מעבר לחנות</span>
         </a>
 
