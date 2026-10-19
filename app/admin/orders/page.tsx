@@ -6,7 +6,8 @@ import { supabase } from '@/lib/supabase';
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedOrder, setSelectedOrder] = useState<any | null>(null); // לניהול החלון המלא (מודל)
+  const [selectedOrder, setSelectedOrder] = useState<any | null>(null); // מודל פרטי הזמנה
+  const [printingOrder, setPrintingOrder] = useState<any | null>(null); // מודל הדפסה פנימי
 
   useEffect(() => {
     fetchOrders();
@@ -39,7 +40,6 @@ export default function AdminOrdersPage() {
     }
 
     fetchOrders();
-    // עדכון גם במודל הפתוח אם הוא מוצג כרגע
     setSelectedOrder((prev: any) => prev && prev.id === orderId ? { ...prev, status: newStatus } : prev);
 
     if (customerEmail) {
@@ -76,102 +76,9 @@ export default function AdminOrdersPage() {
       alert('שגיאה במחיקת הזמנה: ' + error.message);
     } else {
       setSelectedOrder(null);
+      setPrintingOrder(null);
       fetchOrders();
     }
-  };
-
-  const printOrderPdf = (order: any) => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-
-    const logoUrl = 'https://iiaxizrezhczgutqijbe.supabase.co/storage/v1/object/public/product-images/IMG_6252.jpeg';
-
-    const itemsHtml = [
-      ...(order.items || []).map((item: any, idx: number) => `
-        <tr style="border-bottom: 1px solid #ddd;">
-          <td style="padding: 10px;">${idx + 1}</td>
-          <td style="padding: 10px;">${item.name} ${item.selectedVariant ? `(${item.selectedVariant})` : ''} ${item.selectedColor ? `- ${item.selectedColor.name}` : ''}</td>
-          <td style="padding: 10px; text-align: center;">${item.quantity || 1}</td>
-          <td style="padding: 10px; text-align: left;">₪${(item.sale_price || item.price || 0) * (item.quantity || 1)}</td>
-        </tr>
-      `),
-      `
-      <tr style="border-bottom: 1px solid #ddd; background-color: #fff7ed;">
-        <td style="padding: 10px;">${(order.items || []).length + 1}</td>
-        <td style="padding: 10px;">משלוח מהיר עד הבית</td>
-        <td style="padding: 10px; text-align: center;">1</td>
-        <td style="padding: 10px; text-align: left;">₪${order.shipping_cost || 29}</td>
-      </tr>
-      `
-    ].join('');
-
-    printWindow.document.write(`
-      <html dir="rtl" lang="he">
-      <head>
-        <title>סיכום הזמנה #${order.id?.slice(0, 8)}</title>
-        <style>
-          body { font-family: Arial, sans-serif; padding: 30px; color: #333; direction: rtl; }
-          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ea580c; padding-bottom: 20px; margin-bottom: 20px; }
-          .logo-box { display: flex; align-items: center; gap: 12px; }
-          .logo-img { width: 55px; height: 55px; object-fit: contain; border-radius: 50%; }
-          .logo-title { font-size: 22px; font-weight: 900; color: #111; }
-          .logo-sub { font-size: 10px; color: #666; font-weight: bold; }
-          .details { margin-bottom: 20px; font-size: 13px; line-height: 1.6; }
-          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th { background: #ea580c; color: white; padding: 10px; text-align: right; font-size: 13px; }
-          td { font-size: 13px; }
-          .total { margin-top: 20px; text-align: left; font-size: 18px; font-weight: bold; color: #ea580c; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="logo-box">
-            <img src="${logoUrl}" alt="NEW PHONE" class="logo-img" />
-            <div>
-              <div class="logo-title">NEW PHONE</div>
-              <div class="logo-sub">הפלאפון החדש שלך</div>
-            </div>
-          </div>
-          <div style="text-align: left;">
-            <div style="font-size: 14px; font-weight: bold;">מספר הזמנה: #${order.id?.slice(0, 8)}</div>
-            <div style="font-size: 12px; color: #666;">תאריך: ${order.created_at ? new Date(order.created_at).toLocaleString('he-IL') : ''}</div>
-          </div>
-        </div>
-
-        <div class="details">
-          <strong>פרטי לקוח:</strong><br>
-          שם: ${order.customer_name || 'לא צוין'}<br>
-          טלפון: ${order.phone || 'לא צוין'}<br>
-          אימייל: ${order.email || 'לא צוין'}<br>
-          כתובת למשלוח: עיר: ${order.city || ''}, רחוב: ${order.street || ''} ${order.building || ''}<br>
-          ${order.notes ? `<strong>הערות הלקוח:</strong> ${order.notes}` : ''}
-        </div>
-
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>תיאור פריט</th>
-              <th style="text-align: center;">כמות</th>
-              <th style="text-align: left;">סכום</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsHtml}
-          </tbody>
-        </table>
-
-        <div class="total">
-          סה"כ לתשלום: ₪${order.total_price || 0}
-        </div>
-
-        <script>
-          window.print();
-        </script>
-      </body>
-      </html>
-    `);
-    printWindow.document.close();
   };
 
   if (loading) return <div className="text-center py-20 text-gray-500 font-medium">טוען הזמנות...</div>;
@@ -252,7 +159,7 @@ export default function AdminOrdersPage() {
       {/* חלון מודל (Modal) מלא להצגת פרטי ההזמנה הנבחרת */}
       {selectedOrder && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6 shadow-2xl border relative animate-in fade-in zoom-in duration-200">
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6 shadow-2xl border relative">
             
             {/* כותרת מודל */}
             <div className="flex justify-between items-center border-b pb-4">
@@ -292,7 +199,7 @@ export default function AdminOrdersPage() {
 
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => printOrderPdf(selectedOrder)}
+                  onClick={() => setPrintingOrder(selectedOrder)}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-xs"
                 >
                   🖨️ הדפס PDF
@@ -364,6 +271,106 @@ export default function AdminOrdersPage() {
                 className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold px-6 py-2.5 rounded-xl text-xs transition cursor-pointer"
               >
                 סגור חלון
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* מודל הדפסה פנימי נקי (ללא חסימות במובייל) */}
+      {printingOrder && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 space-y-6 shadow-2xl relative max-h-[95vh] overflow-y-auto">
+            
+            {/* סרגל כפתורים עליון למודל ההדפסה */}
+            <div className="flex justify-between items-center bg-gray-900 text-white p-3 rounded-2xl print:hidden">
+              <button
+                onClick={() => window.print()}
+                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer"
+              >
+                🖨️ הדפס / שמור כ-PDF
+              </button>
+              <button
+                onClick={() => setPrintingOrder(null)}
+                className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer"
+              >
+                ✕ סגור חלון
+              </button>
+            </div>
+
+            {/* תוכן מסמך ההדפסה */}
+            <div className="space-y-6 p-2 text-gray-800" dir="rtl">
+              <div className="flex justify-between items-center border-b-2 border-orange-600 pb-4">
+                <div className="flex items-center gap-3">
+                  <img 
+                    src="https://iiaxizrezhczgutqijbe.supabase.co/storage/v1/object/public/product-images/IMG_6252.jpeg" 
+                    alt="NEW PHONE" 
+                    className="w-12 h-12 object-contain rounded-full border" 
+                  />
+                  <div>
+                    <div className="text-lg font-black text-gray-900">NEW PHONE</div>
+                    <div className="text-[10px] text-gray-500 font-bold">הפלאפון החדש שלך</div>
+                  </div>
+                </div>
+                <div className="text-left text-xs">
+                  <div className="font-bold">מספר הזמנה: #{printingOrder.id?.slice(0, 8)}</div>
+                  <div className="text-gray-500">תאריך: {printingOrder.created_at ? new Date(printingOrder.created_at).toLocaleString('he-IL') : ''}</div>
+                </div>
+              </div>
+
+              <div className="text-xs space-y-1 bg-gray-50 p-4 rounded-2xl border">
+                <strong>פרטי לקוח:</strong>
+                <p>שם: {printingOrder.customer_name || 'לא צוין'}</p>
+                <p>טלפון: {printingOrder.phone || 'לא צוין'}</p>
+                <p>אימייל: {printingOrder.email || 'לא צוין'}</p>
+                <p>כתובת למשלוח: עיר: {printingOrder.city || ''}, רחוב: {printingOrder.street || ''} {printingOrder.building || ''}</p>
+                {printingOrder.notes && <p className="text-orange-700 mt-1"><strong>הערות הלקוח:</strong> {printingOrder.notes}</p>}
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-right text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-orange-600 text-white">
+                      <th className="p-2.5">#</th>
+                      <th className="p-2.5">תיאור פריט</th>
+                      <th className="p-2.5 text-center">כמות</th>
+                      <th className="p-2.5 text-left">סכום</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {Array.isArray(printingOrder.items) && printingOrder.items.map((item: any, idx: number) => (
+                      <tr key={idx} className="border-b">
+                        <td className="p-2.5">{idx + 1}</td>
+                        <td className="p-2.5">
+                          {item.name} {item.selectedVariant ? `(${item.selectedVariant})` : ''} {item.selectedColor ? `- ${item.selectedColor.name}` : ''}
+                        </td>
+                        <td className="p-2.5 text-center">{item.quantity || 1}</td>
+                        <td className="p-2.5 text-left">₪{(item.sale_price || item.price || 0) * (item.quantity || 1)}</td>
+                      </tr>
+                    ))}
+                    <tr className="bg-orange-50 border-b">
+                      <td className="p-2.5">{(printingOrder.items || []).length + 1}</td>
+                      <td className="p-2.5">משלוח מהיר עד הבית</td>
+                      <td className="p-2.5 text-center">1</td>
+                      <td className="p-2.5 text-left">₪{printingOrder.shipping_cost || 29}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="text-left text-base font-black text-orange-600 pt-2 border-t">
+                סה"כ לתשלום: ₪{printingOrder.total_price || 0}
+              </div>
+            </div>
+
+            {/* כפתור סגירה תחתון נוסף */}
+            <div className="pt-4 border-t text-center print:hidden">
+              <button
+                onClick={() => setPrintingOrder(null)}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold px-6 py-2.5 rounded-xl text-xs transition cursor-pointer"
+              >
+                סגור חלון הדפסה
               </button>
             </div>
 
