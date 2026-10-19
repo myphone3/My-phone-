@@ -1,6 +1,3 @@
-import React from 'react';
-import Link from 'next/link';
-
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const navItems = [
     { name: 'ראשי 🏠', href: '/admin' },
@@ -23,25 +20,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* תפריט ניהול עליון */}
       <div className="flex items-center gap-2 overflow-x-auto pb-4 border-b">
         
-        {/* כפתור מעבר ישיר לחנות */}
-        <Link
+        {/* כפתור מעבר ישיר לחנות בתגית HTML רגילה לחלוטין */}
+        <a
           href="/"
           className="px-4 py-2.5 rounded-xl text-xs font-black transition whitespace-nowrap cursor-pointer shrink-0 bg-white border-2 border-orange-200 text-orange-600 hover:bg-orange-50 shadow-xs flex items-center gap-1.5"
         >
           <span>🛒</span>
           <span>מעבר לחנות</span>
-        </Link>
+        </a>
 
         <div className="h-6 w-[1px] bg-gray-200 mx-1 shrink-0"></div>
 
         {navItems.map((item) => (
-          <Link
+          <a
             key={item.href}
             href={item.href}
             className="px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer shrink-0 bg-gray-100 text-gray-800 hover:bg-gray-200"
           >
             {item.name}
-          </Link>
+          </a>
         ))}
       </div>
 
