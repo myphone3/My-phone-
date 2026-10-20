@@ -76,7 +76,7 @@ export default function AdminOrdersPage() {
     return '';
   };
 
-  // הדפסה ישירה מתוך העמוד (מסתירה הכל ומדפיסה אך ורק את תעודת המשלוח הרשמית עם הלוגו)
+  // הפעלת דיאלוג ההדפסה/ה-PDF הישיר ללא פתיחת חלונות צדדיים
   const handlePrintPDF = () => {
     window.print();
   };
@@ -88,7 +88,7 @@ export default function AdminOrdersPage() {
   return (
     <div className="space-y-6 max-w-6xl mx-auto p-2 sm:p-4" dir="rtl">
       
-      {/* סגנונות הדפסה: בהדפסה/שמירה כ-PDF מוצג אך ורק טופס סיכום ההזמנה הרשמי */}
+      {/* סגנונות הדפסה - מציג אך ורק את טופס סיכום ההזמנה הרשמי בזמן הדפסה/שמירה כ-PDF */}
       <style jsx global>{`
         @media print {
           body * {
@@ -186,12 +186,12 @@ export default function AdminOrdersPage() {
         </div>
       </div>
 
-      {/* מודל פרטי ההזמנה (נקי ומסודר) */}
+      {/* מודל פרטי ההזמנה במערכת הניהול */}
       {selectedOrder && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-5 shadow-2xl border relative my-auto">
             
-            {/* סרגל עליון: כפתור סגירה וכפתור PDF */}
+            {/* סרגל עליון */}
             <div className="flex items-center justify-between border-b pb-3 sticky top-0 bg-white z-10 no-print">
               <button
                 onClick={() => setSelectedOrder(null)}
@@ -209,10 +209,10 @@ export default function AdminOrdersPage() {
               </button>
             </div>
 
-            {/* תוכן מסודר וברור לצפייה במערכת הניהול */}
+            {/* פרטי הזמנה מסודרים בצורה נקייה */}
             <div className="space-y-4 no-print text-xs text-gray-800">
               
-              {/* סטטוס ומזהה */}
+              {/* מזהה וסטטוס */}
               <div className="bg-orange-50/70 p-4 rounded-2xl border border-orange-200 flex items-center justify-between">
                 <div>
                   <span className="bg-orange-100 text-orange-800 text-xs font-black px-2.5 py-1 rounded-md">
@@ -289,7 +289,7 @@ export default function AdminOrdersPage() {
                 </div>
               </div>
 
-              {/* סיכום סופי */}
+              {/* סה"כ לתשלום */}
               <div className="bg-gray-900 text-white p-4 rounded-2xl flex justify-between items-center">
                 <span className="font-bold text-sm">סה"כ לתשלום (כולל משלוח):</span>
                 <span className="text-lg font-black text-orange-400">₪{selectedOrder.total_price || 0}</span>
@@ -297,12 +297,8 @@ export default function AdminOrdersPage() {
 
             </div>
 
-            {/* ---------------------------------------------------- */}
-            {/* טופס תעודת המשלוח / סיכום הזמנה הרשמי (מוצג רק בהדפסה/PDF) */}
-            {/* ---------------------------------------------------- */}
+            {/* טופס סיכום הזמנה רשמי (מופיע רק בהדפסה / שמירה כ-PDF) */}
             <div id="print-delivery-slip" className="hidden print:block space-y-5 bg-white p-2">
-              
-              {/* כותרת ולוגו */}
               <div className="flex justify-between items-center border-b-2 border-orange-600 pb-4">
                 <div className="flex items-center gap-3">
                   <img src={logoUrl} alt="NEW PHONE" className="w-14 h-14 object-contain rounded-full border p-0.5" />
@@ -320,7 +316,6 @@ export default function AdminOrdersPage() {
                 </div>
               </div>
 
-              {/* פרטי הלקוח */}
               <div className="text-xs text-gray-800 bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-1.5">
                 <span className="font-bold block text-gray-900 mb-1 text-sm">פרטי לקוח למשלוח:</span>
                 <p>👤 <strong>שם מלא:</strong> {selectedOrder.customer_name || 'לא צוין'}</p>
@@ -334,7 +329,6 @@ export default function AdminOrdersPage() {
                 )}
               </div>
 
-              {/* טבלת מוצרים */}
               <div>
                 <table className="w-full text-right text-xs border-collapse">
                   <thead>
@@ -371,16 +365,13 @@ export default function AdminOrdersPage() {
                 </table>
               </div>
 
-              {/* סה"כ לתשלום */}
               <div className="text-left border-t-2 border-orange-600 pt-3 font-black text-orange-600 text-lg">
                 סה"כ לתשלום: ₪{selectedOrder.total_price || 0}
               </div>
 
-              {/* הערת סיום */}
               <div className="text-center text-xs text-gray-500 pt-6 border-t border-dashed border-gray-200">
                 תודה שקנית ב-NEW PHONE! נשמח לראותך שוב ❤️
               </div>
-
             </div>
 
           </div>
