@@ -79,47 +79,53 @@ export default function AdminOrdersPage() {
     }
   };
 
-  // הדפסת סיכום ההזמנה באופן ישיר וטבעי דרך המכשיר
-  const handleDirectPrint = (order: any) => {
+  // פתיחת חלון הדפסה ישיר ששולח את ההזמנה להדפסה/שמירה כ-PDF במכשיר
+  const printOrder = (order: any) => {
     const logoUrl = 'https://iiaxizrezhczgutqijbe.supabase.co/storage/v1/object/public/product-images/IMG_6252.jpeg';
 
     const itemsRows = (order.items || []).map((item: any, idx: number) => `
       <tr>
-        <td style="padding:10px; border-bottom:1px solid #eee;">${idx + 1}</td>
-        <td style="padding:10px; border-bottom:1px solid #eee;"><b>${item.name}</b> ${item.selectedVariant ? `(${item.selectedVariant})` : ''} ${item.selectedColor ? `- ${item.selectedColor.name}` : ''}</td>
-        <td style="padding:10px; border-bottom:1px solid #eee; text-align:center;">${item.quantity || 1}</td>
-        <td style="padding:10px; border-bottom:1px solid #eee; text-align:left;">₪${(item.sale_price || item.price || 0) * (item.quantity || 1)}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd;">${idx + 1}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd;"><b>${item.name}</b> ${item.selectedVariant ? `(${item.selectedVariant})` : ''} ${item.selectedColor ? `- ${item.selectedColor.name}` : ''}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center;">${item.quantity || 1}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: left;">₪${(item.sale_price || item.price || 0) * (item.quantity || 1)}</td>
       </tr>
     `).join('');
 
-    const printContent = `
+    const printWin = window.open('', '_blank');
+    if (!printWin) {
+      alert('נא לאפשר חלונות קופצים בדפדפן');
+      return;
+    }
+
+    printWin.document.write(`
       <!DOCTYPE html>
       <html dir="rtl" lang="he">
       <head>
         <meta charset="utf-8">
         <title>סיכום הזמנה #${order.id?.slice(0, 8)}</title>
         <style>
-          body { font-family: system-ui, -apple-system, sans-serif; padding: 20px; direction: rtl; color: #111; }
-          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ea580c; padding-bottom: 12px; margin-bottom: 20px; }
-          .logo { width: 50px; height: 50px; border-radius: 50%; }
+          body { font-family: system-ui, -apple-system, sans-serif; padding: 25px; direction: rtl; color: #111; background: #fff; }
+          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ea580c; padding-bottom: 15px; margin-bottom: 20px; }
+          .logo { width: 50px; height: 50px; border-radius: 50%; object-fit: contain; }
           .box { background: #f9fafb; padding: 15px; border-radius: 12px; border: 1px solid #e5e7eb; margin-bottom: 20px; font-size: 13px; line-height: 1.6; }
-          table { width: 100%; border-collapse: collapse; font-size: 13px; }
+          table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
           th { background: #ea580c; color: white; padding: 10px; text-align: right; }
           .total { margin-top: 20px; text-align: left; font-size: 18px; font-weight: bold; color: #ea580c; }
         </style>
       </head>
       <body>
         <div class="header">
-          <div style="display:flex; align-items:center; gap:10px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
             <img src="${logoUrl}" class="logo" />
             <div>
-              <div style="font-size:18px; font-weight:900;">NEW PHONE</div>
-              <div style="font-size:10px; color:#ea580c; font-weight:bold;">הפלאפון החדש שלך</div>
+              <div style="font-size: 20px; font-weight: 900;">NEW PHONE</div>
+              <div style="font-size: 10px; color: #ea580c; font-weight: bold;">הפלאפון החדש שלך</div>
             </div>
           </div>
-          <div style="text-align:left;">
-            <div style="font-size:13px; font-weight:bold;">הזמנה #${order.id?.slice(0, 8)}</div>
-            <div style="font-size:11px; color:#666;">${order.created_at ? new Date(order.created_at).toLocaleString('he-IL') : ''}</div>
+          <div style="text-align: left;">
+            <div style="font-size: 14px; font-weight: bold;">הזמנה #${order.id?.slice(0, 8)}</div>
+            <div style="font-size: 11px; color: #666;">${order.created_at ? new Date(order.created_at).toLocaleString('he-IL') : ''}</div>
           </div>
         </div>
 
@@ -137,17 +143,17 @@ export default function AdminOrdersPage() {
             <tr>
               <th>#</th>
               <th>תיאור פריט</th>
-              <th style="text-align:center;">כמות</th>
-              <th style="text-align:left;">סכום</th>
+              <th style="text-align: center;">כמות</th>
+              <th style="text-align: left;">סכום</th>
             </tr>
           </thead>
           <tbody>
             ${itemsRows}
-            <tr style="background:#fff7ed;">
-              <td style="padding:10px;">${(order.items || []).length + 1}</td>
-              <td style="padding:10px;"><b>משלוח מהיר עד הבית</b></td>
-              <td style="padding:10px; text-align:center;">1</td>
-              <td style="padding:10px; text-align:left;">₪${order.shipping_cost || 29}</td>
+            <tr style="background: #fff7ed;">
+              <td style="padding: 10px;">${(order.items || []).length + 1}</td>
+              <td style="padding: 10px;"><b>משלוח מהיר עד הבית</b></td>
+              <td style="padding: 10px; text-align: center;">1</td>
+              <td style="padding: 10px; text-align: left;">₪${order.shipping_cost || 29}</td>
             </tr>
           </tbody>
         </table>
@@ -158,28 +164,22 @@ export default function AdminOrdersPage() {
 
         <script>
           window.onload = function() {
-            window.print();
+            setTimeout(function() {
+              window.print();
+            }, 300);
           };
         </script>
       </body>
       </html>
-    `;
-
-    const printWin = window.open('', '_blank');
-    if (printWin) {
-      printWin.document.open();
-      printWin.document.write(printContent);
-      printWin.document.close();
-    } else {
-      alert('נא לאפשר חלונות קופצים בדפדפן');
-    }
+    `);
+    printWin.document.close();
   };
 
   if (loading) return <div className="text-center py-20 text-gray-500 font-medium">טוען הזמנות...</div>;
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto" dir="rtl">
-      {/* כותרת נקייה */}
+      {/* כותרת */}
       <div className="flex items-center justify-between my-2">
         <h1 className="text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3 flex items-center gap-2">
           <span>📋</span>
@@ -294,7 +294,7 @@ export default function AdminOrdersPage() {
 
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => handleDirectPrint(selectedOrder)}
+                  onClick={() => printOrder(selectedOrder)}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   🖨️ הדפס סיכום הזמנה
