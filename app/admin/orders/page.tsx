@@ -79,16 +79,16 @@ export default function AdminOrdersPage() {
     }
   };
 
-  // פתיחת חלון ההדפסה הישיר שמציג את קובץ ה-PDF/הסיכום מוכן להדפסה
+  // פתיחת חלון סיכום הזמנה עם סרגל כלים (הדפסה + חזור לאתר)
   const printOrderPdf = (order: any) => {
     const logoUrl = 'https://iiaxizrezhczgutqijbe.supabase.co/storage/v1/object/public/product-images/IMG_6252.jpeg';
 
     const itemsRows = (order.items || []).map((item: any, idx: number) => `
       <tr>
-        <td style="padding: 10px; border-bottom: 1px solid #ddd;">${idx + 1}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #ddd;"><b>${item.name}</b> ${item.selectedVariant ? `(${item.selectedVariant})` : ''} ${item.selectedColor ? `- ${item.selectedColor.name}` : ''}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center;">${item.quantity || 1}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: left;">₪${(item.sale_price || item.price || 0) * (item.quantity || 1)}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee;">${idx + 1}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee;"><b>${item.name}</b> ${item.selectedVariant ? `(${item.selectedVariant})` : ''} ${item.selectedColor ? `- ${item.selectedColor.name}` : ''}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity || 1}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: left;">₪${(item.sale_price || item.price || 0) * (item.quantity || 1)}</td>
       </tr>
     `).join('');
 
@@ -103,72 +103,122 @@ export default function AdminOrdersPage() {
       <html dir="rtl" lang="he">
       <head>
         <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>סיכום הזמנה #${order.id?.slice(0, 8)}</title>
         <style>
-          body { font-family: system-ui, -apple-system, sans-serif; padding: 25px; direction: rtl; color: #111; background: #fff; }
+          * { box-sizing: border-box; }
+          body { font-family: system-ui, -apple-system, sans-serif; padding: 15px; direction: rtl; color: #111; background: #f8fafc; margin: 0; }
+          
+          /* סרגל כלים עליון */
+          .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #ffffff;
+            padding: 12px 16px;
+            border-radius: 14px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+          }
+          .btn-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            text-decoration: none;
+            transition: background 0.2s;
+          }
+          .btn-print { background: #ea580c; color: white; }
+          .btn-back { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
+
+          /* דף ה-PDF/הסיכום */
+          .invoice-paper {
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            max-width: 700px;
+            margin: 0 auto;
+          }
           .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ea580c; padding-bottom: 15px; margin-bottom: 20px; }
           .logo { width: 50px; height: 50px; border-radius: 50%; object-fit: contain; }
-          .box { background: #f9fafb; padding: 15px; border-radius: 12px; border: 1px solid #e5e7eb; margin-bottom: 20px; font-size: 13px; line-height: 1.6; }
+          .box { background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px; font-size: 13px; line-height: 1.6; }
           table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
           th { background: #ea580c; color: white; padding: 10px; text-align: right; }
-          .total { margin-top: 20px; text-align: left; font-size: 18px; font-weight: bold; color: #ea580c; }
+          .total { margin-top: 20px; text-align: left; font-size: 18px; font-weight: bold; color: #ea580c; border-top: 1px solid #e2e8f0; padding-top: 12px; }
+
+          /* הסתרת סרגל הכלים בזמן הדפסה בפועל */
+          @media print {
+            .toolbar { display: none !important; }
+            body { background: white; padding: 0; }
+            .invoice-paper { border: none; padding: 0; }
+          }
         </style>
       </head>
       <body>
-        <div class="header">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <img src="${logoUrl}" class="logo" />
-            <div>
-              <div style="font-size: 20px; font-weight: 900;">NEW PHONE</div>
-              <div style="font-size: 10px; color: #ea580c; font-weight: bold;">הפלאפון החדש שלך</div>
+        
+        <!-- סרגל כלים עליון -->
+        <div class="toolbar">
+          <button class="btn-action btn-back" onclick="window.close();">⬅️ חזור לאתר</button>
+          <button class="btn-action btn-print" onclick="window.print();">🖨️ הדפס סיכום הזמנה</button>
+        </div>
+
+        <!-- דף הסיכום -->
+        <div class="invoice-paper">
+          <div class="header">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <img src="${logoUrl}" class="logo" />
+              <div>
+                <div style="font-size: 20px; font-weight: 900;">NEW PHONE</div>
+                <div style="font-size: 10px; color: #ea580c; font-weight: bold;">הפלאפון החדש שלך</div>
+              </div>
+            </div>
+            <div style="text-align: left;">
+              <div style="font-size: 14px; font-weight: bold;">הזמנה #${order.id?.slice(0, 8)}</div>
+              <div style="font-size: 11px; color: #666;">${order.created_at ? new Date(order.created_at).toLocaleString('he-IL') : ''}</div>
             </div>
           </div>
-          <div style="text-align: left;">
-            <div style="font-size: 14px; font-weight: bold;">הזמנה #${order.id?.slice(0, 8)}</div>
-            <div style="font-size: 11px; color: #666;">${order.created_at ? new Date(order.created_at).toLocaleString('he-IL') : ''}</div>
+
+          <div class="box">
+            <strong>פרטי לקוח למשלוח:</strong><br>
+            שם: ${order.customer_name || 'לא צוין'}<br>
+            טלפון: ${order.phone || 'לא צוין'}<br>
+            אימייל: ${order.email || 'לא צוין'}<br>
+            כתובת: עיר: ${order.city || ''}, רחוב: ${order.street || ''} ${order.building || ''}<br>
+            ${order.notes ? `<strong>הערות לקוח:</strong> ${order.notes}` : ''}
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 30px;">#</th>
+                <th>תיאור פריט</th>
+                <th style="text-align: center; width: 60px;">כמות</th>
+                <th style="text-align: left; width: 80px;">סכום</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsRows}
+              <tr style="background: #fff7ed;">
+                <td style="padding: 10px;">${(order.items || []).length + 1}</td>
+                <td style="padding: 10px;"><b>משלוח מהיר עד הבית</b></td>
+                <td style="padding: 10px; text-align: center;">1</td>
+                <td style="padding: 10px; text-align: left;">₪${order.shipping_cost || 29}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="total">
+            סה"כ לתשלום: ₪${order.total_price || 0}
           </div>
         </div>
 
-        <div class="box">
-          <strong>פרטי לקוח למשלוח:</strong><br>
-          שם: ${order.customer_name || 'לא צוין'}<br>
-          טלפון: ${order.phone || 'לא צוין'}<br>
-          אימייל: ${order.email || 'לא צוין'}<br>
-          כתובת: עיר: ${order.city || ''}, רחוב: ${order.street || ''} ${order.building || ''}<br>
-          ${order.notes ? `<strong>הערות לקוח:</strong> ${order.notes}` : ''}
-        </div>
-
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>תיאור פריט</th>
-              <th style="text-align: center;">כמות</th>
-              <th style="text-align: left;">סכום</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsRows}
-            <tr style="background: #fff7ed;">
-              <td style="padding: 10px;">${(order.items || []).length + 1}</td>
-              <td style="padding: 10px;"><b>משלוח מהיר עד הבית</b></td>
-              <td style="padding: 10px; text-align: center;">1</td>
-              <td style="padding: 10px; text-align: left;">₪${order.shipping_cost || 29}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div class="total">
-          סה"כ לתשלום: ₪${order.total_price || 0}
-        </div>
-
-        <script>
-          window.onload = function() {
-            setTimeout(function() {
-              window.print();
-            }, 400);
-          };
-        </script>
       </body>
       </html>
     `);
