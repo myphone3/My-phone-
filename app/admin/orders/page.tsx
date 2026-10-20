@@ -79,6 +79,7 @@ export default function AdminOrdersPage() {
     }
   };
 
+  // פתיחת קובץ PDF ישיר עם תפריט ההדפסה של המכשיר
   const printOrderPdf = (order: any) => {
     const logoUrl = 'https://iiaxizrezhczgutqijbe.supabase.co/storage/v1/object/public/product-images/IMG_6252.jpeg';
 
@@ -101,45 +102,14 @@ export default function AdminOrdersPage() {
       `
     ].join('');
 
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      alert('נא לאפשר חלונות קופצים בדפדפן לצורך הדפסה');
-      return;
-    }
-
-    printWindow.document.write(`
+    const htmlContent = `<!DOCTYPE html>
       <html dir="rtl" lang="he">
       <head>
         <meta charset="utf-8">
-        <title>סיכום הזמנה #${order.id?.slice(0, 8)}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>הזמנה #${order.id?.slice(0, 8)} - NEW PHONE</title>
         <style>
-          body { font-family: system-ui, -apple-system, sans-serif; padding: 20px; color: #333; direction: rtl; margin: 0; background: #f9fafb; }
-          .print-bar {
-            background: #111827;
-            color: white;
-            padding: 16px;
-            border-radius: 16px;
-            text-align: center;
-            margin-bottom: 25px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-          }
-          .print-btn {
-            background: #ea580c;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 12px;
-            font-weight: bold;
-            font-size: 16px;
-            cursor: pointer;
-            width: 100%;
-            max-width: 300px;
-          }
-          @media print {
-            .print-bar { display: none !important; }
-            body { background: white; padding: 0; }
-          }
-          .invoice-box { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); max-width: 700px; margin: 0 auto; }
+          body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; color: #333; direction: rtl; margin: 0; background: white; }
           .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ea580c; padding-bottom: 15px; margin-bottom: 20px; }
           .logo-box { display: flex; align-items: center; gap: 12px; }
           .logo-img { width: 50px; height: 50px; object-fit: contain; border-radius: 50%; }
@@ -150,60 +120,70 @@ export default function AdminOrdersPage() {
           th { background: #ea580c; color: white; padding: 10px; font-size: 12px; }
           td { font-size: 12px; padding: 10px; border-bottom: 1px solid #eee; }
           .total { margin-top: 20px; text-align: left; font-size: 18px; font-weight: bold; color: #ea580c; }
+          @media print {
+            body { padding: 0; }
+          }
         </style>
       </head>
       <body>
-        <div class="print-bar">
-          <div style="font-size: 14px; margin-bottom: 10px; font-weight: bold;">המסמך מוכן להדפסה / שמירה כ-PDF</div>
-          <button class="print-btn" onclick="window.print()">🖨️ לחץ כאן להדפסה</button>
-        </div>
-
-        <div class="invoice-box">
-          <div class="header">
-            <div class="logo-box">
-              <img src="${logoUrl}" alt="NEW PHONE" class="logo-img" />
-              <div>
-                <div class="logo-title">NEW PHONE</div>
-                <div class="logo-sub">הפלאפון החדש שלך</div>
-              </div>
-            </div>
-            <div style="text-align: left;">
-              <div style="font-size: 13px; font-weight: bold;">מספר הזמנה: #${order.id?.slice(0, 8)}</div>
-              <div style="font-size: 11px; color: #666;">תאריך: ${order.created_at ? new Date(order.created_at).toLocaleString('he-IL') : ''}</div>
+        <div class="header">
+          <div class="logo-box">
+            <img src="${logoUrl}" alt="NEW PHONE" class="logo-img" />
+            <div>
+              <div class="logo-title">NEW PHONE</div>
+              <div class="logo-sub">הפלאפון החדש שלך</div>
             </div>
           </div>
-
-          <div class="details">
-            <strong>פרטי לקוח:</strong><br>
-            שם: ${order.customer_name || 'לא צוין'}<br>
-            טלפון: ${order.phone || 'לא צוין'}<br>
-            אימייל: ${order.email || 'לא צוין'}<br>
-            כתובת למשלוח: עיר: ${order.city || ''}, רחוב: ${order.street || ''} ${order.building || ''}<br>
-            ${order.notes ? `<strong>הערות הלקוח:</strong> ${order.notes}` : ''}
-          </div>
-
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>תיאור פריט</th>
-                <th style="text-align: center;">כמות</th>
-                <th style="text-align: left;">סכום</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${itemsHtml}
-            </tbody>
-          </table>
-
-          <div class="total">
-            סה"כ לתשלום: ₪${order.total_price || 0}
+          <div style="text-align: left;">
+            <div style="font-size: 13px; font-weight: bold;">מספר הזמנה: #${order.id?.slice(0, 8)}</div>
+            <div style="font-size: 11px; color: #666;">תאריך: ${order.created_at ? new Date(order.created_at).toLocaleString('he-IL') : ''}</div>
           </div>
         </div>
+
+        <div class="details">
+          <strong>פרטי לקוח:</strong><br>
+          שם: ${order.customer_name || 'לא צוין'}<br>
+          טלפון: ${order.phone || 'לא צוין'}<br>
+          אימייל: ${order.email || 'לא צוין'}<br>
+          כתובת למשלוח: עיר: ${order.city || ''}, רחוב: ${order.street || ''} ${order.building || ''}<br>
+          ${order.notes ? `<strong>הערות הלקוח:</strong> ${order.notes}` : ''}
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>תיאור פריט</th>
+              <th style="text-align: center;">כמות</th>
+              <th style="text-align: left;">סכום</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+
+        <div class="total">
+          סה"כ לתשלום: ₪${order.total_price || 0}
+        </div>
+
+        <script>
+          window.onload = function() {
+            window.print();
+          };
+        </script>
       </body>
       </html>
-    `);
-    printWindow.document.close();
+    `;
+
+    // יצירת קובץ Blob ונתיב ישיר לפתיחה חלקה ללא חסימות דפדפן
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    
+    const printWindow = window.open(url, '_blank');
+    if (!printWindow) {
+      window.location.href = url;
+    }
   };
 
   if (loading) return <div className="text-center py-20 text-gray-500 font-medium">טוען הזמנות...</div>;
