@@ -50,7 +50,7 @@ export default function AdminOrdersPage() {
       else if (newStatus === 'בטיפול') statusAction = 'ההזמנה שלך נמצאת בטיפול';
 
       const orderShortId = orderId.slice(0, 8);
-      const message = `שלום ${customerName || 'לקוח יקר'},\n\nNEW PHONE שמחים לעדכן אותך שההזמנה שלך (#${orderShortId}) ${statusAction}.\n\nתודה שקנית אצלנו!\nNEW PHONE`;
+      const message = `שלום ${customerName || 'לקוח יקר'},\n\nNEW PHONE שמחים לעדכן אותך שההזמנה שלך (#${orderShortId}) ${statusAction}.\n\nשמחים לתת לך שירות!\nNEW PHONE`;
 
       try {
         await fetch('/api/send-email', {
@@ -101,27 +101,21 @@ export default function AdminOrdersPage() {
       `
     ].join('');
 
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      alert('נא לאפשר פתיחת חלונות קופצים בדפדפן לצורך הדפסה');
-      return;
-    }
-
-    printWindow.document.write(`
+    const htmlContent = `
       <html dir="rtl" lang="he">
       <head>
-        <title>סיכום הזמנה #${order.id?.slice(0, 8)}</title>
+        <title>הזמנה #${order.id?.slice(0, 8)}</title>
         <style>
-          body { font-family: system-ui, -apple-system, sans-serif; padding: 20px; color: #333; direction: rtl; margin: 0; }
+          body { font-family: system-ui, -apple-system, sans-serif; padding: 25px; color: #333; direction: rtl; margin: 0; background: white; }
           .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ea580c; padding-bottom: 15px; margin-bottom: 20px; }
           .logo-box { display: flex; align-items: center; gap: 12px; }
           .logo-img { width: 50px; height: 50px; object-fit: contain; border-radius: 50%; }
           .logo-title { font-size: 20px; font-weight: 900; color: #111; }
           .logo-sub { font-size: 10px; color: #666; font-weight: bold; }
-          .details { margin-bottom: 20px; font-size: 13px; line-height: 1.6; }
+          .details { margin-bottom: 20px; font-size: 13px; line-height: 1.6; background: #f9fafb; padding: 15px; border-radius: 12px; border: 1px solid #e5e7eb; }
           table { width: 100%; border-collapse: collapse; margin-top: 15px; }
           th { background: #ea580c; color: white; padding: 10px; text-align: right; font-size: 12px; }
-          td { font-size: 12px; }
+          td { font-size: 12px; padding: 10px; border-bottom: 1px solid #eee; }
           .total { margin-top: 20px; text-align: left; font-size: 18px; font-weight: bold; color: #ea580c; }
         </style>
       </head>
@@ -166,22 +160,22 @@ export default function AdminOrdersPage() {
         <div class="total">
           סה"כ לתשלום: ₪${order.total_price || 0}
         </div>
-
-        <script>
-          setTimeout(function() {
-            window.print();
-          }, 300);
-        </script>
       </body>
       </html>
-    `);
-    printWindow.document.close();
+    `;
+
+    const encodedData = 'data:text/html;charset=utf-8,' + encodeURIComponent(htmlContent);
+    const printWindow = window.open(encodedData, '_blank');
+    
+    if (!printWindow) {
+      alert('נא לאפשר חלונות קופצים בדפדפן כדי לצפות במסמך ההדפסה');
+    }
   };
 
   if (loading) return <div className="text-center py-20 text-gray-500 font-medium">טוען הזמנות...</div>;
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="space-y-6 max-w-6xl mx-auto" dir="rtl">
       {/* כותרת נקייה */}
       <div className="flex items-center justify-between my-2">
         <h1 className="text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3 flex items-center gap-2">
@@ -253,7 +247,7 @@ export default function AdminOrdersPage() {
         </div>
       </div>
 
-      {/* חלון מודל (Modal) מלא להצגת פרטי ההזמנה הנבחרת - ללא לוגו */}
+      {/* חלון מודל (Modal) מלא להצגת פרטי ההזמנה הנבחרת */}
       {selectedOrder && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6 shadow-2xl border relative">
