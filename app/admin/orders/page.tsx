@@ -79,7 +79,8 @@ export default function AdminOrdersPage() {
     }
   };
 
-  const printOrderPdf = (order: any) => {
+  // יצירת קובץ PDF אמיתי
+  const printOrderPdf = async (order: any) => {
     const logoUrl = 'https://iiaxizrezhczgutqijbe.supabase.co/storage/v1/object/public/product-images/IMG_6252.jpeg';
 
     const itemsHtml = [
@@ -101,75 +102,70 @@ export default function AdminOrdersPage() {
       `
     ].join('');
 
-    const htmlContent = `
-      <html dir="rtl" lang="he">
-      <head>
-        <title>הזמנה #${order.id?.slice(0, 8)}</title>
-        <style>
-          body { font-family: system-ui, -apple-system, sans-serif; padding: 25px; color: #333; direction: rtl; margin: 0; background: white; }
-          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ea580c; padding-bottom: 15px; margin-bottom: 20px; }
-          .logo-box { display: flex; align-items: center; gap: 12px; }
-          .logo-img { width: 50px; height: 50px; object-fit: contain; border-radius: 50%; }
-          .logo-title { font-size: 20px; font-weight: 900; color: #111; }
-          .logo-sub { font-size: 10px; color: #666; font-weight: bold; }
-          .details { margin-bottom: 20px; font-size: 13px; line-height: 1.6; background: #f9fafb; padding: 15px; border-radius: 12px; border: 1px solid #e5e7eb; }
-          table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-          th { background: #ea580c; color: white; padding: 10px; text-align: right; font-size: 12px; }
-          td { font-size: 12px; padding: 10px; border-bottom: 1px solid #eee; }
-          .total { margin-top: 20px; text-align: left; font-size: 18px; font-weight: bold; color: #ea580c; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="logo-box">
-            <img src="${logoUrl}" alt="NEW PHONE" class="logo-img" />
-            <div>
-              <div class="logo-title">NEW PHONE</div>
-              <div class="logo-sub">הפלאפון החדש שלך</div>
-            </div>
-          </div>
-          <div style="text-align: left;">
-            <div style="font-size: 13px; font-weight: bold;">מספר הזמנה: #${order.id?.slice(0, 8)}</div>
-            <div style="font-size: 11px; color: #666;">תאריך: ${order.created_at ? new Date(order.created_at).toLocaleString('he-IL') : ''}</div>
+    const element = document.createElement('div');
+    element.dir = 'rtl';
+    element.style.padding = '20px';
+    element.style.fontFamily = 'sans-serif';
+    element.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ea580c; padding-bottom: 15px; margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <img src="${logoUrl}" alt="NEW PHONE" style="width: 50px; height: 50px; object-fit: contain; border-radius: 50%;" />
+          <div>
+            <div style="font-size: 20px; font-weight: 900; color: #111;">NEW PHONE</div>
+            <div style="font-size: 10px; color: #666; font-weight: bold;">הפלאפון החדש שלך</div>
           </div>
         </div>
-
-        <div class="details">
-          <strong>פרטי לקוח:</strong><br>
-          שם: ${order.customer_name || 'לא צוין'}<br>
-          טלפון: ${order.phone || 'לא צוין'}<br>
-          אימייל: ${order.email || 'לא צוין'}<br>
-          כתובת למשלוח: עיר: ${order.city || ''}, רחוב: ${order.street || ''} ${order.building || ''}<br>
-          ${order.notes ? `<strong>הערות הלקוח:</strong> ${order.notes}` : ''}
+        <div style="text-align: left;">
+          <div style="font-size: 13px; font-weight: bold;">מספר הזמנה: #${order.id?.slice(0, 8)}</div>
+          <div style="font-size: 11px; color: #666;">תאריך: ${order.created_at ? new Date(order.created_at).toLocaleString('he-IL') : ''}</div>
         </div>
+      </div>
 
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>תיאור פריט</th>
-              <th style="text-align: center;">כמות</th>
-              <th style="text-align: left;">סכום</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsHtml}
-          </tbody>
-        </table>
+      <div style="margin-bottom: 20px; font-size: 13px; line-height: 1.6; background: #f9fafb; padding: 15px; border-radius: 12px; border: 1px solid #e5e7eb;">
+        <strong>פרטי לקוח:</strong><br>
+        שם: ${order.customer_name || 'לא צוין'}<br>
+        טלפון: ${order.phone || 'לא צוין'}<br>
+        אימייל: ${order.email || 'לא צוין'}<br>
+        כתובת למשלוח: עיר: ${order.city || ''}, רחוב: ${order.street || ''} ${order.building || ''}<br>
+        ${order.notes ? `<strong>הערות הלקוח:</strong> ${order.notes}` : ''}
+      </div>
 
-        <div class="total">
-          סה"כ לתשלום: ₪${order.total_price || 0}
-        </div>
-      </body>
-      </html>
+      <table style="width: 100%; border-collapse: collapse; margin-top: 15px; text-align: right; font-size: 12px;">
+        <thead>
+          <tr style="background: #ea580c; color: white;">
+            <th style="padding: 10px;">#</th>
+            <th style="padding: 10px;">תיאור פריט</th>
+            <th style="padding: 10px; text-align: center;">כמות</th>
+            <th style="padding: 10px; text-align: left;">סכום</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsHtml}
+        </tbody>
+      </table>
+
+      <div style="margin-top: 20px; text-align: left; font-size: 18px; font-weight: bold; color: #ea580c;">
+        סה"כ לתשלום: ₪${order.total_price || 0}
+      </div>
     `;
 
-    const encodedData = 'data:text/html;charset=utf-8,' + encodeURIComponent(htmlContent);
-    const printWindow = window.open(encodedData, '_blank');
-    
-    if (!printWindow) {
-      alert('נא לאפשר חלונות קופצים בדפדפן כדי לצפות במסמך ההדפסה');
+    // טעינת ספריית html2pdf באופן דינמי
+    if (!(window as any).html2pdf) {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+      document.body.appendChild(script);
+      await new Promise((resolve) => (script.onload = resolve));
     }
+
+    const opt = {
+      margin: 10,
+      filename: `order_${order.id?.slice(0, 8)}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    (window as any).html2pdf().set(opt).from(element).save();
   };
 
   if (loading) return <div className="text-center py-20 text-gray-500 font-medium">טוען הזמנות...</div>;
@@ -296,7 +292,7 @@ export default function AdminOrdersPage() {
                   onClick={() => printOrderPdf(selectedOrder)}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-xs"
                 >
-                  🖨️ הדפס PDF
+                  📄 הורד / הדפס PDF
                 </button>
                 <button
                   onClick={() => deleteOrder(selectedOrder.id)}
