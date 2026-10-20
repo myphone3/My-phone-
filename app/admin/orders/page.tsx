@@ -79,6 +79,14 @@ export default function AdminOrdersPage() {
     }
   };
 
+  // פונקציית עזר בטוחה להוצאת טקסט צבע
+  const getColorName = (colorVal: any) => {
+    if (!colorVal) return '';
+    if (typeof colorVal === 'string') return colorVal;
+    if (typeof colorVal === 'object' && colorVal.name) return String(colorVal.name);
+    return '';
+  };
+
   // פתיחת חלון נקי להדפסה ושמירה כ-PDF
   const handlePrintWindow = () => {
     if (!selectedOrder) return;
@@ -86,7 +94,7 @@ export default function AdminOrdersPage() {
     const logoUrl = 'https://iiaxizrezhczgutqijbe.supabase.co/storage/v1/object/public/product-images/IMG_6252.jpeg';
     
     const itemsRows = (selectedOrder.items || []).map((item: any, idx: number) => {
-      const colorText = typeof item.selectedColor === 'object' ? item.selectedColor?.name : item.selectedColor;
+      const colorText = getColorName(item.selectedColor);
       return `
         <tr style="border-bottom: 1px solid #e5e7eb;">
           <td style="padding: 12px; text-align: center; font-weight: bold; width: 40px;">${idx + 1}</td>
@@ -353,22 +361,25 @@ export default function AdminOrdersPage() {
             <div className="space-y-2">
               <span className="text-xs font-bold text-gray-700 block">מוצרים בהזמנה:</span>
               <div className="space-y-2 max-h-48 overflow-y-auto pl-1">
-                {Array.isArray(selectedOrder.items) && selectedOrder.items.map((item: any, idx: number) => (
-                  <div key={idx} className="flex items-center justify-between bg-gray-50/50 border p-3 rounded-xl text-xs">
-                    <div className="flex items-center gap-3">
-                      {item.image_url && <img src={item.image_url} alt="" className="w-10 h-10 object-contain bg-white rounded-lg border p-0.5" />}
-                      <div>
-                        <span className="font-bold text-gray-900 block">{item.name}</span>
-                        {item.selectedVariant && <span className="text-[10px] text-gray-500">גרסה: {item.selectedVariant} | </span>}
-                        {item.selectedColor && <span className="text-[10px] text-gray-500">צבע: {item.selectedColor.name || item.selectedColor}</span>}
+                {Array.isArray(selectedOrder.items) && selectedOrder.items.map((item: any, idx: number) => {
+                  const colorText = getColorName(item.selectedColor);
+                  return (
+                    <div key={idx} className="flex items-center justify-between bg-gray-50/50 border p-3 rounded-xl text-xs">
+                      <div className="flex items-center gap-3">
+                        {item.image_url && <img src={item.image_url} alt="" className="w-10 h-10 object-contain bg-white rounded-lg border p-0.5" />}
+                        <div>
+                          <span className="font-bold text-gray-900 block">{item.name}</span>
+                          {item.selectedVariant && <span className="text-[10px] text-gray-500">גרסה: {item.selectedVariant} | </span>}
+                          {colorText && <span className="text-[10px] text-gray-500">צבע: {colorText}</span>}
+                        </div>
+                      </div>
+                      <div className="text-left">
+                        <span className="font-bold text-gray-900">כמות: {item.quantity || 1}</span>
+                        <span className="text-orange-600 font-black block">₪{(item.sale_price || item.price || 0) * (item.quantity || 1)}</span>
                       </div>
                     </div>
-                    <div className="text-left">
-                      <span className="font-bold text-gray-900">כמות: {item.quantity || 1}</span>
-                      <span className="text-orange-600 font-black block">₪{(item.sale_price || item.price || 0) * (item.quantity || 1)}</span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
                 <div className="flex items-center justify-between bg-orange-50/50 border border-orange-200 p-3 rounded-xl text-xs">
                   <span className="font-bold text-gray-900">משלוח מהיר עד הבית</span>
                   <span className="text-orange-600 font-black">₪{selectedOrder.shipping_cost || 29}</span>
