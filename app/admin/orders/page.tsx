@@ -79,7 +79,7 @@ export default function AdminOrdersPage() {
     }
   };
 
-  // יצירת קובץ PDF אמיתי שפותח את מציג ה-PDF של האייפון עם כפתור הדפסה
+  // יצירת קובץ PDF אמיתי ופתיחתו בחלון חדש (עם תמיכה בהדפסה במובייל ובמחשב)
   const generateAndOpenPdf = async (order: any) => {
     const logoUrl = 'https://iiaxizrezhczgutqijbe.supabase.co/storage/v1/object/public/product-images/IMG_6252.jpeg';
 
@@ -102,7 +102,6 @@ export default function AdminOrdersPage() {
       `
     ].join('');
 
-    // יצירת אלמנט נסתר להמרת ל-PDF
     const container = document.createElement('div');
     container.style.position = 'fixed';
     container.style.left = '-9999px';
@@ -158,7 +157,6 @@ export default function AdminOrdersPage() {
 
     document.body.appendChild(container);
 
-    // טעינת ספריית html2pdf דינמית אם אינה קיימת
     if (!(window as any).html2pdf) {
       const script = document.createElement('script');
       script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
@@ -178,12 +176,14 @@ export default function AdminOrdersPage() {
       const pdfBlob = await (window as any).html2pdf().set(opt).from(container).output('blob');
       document.body.removeChild(container);
 
-      // יצירת קישור PDF אמיתי שפותח את מציג ה-PDF של הדפדפן (כולל כפתור הדפסה של iOS)
       const blobUrl = URL.createObjectURL(new Blob([pdfBlob], { type: 'application/pdf' }));
-      const printWindow = window.open(blobUrl, '_blank');
-      if (!printWindow) {
-        alert('נא לאפשר חלונות קופצים בדפדפן לצורך פתיחת ה-PDF');
-      }
+      
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } catch (err) {
       console.error('PDF generation failed:', err);
       document.body.removeChild(container);
