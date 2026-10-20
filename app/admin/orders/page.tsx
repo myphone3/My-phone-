@@ -79,44 +79,12 @@ export default function AdminOrdersPage() {
     }
   };
 
-  const triggerNativePrint = () => {
-    setTimeout(() => {
-      window.print();
-    }, 150);
-  };
-
   if (loading) return <div className="text-center py-20 text-gray-500 font-medium">טוען הזמנות...</div>;
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto" dir="rtl">
-      {/* הגדרות CSS ייעודיות להדפסה בלבד */}
-      <style jsx global>{`
-        @media print {
-          body * {
-            visibility: hidden !important;
-          }
-          #print-document, #print-document * {
-            visibility: visible !important;
-          }
-          #print-document {
-            position: fixed !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            margin: 0 !important;
-            padding: 20px !important;
-            background: white !important;
-            z-index: 99999 !important;
-          }
-          .no-print {
-            display: none !important;
-          }
-        }
-      `}</style>
-
       {/* כותרת העמוד */}
-      <div className="flex items-center justify-between my-2 no-print">
+      <div className="flex items-center justify-between my-2">
         <h1 className="text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3 flex items-center gap-2">
           <span>📋</span>
           <span>ניהול הזמנות</span>
@@ -125,7 +93,7 @@ export default function AdminOrdersPage() {
       </div>
 
       {/* טבלת ההזמנות */}
-      <div className="bg-white rounded-3xl border shadow-sm overflow-hidden no-print">
+      <div className="bg-white rounded-3xl border shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-right text-xs">
             <thead className="bg-gray-50 border-b text-gray-700 font-bold">
@@ -188,7 +156,7 @@ export default function AdminOrdersPage() {
 
       {/* מודל פרטי ההזמנה הנבחרת */}
       {selectedOrder && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 no-print">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6 shadow-2xl border relative">
             
             <div className="flex justify-between items-center border-b pb-4">
@@ -229,12 +197,15 @@ export default function AdminOrdersPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  onClick={triggerNativePrint}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                {/* קישור ישיר ל-API הפקת ה-PDF - פותח בלשונית חדשה ללא חסימות Popup */}
+                <a
+                  href={`/api/admin/order-pdf?id=${selectedOrder.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs inline-block no-underline"
                 >
                   🖨️ הדפס סיכום הזמנה
-                </button>
+                </a>
                 <button
                   onClick={() => deleteOrder(selectedOrder.id)}
                   className="bg-red-50 hover:bg-red-100 text-red-600 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer border border-red-200"
@@ -302,65 +273,6 @@ export default function AdminOrdersPage() {
               </button>
             </div>
 
-          </div>
-        </div>
-      )}
-
-      {/* מסמך ההדפסה הייעודי המוסתר שנפתח ונשלח מיד להדפסה ישירה בלחיצה */}
-      {selectedOrder && (
-        <div id="print-document" className="hidden print:block text-right dir-rtl">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #ea580c', paddingBottom: '12px', marginBottom: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <img src="https://iiaxizrezhczgutqijbe.supabase.co/storage/v1/object/public/product-images/IMG_6252.jpeg" alt="NEW PHONE" style={{ width: '50px', height: '50px', borderRadius: '50%', objectFit: 'contain' }} />
-              <div>
-                <div style={{ fontSize: '20px', fontWeight: 900, color: '#111' }}>NEW PHONE</div>
-                <div style={{ fontSize: '10px', color: '#ea580c', fontWeight: 'bold' }}>הפלאפון החדש שלך</div>
-              </div>
-            </div>
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: '14px', fontWeight: 'bold' }}>הזמנה #{selectedOrder.id?.slice(0, 8)}</div>
-              <div style={{ fontSize: '11px', color: '#666' }}>{selectedOrder.created_at ? new Date(selectedOrder.created_at).toLocaleString('he-IL') : ''}</div>
-            </div>
-          </div>
-
-          <div style={{ background: '#f9fafb', padding: '15px', borderRadius: '12px', border: '1px solid #e5e7eb', marginBottom: '20px', fontSize: '13px', lineHeight: '1.6' }}>
-            <strong>פרטי לקוח למשלוח:</strong><br />
-            שם: {selectedOrder.customer_name || 'לא צוין'}<br />
-            טלפון: {selectedOrder.phone || 'לא צוין'}<br />
-            אימייל: {selectedOrder.email || 'לא צוין'}<br />
-            כתובת: עיר: {selectedOrder.city || ''}, רחוב: {selectedOrder.street || ''} {selectedOrder.building || ''}<br />
-            {selectedOrder.notes && <div><strong>הערות לקוח:</strong> {selectedOrder.notes}</div>}
-          </div>
-
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', marginTop: '10px' }}>
-            <thead>
-              <tr style={{ background: '#ea580c', color: 'white', fontWeight: 'bold' }}>
-                <th style={{ padding: '10px', textAlign: 'right' }}>#</th>
-                <th style={{ padding: '10px', textAlign: 'right' }}>תיאור פריט</th>
-                <th style={{ padding: '10px', textAlign: 'center' }}>כמות</th>
-                <th style={{ padding: '10px', textAlign: 'left' }}>סכום</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Array.isArray(selectedOrder.items) && selectedOrder.items.map((item: any, idx: number) => (
-                <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={{ padding: '10px' }}>{idx + 1}</td>
-                  <td style={{ padding: '10px' }}><b>{item.name}</b> {item.selectedVariant ? `(${item.selectedVariant})` : ''} {item.selectedColor ? `- ${item.selectedColor.name}` : ''}</td>
-                  <td style={{ padding: '10px', textAlign: 'center' }}>{item.quantity || 1}</td>
-                  <td style={{ padding: '10px', textAlign: 'left' }}>₪{(item.sale_price || item.price || 0) * (item.quantity || 1)}</td>
-                </tr>
-              ))}
-              <tr style={{ background: '#fff7ed', borderBottom: '1px solid #eee' }}>
-                <td style={{ padding: '10px' }}>{(selectedOrder.items || []).length + 1}</td>
-                <td style={{ padding: '10px' }}><b>משלוח מהיר עד הבית</b></td>
-                <td style={{ padding: '10px', textAlign: 'center' }}>1</td>
-                <td style={{ padding: '10px', textAlign: 'left' }}>₪{selectedOrder.shipping_cost || 29}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div style={{ marginTop: '20px', textAlign: 'left', fontSize: '18px', fontWeight: 'bold', color: '#ea580c', borderTop: '1px solid #eee', paddingTop: '12px' }}>
-            סה"כ לתשלום: ₪{selectedOrder.total_price || 0}
           </div>
         </div>
       )}
