@@ -10,7 +10,6 @@ export async function GET(request: NextRequest) {
       return new NextResponse('Missing order ID', { status: 400 });
     }
 
-    // שליפת פרטי ההזמנה מ-Supabase
     const { data: order, error } = await supabase
       .from('orders')
       .select('*')
@@ -23,18 +22,21 @@ export async function GET(request: NextRequest) {
 
     const logoUrl = 'https://iiaxizrezhczgutqijbe.supabase.co/storage/v1/object/public/product-images/IMG_6252.jpeg';
 
-    const itemsRows = (order.items || []).map((item: any, idx: number) => `
-      <tr style="border-bottom: 1px solid #e5e7eb;">
-        <td style="padding: 12px; text-align: center; font-weight: bold; width: 40px;">${idx + 1}</td>
-        <td style="padding: 12px; font-weight: bold;">
-          ${item.name || 'מוצר'}
-          ${item.selectedVariant ? `<div style="font-size: 11px; color: #6b7280; margin-top: 2px;">גרסה: ${item.selectedVariant}</div>` : ''}
-          ${item.selectedColor ? `<div style="font-size: 11px; color: #6b7280; margin-top: 2px;">צבע: ${item.selectedColor.name || item.selectedColor}</div>` : ''}
-        </td>
-        <td style="padding: 12px; text-align: center; font-weight: bold; width: 60px;">${item.quantity || 1}</td>
-        <td style="padding: 12px; text-align: left; font-weight: bold; width: 80px;">₪${(item.sale_price || item.price || 0) * (item.quantity || 1)}</td>
-      </tr>
-    `).join('');
+    const itemsRows = (order.items || []).map((item: any, idx: number) => {
+      const colorText = typeof item.selectedColor === 'object' ? item.selectedColor?.name : item.selectedColor;
+      return `
+        <tr style="border-bottom: 1px solid #e5e7eb;">
+          <td style="padding: 12px; text-align: center; font-weight: bold; width: 40px;">${idx + 1}</td>
+          <td style="padding: 12px; font-weight: bold;">
+            ${item.name || 'מוצר'}
+            ${item.selectedVariant ? `<div style="font-size: 11px; color: #6b7280; margin-top: 2px;">גרסה: ${item.selectedVariant}</div>` : ''}
+            ${colorText ? `<div style="font-size: 11px; color: #6b7280; margin-top: 2px;">צבע: ${colorText}</div>` : ''}
+          </td>
+          <td style="padding: 12px; text-align: center; font-weight: bold; width: 60px;">${item.quantity || 1}</td>
+          <td style="padding: 12px; text-align: left; font-weight: bold; width: 80px;">₪${(item.sale_price || item.price || 0) * (item.quantity || 1)}</td>
+        </tr>
+      `;
+    }).join('');
 
     const htmlContent = `
       <!DOCTYPE html>
@@ -45,8 +47,33 @@ export async function GET(request: NextRequest) {
         <title>סיכום הזמנה #${order.id?.slice(0, 8)}</title>
         <style>
           * { box-sizing: border-box; }
-          body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; color: #111827; direction: rtl; margin: 0; background-color: #ffffff; }
-          .container { max-width: 650px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 16px; padding: 24px; }
+          body { font-family: system-ui, -apple-system, sans-serif; padding: 15px; color: #111827; direction: rtl; margin: 0; background-color: #f1f5f9; }
+          
+          /* סרגל עליון עם כפתורי פעולה */
+          .top-toolbar {
+            max-width: 650px;
+            margin: 0 auto 15px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #ffffff;
+            padding: 12px 16px;
+            border-radius: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+          }
+          .btn {
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            text-decoration: none;
+          }
+          .btn-print { background-color: #ea580c; color: white; }
+          .btn-close { background-color: #e2e8f0; color: #334155; }
+
+          .container { max-width: 650px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
           .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ea580c; padding-bottom: 16px; margin-bottom: 20px; }
           .logo-box { display: flex; align-items: center; gap: 12px; }
           .logo-img { width: 50px; height: 50px; object-fit: contain; border-radius: 50%; }
@@ -58,12 +85,20 @@ export async function GET(request: NextRequest) {
           .total-card { margin-top: 20px; text-align: left; font-size: 18px; font-weight: 900; color: #ea580c; border-top: 2px solid #e5e7eb; padding-top: 14px; }
           
           @media print {
-            body { padding: 0; }
-            .container { border: none; padding: 0; }
+            body { padding: 0; background: white; }
+            .top-toolbar { display: none !important; }
+            .container { border: none; padding: 0; box-shadow: none; }
           }
         </style>
       </head>
       <body>
+        
+        <!-- סרגל כפתורים עליון -->
+        <div class="top-toolbar">
+          <button class="btn btn-close" onclick="window.close();">סגור חלון</button>
+          <button class="btn btn-print" onclick="window.print();">🖨️ הדפס / שמור כמו PDF</button>
+        </div>
+
         <div class="container">
           <div class="header">
             <div class="logo-box">
@@ -114,14 +149,6 @@ export async function GET(request: NextRequest) {
           </div>
         </div>
 
-        <script>
-          // הפעלת מנגנון ההדפסה/שמירה כ-PDF של הדפדפן מיד עם תום הטעינה
-          window.onload = function() {
-            setTimeout(function() {
-              window.print();
-            }, 300);
-          };
-        </script>
       </body>
       </html>
     `;
