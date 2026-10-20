@@ -7,7 +7,6 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
-  const [isPrinting, setIsPrinting] = useState(false);
 
   useEffect(() => {
     fetchOrders();
@@ -80,12 +79,9 @@ export default function AdminOrdersPage() {
     }
   };
 
-  // הפעלת מנגנון ההדפסה הישיר
   const triggerNativePrint = () => {
-    setIsPrinting(true);
     setTimeout(() => {
       window.print();
-      setIsPrinting(false);
     }, 150);
   };
 
@@ -338,7 +334,7 @@ export default function AdminOrdersPage() {
 
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', marginTop: '10px' }}>
             <thead>
-              <tr style={{ background: '#ea580c', color: 'white', textBottom: 'bold' }}>
+              <tr style={{ background: '#ea580c', color: 'white', fontWeight: 'bold' }}>
                 <th style={{ padding: '10px', textAlign: 'right' }}>#</th>
                 <th style={{ padding: '10px', textAlign: 'right' }}>תיאור פריט</th>
                 <th style={{ padding: '10px', textAlign: 'center' }}>כמות</th>
