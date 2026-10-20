@@ -118,8 +118,13 @@ export default function AdminOrdersPage() {
     setTimeout(() => window.print(), 100);
   };
 
-  if (loading) return <div className="text-center py-20 text-gray-500 font-medium">טוען הזמנות...</div>;
-
+  if (loading) {
+    return (
+      <div className="text-center py-20 text-gray-500 font-medium">
+        {"טוען הזמנות..."}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto p-2 sm:p-4" dir="rtl">
@@ -315,4 +320,35 @@ export default function AdminOrdersPage() {
               </div>
             </div>
 
-            
+            <div className="text-xs text-gray-800 bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-1.5">
+              <span className="font-bold block text-gray-900 mb-1 text-sm">פרטי לקוח למשלוח:</span>
+              <p>👤 <strong>שם מלא:</strong> {selectedOrder.customer_name || 'לא צוין'}</p>
+              <p>📞 <strong>טלפון:</strong> {selectedOrder.phone || 'לא צוין'}</p>
+              <p>✉️ <strong>אימייל:</strong> {selectedOrder.email || 'לא צוין'}</p>
+              <p>📍 <strong>כתובת למשלוח:</strong> עיר: {selectedOrder.city || ''}, רחוב: {selectedOrder.street || ''} {selectedOrder.building || ''}</p>
+              {selectedOrder.notes && (
+                <p className="mt-2 text-orange-700 bg-orange-50 p-2.5 rounded-xl border border-orange-200">
+                  <strong>הערות למשלוח:</strong> {selectedOrder.notes}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <table className="w-full text-right text-xs border-collapse">
+                <thead>
+                  <tr className="bg-orange-600 text-white font-bold">
+                    <th className="p-2.5 text-center w-8">#</th>
+                    <th className="p-2.5">תיאור מוצר / פריט</th>
+                    <th className="p-2.5 text-center w-12">כמות</th>
+                    <th className="p-2.5 text-left w-20">מחיר</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y border-b border-gray-200">
+                  {Array.isArray(selectedOrder.items) && selectedOrder.items.map((item: any, idx: number) => {
+                    const colorText = getColorName(item.selectedColor);
+                    return (
+                      <tr key={idx}>
+                        <td className="p-2.5 text-center font-bold">{idx + 1}</td>
+                        <td className="p-2.5 font-bold">
+                          {item.name}
+                          {item.selectedVariant && 
