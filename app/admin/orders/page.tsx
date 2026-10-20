@@ -76,7 +76,7 @@ export default function AdminOrdersPage() {
     return '';
   };
 
-  // הפעלה אמינה וישירה של הדפסת/שמירת ה-PDF
+  // הפעלת דיאלוג ההדפסה/ה-PDF הטבעי של המכשיר
   const handlePrint = () => {
     window.print();
   };
@@ -88,7 +88,7 @@ export default function AdminOrdersPage() {
   return (
     <div className="space-y-6 max-w-6xl mx-auto p-2 sm:p-4" dir="rtl">
       
-      {/* הגדרות מדויקות להדפסה בלבד */}
+      {/* סגנונות CSS ייעודיים להדפסה - מסתירים את הממשק ומציגים רק את הדף המודפס */}
       <style jsx global>{`
         @media print {
           body * {
@@ -186,12 +186,12 @@ export default function AdminOrdersPage() {
         </div>
       </div>
 
-      {/* מודל פרטי הזמנה */}
+      {/* מודל פרטי ההזמנה בפאנל הניהול */}
       {selectedOrder && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-5 space-y-4 shadow-2xl border relative my-auto">
             
-            {/* סרגל עליון במערכת הניהול */}
+            {/* סרגל עליון */}
             <div className="flex items-center justify-between border-b pb-3 sticky top-0 bg-white z-10 no-print">
               <button
                 onClick={() => setSelectedOrder(null)}
@@ -205,7 +205,7 @@ export default function AdminOrdersPage() {
                 className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
               >
                 <span>🖨️</span>
-                <span>הדפס סיכום הזמנה (PDF)</span>
+                <span>הדפס / שמור כ-PDF</span>
               </button>
             </div>
 
@@ -288,7 +288,7 @@ export default function AdminOrdersPage() {
               </div>
             </div>
 
-            {/* אזור הדפסת סיכום ההזמנה בלבד (מופיע רק בהדפסה/PDF) */}
+            {/* אזור ההדפסה - מוצג אך ורק בדיאלוג ההדפסה / PDF */}
             <div id="print-area" className="hidden print:block space-y-4 bg-white p-2">
               <div className="flex justify-between items-center border-b-2 border-orange-600 pb-3">
                 <div className="flex items-center gap-3">
