@@ -4,6 +4,31 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '@/lib/supabase';
 
+const LOGO_URL = "https://iiaxizrezhczgutqijbe.supabase.co/storage/v1/object/public/product-images/IMG_6252.jpeg";
+
+const PRINT_CSS = `
+        #print-root {
+          display: none;
+        }
+        @media print {
+          @page {
+            margin: 10mm;
+          }
+          body > *:not(#print-root) {
+            display: none !important;
+          }
+          #print-root {
+            display: block !important;
+            padding: 10px;
+            background: white;
+            direction: rtl;
+            color: #111;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+        }
+      `;
+
 const STATUS_OPTIONS = [
   { value: 'חדש', label: 'חדש 🆕' },
   { value: 'בטיפול', label: 'בטיפול ⏳' },
@@ -89,43 +114,18 @@ export default function AdminOrdersPage() {
     return '';
   };
 
-  // הדפסה / שמירה כ-PDF של תעודת המשלוח
   const handlePrintPDF = () => {
     setTimeout(() => window.print(), 100);
   };
 
   if (loading) return <div className="text-center py-20 text-gray-500 font-medium">טוען הזמנות...</div>;
 
-  const logoUrl = 'https://iiaxizrezhczgutqijbe.supabase.co/storage/v1/object/public/product-images/IMG_6252.jpeg';
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto p-2 sm:p-4" dir="rtl">
 
-      {/* סגנון הדפסה: תעודת המשלוח יושבת ישירות תחת body, ובהדפסה כל השאר מוסתר */}
-      <style jsx global>{`
-        #print-root {
-          display: none;
-        }
-        @media print {
-          @page {
-            margin: 10mm;
-          }
-          body > *:not(#print-root) {
-            display: none !important;
-          }
-          #print-root {
-            display: block !important;
-            padding: 10px;
-            background: white;
-            direction: rtl;
-            color: #111;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
-        }
-      `}</style>
+      <style dangerouslySetInnerHTML={{ __html: PRINT_CSS }} />
 
-      {/* כותרת העמוד */}
       <div className="flex items-center justify-between my-2">
         <h1 className="text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3 flex items-center gap-2">
           <span>📋</span>
@@ -134,7 +134,6 @@ export default function AdminOrdersPage() {
         </h1>
       </div>
 
-      {/* טבלת ההזמנות */}
       <div className="bg-white rounded-3xl border shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-right text-xs">
@@ -193,12 +192,10 @@ export default function AdminOrdersPage() {
         </div>
       </div>
 
-      {/* מודל פרטי ההזמנה */}
       {selectedOrder && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-5 shadow-2xl border relative my-auto">
 
-            {/* סרגל עליון */}
             <div className="flex items-center justify-between border-b pb-3 sticky top-0 bg-white z-10">
               <button
                 onClick={() => setSelectedOrder(null)}
@@ -218,7 +215,6 @@ export default function AdminOrdersPage() {
 
             <div className="space-y-4 text-xs text-gray-800">
 
-              {/* מזהה וסטטוס */}
               <div className="bg-orange-50/70 p-4 rounded-2xl border border-orange-200 flex items-center justify-between">
                 <div>
                   <span className="bg-orange-100 text-orange-800 text-xs font-black px-2.5 py-1 rounded-md">
@@ -243,7 +239,6 @@ export default function AdminOrdersPage() {
                 </div>
               </div>
 
-              {/* פרטי הלקוח */}
               <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-1.5">
                 <div className="font-bold text-gray-900 border-b pb-1.5 mb-2 text-sm flex items-center gap-1.5">
                   <span>👤</span> פרטי לקוח וכתובת למשלוח
@@ -259,7 +254,6 @@ export default function AdminOrdersPage() {
                 )}
               </div>
 
-              {/* מוצרים בהזמנה */}
               <div className="space-y-2">
                 <div className="font-bold text-gray-900 text-sm flex items-center gap-1.5 pt-1">
                   <span>📦</span> מוצרים בהזמנה
@@ -291,7 +285,6 @@ export default function AdminOrdersPage() {
                 </div>
               </div>
 
-              {/* סה"כ לתשלום */}
               <div className="bg-gray-900 text-white p-4 rounded-2xl flex justify-between items-center">
                 <span className="font-bold text-sm">סה"כ לתשלום (כולל משלוח):</span>
                 <span className="text-lg font-black text-orange-400">₪{selectedOrder.total_price || 0}</span>
@@ -302,13 +295,12 @@ export default function AdminOrdersPage() {
         </div>
       )}
 
-      {/* תעודת המשלוח להדפסה: מרונדרת ישירות תחת body (Portal), מחוץ למודל */}
       {mounted && selectedOrder && createPortal(
         <div id="print-root" dir="rtl">
           <div className="space-y-5 bg-white p-2">
             <div className="flex justify-between items-center border-b-2 border-orange-600 pb-4">
               <div className="flex items-center gap-3">
-                <img src={logoUrl} alt="NEW PHONE" className="w-14 h-14 object-contain rounded-full border p-0.5" />
+                <img src={LOGO_URL} alt="NEW PHONE" className="w-14 h-14 object-contain rounded-full border p-0.5" />
                 <div>
                   <h2 className="text-2xl font-black text-gray-900 leading-none">NEW PHONE</h2>
                   <p className="text-xs text-orange-600 font-bold mt-1">הפלאפון החדש שלך</p>
@@ -323,15 +315,4 @@ export default function AdminOrdersPage() {
               </div>
             </div>
 
-            <div className="text-xs text-gray-800 bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-1.5">
-              <span className="font-bold block text-gray-900 mb-1 text-sm">פרטי לקוח למשלוח:</span>
-              <p>👤 <strong>שם מלא:</strong> {selectedOrder.customer_name || 'לא צוין'}</p>
-              <p>📞 <strong>טלפון:</strong> {selectedOrder.phone || 'לא צוין'}</p>
-              <p>✉️ <strong>אימייל:</strong> {selectedOrder.email || 'לא צוין'}</p>
-              <p>📍 <strong>כתובת למשלוח:</strong> עיר: {selectedOrder.city || ''}, רחוב: {selectedOrder.street || ''} {selectedOrder.building || ''}</p>
-              {selectedOrder.notes && (
-                <p className="mt-2 text-orange-700 bg-orange-50 p-2.5 rounded-xl border border-orange-200">
-                  <strong>הערות למשלוח:</strong> {selectedOrder.notes}
-                </p>
-              )}
             
