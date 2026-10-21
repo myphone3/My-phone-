@@ -126,68 +126,106 @@ export default function AdminKosher() {
   };
 
   return (
-    <div className="space-y-6" dir="rtl">
-      <h1 className="text-2xl font-bold text-gray-900 border-r-4 border-orange-600 pr-3">ניהול כשרות 🛡️</h1>
+    <div className="space-y-6 max-w-4xl mx-auto p-2 sm:p-4" dir="rtl">
+      <h1 className="text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3 flex items-center gap-2">
+        <span>🛡️</span>
+        <span>ניהול כשרות</span>
+      </h1>
 
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
-        <h2 className="text-lg font-bold text-gray-800 border-b pb-2">
-          {editingId ? 'עריכת כשרות ✏️' : 'הוספת כשרות חדשה ➕'}
+      {/* טופס הוספה / עריכה בעיצוב תואם לניהול מותגים */}
+      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-3xl border shadow-xs space-y-4">
+        <h2 className="text-sm font-bold text-gray-800 border-b pb-3 flex items-center gap-2">
+          <span>{editingId ? '✏️' : '➕'}</span>
+          <span>{editingId ? 'עריכת כשרות' : 'הוספת כשרות חדשה'}</span>
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        <div className="space-y-3">
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">שם הכשרות</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="למשל: בד״ץ העדה החרדית..." className="w-full border rounded-xl p-3 outline-none focus:ring-2 focus:ring-black" required />
+            <input 
+              type="text" 
+              value={name} 
+              onChange={(e) => setName(e.target.value)} 
+              placeholder="למשל: בד&quot;ץ העדה החרדית..." 
+              className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-xs outline-none focus:border-orange-500 transition" 
+              required 
+            />
           </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">סמל / תמונת כשרות</label>
-            
-            <div className="flex gap-2 mb-2">
-              <input type="file" accept="image/*" onChange={handleFileUpload} className="w-full border rounded-xl p-2.5 text-xs bg-gray-50 cursor-pointer" />
-              <button
-                type="button"
-                onClick={() => {
-                  if (!showGallery) fetchExistingImages();
-                  setShowGallery(true);
-                }}
-                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer shadow-xs"
-              >
-                בחר מתמונות קיימות 🖼️
-              </button>
-            </div>
 
-            {uploading && <p className="text-xs text-blue-600 mt-1 font-bold">מעלה קובץ לאחסון...</p>}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-gray-700">לוגו / תמונת כשרות</label>
+            
+            {/* כפתור העלאה מהמכשיר */}
+            <label className="w-full bg-orange-50/50 hover:bg-orange-50 border border-orange-200 text-orange-800 rounded-2xl py-3 px-4 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition shadow-2xs">
+              <span>📤 העלאה מהמכשיר</span>
+              <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+            </label>
+
+            {/* כפתור בחירה ממצאי המדיה */}
+            <button
+              type="button"
+              onClick={() => {
+                if (!showGallery) fetchExistingImages();
+                setShowGallery(true);
+              }}
+              className="w-full bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 rounded-2xl py-3 px-4 text-xs font-bold flex items-center justify-center gap-2 transition shadow-2xs cursor-pointer"
+            >
+              <span>🖼️ ממצאי המדיה</span>
+            </button>
+
+            {/* שדה הדבקת קישור */}
+            <input
+              type="text"
+              placeholder="או הדבק קישור לתמונה"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-xs outline-none focus:border-orange-500 transition text-left dir-ltr"
+            />
+
+            {uploading && <p className="text-xs text-blue-600 font-bold">מעלה קובץ לאחסון...</p>}
             
             {imageUrl && (
-              <div className="mt-2 flex items-center gap-4 bg-orange-50/60 p-3 rounded-2xl border border-orange-200">
-                <img src={imageUrl} alt="" className="w-16 h-16 object-contain bg-white rounded-xl border p-1 shadow-sm" />
+              <div className="mt-2 flex items-center gap-3 bg-orange-50/60 p-3 rounded-2xl border border-orange-200">
+                <img src={imageUrl} alt="" className="w-12 h-12 object-contain bg-white rounded-xl border p-1 shadow-xs" />
                 <div className="overflow-hidden">
-                  <span className="text-xs text-orange-800 font-black block">התמונה נבחרה בהצלחה ותצוגה מקדימה פעילה ✓</span>
-                  <span className="text-[11px] text-gray-500 truncate block max-w-xs mt-0.5">{imageUrl}</span>
+                  <span className="text-[11px] text-orange-800 font-bold block">התמונה נבחרה בהצלחה ✓</span>
+                  <span className="text-[10px] text-gray-500 truncate block max-w-xs">{imageUrl}</span>
                 </div>
               </div>
             )}
           </div>
         </div>
-        <div className="flex gap-2">
-          <button type="submit" disabled={loading || uploading} className="bg-black text-white px-6 py-3 rounded-xl font-bold hover:bg-gray-800 transition shadow-md cursor-pointer">
+
+        <div className="flex gap-2 pt-2">
+          <button 
+            type="submit" 
+            disabled={loading || uploading} 
+            className="w-full bg-black hover:bg-gray-800 text-white rounded-2xl py-3.5 text-xs font-black transition shadow-md cursor-pointer"
+          >
             {editingId ? 'עדכן כשרות 💾' : 'הוסף כשרות 🚀'}
           </button>
           {editingId && (
-            <button type="button" onClick={resetForm} className="bg-gray-200 text-gray-800 px-6 py-3 rounded-xl font-bold cursor-pointer">ביטול ❌</button>
+            <button 
+              type="button" 
+              onClick={resetForm} 
+              className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3.5 rounded-2xl text-xs font-bold cursor-pointer transition"
+            >
+              ביטול ❌
+            </button>
           )}
         </div>
       </form>
 
-      {/* חלון מודל מלא (Full-screen Modal) לבחירת תמונה ממאגר המדיה */}
+      {/* חלון מודל לבחירת תמונה ממצאי המדיה */}
       {showGallery && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-xl w-full p-5 space-y-4 max-h-[80vh] flex flex-col shadow-2xl border" dir="rtl">
             <div className="flex justify-between items-center border-b pb-3 shrink-0">
-              <h3 className="font-black text-sm text-gray-900">בחר סמל כשרות ממאגר המדיה</h3>
+              <h3 className="font-black text-sm text-gray-900">בחר סמל כשרות ממצאי המדיה</h3>
               <button 
                 type="button"
                 onClick={() => setShowGallery(false)} 
-                className="text-gray-400 hover:text-black font-bold p-1 cursor-pointer text-sm"
+                className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-600 cursor-pointer text-sm transition"
               >
                 ✕
               </button>
@@ -217,25 +255,30 @@ export default function AdminKosher() {
         </div>
       )}
 
-      <div className="bg-white p-6 rounded-2xl shadow-sm border space-y-3">
-        <h2 className="text-lg font-bold text-gray-800">כשרויות קיימות ({kosherList.length})</h2>
-        <div className="space-y-2">
-          {kosherList.map((item) => (
-            <div key={item.id} className="flex justify-between items-center p-3.5 bg-gray-50 rounded-xl border">
-              <div className="flex items-center gap-3">
-                {item.image_url ? (
-                  <img src={item.image_url} alt="" className="w-14 h-14 rounded-xl object-contain border bg-white p-1 shadow-xs" />
-                ) : (
-                  <div className="w-14 h-14 rounded-xl bg-gray-200 flex items-center justify-center text-xs">⭐</div>
-                )}
-                <span className="font-semibold text-gray-800 text-lg">{item.name}</span>
+      {/* רשימת הכשרויות הקיימות */}
+      <div className="bg-white p-6 rounded-3xl border shadow-xs space-y-3">
+        <h2 className="text-sm font-bold text-gray-800 border-b pb-3">כשרויות קיימות ({kosherList.length})</h2>
+        <div className="space-y-2.5">
+          {kosherList.length === 0 ? (
+            <div className="text-center py-8 text-xs text-gray-400">אין כשרויות במערכת כרגע.</div>
+          ) : (
+            kosherList.map((item) => (
+              <div key={item.id} className="flex justify-between items-center p-3.5 bg-gray-50 rounded-2xl border transition hover:bg-orange-50/20">
+                <div className="flex items-center gap-3">
+                  {item.image_url ? (
+                    <img src={item.image_url} alt="" className="w-12 h-12 rounded-xl object-contain border bg-white p-1 shadow-xs" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl bg-gray-200 flex items-center justify-center text-xs">🛡️</div>
+                  )}
+                  <span className="font-bold text-gray-900 text-sm">{item.name}</span>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => handleEdit(item)} className="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer hover:bg-blue-100 transition shadow-2xs">ערוך ✏️</button>
+                  <button onClick={() => handleDelete(item.id)} className="bg-red-50 text-red-600 px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer hover:bg-red-100 transition shadow-2xs">מחק 🗑️</button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <button onClick={() => handleEdit(item)} className="bg-blue-50 text-blue-600 px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-blue-100 transition">ערוך ✏️</button>
-                <button onClick={() => handleDelete(item.id)} className="bg-red-50 text-red-600 px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-red-100 transition">מחק 🗑️</button>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </div>
