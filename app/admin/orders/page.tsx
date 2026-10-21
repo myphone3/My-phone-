@@ -3,6 +3,16 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
+// מספר הזמנה: 8 ספרות בלבד, מחושב מהמזהה הפנימי (תמיד אותו מספר לאותה הזמנה)
+const getOrderNumber = (id?: string) => {
+  if (!id) return '';
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  }
+  return String(10000000 + (hash % 90000000));
+};
+
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,15 +41,15 @@ export default function AdminOrdersPage() {
     setSelectedOrder((prev: any) => prev && prev.id === orderId ? { ...prev, status: newStatus } : prev);
 
     if (customerEmail) {
-      const orderShortId = orderId.slice(0, 8);
+      const orderNumber = getOrderNumber(orderId);
       try {
         await fetch('/api/send-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             to: customerEmail,
-            subject: `עדכון סטטוס הזמנה #${orderShortId}`,
-            message: `שלום ${customerName || 'לקוח יקר'},\n\nההזמנה שלך (#${orderShortId}) עודכנה לסטטוס: ${newStatus}.\n\nNEW PHONE`
+            subject: `עדכון סטטוס הזמנה #${orderNumber}`,
+            message: `שלום ${customerName || 'לקוח יקר'},\n\nההזמנה שלך (#${orderNumber}) עודכנה לסטטוס: ${newStatus}.\n\nNEW PHONE`
           })
         });
       } catch (err) {}
@@ -57,7 +67,7 @@ export default function AdminOrdersPage() {
     if (!selectedOrder) return;
 
     const logoUrl = 'https://iiaxizrezhczgutqijbe.supabase.co/storage/v1/object/public/product-images/IMG_6252.jpeg';
-    const orderShortId = selectedOrder.id ? selectedOrder.id.slice(0, 8) : '';
+    const orderNumber = getOrderNumber(selectedOrder.id);
     const dateStr = selectedOrder.created_at ? new Date(selectedOrder.created_at).toLocaleString('he-IL') : '';
 
     const itemsRows = (selectedOrder.items || []).map((item: any, idx: number) => {
@@ -82,14 +92,19 @@ export default function AdminOrdersPage() {
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>סיכום הזמנה #${orderShortId}</title>
+        <title>סיכום הזמנה #${orderNumber}</title>
         <style>
           * { box-sizing: border-box; }
           body { font-family: system-ui, -apple-system, sans-serif; padding: 20px; color: #111827; direction: rtl; margin: 0; background: #fff; }
           .container { max-width: 650px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 16px; padding: 24px; }
-          .header { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; border-bottom: 2px solid #ea580c; padding-bottom: 16px; margin-bottom: 20px; }
-          .logo-box { display: flex; align-items: center; justify-content: center; }
+          .header { display: flex; justify-content: center; padding-bottom: 14px; }
           .logo-img { width: 90px; height: 90px; object-fit: contain; border-radius: 50%; }
+          .title-row { display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #ea580c; padding-top: 16px; margin-bottom: 20px; }
+          .doc-title { font-size: 28px; font-weight: 900; color: #ea580c; }
+          .order-meta { text-align: left; }
+          .order-label { font-size: 11px; font-weight: bold; color: #6b7280; }
+          .order-num { font-size: 20px; font-weight: 900; color: #111827; direction: ltr; text-align: left; }
+          .order-date { font-size: 11px; color: #6b7280; }
           .details-card { background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; font-size: 13px; line-height: 1.6; margin-bottom: 20px; }
           table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
           th { background-color: #ea580c; color: #ffffff; padding: 10px; text-align: right; }
@@ -100,13 +115,15 @@ export default function AdminOrdersPage() {
       <body>
         <div class="container">
           <div class="header">
-            <div class="logo-box">
-              <img src="${logoUrl}" alt="NEW PHONE" class="logo-img" />
-            </div>
-            <div style="text-align: center;">
-              <div style="font-size: 15px; font-weight: 900; color: #ea580c;">סיכום הזמנה</div>
-              <div style="font-size: 12px; font-weight: bold; color: #374151;">#${orderShortId}</div>
-              <div style="font-size: 10px; color: #6b7280;">${dateStr}</div>
+            <img src="${logoUrl}" alt="NEW PHONE" class="logo-img" />
+          </div>
+
+          <div class="title-row">
+            <div class="doc-title">סיכום הזמנה</div>
+            <div class="order-meta">
+              <div class="order-label">מספר הזמנה</div>
+              <div class="order-num">#${orderNumber}</div>
+              <div class="order-date">${dateStr}</div>
             </div>
           </div>
 
@@ -177,7 +194,7 @@ export default function AdminOrdersPage() {
           <table className="w-full text-right text-xs">
             <thead className="bg-gray-50 border-b text-gray-700 font-bold">
               <tr>
-                <th className="p-4">מזהה הזמנה</th>
+                <th className="p-4">מספר הזמנה</th>
                 <th className="p-4">שם הלקוח</th>
                 <th className="p-4">טלפון</th>
                 <th className="p-4">תאריך</th>
@@ -189,7 +206,7 @@ export default function AdminOrdersPage() {
             <tbody className="divide-y text-gray-800">
               {orders.map((order) => (
                 <tr key={order.id} className="hover:bg-orange-50/40 transition cursor-pointer" onClick={() => setSelectedOrder(order)}>
-                  <td className="p-4 font-black text-orange-800">#{order.id?.slice(0, 8)}</td>
+                  <td className="p-4 font-black text-orange-800" dir="ltr">#{getOrderNumber(order.id)}</td>
                   <td className="p-4 font-bold text-gray-900">{order.customer_name || 'ללא שם'}</td>
                   <td className="p-4 dir-ltr text-right">{order.phone || 'לא צוין'}</td>
                   <td className="p-4 text-gray-500">{order.created_at ? new Date(order.created_at).toLocaleDateString('he-IL') : ''}</td>
@@ -246,8 +263,9 @@ export default function AdminOrdersPage() {
             <div className="space-y-4 text-xs text-gray-800">
               <div className="bg-orange-50/70 p-4 rounded-2xl border border-orange-200 flex items-center justify-between">
                 <div>
-                  <span className="bg-orange-100 text-orange-800 text-xs font-black px-2.5 py-1 rounded-md">
-                    הזמנה #{selectedOrder.id?.slice(0, 8)}
+                  <span className="bg-orange-100 text-orange-800 text-xs font-black px-2.5 py-1 rounded-md inline-flex gap-1">
+                    <span>הזמנה</span>
+                    <span dir="ltr">#{getOrderNumber(selectedOrder.id)}</span>
                   </span>
                   <div className="text-gray-500 mt-1.5 font-medium">
                     תאריך: {selectedOrder.created_at ? new Date(selectedOrder.created_at).toLocaleString('he-IL') : ''}
