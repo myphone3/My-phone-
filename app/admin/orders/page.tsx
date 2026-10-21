@@ -87,11 +87,9 @@ export default function AdminOrdersPage() {
           * { box-sizing: border-box; }
           body { font-family: system-ui, -apple-system, sans-serif; padding: 20px; color: #111827; direction: rtl; margin: 0; background: #fff; }
           .container { max-width: 650px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 16px; padding: 24px; }
-          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ea580c; padding-bottom: 16px; margin-bottom: 20px; }
-          .logo-box { display: flex; align-items: center; gap: 12px; }
-          .logo-img { width: 55px; height: 55px; object-fit: contain; border-radius: 50%; }
-          .store-title { font-size: 22px; font-weight: 900; color: #111827; }
-          .store-sub { font-size: 11px; color: #ea580c; font-weight: bold; }
+          .header { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; border-bottom: 2px solid #ea580c; padding-bottom: 16px; margin-bottom: 20px; }
+          .logo-box { display: flex; align-items: center; justify-content: center; }
+          .logo-img { width: 90px; height: 90px; object-fit: contain; border-radius: 50%; }
           .details-card { background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; font-size: 13px; line-height: 1.6; margin-bottom: 20px; }
           table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
           th { background-color: #ea580c; color: #ffffff; padding: 10px; text-align: right; }
@@ -104,12 +102,8 @@ export default function AdminOrdersPage() {
           <div class="header">
             <div class="logo-box">
               <img src="${logoUrl}" alt="NEW PHONE" class="logo-img" />
-              <div>
-                <div class="store-title">NEW PHONE</div>
-                <div class="store-sub">הפלאפון החדש שלך</div>
-              </div>
             </div>
-            <div style="text-align: left;">
+            <div style="text-align: center;">
               <div style="font-size: 15px; font-weight: 900; color: #ea580c;">סיכום הזמנה</div>
               <div style="font-size: 12px; font-weight: bold; color: #374151;">#${orderShortId}</div>
               <div style="font-size: 10px; color: #6b7280;">${dateStr}</div>
