@@ -3,6 +3,16 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
+// מידות והנחיות לתמונות באנר (אפשר לשנות כאן בלבד)
+const DESKTOP_SPEC = {
+  size: '1920×640',
+  details: 'יחס 3:1 | JPG/WebP | עד 500KB',
+};
+const MOBILE_SPEC = {
+  size: '1536×1075',
+  details: 'מוצג בגובה נמוך יותר בכ-30% במובייל',
+};
+
 export default function AdminBanners() {
   const [banners, setBanners] = useState<any[]>([]);
   const [mediaList, setMediaList] = useState<any[]>([]);
@@ -191,6 +201,12 @@ export default function AdminBanners() {
           {/* תמונת דסקטופ */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-gray-700">תמונת באנר למחשב (Desktop)</label>
+            <div className="bg-orange-50 border border-orange-100 rounded-xl px-2.5 py-1.5 space-y-0.5">
+              <p className="text-[11px] font-bold text-orange-700">
+                📐 מידות: <span dir="ltr">{DESKTOP_SPEC.size}</span> פיקסלים
+              </p>
+              <p className="text-[10px] text-gray-600">{DESKTOP_SPEC.details}</p>
+            </div>
             <div className="grid grid-cols-2 gap-2">
               <label className="w-full bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 py-2.5 px-2 rounded-2xl text-xs font-bold transition text-center cursor-pointer flex items-center justify-center gap-1">
                 <span>{uploadingField === 'desktop' ? 'מעלה...' : '📤 העלה'}</span>
@@ -216,6 +232,12 @@ export default function AdminBanners() {
           {/* תמונת מובייל */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-gray-700">תמונת באנר לטלפון (Mobile)</label>
+            <div className="bg-orange-50 border border-orange-100 rounded-xl px-2.5 py-1.5 space-y-0.5">
+              <p className="text-[11px] font-bold text-orange-700">
+                📐 מידות: <span dir="ltr">{MOBILE_SPEC.size}</span> פיקסלים
+              </p>
+              <p className="text-[10px] text-gray-600">{MOBILE_SPEC.details}</p>
+            </div>
             <div className="grid grid-cols-2 gap-2">
               <label className="w-full bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 py-2.5 px-2 rounded-2xl text-xs font-bold transition text-center cursor-pointer flex items-center justify-center gap-1">
                 <span>{uploadingField === 'mobile' ? 'מעלה...' : '📤 העלה'}</span>
