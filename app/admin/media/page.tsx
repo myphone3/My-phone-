@@ -3,19 +3,24 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
-// תרגום שמות תיקיות לשמות לשוניות (אפשר להוסיף כאן עוד)
-const FOLDER_LABELS: Record<string, string> = {
-  banners: 'באנרים',
-  products: 'מוצרים',
-  brands: 'מותגים',
-  categories: 'קטגוריות',
-  kosher: 'כשרות',
-};
-const FOLDER_ORDER = ['banners', 'products', 'brands', 'categories', 'kosher', 'kashrut', 'kashrus', 'hechsher'];
+// לשוניות הספרייה + הטבלאות שנבדקות כדי לזהות באיזו קטגוריה התמונה בשימוש
+// (טבלה שלא קיימת פשוט מדולגת, אפשר להוסיף כאן שמות טבלאות)
+const CATEGORIES = [
+  { key: 'banners', label: 'באנרים', tables: ['banners'] },
+  { key: 'products', label: 'מוצרים', tables: ['products'] },
+  { key: 'brands', label: 'מותגים', tables: ['brands'] },
+  { key: 'categories', label: 'קטגוריות', tables: ['categories'] },
+  { key: 'kosher', label: 'כשרויות', tables: ['kosher', 'kashrut', 'kosher_certifications', 'kosher_types'] },
+];
 
-const getFolderLabel = (folder: string) => {
-  if (folder === '') return 'כללי';
-  return FOLDER_LABELS[folder] || folder;
+// תיקיות באחסון שמזוהות אוטומטית (גיבוי נוסף)
+const FOLDER_TO_CATEGORY: Record<string, string> = {
+  banners: 'banners',
+  products: 'products',
+  brands: 'brands',
+  categories: 'categories',
+  kosher: 'kosher',
+  kashrut: 'kosher',
 };
 
 export default function AdminMedia() {
@@ -29,6 +34,26 @@ export default function AdminMedia() {
   useEffect(() => {
     fetchMediaFiles();
   }, []);
+
+  // טוען את תוכן הטבלאות של כל קטגוריה כטקסט אחד, כדי לבדוק אם תמונה מופיעה בו
+  const fetchUsage = async (): Promise<Record<string, string>> => {
+    const usage: Record<string, string> = {};
+    await Promise.all(
+      CATEGORIES.map(async (cat) => {
+        let haystack = '';
+        await Promise.all(
+          cat.tables.map(async (table) => {
+            try {
+              const { data, error } = await supabase.from(table).select('*');
+              if (!error && data) haystack += JSON.stringify(data);
+            } catch (e) {}
+          })
+        );
+        usage[cat.key] = haystack;
+      })
+    );
+    return usage;
+  };
 
   const fetchMediaFiles = async () => {
     try {
@@ -72,6 +97,24 @@ export default function AdminMedia() {
         }
       }
 
+      // זיהוי אוטומטי: באילו קטגוריות התמונה בשימוש
+      const usage = await fetchUsage();
+      allFiles = allFiles.map((file) => {
+        const cats: string[] = [];
+        for (const cat of CATEGORIES) {
+          const h = usage[cat.key] || '';
+          if (
+            h &&
+            (h.includes(file.url) || h.includes(file.path) || h.includes(encodeURI(file.path)))
+          ) {
+            cats.push(cat.key);
+          }
+        }
+        const folderCat = FOLDER_TO_CATEGORY[file.folder];
+        if (folderCat && !cats.includes(folderCat)) cats.push(folderCat);
+        return { ...file, categories: cats };
+      });
+
       // מיון מהחדש לישן
       allFiles.sort(
         (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
@@ -106,6 +149,7 @@ export default function AdminMedia() {
       alert('שגיאה בהעלאה: ' + err.message);
     } finally {
       setUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -129,20 +173,17 @@ export default function AdminMedia() {
     }, 1500);
   };
 
-  // בניית הלשוניות לפי התיקיות הקיימות
-  const folders = Array.from(new Set(mediaFiles.map((f) => f.folder as string))).sort((a, b) => {
-    if (a === '') return 1;
-    if (b === '') return -1;
-    const ia = FOLDER_ORDER.indexOf(a);
-    const ib = FOLDER_ORDER.indexOf(b);
-    if (ia === -1 && ib === -1) return a.localeCompare(b);
-    if (ia === -1) return 1;
-    if (ib === -1) return -1;
-    return ia - ib;
-  });
+  const countFor = (key: string) =>
+    key === 'general'
+      ? mediaFiles.filter((f) => f.categories.length === 0).length
+      : mediaFiles.filter((f) => f.categories.includes(key)).length;
 
   const filteredFiles =
-    activeFilter === 'all' ? mediaFiles : mediaFiles.filter((f) => f.folder === activeFilter);
+    activeFilter === 'all'
+      ? mediaFiles
+      : activeFilter === 'general'
+      ? mediaFiles.filter((f) => f.categories.length === 0)
+      : mediaFiles.filter((f) => f.categories.includes(activeFilter));
 
   const tabClass = (active: boolean) =>
     `shrink-0 px-3.5 py-2 rounded-2xl text-xs font-bold transition cursor-pointer border ${
@@ -189,7 +230,7 @@ export default function AdminMedia() {
           </button>
         </div>
 
-        {/* לשוניות סינון לפי סוג */}
+        {/* לשוניות סינון */}
         {!loading && mediaFiles.length > 0 && (
           <div className="flex gap-2 overflow-x-auto pb-1">
             <button
@@ -199,23 +240,30 @@ export default function AdminMedia() {
             >
               הכול ({mediaFiles.length})
             </button>
-            {folders.map((folder) => (
+            {CATEGORIES.map((c) => (
               <button
-                key={folder || 'general'}
+                key={c.key}
                 type="button"
-                onClick={() => setActiveFilter(folder)}
-                className={tabClass(activeFilter === folder)}
+                onClick={() => setActiveFilter(c.key)}
+                className={tabClass(activeFilter === c.key)}
               >
-                {getFolderLabel(folder)} ({mediaFiles.filter((f) => f.folder === folder).length})
+                {c.label} ({countFor(c.key)})
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => setActiveFilter('general')}
+              className={tabClass(activeFilter === 'general')}
+            >
+              כללי ({countFor('general')})
+            </button>
           </div>
         )}
 
         {loading ? (
           <div className="text-center py-16 text-xs text-gray-400 font-bold">טוען קבצים מהמדיה...</div>
         ) : filteredFiles.length === 0 ? (
-          <div className="text-center py-16 text-xs text-gray-400">אין קבצים זמינים במדיה כרגע.</div>
+          <div className="text-center py-16 text-xs text-gray-400">אין קבצים בקטגוריה הזו.</div>
         ) : (
           <div className="grid grid-cols-4 gap-2.5 sm:gap-4">
             {filteredFiles.map((file) => (
@@ -291,3 +339,4 @@ export default function AdminMedia() {
     </div>
   );
 }
+י
