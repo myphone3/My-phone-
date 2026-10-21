@@ -261,7 +261,7 @@ export default function AdminOrdersPage() {
 
             {/* פרטי הזמנה לצפייה בניהול */}
             <div className="space-y-4 text-xs text-gray-800">
-              <div className="bg-orange-50/70 p-4 rounded-2xl border border-orange-200 flex items-center justify-between">
+              <div className="bg-orange-50/70 p-4 rounded-2xl border border-orange-200 flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <span className="bg-orange-100 text-orange-800 text-xs font-black px-2.5 py-1 rounded-md inline-flex gap-1">
                     <span>הזמנה</span>
@@ -277,7 +277,7 @@ export default function AdminOrdersPage() {
                   <select
                     value={selectedOrder.status || 'חדש'}
                     onChange={(e) => handleStatusChange(selectedOrder.id, e.target.value, selectedOrder.email, selectedOrder.customer_name)}
-                    className="bg-white border border-orange-300 text-orange-800 text-xs font-bold rounded-xl px-3 py-1.5 outline-none cursor-pointer"
+                    className="bg-white border border-orange-300 text-orange-800 text-xs font-bold rounded-xl px-3 py-1.5 outline-none cursor-pointer max-w-full"
                   >
                     <option value="חדש">חדש 🆕</option>
                     <option value="בטיפול">בטיפול ⏳</option>
