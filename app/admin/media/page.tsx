@@ -3,12 +3,27 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
+// תרגום שמות תיקיות לשמות לשוניות (אפשר להוסיף כאן עוד)
+const FOLDER_LABELS: Record<string, string> = {
+  banners: 'באנרים',
+  products: 'מוצרים',
+  brands: 'מותגים',
+  categories: 'קטגוריות',
+};
+const FOLDER_ORDER = ['banners', 'products', 'brands', 'categories'];
+
+const getFolderLabel = (folder: string) => {
+  if (folder === '') return 'כללי';
+  return FOLDER_LABELS[folder] || folder;
+};
+
 export default function AdminMedia() {
   const [mediaFiles, setMediaFiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  const [previewFile, setPreviewFile] = useState<{ file: any; index: number } | null>(null);
+  const [copiedPath, setCopiedPath] = useState<string | null>(null);
+  const [previewFile, setPreviewFile] = useState<{ file: any } | null>(null);
+  const [activeFilter, setActiveFilter] = useState<string>('all');
 
   useEffect(() => {
     fetchMediaFiles();
@@ -35,6 +50,7 @@ export default function AdminMedia() {
                     allFiles.push({
                       name: subItem.name,
                       path: filePath,
+                      folder: item.name,
                       url: pub.publicUrl,
                       created_at: subItem.created_at || item.created_at
                     });
@@ -46,6 +62,7 @@ export default function AdminMedia() {
               allFiles.push({
                 name: item.name,
                 path: item.name,
+                folder: '',
                 url: pub.publicUrl,
                 created_at: item.created_at
               });
@@ -53,6 +70,11 @@ export default function AdminMedia() {
           }
         }
       }
+
+      // מיון מהחדש לישן
+      allFiles.sort(
+        (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+      );
 
       setMediaFiles(allFiles);
     } catch (err: any) {
@@ -98,13 +120,35 @@ export default function AdminMedia() {
     }
   };
 
-  const copyToClipboard = (url: string, index: number) => {
+  const copyToClipboard = (url: string, path: string) => {
     navigator.clipboard.writeText(url);
-    setCopiedIndex(index);
+    setCopiedPath(path);
     setTimeout(() => {
-      setCopiedIndex(null);
+      setCopiedPath(null);
     }, 1500);
   };
+
+  // בניית הלשוניות לפי התיקיות הקיימות
+  const folders = Array.from(new Set(mediaFiles.map((f) => f.folder as string))).sort((a, b) => {
+    if (a === '') return 1;
+    if (b === '') return -1;
+    const ia = FOLDER_ORDER.indexOf(a);
+    const ib = FOLDER_ORDER.indexOf(b);
+    if (ia === -1 && ib === -1) return a.localeCompare(b);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
+
+  const filteredFiles =
+    activeFilter === 'all' ? mediaFiles : mediaFiles.filter((f) => f.folder === activeFilter);
+
+  const tabClass = (active: boolean) =>
+    `shrink-0 px-3.5 py-2 rounded-2xl text-xs font-bold transition cursor-pointer border ${
+      active
+        ? 'bg-orange-600 text-white border-orange-600 shadow-md'
+        : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-orange-50'
+    }`;
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto p-2 sm:p-4" dir="rtl">
@@ -144,16 +188,39 @@ export default function AdminMedia() {
           </button>
         </div>
 
+        {/* לשוניות סינון לפי סוג */}
+        {!loading && mediaFiles.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            <button
+              type="button"
+              onClick={() => setActiveFilter('all')}
+              className={tabClass(activeFilter === 'all')}
+            >
+              הכול ({mediaFiles.length})
+            </button>
+            {folders.map((folder) => (
+              <button
+                key={folder || 'general'}
+                type="button"
+                onClick={() => setActiveFilter(folder)}
+                className={tabClass(activeFilter === folder)}
+              >
+                {getFolderLabel(folder)} ({mediaFiles.filter((f) => f.folder === folder).length})
+              </button>
+            ))}
+          </div>
+        )}
+
         {loading ? (
           <div className="text-center py-16 text-xs text-gray-400 font-bold">טוען קבצים מהמדיה...</div>
-        ) : mediaFiles.length === 0 ? (
+        ) : filteredFiles.length === 0 ? (
           <div className="text-center py-16 text-xs text-gray-400">אין קבצים זמינים במדיה כרגע.</div>
         ) : (
           <div className="grid grid-cols-4 gap-2.5 sm:gap-4">
-            {mediaFiles.map((file, idx) => (
+            {filteredFiles.map((file) => (
               <div 
-                key={idx} 
-                onClick={() => setPreviewFile({ file, index: idx })}
+                key={file.path} 
+                onClick={() => setPreviewFile({ file })}
                 className="relative bg-gray-50 rounded-2xl border border-gray-200 overflow-hidden aspect-square flex items-center justify-center p-1.5 cursor-pointer shadow-2xs hover:border-orange-500 hover:scale-102 transition group"
               >
                 <img 
@@ -202,10 +269,10 @@ export default function AdminMedia() {
             {/* כפתורי פעולה: העתקה ומחיקה */}
             <div className="flex gap-3 w-full pt-2">
               <button
-                onClick={() => copyToClipboard(previewFile.file.url, previewFile.index)}
+                onClick={() => copyToClipboard(previewFile.file.url, previewFile.file.path)}
                 className="flex-1 bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-md"
               >
-                <span>{copiedIndex === previewFile.index ? '✓ הועתק!' : '📋 העתק קישור לתמונה'}</span>
+                <span>{copiedPath === previewFile.file.path ? '✓ הועתק!' : '📋 העתק קישור לתמונה'}</span>
               </button>
 
               <button
