@@ -54,19 +54,19 @@ export default function AdminVersionsPage() {
       </div>
 
       {/* טופס הוספת גרסה חדשה */}
-      <div className="bg-white rounded-3xl p-6 border shadow-xs">
-        <form onSubmit={handleSave} className="flex gap-3">
+      <div className="bg-white rounded-3xl p-4 sm:p-6 border shadow-xs">
+        <form onSubmit={handleSave} className="flex items-center gap-2 sm:gap-3">
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="שם הגרסה החדשה (לדוגמה: נגן גלריה + הודעות sms)"
-            className="flex-1 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-xs outline-none focus:border-orange-500 transition"
+            placeholder="שם הגרסה החדשה"
+            className="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-xs outline-none focus:border-orange-500 transition"
             required
           />
           <button 
             type="submit" 
-            className="bg-black hover:bg-gray-800 text-white font-black px-6 py-3 rounded-2xl text-xs transition shadow-md whitespace-nowrap cursor-pointer"
+            className="shrink-0 bg-black hover:bg-gray-800 text-white font-black px-4 sm:px-6 py-3 rounded-2xl text-xs transition shadow-md whitespace-nowrap cursor-pointer"
           >
             + הוסף גרסה
           </button>
