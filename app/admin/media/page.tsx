@@ -8,6 +8,7 @@ export default function AdminMedia() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   useEffect(() => {
     fetchMediaFiles();
@@ -85,37 +86,44 @@ export default function AdminMedia() {
     }
   };
 
-  const handleDelete = async (filePath: string) => {
+  const handleDelete = async (filePath: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!confirm('האם למחוק קובץ זה מהמדיה?')) return;
     try {
       const { error } = await supabase.storage.from('product-images').remove([filePath]);
       if (error) throw error;
+      setSelectedIndex(null);
       fetchMediaFiles();
     } catch (err: any) {
       alert('שגיאה במחיקה: ' + err.message);
     }
   };
 
-  const copyToClipboard = (url: string, index: number) => {
+  const copyToClipboard = (url: string, index: number, e: React.MouseEvent) => {
+    e.stopPropagation();
     navigator.clipboard.writeText(url);
     setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
+    setTimeout(() => {
+      setCopiedIndex(null);
+      setSelectedIndex(null);
+    }, 1500);
   };
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto p-2 sm:p-4" dir="rtl">
-      {/* כותרת ראשית ואזור העלאה */}
-      <div className="bg-white p-6 rounded-3xl border shadow-xs text-center space-y-4">
-        <div className="space-y-1">
-          <h1 className="text-xl font-black text-gray-900 flex items-center justify-center gap-2">
-            <span>🖼️</span>
-            <span>ספריית מדיה</span>
-          </h1>
-          <p className="text-xs text-gray-500 font-medium">
-            ניהול כל הקבצים והתמונות במערכת בצורה מהירה ומרווחת.
-          </p>
-        </div>
+      {/* כותרת ראשית אחידה עם הפס הכתום מימין */}
+      <div className="space-y-1">
+        <h1 className="text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3 flex items-center gap-2">
+          <span>🖼️</span>
+          <span>ספריית מדיה</span>
+        </h1>
+        <p className="text-xs text-gray-500 font-medium pr-4">
+          ניהול כל הקבצים והתמונות במערכת בצורה מהירה ומרווחת.
+        </p>
+      </div>
 
+      {/* כרטיס העלאת תמונות */}
+      <div className="bg-white p-6 rounded-3xl border shadow-xs text-center">
         <label className="inline-flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-3 rounded-2xl text-xs transition cursor-pointer shadow-md">
           <span>📁</span>
           <span>{uploading ? 'מעלה קבצים...' : 'העלה תמונות חדשות'}</span>
@@ -123,7 +131,7 @@ export default function AdminMedia() {
         </label>
       </div>
 
-      {/* רשת גלריית התמונות: 4 עמודות בכל שורה בדיוק */}
+      {/* רשת גלריית התמונות: 4 בשורה עם תמונות גדולות וכפתורים צפים בלחיצה */}
       <div className="bg-white p-4 sm:p-6 rounded-3xl border shadow-xs space-y-4">
         <div className="flex justify-between items-center border-b pb-3">
           <h2 className="text-sm font-bold text-gray-800">
@@ -143,55 +151,50 @@ export default function AdminMedia() {
         ) : mediaFiles.length === 0 ? (
           <div className="text-center py-16 text-xs text-gray-400">אין קבצים זמינים במדיה כרגע.</div>
         ) : (
-          /* grid-cols-4 בול לכל המסכים */
           <div className="grid grid-cols-4 gap-2.5 sm:gap-4">
             {mediaFiles.map((file, idx) => (
               <div 
                 key={idx} 
-                className="bg-white rounded-2xl border border-gray-200 p-2 flex flex-col items-center justify-between shadow-2xs hover:border-orange-500 transition group"
+                onClick={() => setSelectedIndex(selectedIndex === idx ? null : idx)}
+                className="relative bg-gray-50 rounded-2xl border border-gray-200 overflow-hidden aspect-square flex items-center justify-center p-1.5 cursor-pointer shadow-2xs hover:border-orange-400 transition"
               >
-                {/* תמונה מוגדלת וברורה ברקע נקי */}
-                <div 
-                  onClick={() => copyToClipboard(file.url, idx)}
-                  className="w-full aspect-square bg-gray-50 rounded-xl overflow-hidden border border-gray-100 flex items-center justify-center p-1 relative cursor-pointer"
-                  title="לחץ להעתקת קישור"
-                >
-                  <img 
-                    src={file.url} 
-                    alt="" 
-                    className="max-w-full max-h-full object-contain rounded-lg group-hover:scale-105 transition duration-200" 
-                  />
-                  {copiedIndex === idx && (
-                    <div className="absolute inset-0 bg-black/70 flex items-center justify-center text-white text-xs font-black rounded-lg backdrop-blur-3xs">
-                      הועתק! ✓
-                    </div>
-                  )}
-                </div>
+                {/* התמונה תופסת את כל שטח הריבוע */}
+                <img 
+                  src={file.url} 
+                  alt="" 
+                  className="max-w-full max-h-full object-contain" 
+                />
 
-                {/* כפתורים מוקטנים ואייקונים בלבד (ללא טקסט) */}
-                <div className="flex items-center justify-center gap-1.5 w-full mt-2">
-                  {/* כפתור העתקת קישור */}
-                  <button
-                    onClick={() => copyToClipboard(file.url, idx)}
-                    title="העתק קישור"
-                    className={`w-8 h-8 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer ${
-                      copiedIndex === idx
-                        ? 'bg-green-100 text-green-700 border border-green-300'
-                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                    }`}
-                  >
-                    {copiedIndex === idx ? '✓' : '📋'}
-                  </button>
+                {/* שכבת כפתורים שקופה שמופיעה בלחיצה בלבד */}
+                {selectedIndex === idx && (
+                  <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center gap-2 p-2 transition-all">
+                    {copiedIndex === idx ? (
+                      <span className="text-white text-xs font-black bg-green-600/90 px-2.5 py-1.5 rounded-xl shadow-xs">
+                        הועתק! ✓
+                      </span>
+                    ) : (
+                      <>
+                        {/* כפתור העתקה */}
+                        <button
+                          onClick={(e) => copyToClipboard(file.url, idx, e)}
+                          title="העתק קישור"
+                          className="w-9 h-9 bg-white/90 hover:bg-white text-gray-800 rounded-xl flex items-center justify-center text-sm font-bold shadow-md transition active:scale-95"
+                        >
+                          📋
+                        </button>
 
-                  {/* כפתור מחיקה */}
-                  <button
-                    onClick={() => handleDelete(file.path)}
-                    title="מחק תמונה"
-                    className="w-8 h-8 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer border border-red-100"
-                  >
-                    🗑️
-                  </button>
-                </div>
+                        {/* כפתור מחיקה */}
+                        <button
+                          onClick={(e) => handleDelete(file.path, e)}
+                          title="מחק תמונה"
+                          className="w-9 h-9 bg-red-600/90 hover:bg-red-600 text-white rounded-xl flex items-center justify-center text-sm font-bold shadow-md transition active:scale-95"
+                        >
+                          🗑️
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
