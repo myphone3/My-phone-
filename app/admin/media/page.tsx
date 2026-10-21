@@ -9,8 +9,9 @@ const FOLDER_LABELS: Record<string, string> = {
   products: 'מוצרים',
   brands: 'מותגים',
   categories: 'קטגוריות',
+  kosher: 'כשרות',
 };
-const FOLDER_ORDER = ['banners', 'products', 'brands', 'categories'];
+const FOLDER_ORDER = ['banners', 'products', 'brands', 'categories', 'kosher', 'kashrut', 'kashrus', 'hechsher'];
 
 const getFolderLabel = (folder: string) => {
   if (folder === '') return 'כללי';
