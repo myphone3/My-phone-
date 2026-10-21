@@ -76,110 +76,46 @@ export default function AdminOrdersPage() {
     return '';
   };
 
-  const escapeHtml = (value: any) => {
-    return String(value === null || value === undefined ? '' : value)
-      .split('&').join('&amp;')
-      .split('<').join('&lt;')
-      .split('>').join('&gt;')
-      .split('"').join('&quot;');
-  };
-
-  // Opens a clean page in a new window with only the order summary and prints it.
-  // Works on iPhone Safari too (the window is opened directly from the click).
+  // הפעלת דיאלוג PDF / הדפסה ישיר ללא API וללא פתיחת חלונות
   const handlePrintPDF = () => {
-    if (!selectedOrder) return;
-    const o = selectedOrder;
-    const shortId = o.id ? String(o.id).slice(0, 8) : '';
-    const dateStr = o.created_at ? new Date(o.created_at).toLocaleString('he-IL') : '';
-    const shipping = o.shipping_cost || 29;
-    const items: any[] = Array.isArray(o.items) ? o.items : [];
-
-    let rows = '';
-    items.forEach((item: any, idx: number) => {
-      const colorText = getColorName(item.selectedColor);
-      const qty = item.quantity || 1;
-      const price = (item.sale_price || item.price || 0) * qty;
-      let desc = '<b>' + escapeHtml(item.name) + '</b>';
-      if (item.selectedVariant) desc += '<div class="sub">גרסה: ' + escapeHtml(item.selectedVariant) + '</div>';
-      if (colorText) desc += '<div class="sub">צבע: ' + escapeHtml(colorText) + '</div>';
-      rows += '<tr><td class="c">' + (idx + 1) + '</td><td>' + desc + '</td><td class="c">' + qty + '</td><td class="l">₪' + price + '</td></tr>';
-    });
-    rows += '<tr class="ship"><td class="c">' + (items.length + 1) + '</td><td><b>משלוח מהיר עד הבית</b></td><td class="c">1</td><td class="l">₪' + shipping + '</td></tr>';
-
-    const css = [
-      'body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:0;padding:20px;direction:rtl;}',
-      '.bar{text-align:center;margin-bottom:16px;}',
-      '.btn{background:#ea580c;color:#fff;border:0;border-radius:12px;padding:12px 22px;font-size:16px;font-weight:bold;}',
-      '.head{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #ea580c;padding-bottom:12px;}',
-      '.brand{display:flex;align-items:center;gap:12px;}',
-      '.brand img{width:56px;height:56px;object-fit:contain;border-radius:50%;border:1px solid #ddd;}',
-      '.brand h2{margin:0;font-size:24px;}',
-      '.brand p{margin:4px 0 0;color:#ea580c;font-size:12px;font-weight:bold;}',
-      '.meta{text-align:left;}',
-      '.meta .t{color:#ea580c;font-weight:bold;font-size:16px;}',
-      '.meta .s{font-size:12px;color:#555;}',
-      '.box{background:#f9fafb;border:1px solid #e5e7eb;border-radius:14px;padding:14px;margin:16px 0;font-size:13px;line-height:1.9;}',
-      '.note{background:#fff7ed;border:1px solid #fed7aa;color:#c2410c;border-radius:10px;padding:8px;margin-top:8px;}',
-      'table{width:100%;border-collapse:collapse;font-size:13px;}',
-      'th{background:#ea580c;color:#fff;padding:9px;text-align:right;-webkit-print-color-adjust:exact;print-color-adjust:exact;}',
-      'td{padding:9px;border-bottom:1px solid #e5e7eb;text-align:right;vertical-align:top;}',
-      '.c{text-align:center;}.l{text-align:left;}',
-      '.sub{font-size:11px;color:#6b7280;}',
-      '.ship td{background:#fff7ed;}',
-      '.total{text-align:left;border-top:3px solid #ea580c;margin-top:14px;padding-top:10px;font-size:20px;font-weight:bold;color:#ea580c;}',
-      '.thanks{text-align:center;color:#6b7280;font-size:12px;margin-top:28px;padding-top:14px;border-top:1px dashed #d1d5db;}',
-      '@media print{.bar{display:none;}body{padding:0;}}'
-    ].join('');
-
-    const logo = 'https://iiaxizrezhczgutqijbe.supabase.co/storage/v1/object/public/product-images/IMG_6252.jpeg';
-
-    let notesHtml = '';
-    if (o.notes) notesHtml = '<div class="note"><b>הערות למשלוח:</b> ' + escapeHtml(o.notes) + '</div>';
-
-    const html =
-      '<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="UTF-8">' +
-      '<meta name="viewport" content="width=device-width, initial-scale=1">' +
-      '<title>הזמנה #' + escapeHtml(shortId) + '</title>' +
-      '<style>' + css + '</style></head><body>' +
-      '<div class="bar"><button class="btn" onclick="window.print()">🖨️ הדפס / שמור כ-PDF</button></div>' +
-      '<div class="head"><div class="brand"><img src="' + logo + '" alt="NEW PHONE">' +
-      '<div><h2>NEW PHONE</h2><p>הפלאפון החדש שלך</p></div></div>' +
-      '<div class="meta"><div class="t">סיכום הזמנה</div><div class="s"><b>#' + escapeHtml(shortId) + '</b></div><div class="s">' + escapeHtml(dateStr) + '</div></div></div>' +
-      '<div class="box"><b>פרטי לקוח למשלוח:</b><br>' +
-      '👤 <b>שם מלא:</b> ' + escapeHtml(o.customer_name || 'לא צוין') + '<br>' +
-      '📞 <b>טלפון:</b> ' + escapeHtml(o.phone || 'לא צוין') + '<br>' +
-      '✉️ <b>אימייל:</b> ' + escapeHtml(o.email || 'לא צוין') + '<br>' +
-      '📍 <b>כתובת למשלוח:</b> עיר: ' + escapeHtml(o.city || '') + ', רחוב: ' + escapeHtml(o.street || '') + ' ' + escapeHtml(o.building || '') +
-      notesHtml + '</div>' +
-      '<table><thead><tr><th class="c">#</th><th>תיאור מוצר / פריט</th><th class="c">כמות</th><th class="l">מחיר</th></tr></thead><tbody>' + rows + '</tbody></table>' +
-      '<div class="total">סה"כ לתשלום: ₪' + (o.total_price || 0) + '</div>' +
-      '<div class="thanks">תודה שקנית ב-NEW PHONE! נשמח לראותך שוב ❤️</div>' +
-      '</body></html>';
-
-    const w = window.open('', '_blank');
-    if (!w) {
-      alert('הדפדפן חסם את החלון. אפשר חלונות קופצים ונסה שוב.');
-      return;
-    }
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
-    w.focus();
-    setTimeout(() => {
-      try {
-        w.print();
-      } catch (e) {
-        console.error('print failed', e);
-      }
-    }, 800);
+    window.print();
   };
 
   if (loading) return <div className="text-center py-20 text-gray-500 font-medium">טוען הזמנות...</div>;
 
+  const logoUrl = 'https://iiaxizrezhczgutqijbe.supabase.co/storage/v1/object/public/product-images/IMG_6252.jpeg';
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto p-2 sm:p-4" dir="rtl">
+      
+      {/* סגנון CSS הדפסה/PDF: מציג רק את תעודת המשלוח הרשמית */}
+      <style jsx global>{`
+        @media print {
+          body * {
+            visibility: hidden !important;
+          }
+          #print-delivery-slip, #print-delivery-slip * {
+            visibility: visible !important;
+          }
+          #print-delivery-slip {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 20px !important;
+            background: white !important;
+            box-shadow: none !important;
+            border: none !important;
+          }
+          .no-print {
+            display: none !important;
+          }
+        }
+      `}</style>
 
-      <div className="flex items-center justify-between my-2">
+      {/* כותרת העמוד */}
+      <div className="flex items-center justify-between my-2 no-print">
         <h1 className="text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3 flex items-center gap-2">
           <span>📋</span>
           <span>ניהול הזמנות</span>
@@ -187,7 +123,8 @@ export default function AdminOrdersPage() {
         </h1>
       </div>
 
-      <div className="bg-white rounded-3xl border shadow-xs overflow-hidden">
+      {/* טבלת ההזמנות */}
+      <div className="bg-white rounded-3xl border shadow-xs overflow-hidden no-print">
         <div className="overflow-x-auto">
           <table className="w-full text-right text-xs">
             <thead className="bg-gray-50 border-b text-gray-700 font-bold">
@@ -249,11 +186,13 @@ export default function AdminOrdersPage() {
         </div>
       </div>
 
+      {/* מודל פרטי ההזמנה בממשק הניהול */}
       {selectedOrder && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-5 shadow-2xl border relative my-auto">
-
-            <div className="flex items-center justify-between border-b pb-3 sticky top-0 bg-white z-10">
+            
+            {/* סרגל עליון */}
+            <div className="flex items-center justify-between border-b pb-3 sticky top-0 bg-white z-10 no-print">
               <button
                 onClick={() => setSelectedOrder(null)}
                 className="w-9 h-9 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-600 cursor-pointer text-sm transition"
@@ -270,8 +209,9 @@ export default function AdminOrdersPage() {
               </button>
             </div>
 
-            <div className="space-y-4 text-xs text-gray-800">
-
+            {/* פרטי הזמנה מסודרים ברשת הניהול */}
+            <div className="space-y-4 no-print text-xs text-gray-800">
+              
               <div className="bg-orange-50/70 p-4 rounded-2xl border border-orange-200 flex items-center justify-between">
                 <div>
                   <span className="bg-orange-100 text-orange-800 text-xs font-black px-2.5 py-1 rounded-md">
@@ -305,4 +245,134 @@ export default function AdminOrdersPage() {
                   <span>👤</span> פרטי לקוח וכתובת למשלוח
                 </div>
                 <p><strong>שם מלא:</strong> {selectedOrder.customer_name || 'לא צוין'}</p>
-                <p><strong>טלפון:</strong> 
+                <p><strong>טלפון:</strong> <a href={`tel:${selectedOrder.phone}`} className="text-blue-600 font-bold underline">{selectedOrder.phone || 'לא צוין'}</a></p>
+                <p><strong>אימייל:</strong> {selectedOrder.email || 'לא צוין'}</p>
+                <p><strong>כתובת:</strong> עיר: {selectedOrder.city || ''}, רחוב: {selectedOrder.street || ''} {selectedOrder.building || ''}</p>
+                {selectedOrder.notes && (
+                  <p className="mt-2 text-orange-700 bg-orange-50 p-2.5 rounded-xl border border-orange-200">
+                    <strong>הערות לקוח:</strong> {selectedOrder.notes}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <div className="font-bold text-gray-900 text-sm flex items-center gap-1.5 pt-1">
+                  <span>📦</span> מוצרים בהזמנה
+                </div>
+                <div className="space-y-2 max-h-52 overflow-y-auto">
+                  {Array.isArray(selectedOrder.items) && selectedOrder.items.map((item: any, idx: number) => {
+                    const colorText = getColorName(item.selectedColor);
+                    return (
+                      <div key={idx} className="flex items-center justify-between bg-white border p-3 rounded-2xl shadow-xs">
+                        <div className="flex items-center gap-3">
+                          {item.image_url && <img src={item.image_url} alt="" className="w-11 h-11 object-contain bg-gray-50 rounded-xl border p-0.5" />}
+                          <div>
+                            <span className="font-bold text-gray-900 block text-xs">{item.name}</span>
+                            {item.selectedVariant && <span className="text-[10px] text-gray-500">גרסה: {item.selectedVariant} | </span>}
+                            {colorText && <span className="text-[10px] text-gray-500">צבע: {colorText}</span>}
+                          </div>
+                        </div>
+                        <div className="text-left">
+                          <span className="text-gray-600 font-medium block">כמות: {item.quantity || 1}</span>
+                          <span className="text-orange-600 font-black">₪{(item.sale_price || item.price || 0) * (item.quantity || 1)}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="flex items-center justify-between bg-orange-50/50 border border-orange-200 p-3 rounded-2xl">
+                    <span className="font-bold text-gray-900">משלוח מהיר עד הבית</span>
+                    <span className="text-orange-600 font-black">₪{selectedOrder.shipping_cost || 29}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-900 text-white p-4 rounded-2xl flex justify-between items-center">
+                <span className="font-bold text-sm">סה"כ לתשלום (כולל משלוח):</span>
+                <span className="text-lg font-black text-orange-400">₪{selectedOrder.total_price || 0}</span>
+              </div>
+
+            </div>
+
+            {/* תעודת משלוח מודפסת - מופיעה אך ורק בהדפסה/שמירה כ-PDF */}
+            <div id="print-delivery-slip" className="hidden print:block space-y-5 bg-white p-2" dir="rtl">
+              <div className="flex justify-between items-center border-b-2 border-orange-600 pb-4">
+                <div className="flex items-center gap-3">
+                  <img src={logoUrl} alt="NEW PHONE" className="w-14 h-14 object-contain rounded-full border p-0.5" />
+                  <div>
+                    <h2 className="text-2xl font-black text-gray-900 leading-none">NEW PHONE</h2>
+                    <p className="text-xs text-orange-600 font-bold mt-1">הפלאפון החדש שלך</p>
+                  </div>
+                </div>
+                <div className="text-left">
+                  <div className="text-base font-black text-orange-600">סיכום הזמנה</div>
+                  <div className="text-xs font-bold text-gray-800">#{selectedOrder.id ? selectedOrder.id.slice(0, 8) : ''}</div>
+                  <div className="text-[10px] text-gray-500">
+                    {selectedOrder.created_at ? new Date(selectedOrder.created_at).toLocaleString('he-IL') : ''}
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-xs text-gray-800 bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-1.5">
+                <span className="font-bold block text-gray-900 mb-1 text-sm">פרטי לקוח למשלוח:</span>
+                <p>👤 <strong>שם מלא:</strong> {selectedOrder.customer_name || 'לא צוין'}</p>
+                <p>📞 <strong>טלפון:</strong> {selectedOrder.phone || 'לא צוין'}</p>
+                <p>✉️ <strong>אימייל:</strong> {selectedOrder.email || 'לא צוין'}</p>
+                <p>📍 <strong>כתובת למשלוח:</strong> עיר: {selectedOrder.city || ''}, רחוב: {selectedOrder.street || ''} {selectedOrder.building || ''}</p>
+                {selectedOrder.notes && (
+                  <p className="mt-2 text-orange-700 bg-orange-50 p-2.5 rounded-xl border border-orange-200">
+                    <strong>הערות למשלוח:</strong> {selectedOrder.notes}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <table className="w-full text-right text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-orange-600 text-white font-bold">
+                      <th className="p-2.5 text-center w-8">#</th>
+                      <th className="p-2.5">תיאור מוצר / פריט</th>
+                      <th className="p-2.5 text-center w-12">כמות</th>
+                      <th className="p-2.5 text-left w-20">מחיר</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y border-b border-gray-200">
+                    {Array.isArray(selectedOrder.items) && selectedOrder.items.map((item: any, idx: number) => {
+                      const colorText = getColorName(item.selectedColor);
+                      return (
+                        <tr key={idx}>
+                          <td className="p-2.5 text-center font-bold">{idx + 1}</td>
+                          <td className="p-2.5 font-bold">
+                            {item.name}
+                            {item.selectedVariant && <div className="text-[10px] text-gray-500 font-normal">גרסה: {item.selectedVariant}</div>}
+                            {colorText && <div className="text-[10px] text-gray-500 font-normal">צבע: {colorText}</div>}
+                          </td>
+                          <td className="p-2.5 text-center font-bold">{item.quantity || 1}</td>
+                          <td className="p-2.5 text-left font-bold">₪{(item.sale_price || item.price || 0) * (item.quantity || 1)}</td>
+                        </tr>
+                      );
+                    })}
+                    <tr className="bg-orange-50/50 font-bold">
+                      <td className="p-2.5 text-center">{(selectedOrder.items || []).length + 1}</td>
+                      <td className="p-2.5">משלוח מהיר עד הבית</td>
+                      <td className="p-2.5 text-center">1</td>
+                      <td className="p-2.5 text-left">₪{selectedOrder.shipping_cost || 29}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="text-left border-t-2 border-orange-600 pt-3 font-black text-orange-600 text-lg">
+                סה"כ לתשלום: ₪{selectedOrder.total_price || 0}
+              </div>
+
+              <div className="text-center text-xs text-gray-500 pt-6 border-t border-dashed border-gray-200">
+                תודה שקנית ב-NEW PHONE! נשמח לראותך שוב ❤️
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
