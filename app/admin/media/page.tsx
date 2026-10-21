@@ -103,73 +103,93 @@ export default function AdminMedia() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto p-4 sm:p-6" dir="rtl">
+    <div className="space-y-6 max-w-6xl mx-auto p-2 sm:p-4" dir="rtl">
       {/* כותרת ראשית ואזור העלאה */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">ספריית מדיה 🖼️</h1>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">ניהול כל הקבצים והתמונות במערכת בצורה מהירה ומרווחת.</p>
+      <div className="bg-white p-6 rounded-3xl border shadow-xs text-center space-y-4">
+        <div className="space-y-1">
+          <h1 className="text-xl font-black text-gray-900 flex items-center justify-center gap-2">
+            <span>🖼️</span>
+            <span>ספריית מדיה</span>
+          </h1>
+          <p className="text-xs text-gray-500 font-medium">
+            ניהול כל הקבצים והתמונות במערכת בצורה מהירה ומרווחת.
+          </p>
         </div>
 
-        <label className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-3 rounded-2xl transition cursor-pointer shadow-md text-xs sm:text-sm flex items-center gap-2">
-          <span>{uploading ? 'מעלה קבצים...' : 'העלה תמונות חדשות 📁'}</span>
-          <input type="file" accept="image/*" multiple onChange={handleUpload} className="hidden" />
+        <label className="inline-flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-3 rounded-2xl text-xs transition cursor-pointer shadow-md">
+          <span>📁</span>
+          <span>{uploading ? 'מעלה קבצים...' : 'העלה תמונות חדשות'}</span>
+          <input type="file" accept="image/*" multiple onChange={handleUpload} className="hidden" disabled={uploading} />
         </label>
       </div>
 
-      {/* רשת גלריית התמונות הצפופה והמסודרת */}
-      <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 space-y-4">
+      {/* רשת גלריית התמונות: 4 עמודות בכל שורה בדיוק */}
+      <div className="bg-white p-4 sm:p-6 rounded-3xl border shadow-xs space-y-4">
         <div className="flex justify-between items-center border-b pb-3">
-          <h2 className="text-base font-bold text-gray-800">
+          <h2 className="text-sm font-bold text-gray-800">
             קבצים במערכת ({mediaFiles.length})
           </h2>
           <button 
             onClick={fetchMediaFiles} 
-            className="text-xs text-orange-600 font-bold hover:underline cursor-pointer"
+            className="text-xs text-orange-600 hover:text-orange-700 font-bold flex items-center gap-1 cursor-pointer transition"
           >
-            רענן מאגר 🔄
+            <span>🔄</span>
+            <span>רענן מאגר</span>
           </button>
         </div>
 
         {loading ? (
-          <div className="text-center py-20 font-bold text-sm text-gray-500">טוען קבצים מהמדיה...</div>
+          <div className="text-center py-16 text-xs text-gray-400 font-bold">טוען קבצים מהמדיה...</div>
         ) : mediaFiles.length === 0 ? (
-          <div className="text-center py-20 text-gray-400 font-medium">אין קבצים זמינים במדיה כרגע.</div>
+          <div className="text-center py-16 text-xs text-gray-400">אין קבצים זמינים במדיה כרגע.</div>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+          /* grid-cols-4 בול לכל המסכים */
+          <div className="grid grid-cols-4 gap-2.5 sm:gap-4">
             {mediaFiles.map((file, idx) => (
               <div 
                 key={idx} 
-                className="bg-white rounded-2xl border border-gray-100 p-2 flex flex-col justify-between gap-2 shadow-2xs hover:shadow-md hover:border-orange-500 transition-all group"
+                className="bg-white rounded-2xl border border-gray-200 p-2 flex flex-col items-center justify-between shadow-2xs hover:border-orange-500 transition group"
               >
-                {/* תצוגה מקדימה בריבוע מושלם בלחיצה להעתקה */}
+                {/* תמונה מוגדלת וברורה ברקע נקי */}
                 <div 
                   onClick={() => copyToClipboard(file.url, idx)}
-                  className="w-full aspect-square bg-gray-50 rounded-xl overflow-hidden border border-gray-100 flex items-center justify-center p-1.5 relative cursor-pointer"
+                  className="w-full aspect-square bg-gray-50 rounded-xl overflow-hidden border border-gray-100 flex items-center justify-center p-1 relative cursor-pointer"
                   title="לחץ להעתקת קישור"
                 >
-                  <img src={file.url} alt="" className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition duration-300" />
+                  <img 
+                    src={file.url} 
+                    alt="" 
+                    className="max-w-full max-h-full object-contain rounded-lg group-hover:scale-105 transition duration-200" 
+                  />
                   {copiedIndex === idx && (
-                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-[10px] font-black rounded-lg backdrop-blur-3xs">
+                    <div className="absolute inset-0 bg-black/70 flex items-center justify-center text-white text-xs font-black rounded-lg backdrop-blur-3xs">
                       הועתק! ✓
                     </div>
                   )}
                 </div>
 
-                {/* כפתורי פעולה נקיים */}
-                <div className="grid grid-cols-2 gap-1">
+                {/* כפתורים מוקטנים ואייקונים בלבד (ללא טקסט) */}
+                <div className="flex items-center justify-center gap-1.5 w-full mt-2">
+                  {/* כפתור העתקת קישור */}
                   <button
                     onClick={() => copyToClipboard(file.url, idx)}
-                    className="bg-gray-100 hover:bg-black hover:text-white text-gray-800 py-1.5 rounded-xl text-[10px] font-bold transition cursor-pointer text-center truncate px-1 flex items-center justify-center"
+                    title="העתק קישור"
+                    className={`w-8 h-8 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer ${
+                      copiedIndex === idx
+                        ? 'bg-green-100 text-green-700 border border-green-300'
+                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                    }`}
                   >
-                    {copiedIndex === idx ? 'הועתק ✓' : 'העתק 🔗'}
+                    {copiedIndex === idx ? '✓' : '📋'}
                   </button>
+
+                  {/* כפתור מחיקה */}
                   <button
                     onClick={() => handleDelete(file.path)}
-                    className="bg-red-50 hover:bg-red-100 text-red-600 py-1.5 rounded-xl text-[10px] font-bold transition cursor-pointer flex items-center justify-center"
-                    title="מחק קובץ"
+                    title="מחק תמונה"
+                    className="w-8 h-8 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer border border-red-100"
                   >
-                    מחק 🗑️
+                    🗑️
                   </button>
                 </div>
               </div>
