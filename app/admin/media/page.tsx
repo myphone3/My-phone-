@@ -3,14 +3,19 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
-// לשוניות הספרייה + הטבלאות שנבדקות כדי לזהות באיזו קטגוריה התמונה בשימוש
-// (טבלה שלא קיימת פשוט מדולגת, אפשר להוסיף כאן שמות טבלאות)
+// לשוניות הספרייה. כל לשונית נקבעת לפי טבלאות במסד שמכילות את התמונה.
+// tables = שמות טבלאות מוכרים, keywords = מילים שמזהות טבלאות נוספות אוטומטית
 const CATEGORIES = [
-  { key: 'banners', label: 'באנרים', tables: ['banners'] },
-  { key: 'products', label: 'מוצרים', tables: ['products'] },
-  { key: 'brands', label: 'מותגים', tables: ['brands'] },
-  { key: 'categories', label: 'קטגוריות', tables: ['categories'] },
-  { key: 'kosher', label: 'כשרויות', tables: ['kosher', 'kashrut', 'kosher_certifications', 'kosher_types'] },
+  { key: 'banners', label: 'באנרים', tables: ['banners'], keywords: ['banner'] },
+  { key: 'products', label: 'מוצרים', tables: ['products'], keywords: ['product'] },
+  { key: 'brands', label: 'מותגים', tables: ['brands'], keywords: ['brand'] },
+  { key: 'categories', label: 'קטגוריות', tables: ['categories'], keywords: ['categor'] },
+  {
+    key: 'kosher',
+    label: 'כשרויות',
+    tables: ['kosher', 'kashrut', 'kosher_certifications', 'kosher_types', 'kosher_options', 'kosher_labels'],
+    keywords: ['kosher', 'kashr', 'hechsher', 'certif'],
+  },
 ];
 
 // תיקיות באחסון שמזוהות אוטומטית (גיבוי נוסף)
@@ -35,14 +40,37 @@ export default function AdminMedia() {
     fetchMediaFiles();
   }, []);
 
+  // מנסה לקבל את רשימת הטבלאות האמיתיות מהמסד
+  const discoverTables = async (): Promise<string[]> => {
+    try {
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      if (!url || !key) return [];
+      const res = await fetch(`${url}/rest/v1/`, {
+        headers: { apikey: key, Authorization: `Bearer ${key}` },
+      });
+      if (!res.ok) return [];
+      const spec = await res.json();
+      return Object.keys(spec.definitions || spec.components?.schemas || {});
+    } catch (e) {
+      return [];
+    }
+  };
+
   // טוען את תוכן הטבלאות של כל קטגוריה כטקסט אחד, כדי לבדוק אם תמונה מופיעה בו
   const fetchUsage = async (): Promise<Record<string, string>> => {
+    const discovered = await discoverTables();
     const usage: Record<string, string> = {};
+
     await Promise.all(
       CATEGORIES.map(async (cat) => {
+        const matched = discovered.filter((t) =>
+          cat.keywords.some((k) => t.toLowerCase().includes(k))
+        );
+        const tables = Array.from(new Set([...cat.tables, ...matched]));
         let haystack = '';
         await Promise.all(
-          cat.tables.map(async (table) => {
+          tables.map(async (table) => {
             try {
               const { data, error } = await supabase.from(table).select('*');
               if (!error && data) haystack += JSON.stringify(data);
@@ -97,16 +125,13 @@ export default function AdminMedia() {
         }
       }
 
-      // זיהוי אוטומטי: באילו קטגוריות התמונה בשימוש
+      // זיהוי אוטומטי: באילו קטגוריות התמונה בשימוש (לפי שם הקובץ)
       const usage = await fetchUsage();
       allFiles = allFiles.map((file) => {
         const cats: string[] = [];
         for (const cat of CATEGORIES) {
           const h = usage[cat.key] || '';
-          if (
-            h &&
-            (h.includes(file.url) || h.includes(file.path) || h.includes(encodeURI(file.path)))
-          ) {
+          if (h && (h.includes(file.name) || h.includes(encodeURIComponent(file.name)))) {
             cats.push(cat.key);
           }
         }
@@ -173,16 +198,11 @@ export default function AdminMedia() {
     }, 1500);
   };
 
-  const countFor = (key: string) =>
-    key === 'general'
-      ? mediaFiles.filter((f) => f.categories.length === 0).length
-      : mediaFiles.filter((f) => f.categories.includes(key)).length;
+  const countFor = (key: string) => mediaFiles.filter((f) => f.categories.includes(key)).length;
 
   const filteredFiles =
     activeFilter === 'all'
       ? mediaFiles
-      : activeFilter === 'general'
-      ? mediaFiles.filter((f) => f.categories.length === 0)
       : mediaFiles.filter((f) => f.categories.includes(activeFilter));
 
   const tabClass = (active: boolean) =>
@@ -250,13 +270,6 @@ export default function AdminMedia() {
                 {c.label} ({countFor(c.key)})
               </button>
             ))}
-            <button
-              type="button"
-              onClick={() => setActiveFilter('general')}
-              className={tabClass(activeFilter === 'general')}
-            >
-              כללי ({countFor('general')})
-            </button>
           </div>
         )}
 
