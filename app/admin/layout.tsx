@@ -1,12 +1,46 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || '';
+  const router = useRouter();
   const activeRef = useRef<HTMLAnchorElement | null>(null);
+  const [access, setAccess] = useState<'checking' | 'allowed' | 'denied'>('checking');
+
+  // שער כניסה: שואלים את בסיס הנתונים (הפונקציה is_admin) האם המשתמש המחובר מנהל
+  useEffect(() => {
+    let cancelled = false;
+
+    const checkAccess = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          if (!cancelled) setAccess('denied');
+          return;
+        }
+        const { data, error } = await supabase.rpc('is_admin');
+        if (!cancelled) setAccess(!error && data === true ? 'allowed' : 'denied');
+      } catch {
+        if (!cancelled) setAccess('denied');
+      }
+    };
+
+    checkAccess();
+
+    // בדיקה מחדש בכל התחברות או התנתקות
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      checkAccess();
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const navItems = [
     { name: 'ראשי 🏠', href: '/admin' },
@@ -33,7 +67,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         inline: 'center',
       });
     }
-  }, [pathname]);
+  }, [pathname, access]);
+
+  // מי שאינו מנהל מוחזר לדף הבית בשקט
+  useEffect(() => {
+    if (access === 'denied') router.replace('/');
+  }, [access, router]);
+
+  // עד שהבדיקה מסתיימת (או בזמן ההעברה לדף הבית) לא מציגים כלום
+  if (access !== 'allowed') return null;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-4 space-y-4" dir="rtl">
