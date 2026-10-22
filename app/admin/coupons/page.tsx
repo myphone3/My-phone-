@@ -27,6 +27,7 @@ export default function AdminCouponsPage() {
   const [welcomeGiftProductId, setWelcomeGiftProductId] = useState('');
   const [welcomeDiscountValue, setWelcomeDiscountValue] = useState('10');
   const [welcomeDaysValid, setWelcomeDaysValid] = useState('7');
+  const [welcomeMinPurchase, setWelcomeMinPurchase] = useState('300');
 
   useEffect(() => {
     fetchData();
@@ -68,6 +69,9 @@ export default function AdminCouponsPage() {
             if (parsed.welcome_gift_product_id) setWelcomeGiftProductId(parsed.welcome_gift_product_id);
             if (parsed.welcome_discount_value) setWelcomeDiscountValue(parsed.welcome_discount_value);
             if (parsed.welcome_days_valid) setWelcomeDaysValid(parsed.welcome_days_valid);
+            if (parsed.welcome_min_purchase !== undefined && parsed.welcome_min_purchase !== null) {
+              setWelcomeMinPurchase(String(parsed.welcome_min_purchase));
+            }
           }
         } catch {
           setWelcomeActive(settingsData.announcement_text.includes('WELCOME_ACTIVE:TRUE'));
@@ -147,7 +151,8 @@ export default function AdminCouponsPage() {
       welcome_type: welcomeType,
       welcome_gift_product_id: welcomeGiftProductId || null,
       welcome_discount_value: welcomeDiscountValue,
-      welcome_days_valid: welcomeDaysValid
+      welcome_days_valid: welcomeDaysValid,
+      welcome_min_purchase: welcomeMinPurchase
     };
 
     const welcomePayload = {
@@ -261,7 +266,7 @@ export default function AdminCouponsPage() {
       <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border space-y-4">
         <h2 className="text-base sm:text-lg font-black text-gray-900 border-b pb-2">🎁 מבצע הצטרפות</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">סוג מבצע הצטרפות</label>
             <select 
@@ -280,6 +285,17 @@ export default function AdminCouponsPage() {
               type="number" 
               value={welcomeDaysValid} 
               onChange={(e) => setWelcomeDaysValid(e.target.value)} 
+              className="w-full border p-3 rounded-xl text-sm bg-white font-bold box-border" 
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">מינימום קנייה למימוש (₪)</label>
+            <input 
+              type="number" 
+              value={welcomeMinPurchase} 
+              onChange={(e) => setWelcomeMinPurchase(e.target.value)} 
+              placeholder="0 = ללא מינימום"
               className="w-full border p-3 rounded-xl text-sm bg-white font-bold box-border" 
             />
           </div>
