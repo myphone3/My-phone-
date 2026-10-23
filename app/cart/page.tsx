@@ -152,11 +152,10 @@ export default function CartPage() {
     if (!couponInput.trim()) return;
     setCouponError('');
 
+    // בדיקת קוד אחד בבסיס הנתונים, בלי לחשוף את רשימת כל הקופונים
     const { data, error } = await supabase
-      .from('coupons')
-      .select('*')
-      .ilike('code', couponInput.trim())
-      .single();
+      .rpc('validate_coupon', { p_code: couponInput.trim() })
+      .maybeSingle<any>();
 
     if (error || !data) {
       setCouponError('קופון שגוי או שאינו בתוקף');
