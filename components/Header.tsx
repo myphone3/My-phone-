@@ -26,10 +26,6 @@ export default function Header() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  if (pathname?.startsWith('/admin')) {
-    return null;
-  }
-
   useEffect(() => {
     const init = async () => {
       try {
@@ -239,6 +235,11 @@ export default function Header() {
     giftMetaParts.push(giftDaysLeft === 1 ? 'נשאר יום אחד' : `נשארו ${giftDaysLeft} ימים`);
   } else if (welcomeDaysValid > 0) {
     giftMetaParts.push(`תקף ${welcomeDaysValid} ימים`);
+  }
+
+  // בפאנל הניהול לא מציגים את כותרת החנות (הבדיקה אחרי כל ה-hooks, אחרת המעבר חזרה לחנות קורס)
+  if (pathname?.startsWith('/admin')) {
+    return null;
   }
 
   return (
