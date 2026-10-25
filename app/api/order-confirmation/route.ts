@@ -3,7 +3,7 @@ import { readFile } from 'fs/promises';
 import path from 'path';
 import { supabase } from '@/lib/supabase';
 import { brandedEmail, escapeHtml, mailTransport } from '@/lib/mailer';
-import { buildOrderPdf } from '@/lib/orderPdf';
+import { buildOrderPdf, PDF_ASSET_PATHS } from '@/lib/orderPdf';
 import { Order, formatMoney, orderItems, orderNumber, orderTotals } from '@/lib/orders';
 
 export const runtime = 'nodejs';
@@ -26,12 +26,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, skipped: 'no email' });
     }
 
-    const fontsDir = path.join(process.cwd(), 'public', 'fonts');
-    const [regular, bold] = await Promise.all([
-      readFile(path.join(fontsDir, 'Heebo-Regular.ttf')),
-      readFile(path.join(fontsDir, 'Heebo-Bold.ttf')),
-    ]);
-    const pdf = await buildOrderPdf(order, { regular, bold });
+    const publicDir = path.join(process.cwd(), 'public');
+    const [regular, bold, logo] = await Promise.all(
+      [PDF_ASSET_PATHS.regular, PDF_ASSET_PATHS.bold, PDF_ASSET_PATHS.logo].map((p) => readFile(path.join(publicDir, p)))
+    );
+    const pdf = await buildOrderPdf(order, { regular, bold, logo });
 
     const number = orderNumber(order.id);
     const totals = orderTotals(order);

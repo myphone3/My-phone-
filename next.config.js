@@ -9,9 +9,9 @@ const nextConfig = {
     ],
   },
   experimental: {
-    // הגופנים ל-PDF נקראים מהדיסק במייל אישור ההזמנה
+    // הגופנים והלוגו ל-PDF נקראים מהדיסק במייל אישור ההזמנה
     outputFileTracingIncludes: {
-      '/api/order-confirmation': ['./public/fonts/**'],
+      '/api/order-confirmation': ['./public/fonts/**', './public/Logo.JPG'],
     },
   },
 };

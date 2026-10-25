@@ -23,8 +23,8 @@ function firstImage(order: Order) {
 }
 
 export async function downloadOrderPdf(order: Order) {
-  const { buildOrderPdf, loadPdfFonts } = await import('@/lib/orderPdf');
-  const bytes = await buildOrderPdf(order, await loadPdfFonts());
+  const { buildOrderPdf, loadPdfAssets } = await import('@/lib/orderPdf');
+  const bytes = await buildOrderPdf(order, await loadPdfAssets());
   const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/pdf' }));
   const link = document.createElement('a');
   link.href = url;
@@ -193,13 +193,13 @@ export default function MyOrders() {
     return (
       <div className="text-center py-16 bg-white rounded-3xl border p-8 space-y-4 shadow-sm">
         <div className="w-20 h-20 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mx-auto text-3xl">📦</div>
-        <h2 className="text-lg font-black text-gray-900">כדי לראות את ההזמנות שלך יש להתחבר</h2>
+        <h2 className="text-lg font-black text-gray-900">כדי לראות את ההזמנות שלך יש להירשם לאתר</h2>
         <button
           type="button"
           onClick={handleLogin}
           className="inline-block bg-orange-600 text-white px-6 py-3 rounded-2xl text-xs font-bold hover:bg-orange-700 transition shadow-sm cursor-pointer"
         >
-          התחברות עם Google
+          הרשמה לאתר עם Google
         </button>
       </div>
     );

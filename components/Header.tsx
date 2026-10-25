@@ -338,7 +338,7 @@ export default function Header() {
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 className="relative flex items-center justify-center w-12 h-12 bg-white hover:bg-orange-50/50 border-2 border-orange-200 rounded-full shadow-2xs transition duration-200 cursor-pointer p-1"
-                title={user ? (user.user_metadata?.full_name || 'החשבון שלי') : 'התחברות והתראות'}
+                title={user ? (user.user_metadata?.full_name || 'החשבון שלי') : 'הרשמה לאתר והתראות'}
               >
                 <span className="w-full h-full rounded-full overflow-hidden flex items-center justify-center">
                   {user?.user_metadata?.avatar_url ? (
@@ -401,7 +401,7 @@ export default function Header() {
                           <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                         </svg>
                       </span>
-                      <span>התחברות מהירה עם Google</span>
+                      <span>הרשמה לאתר עם Google</span>
                     </button>
                   )}
 

@@ -74,11 +74,14 @@ function wrap(text: string, font: PDFFont, size: number, maxWidth: number) {
   return lines.length ? lines : [''];
 }
 
-export async function buildOrderPdf(order: Order, fonts: { regular: ArrayBuffer | Uint8Array; bold: ArrayBuffer | Uint8Array }) {
+type PdfAssets = { regular: ArrayBuffer | Uint8Array; bold: ArrayBuffer | Uint8Array; logo?: ArrayBuffer | Uint8Array };
+
+export async function buildOrderPdf(order: Order, assets: PdfAssets) {
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
-  const regular = await pdf.embedFont(fonts.regular, { subset: true });
-  const bold = await pdf.embedFont(fonts.bold, { subset: true });
+  const regular = await pdf.embedFont(assets.regular, { subset: true });
+  const bold = await pdf.embedFont(assets.bold, { subset: true });
+  const logo = assets.logo ? await pdf.embedJpg(assets.logo) : null;
   pdf.setTitle(`הזמנה ${orderNumber(order.id)}`);
   pdf.setAuthor('NEW PHONE');
 
@@ -108,13 +111,19 @@ export async function buildOrderPdf(order: Order, fonts: { regular: ArrayBuffer 
     }
   };
 
-  // כותרת
-  right('NEW PHONE', PAGE_W - MARGIN, y - 18, 24, bold, ORANGE);
-  right('הפלאפון החדש שלך', PAGE_W - MARGIN, y - 34, 10, regular, GRAY);
-  left('סיכום הזמנה', MARGIN, y - 14, 14, bold);
-  left(`#${orderNumber(order.id)}`, MARGIN, y - 30, 11);
-  left(formatDate(order.created_at, true), MARGIN, y - 44, 10, regular, GRAY);
-  y -= 58;
+  // כותרת: לוגו מימין, פרטי ההזמנה משמאל
+  const logoH = 70;
+  if (logo) {
+    const logoW = (logo.width / logo.height) * logoH;
+    page.drawImage(logo, { x: PAGE_W - MARGIN - logoW, y: y - logoH, width: logoW, height: logoH });
+  } else {
+    right('NEW PHONE', PAGE_W - MARGIN, y - 18, 24, bold, ORANGE);
+    right('הפלאפון החדש שלך', PAGE_W - MARGIN, y - 34, 10, regular, GRAY);
+  }
+  left('סיכום הזמנה', MARGIN, y - 20, 14, bold);
+  left(`#${orderNumber(order.id)}`, MARGIN, y - 38, 11);
+  left(formatDate(order.created_at, true), MARGIN, y - 54, 10, regular, GRAY);
+  y -= logoH + 10;
   page.drawRectangle({ x: MARGIN, y, width: PAGE_W - MARGIN * 2, height: 3, color: ORANGE });
   y -= 26;
 
@@ -192,14 +201,17 @@ export async function buildOrderPdf(order: Order, fonts: { regular: ArrayBuffer 
   return pdf.save();
 }
 
-// טעינת הגופנים מתיקיית public/fonts (בדפדפן: כתובת יחסית, בשרת: כתובת האתר)
-export async function loadPdfFonts(baseUrl = '') {
-  const [regular, bold] = await Promise.all(
-    ['/fonts/Heebo-Regular.ttf', '/fonts/Heebo-Bold.ttf'].map(async (path) => {
-      const res = await fetch(`${baseUrl}${path}`);
-      if (!res.ok) throw new Error(`Font load failed: ${path}`);
+// הקבצים שה-PDF צריך: גופנים ולוגו (מתוך public)
+export const PDF_ASSET_PATHS = { regular: 'fonts/Heebo-Regular.ttf', bold: 'fonts/Heebo-Bold.ttf', logo: 'Logo.JPG' };
+
+// טעינה בדפדפן
+export async function loadPdfAssets() {
+  const [regular, bold, logo] = await Promise.all(
+    [PDF_ASSET_PATHS.regular, PDF_ASSET_PATHS.bold, PDF_ASSET_PATHS.logo].map(async (path) => {
+      const res = await fetch(`/${path}`);
+      if (!res.ok) throw new Error(`Asset load failed: ${path}`);
       return res.arrayBuffer();
     })
   );
-  return { regular, bold };
+  return { regular, bold, logo };
 }

@@ -314,14 +314,17 @@ export default function CartPage() {
 
         /* === מסך סיום הזמנה === */
         <div className="bg-white rounded-3xl border border-orange-100 shadow-lg shadow-orange-100/60 p-6 sm:p-8 text-center max-w-lg mx-auto">
-          <div className="w-[72px] h-[72px] rounded-full bg-gradient-to-br from-orange-400 to-orange-600 text-white text-4xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-orange-300/60">
-            ✓
+          <div className="relative w-24 h-24 mx-auto mb-4">
+            <img src="/Logo.JPG" alt="NEW PHONE" className="w-24 h-24 object-contain" />
+            <div className="absolute -top-1 -left-2 w-9 h-9 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 text-white text-lg font-black flex items-center justify-center border-4 border-white shadow-md">
+              ✓
+            </div>
           </div>
           <h2 className="text-2xl font-black text-gray-900 mb-1.5">התשלום בוצע בהצלחה!</h2>
           <p className="text-sm text-gray-600 leading-relaxed mb-5">
             תודה שקנית ב-NEW PHONE 🧡
             <br />
-            אישור הזמנה וסיכום בקובץ PDF נשלחו למייל שלך.
+            אישור הזמנה נשלח למייל שלך.
           </p>
           <div className="inline-block bg-orange-50 border border-dashed border-orange-300 text-orange-700 font-black rounded-xl px-4 py-2 text-sm mb-5">
             מספר הזמנה: <span dir="ltr">#{orderNumber(placedOrder.id)}</span>
