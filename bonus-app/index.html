@@ -16,12 +16,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700;800&family=Assistant:wght@400;600;700&display=swap">
 <style>
-/* Layout: one narrow phone column — account bar, month ledger, three big "add" keys, breakdown, log, share */
+/* Layout: phone column with a fixed bottom tab bar — Add / Types / Summary / Settings */
 :root {
   --bg: #f3f4f8; --surface: #ffffff; --ink: #0f1b33; --muted: #59627a; --line: #dcdfe8;
   --accent: #172a55; --accent-ink: #ffffff; --gold: #a87a12; --gold-soft: #f8efd6; --soft: #e8ecf6;
   --hero: #12234a; --hero-ink: #f1f4fb; --hero-gold: #e8bf55;
-  --danger: #b3261e; --wa: #128c4a;
+  --nav: #ffffff; --nav-active: #12234a;
+  --danger: #b3261e; --wa: #128c4a; --xl: #1d6f42;
   --font-display: "Rubik", "Assistant", system-ui, sans-serif;
   --font-body: "Assistant", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   color-scheme: light;
@@ -31,7 +32,8 @@
     --bg: #0a1224; --surface: #121c34; --ink: #e9edf6; --muted: #9aa4bd; --line: #26314d;
     --accent: #e2b84a; --accent-ink: #161004; --gold: #e8bf55; --gold-soft: #3a2f12; --soft: #1b2744;
     --hero: #16285a; --hero-ink: #eef2fb; --hero-gold: #f0c860;
-    --danger: #f2827a; --wa: #3ccf7f; color-scheme: dark;
+    --nav: #0f1930; --nav-active: #f0c860;
+    --danger: #f2827a; --wa: #3ccf7f; --xl: #4cc38a; color-scheme: dark;
   }
 }
 * { box-sizing: border-box; }
@@ -46,48 +48,62 @@ body {
 }
 [hidden] { display: none !important; }
 .wrap { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.tab { display: flex; flex-direction: column; gap: 18px; }
 h1, h2, h3 { font-family: var(--font-display); margin: 0; text-wrap: balance; }
 h2 { font-size: 1.05rem; font-weight: 700; }
 button { font: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:focus-within { outline: 3px solid var(--gold); outline-offset: 2px; }
 .num { font-variant-numeric: tabular-nums; }
 
+/* header */
 .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .top-start { min-width: 0; }
+.brand-row { display: flex; align-items: center; gap: 8px; }
+.brand-row svg { width: 28px; height: 28px; flex-shrink: 0; }
 .brand { font-family: var(--font-display); font-size: 1.15rem; font-weight: 800; }
 .status { font-size: .8rem; color: var(--muted); overflow-wrap: anywhere; }
-.top-btns { display: flex; gap: 6px; flex-shrink: 0; }
-.icon-btn { background: transparent; border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; font-size: .9rem; color: var(--muted); }
-.acct-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--soft); border: 1px solid var(--line); border-radius: 999px; padding: 4px 4px 4px 12px; font-size: .9rem; font-weight: 700; max-width: 170px; }
+.acct-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--soft); border: 1px solid var(--line); border-radius: 999px; padding: 4px 4px 4px 12px; font-size: .9rem; font-weight: 700; max-width: 180px; flex-shrink: 0; }
 .acct-btn .acct-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .avatar { flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; background: var(--hero); color: var(--hero-gold); display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: .95rem; overflow: hidden; border: 2px solid var(--hero-gold); }
 .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .avatar.lg { width: 64px; height: 64px; font-size: 1.6rem; }
-.brand-row { display: flex; align-items: center; gap: 8px; }
-.brand-row svg { width: 28px; height: 28px; flex-shrink: 0; }
-.profile-row { display: flex; align-items: center; gap: 14px; }
 
-.ledger { background: var(--hero); color: var(--hero-ink); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hero-gold) 25%, transparent); border-radius: 18px; padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 12px; }
+/* bottom tabs */
+.tabbar { position: fixed; inset: auto 0 0 0; z-index: 15; background: var(--nav); border-top: 1px solid var(--line);
+  padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px));
+  padding-top: 6px; padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px)); }
+.tabbar-inner { max-width: 520px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.tabbar button { background: transparent; border: 0; border-radius: 12px; padding: 6px 2px; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: .78rem; font-weight: 700; color: var(--muted); }
+.tabbar svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tabbar button[aria-current="page"] { color: var(--nav-active); background: var(--soft); }
+
+/* hero ledger */
+.ledger { background: var(--hero); color: var(--hero-ink); border-radius: 18px; padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hero-gold) 25%, transparent); }
 .month-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .month-nav button { background: color-mix(in srgb, var(--hero-ink) 12%, transparent); border: 0; border-radius: 10px; width: 40px; height: 36px; font-size: 1.2rem; color: var(--hero-ink); }
 .month-nav button:disabled { opacity: .35; cursor: default; }
 .month-name { font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; }
 .total-label { font-size: .8rem; letter-spacing: .06em; opacity: .85; }
 .total { font-family: var(--font-display); font-weight: 800; font-size: 3rem; line-height: 1; color: var(--hero-gold); }
+.total small { font-size: 1.4rem; font-weight: 700; margin-inline-start: 4px; }
 .total-sub { font-size: .9rem; opacity: .9; margin-top: 6px; }
 .total-sub b { color: var(--hero-gold); }
-.total small { font-size: 1.4rem; font-weight: 700; margin-inline-start: 4px; }
 .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .kpi { background: color-mix(in srgb, var(--hero-ink) 10%, transparent); border-radius: 12px; padding: 8px 10px; }
 .kpi b { display: block; font-family: var(--font-display); font-size: 1.35rem; }
 .kpi span { font-size: .8rem; opacity: .9; }
+.mini-ledger { background: var(--hero); color: var(--hero-ink); border-radius: 16px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.mini-ledger .lbl2 { font-size: .85rem; opacity: .85; }
+.mini-ledger b { font-family: var(--font-display); font-size: 1.6rem; color: var(--hero-gold); }
 
+/* add keys */
 .adds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.add { background: var(--surface); border: 1.5px solid var(--line); border-radius: 16px; padding: 14px 6px 12px; display: flex; flex-direction: column; align-items: center; gap: 6px; font-weight: 700; font-size: 1rem; transition: transform .08s; }
+.add { background: var(--surface); border: 1.5px solid var(--line); border-radius: 16px; padding: 20px 6px 16px; display: flex; flex-direction: column; align-items: center; gap: 6px; font-weight: 700; font-size: 1.05rem; transition: transform .08s; }
 .add:active { transform: scale(.97); }
-.add svg { width: 30px; height: 30px; stroke: var(--gold); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.add svg { width: 34px; height: 34px; stroke: var(--gold); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .add .plus { font-size: .75rem; color: var(--muted); font-weight: 600; }
 
+/* cards & rows */
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .card-head .sum { color: var(--muted); font-size: .9rem; }
@@ -100,7 +116,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 .bar i { display: block; height: 100%; background: var(--gold); border-radius: 4px; }
 .pill { display: inline-block; font-size: .72rem; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--gold-soft); color: var(--gold); margin-inline-start: 6px; vertical-align: 1px; }
 .empty-note { color: var(--muted); font-size: .92rem; }
-
 .log { display: flex; flex-direction: column; }
 .log-day { font-size: .78rem; color: var(--muted); font-weight: 700; letter-spacing: .04em; padding: 10px 0 4px; }
 .log-item { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
@@ -109,36 +124,39 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 .log-item .val { font-weight: 700; }
 .log-item .val.big { color: var(--gold); }
 .del { background: transparent; border: 0; color: var(--muted); font-size: 1.1rem; padding: 4px 8px; border-radius: 8px; }
-.more-btn { background: transparent; border: 0; color: var(--accent); font-weight: 700; padding: 8px 0 0; align-self: flex-start; }
+.more-btn { background: transparent; border: 0; color: var(--gold); font-weight: 700; padding: 8px 0 0; align-self: flex-start; }
 
+/* types editor */
+.type-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.type-row:first-child { border-top: 0; }
+.type-row .t-name { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.type-row .t-amt { font-weight: 700; }
+.edit-btn { background: var(--soft); border: 0; border-radius: 10px; padding: 6px 12px; font-weight: 700; font-size: .88rem; }
+.add-type { background: transparent; border: 1.5px dashed var(--line); border-radius: 12px; padding: 10px; font-weight: 700; color: var(--gold); }
+
+/* buttons, fields */
 .share-text { width: 100%; min-height: 150px; resize: vertical; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--bg); color: var(--ink); font: inherit; font-size: .92rem; line-height: 1.5; }
 .btns { display: flex; flex-wrap: wrap; gap: 8px; }
-.btn { border: 0; border-radius: 12px; padding: 11px 16px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; font-size: 1rem; }
+.btn { border: 0; border-radius: 12px; padding: 11px 16px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; font-size: 1rem; cursor: pointer; }
 .btn.primary { background: var(--accent); color: var(--accent-ink); }
 .btn.wa { background: var(--wa); color: #fff; }
+.btn.xl { background: var(--xl); color: #fff; }
 .btn.ghost { background: var(--soft); color: var(--ink); }
 .btn.danger { background: transparent; color: var(--danger); border: 1.5px solid var(--danger); }
+.btn.google { background: #fff; color: #1f1f1f; border: 1px solid #c9ced8; justify-content: center; font-family: var(--font-display); }
+.btn.google svg { width: 20px; height: 20px; }
 .hint { font-size: .82rem; color: var(--muted); }
 .err { font-size: .9rem; color: var(--danger); font-weight: 600; }
-
-.scrim { position: fixed; inset: 0; background: rgba(8, 14, 20, .45); z-index: 20; }
-.sheet { position: fixed; inset: auto 0 0 0; z-index: 21; background: var(--surface); border-radius: 20px 20px 0 0; max-height: 90vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
-  padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px));
-  padding-top: 16px; padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -10px 30px rgba(0,0,0,.18); }
-.sheet.full { inset: 0; border-radius: 0; max-height: none; padding-top: calc(24px + env(safe-area-inset-top, 0px)); }
-.sheet-inner { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
-.sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.sheet h3 { font-size: 1.2rem; }
 .lbl { font-size: .82rem; color: var(--muted); font-weight: 700; letter-spacing: .03em; }
-.chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.chip { border: 1.5px solid var(--line); background: var(--bg); border-radius: 999px; padding: 8px 14px; font-weight: 600; }
-.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--soft); box-shadow: inset 0 0 0 1px var(--accent); }
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .field input, .field textarea { display: block; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--bg); color: var(--ink); font: inherit; font-size: 16px; width: 100%; min-width: 0; max-width: 100%; min-height: 46px; -webkit-appearance: none; appearance: none; }
 .field input[type="date"] { text-align: right; }
 .field input[type="date"]::-webkit-date-and-time-value { text-align: right; }
 .field input[dir="ltr"] { text-align: left; }
 .inline { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1.5px solid var(--line); background: var(--bg); border-radius: 999px; padding: 8px 14px; font-weight: 600; }
+.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--soft); box-shadow: inset 0 0 0 1px var(--accent); }
 .bonus-toggle { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .bonus-toggle button { border: 1.5px solid var(--line); background: var(--bg); border-radius: 12px; padding: 10px 4px; font-weight: 700; line-height: 1.25; }
 .bonus-toggle button[aria-pressed="true"] { border-color: var(--accent); background: var(--soft); }
@@ -147,20 +165,39 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 .save:disabled { opacity: .45; cursor: default; }
 .save.alt { background: var(--soft); color: var(--ink); }
 .section { border-top: 1px solid var(--line); padding-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+.profile-row { display: flex; align-items: center; gap: 14px; }
+.profile-row .who { min-width: 0; }
+.profile-row .who b { display: block; font-size: 1.05rem; }
+.profile-row .who small { color: var(--muted); overflow-wrap: anywhere; }
+.share-month { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--soft); border-radius: 12px; padding: 6px; }
+.share-month button { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; width: 38px; height: 34px; }
+.share-month button:disabled { opacity: .35; }
+.share-month span { font-weight: 700; }
 
+/* sheets */
+.scrim { position: fixed; inset: 0; background: rgba(8, 14, 20, .45); z-index: 20; }
+.sheet { position: fixed; inset: auto 0 0 0; z-index: 21; background: var(--surface); border-radius: 20px 20px 0 0; max-height: 90vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px));
+  padding-top: 16px; padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -10px 30px rgba(0,0,0,.18); }
+.sheet.full { inset: 0; border-radius: 0; max-height: none; padding-top: calc(24px + env(safe-area-inset-top, 0px)); }
+.sheet-inner { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.sheet h3 { font-size: 1.2rem; }
+.icon-btn { background: transparent; border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; font-size: .9rem; color: var(--muted); }
 .acct-list { display: flex; flex-direction: column; gap: 8px; }
-.acct-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1.5px solid var(--line); background: var(--bg); border-radius: 14px; padding: 12px 14px; text-align: right; width: 100%; }
+.acct-item { display: flex; align-items: center; gap: 10px; border: 1.5px solid var(--line); background: var(--bg); border-radius: 14px; padding: 10px 12px; text-align: right; width: 100%; }
 .acct-item[aria-current="true"] { border-color: var(--accent); background: var(--soft); }
-.acct-item .who { min-width: 0; flex: 1; }
 .acct-item .avatar { width: 40px; height: 40px; }
+.acct-item .who { min-width: 0; flex: 1; }
 .acct-item .who b { display: block; }
 .acct-item .who small { color: var(--muted); overflow-wrap: anywhere; }
-.acct-item .tag { font-size: .75rem; font-weight: 700; color: var(--accent); flex-shrink: 0; }
-
+.acct-item .tag { font-size: .75rem; font-weight: 700; color: var(--gold); flex-shrink: 0; }
 .login-hero { display: flex; flex-direction: column; gap: 6px; padding-bottom: 6px; }
 .login-hero .logo { width: 64px; height: 64px; }
+.or { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: .85rem; }
+.or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 
-.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 30; background: var(--ink); color: var(--bg); border-radius: 12px; padding: 10px 14px; display: flex; align-items: center; gap: 12px; font-weight: 600; width: max-content; max-width: calc(100% - 32px); box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 30; background: var(--ink); color: var(--bg); border-radius: 12px; padding: 10px 14px; display: flex; align-items: center; gap: 12px; font-weight: 600; width: max-content; max-width: calc(100% - 32px); box-shadow: 0 6px 20px rgba(0,0,0,.25); }
 .toast button { background: transparent; border: 0; color: var(--soft); font-weight: 800; text-decoration: underline; }
 @media (prefers-reduced-motion: no-preference) {
   .sheet:not([hidden]):not(.full) { animation: up .18s ease-out; }
@@ -180,81 +217,163 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
   <circle cx="42" cy="36" r="10" fill="none" stroke="#a87a12" stroke-width="1.4"/>
   <text x="42" y="41.5" text-anchor="middle" font-family="Arial, sans-serif" font-weight="700" font-size="15" fill="#6e4f0c">₪</text>
 </symbol></svg>
+
 <div class="wrap" id="main">
   <div class="top">
     <div class="top-start">
       <div class="brand-row"><svg aria-hidden="true"><use href="#coins"/></svg><div class="brand">יומן בונוסים</div></div>
       <div class="status" id="status">טוען…</div>
     </div>
-    <div class="top-btns">
-      <button class="acct-btn" id="acctBtn" type="button" aria-label="חשבונות"><span class="acct-name" id="acctName">חשבון</span><span class="avatar" id="acctAvatar" aria-hidden="true"></span></button>
-      <button class="icon-btn" id="openSettings" type="button">הגדרות</button>
-    </div>
+    <button class="acct-btn" id="acctBtn" type="button" aria-label="חשבונות"><span class="acct-name" id="acctName">התחברות</span><span class="avatar" id="acctAvatar" aria-hidden="true"></span></button>
   </div>
 
-  <section class="ledger" aria-label="סיכום החודש">
-    <div class="month-nav">
-      <button type="button" id="prevMonth" aria-label="חודש קודם">›</button>
-      <div class="month-name" id="monthName"></div>
-      <button type="button" id="nextMonth" aria-label="חודש הבא">‹</button>
+  <!-- TAB: add -->
+  <section class="tab" id="tab-add" aria-label="הוספת בונוס">
+    <div class="mini-ledger">
+      <div><div class="lbl2" id="miniLabel">החודש עד עכשיו</div><div class="num" id="miniCount"></div></div>
+      <b class="num"><span id="miniTotal">0</span> ₪</b>
     </div>
-    <div>
-      <div class="total-label" id="totalLabel">מגיע לי החודש בבונוסים</div>
-      <div class="total num"><span id="total">0</span><small>₪</small></div>
-      <div class="total-sub num" id="totalSub"></div>
+    <div class="adds" role="group" aria-label="הוספה מהירה">
+      <button class="add" type="button" data-add="device">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg>
+        מכשיר<span class="plus">+ מכירה</span>
+      </button>
+      <button class="add" type="button" data-add="line">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6v8H9z"/><path d="M9 12h6M12 8v8"/></svg>
+        קו<span class="plus">+ חיבור</span>
+      </button>
+      <button class="add" type="button" data-add="repair">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6.5a4 4 0 0 0-5.3 5.2L3.5 17.4l3.1 3.1 5.7-5.7a4 4 0 0 0 5.2-5.3l-2.4 2.4-2.2-.6-.6-2.2z"/></svg>
+        תיקון<span class="plus">+ תיקון</span>
+      </button>
     </div>
-    <div class="kpis">
-      <div class="kpi"><b class="num" id="kDevices">0</b><span>מכשירים</span></div>
-      <div class="kpi"><b class="num" id="kLines">0</b><span>קווים</span></div>
-      <div class="kpi"><b class="num" id="kRepairs">0</b><span>תיקונים</span></div>
-    </div>
+    <section class="card" aria-labelledby="hRecent">
+      <div class="card-head"><h2 id="hRecent">נרשמו לאחרונה</h2><span class="sum" id="sRecent"></span></div>
+      <div class="log" id="recent"></div>
+    </section>
   </section>
 
-  <div class="adds" role="group" aria-label="הוספה מהירה">
-    <button class="add" type="button" data-add="device">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg>
-      מכשיר<span class="plus">+ מכירה</span>
-    </button>
-    <button class="add" type="button" data-add="line">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6v8H9z"/><path d="M9 12h6M12 8v8"/></svg>
-      קו<span class="plus">+ חיבור</span>
-    </button>
-    <button class="add" type="button" data-add="repair">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6.5a4 4 0 0 0-5.3 5.2L3.5 17.4l3.1 3.1 5.7-5.7a4 4 0 0 0 5.2-5.3l-2.4 2.4-2.2-.6-.6-2.2z"/></svg>
-      תיקון<span class="plus">+ תיקון</span>
-    </button>
-  </div>
-
-  <section class="card" aria-labelledby="hRepairs">
-    <div class="card-head"><h2 id="hRepairs">תיקונים לפי סוג</h2><span class="sum num" id="sRepairs"></span></div>
-    <div class="rows" id="rRepairs"></div>
-  </section>
-  <section class="card" aria-labelledby="hLines">
-    <div class="card-head"><h2 id="hLines">קווים לפי חברה</h2><span class="sum num" id="sLines"></span></div>
-    <div class="rows" id="rLines"></div>
-  </section>
-  <section class="card" aria-labelledby="hDevices">
-    <div class="card-head"><h2 id="hDevices">מכשירים שנמכרו</h2><span class="sum num" id="sDevices"></span></div>
-    <div class="rows" id="rDevices"></div>
+  <!-- TAB: types -->
+  <section class="tab" id="tab-types" aria-label="סוגי בונוסים" hidden>
+    <div class="hint">כאן קובעים אילו סוגים מופיעים כשמוסיפים בונוס, ואת הסכום של כל אחד. שינוי שם או סכום משפיע רק על רישומים חדשים.</div>
+    <section class="card"><div class="card-head"><h2>תיקונים</h2></div><div class="rows" id="types-repair"></div><button class="add-type" type="button" data-addtype="repair">+ סוג תיקון חדש</button></section>
+    <section class="card"><div class="card-head"><h2>קווים (חברות)</h2></div><div class="rows" id="types-line"></div><button class="add-type" type="button" data-addtype="line">+ חברה חדשה</button></section>
+    <section class="card"><div class="card-head"><h2>מכשירים</h2></div><div class="rows" id="types-device"></div><button class="add-type" type="button" data-addtype="device">+ סוג מכשיר חדש</button></section>
+    <section class="card">
+      <div class="card-head"><h2>סכומי ברירת מחדל</h2></div>
+      <div class="inline">
+        <div class="field"><label class="lbl" for="sReg">בונוס רגיל (₪)</label><input id="sReg" type="number" min="0" inputmode="numeric"></div>
+        <div class="field"><label class="lbl" for="sBig">בונוס אולטרה (₪)</label><input id="sBig" type="number" min="0" inputmode="numeric"></div>
+      </div>
+      <button class="btn primary" type="button" id="saveAmounts">שמירת הסכומים</button>
+      <div class="hint">סוג שמסומן „רגיל” או „אולטרה” מקבל את הסכום מכאן. סוג עם „סכום מיוחד” שומר על הסכום שלו.</div>
+    </section>
+    <button class="btn ghost" type="button" id="resetTypes">החזרת רשימת הסוגים המקורית</button>
+    <div class="btns" id="resetTypesConfirm" hidden><button class="btn danger" type="button" id="resetTypesYes">כן, להחזיר</button><button class="btn ghost" type="button" id="resetTypesNo">ביטול</button></div>
   </section>
 
-  <section class="card" aria-labelledby="hLog">
-    <div class="card-head"><h2 id="hLog">כל הרישומים בחודש</h2><span class="sum num" id="sLog"></span></div>
-    <div class="log" id="log"></div>
-    <button class="more-btn" type="button" id="moreLog" hidden>הצג הכל</button>
+  <!-- TAB: summary -->
+  <section class="tab" id="tab-summary" aria-label="סיכום" hidden>
+    <section class="ledger" aria-label="סיכום החודש">
+      <div class="month-nav">
+        <button type="button" class="prevMonth" aria-label="חודש קודם">›</button>
+        <div class="month-name monthName"></div>
+        <button type="button" class="nextMonth" aria-label="חודש הבא">‹</button>
+      </div>
+      <div>
+        <div class="total-label" id="totalLabel">מגיע לי החודש בבונוסים</div>
+        <div class="total num"><span id="total">0</span><small>₪</small></div>
+        <div class="total-sub num" id="totalSub"></div>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><b class="num" id="kDevices">0</b><span>מכשירים</span></div>
+        <div class="kpi"><b class="num" id="kLines">0</b><span>קווים</span></div>
+        <div class="kpi"><b class="num" id="kRepairs">0</b><span>תיקונים</span></div>
+      </div>
+    </section>
+    <section class="card" aria-labelledby="hRepairs">
+      <div class="card-head"><h2 id="hRepairs">תיקונים לפי סוג</h2><span class="sum num" id="sRepairs"></span></div>
+      <div class="rows" id="rRepairs"></div>
+    </section>
+    <section class="card" aria-labelledby="hLines">
+      <div class="card-head"><h2 id="hLines">קווים לפי חברה</h2><span class="sum num" id="sLines"></span></div>
+      <div class="rows" id="rLines"></div>
+    </section>
+    <section class="card" aria-labelledby="hDevices">
+      <div class="card-head"><h2 id="hDevices">מכשירים שנמכרו</h2><span class="sum num" id="sDevices"></span></div>
+      <div class="rows" id="rDevices"></div>
+    </section>
+    <section class="card" aria-labelledby="hLog">
+      <div class="card-head"><h2 id="hLog">כל הרישומים בחודש</h2><span class="sum num" id="sLog"></span></div>
+      <div class="log" id="log"></div>
+      <button class="more-btn" type="button" id="moreLog" hidden>הצג הכל</button>
+    </section>
+    <button class="btn wa" type="button" id="goShare">שליחת הסיכום לבוס</button>
   </section>
 
-  <section class="card" aria-labelledby="hShare">
-    <div class="card-head"><h2 id="hShare">סיכום לבוס</h2></div>
-    <textarea class="share-text" id="shareText" readonly aria-label="טקסט הסיכום"></textarea>
-    <div class="btns">
-      <a class="btn wa" id="waLink" href="https://wa.me/" target="_blank" rel="noopener">שליחה בוואטסאפ</a>
-      <button class="btn ghost" type="button" id="nativeShare" hidden>שיתוף…</button>
-      <button class="btn primary" type="button" id="copyBtn">העתקה</button>
-    </div>
-    <div class="hint" id="waHint"></div>
+  <!-- TAB: settings -->
+  <section class="tab" id="tab-settings" aria-label="הגדרות" hidden>
+    <section class="card">
+      <div class="profile-row">
+        <span class="avatar lg" id="setAvatar" aria-hidden="true"></span>
+        <div class="who"><b id="setWho"></b><small id="setEmail"></small></div>
+      </div>
+      <div class="btns">
+        <label class="btn ghost">החלפת תמונה<input id="avatarFile" type="file" accept="image/*" hidden></label>
+        <button class="btn ghost" type="button" id="avatarRemove">הסרת תמונה</button>
+        <button class="btn ghost" type="button" id="openAccts">חשבונות וסיסמה</button>
+      </div>
+      <div class="field"><label class="lbl" for="sName">השם שלי (יופיע בסיכום)</label><input id="sName" type="text" autocomplete="name"></div>
+      <div class="field"><label class="lbl" for="sPhone">וואטסאפ של הבוס</label><input id="sPhone" type="tel" placeholder="050-1234567" inputmode="tel"></div>
+      <button class="btn primary" type="button" id="saveSettings">שמירה</button>
+    </section>
+
+    <section class="card" id="shareCard" aria-labelledby="hShare">
+      <div class="card-head"><h2 id="hShare">שיתוף הסיכום</h2></div>
+      <div class="share-month">
+        <button type="button" class="prevMonth" aria-label="חודש קודם">›</button>
+        <span class="monthName"></span>
+        <button type="button" class="nextMonth" aria-label="חודש הבא">‹</button>
+      </div>
+      <textarea class="share-text" id="shareText" readonly aria-label="טקסט הסיכום"></textarea>
+      <div class="btns">
+        <a class="btn wa" id="waLink" href="https://wa.me/" target="_blank" rel="noopener">וואטסאפ</a>
+        <button class="btn ghost" type="button" id="nativeShare" hidden>שיתוף…</button>
+        <button class="btn ghost" type="button" id="copyBtn">העתקה</button>
+      </div>
+      <div class="hint" id="waHint"></div>
+      <div class="section">
+        <h3>קובץ אקסל</h3>
+        <div class="btns">
+          <button class="btn xl" type="button" id="xlMonth">אקסל של החודש</button>
+          <button class="btn xl" type="button" id="xlAll">אקסל של כל החודשים</button>
+        </div>
+        <div class="hint">הקובץ נפתח בתפריט השיתוף, ואפשר לשלוח אותו בוואטסאפ או במייל, או לשמור בקבצים ובגוגל דרייב.</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>גיבוי</h2></div>
+      <div class="hint" id="backupNote">כל רישום נשמר אוטומטית בחשבון. כאן אפשר גם להעתיק עותק של הנתונים, או להדביק נתונים מגרסה קודמת.</div>
+      <div class="btns"><button class="btn ghost" type="button" id="exportBtn">העתקת גיבוי</button></div>
+      <div class="field">
+        <label class="lbl" for="importText">הדבקת גיבוי לייבוא</label>
+        <textarea id="importText" rows="3" dir="ltr" placeholder='{"entries": …}'></textarea>
+      </div>
+      <button class="btn primary" type="button" id="importBtn">ייבוא לחשבון הזה</button>
+      <div class="err" id="importErr" hidden></div>
+    </section>
   </section>
 </div>
+
+<nav class="tabbar" aria-label="ניווט">
+  <div class="tabbar-inner">
+    <button type="button" data-tab="add"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>הוספה</button>
+    <button type="button" data-tab="types"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/><path d="M18 16l2 2-4 4h-2v-2z"/></svg>סוגים</button>
+    <button type="button" data-tab="summary"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>סיכום</button>
+    <button type="button" data-tab="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>הגדרות</button>
+  </div>
+</nav>
 
 <div class="scrim" id="scrim" hidden></div>
 
@@ -269,6 +388,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
       </div>
       <button class="icon-btn" type="button" id="loginClose">סגירה</button>
     </div>
+    <button class="btn google" type="button" id="googleBtn" hidden>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+      המשך עם Google
+    </button>
+    <div class="or" id="orLine" hidden>או עם אימייל וסיסמה</div>
     <div class="field"><label class="lbl" for="lEmail">אימייל</label><input id="lEmail" type="email" dir="ltr" autocomplete="username" inputmode="email" placeholder="name@gmail.com"></div>
     <div class="field"><label class="lbl" for="lPass">סיסמה (לפחות 6 תווים)</label><input id="lPass" type="password" dir="ltr" autocomplete="current-password"></div>
     <div class="err" id="loginErr" role="alert" hidden></div>
@@ -285,7 +409,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     <div class="sheet-head">
       <div class="login-hero">
         <h3 id="resetTitle">איפוס סיסמה</h3>
-        <div class="hint" id="resetSub">נשלח קוד בן 6 ספרות למייל של החשבון. רק מי שיש לו גישה למייל יכול לאפס.</div>
+        <div class="hint">נשלח קוד בן 6 ספרות למייל של החשבון. רק מי שיש לו גישה למייל יכול לאפס.</div>
       </div>
       <button class="icon-btn" type="button" id="resetBack">חזרה</button>
     </div>
@@ -315,7 +439,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     </div>
     <div class="section">
       <button class="btn danger" type="button" id="logoutBtn">התנתקות מהחשבון הזה</button>
-      <div class="confirm-row btns" id="logoutConfirm" hidden>
+      <div class="btns" id="logoutConfirm" hidden>
         <button class="btn danger" type="button" id="logoutYes">כן, להתנתק</button>
         <button class="btn ghost" type="button" id="logoutNo">ביטול</button>
       </div>
@@ -340,7 +464,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
       <span class="lbl">בונוס</span>
       <div class="bonus-toggle">
         <button type="button" id="bReg" aria-pressed="true">רגיל<br><span class="num" id="bRegVal">10</span> ₪</button>
-        <button type="button" id="bBig" class="gold" aria-pressed="false">גדול<br><span class="num" id="bBigVal">50</span> ₪</button>
+        <button type="button" id="bBig" class="gold" aria-pressed="false">אולטרה<br><span class="num" id="bBigVal">50</span> ₪</button>
         <button type="button" id="bCustom" aria-pressed="false">סכום<br>אחר</button>
       </div>
     </div>
@@ -357,40 +481,24 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
   </div>
 </div>
 
-<!-- settings -->
-<div class="sheet" id="setSheet" role="dialog" aria-modal="true" aria-labelledby="setTitle" hidden>
+<!-- edit type -->
+<div class="sheet" id="typeSheet" role="dialog" aria-modal="true" aria-labelledby="typeTitle" hidden>
   <div class="sheet-inner">
-    <div class="sheet-head"><h3 id="setTitle">הגדרות</h3><button class="icon-btn" type="button" data-close>סגירה</button></div>
-    <div class="profile-row">
-      <span class="avatar lg" id="setAvatar" aria-hidden="true"></span>
-      <div class="btns">
-        <label class="btn ghost" for="avatarFile">החלפת תמונת פרופיל</label>
-        <button class="btn ghost" type="button" id="avatarRemove">הסרה</button>
+    <div class="sheet-head"><h3 id="typeTitle">עריכת סוג</h3><button class="icon-btn" type="button" data-close>סגירה</button></div>
+    <div class="field"><label class="lbl" for="tName">שם</label><input id="tName" type="text"></div>
+    <div class="field">
+      <span class="lbl">בונוס</span>
+      <div class="bonus-toggle">
+        <button type="button" id="tReg" aria-pressed="true">רגיל<br><span class="num" id="tRegVal">10</span> ₪</button>
+        <button type="button" id="tBig" class="gold" aria-pressed="false">אולטרה<br><span class="num" id="tBigVal">50</span> ₪</button>
+        <button type="button" id="tCustom" aria-pressed="false">סכום<br>מיוחד</button>
       </div>
-      <input id="avatarFile" type="file" accept="image/*" hidden>
     </div>
-    <div class="field"><label class="lbl" for="sName">השם שלי (יופיע בסיכום)</label><input id="sName" type="text" autocomplete="name"></div>
-    <div class="field"><label class="lbl" for="sPhone">וואטסאפ של הבוס</label><input id="sPhone" type="tel" placeholder="050-1234567" inputmode="tel"></div>
-    <div class="inline">
-      <div class="field"><label class="lbl" for="sReg">בונוס רגיל (₪)</label><input id="sReg" type="number" min="0" inputmode="numeric"></div>
-      <div class="field"><label class="lbl" for="sBig">בונוס גדול (₪)</label><input id="sBig" type="number" min="0" inputmode="numeric"></div>
-    </div>
-    <div class="hint">שינוי סכום משפיע רק על רישומים חדשים.</div>
-    <button class="save" type="button" id="saveSettings">שמירה</button>
-
-    <div class="section">
-      <h3>גיבוי והעברת נתונים</h3>
-      <div class="hint">כל רישום נשמר אוטומטית בחשבון. כאן אפשר גם להעתיק עותק של הנתונים, או להדביק נתונים מהגרסה הקודמת של האפליקציה.</div>
-      <div class="btns">
-        <button class="btn ghost" type="button" id="exportBtn">העתקת גיבוי</button>
-      </div>
-      <div class="field">
-        <label class="lbl" for="importText">הדבקת גיבוי לייבוא</label>
-        <textarea id="importText" rows="3" dir="ltr" placeholder='{"entries": …}'></textarea>
-      </div>
-      <button class="btn primary" type="button" id="importBtn">ייבוא לחשבון הזה</button>
-      <div class="err" id="importErr" hidden></div>
-    </div>
+    <div class="field" id="tCustomBox" hidden><label class="lbl" for="tAmt">סכום (₪)</label><input id="tAmt" type="number" min="0" inputmode="numeric"></div>
+    <label class="hint" id="tUltraWrap" hidden><input type="checkbox" id="tUltraFlag"> לספור כבונוס אולטרה בסיכום</label>
+    <div class="err" id="tErr" hidden></div>
+    <button class="save" type="button" id="tSave">שמירה</button>
+    <button class="btn danger" type="button" id="tDelete">מחיקת הסוג</button>
   </div>
 </div>
 
@@ -402,29 +510,29 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
   "use strict";
   var SB_URL = "https://lgdtbdhzbfjtmkllktty.supabase.co";
   var SB_KEY = "sb_publishable_Gl3S59e9W1GgE6Tp5y-9Cw_tj1nNeGi";
+  var XLSX_SRC = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
   var MONTHS = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
   var KIND = { device: "מכשיר", line: "קו", repair: "תיקון" };
   var KIND_PL = { device: "מכשירים", line: "קווים", repair: "תיקונים" };
-  var SUBS = {
-    device: [{ n: "אייפון" }, { n: "סמסונג" }, { n: "שיאומי" }, { n: "כשר" }, { n: "אחר" }],
-    line: [{ n: "פלאפון" }, { n: "סלקום" }, { n: "פרטנר" }, { n: "הוט מובייל" }, { n: "גולן טלקום" }, { n: "019 מובייל" }, { n: "רמי לוי" }, { n: "אחר" }],
-    repair: [{ n: "מסך" }, { n: "סוללה" }, { n: "שקע טעינה" }, { n: "זכוכית אחורית" }, { n: "מצלמה", big: true }, { n: "סמארטפון יקר", big: true }, { n: "לוח אם", big: true }, { n: "תוכנה" }, { n: "אחר" }]
+  var DEFAULT_SUBS = {
+    device: [["אייפון"], ["סמסונג"], ["שיאומי"], ["כשר"]],
+    line: [["פלאפון"], ["סלקום"], ["פרטנר"], ["הוט מובייל"], ["גולן טלקום"], ["019 מובייל"], ["רמי לוי"]],
+    repair: [["מסך"], ["סוללה"], ["שקע טעינה"], ["זכוכית אחורית"], ["מצלמה", 1], ["סמארטפון יקר", 1], ["לוח אם", 1], ["תוכנה"]]
   };
   var NOTE_LBL = {
     device: ["איזה דגם? (לא חובה)", "למשל: iPhone 16 Pro 256GB"],
     repair: ["איזה מכשיר? (לא חובה)", "למשל: Galaxy S24"],
     line: ["הערה (לא חובה)", "למשל: 3 קווים משפחה, ניוד מסלקום"]
   };
-  var DEFAULT_SETTINGS = { name: "", phone: "", reg: 10, big: 50, avatar: "" };
+  var DEFAULT_SETTINGS = { name: "", phone: "", reg: 10, big: 50, avatar: "", types: null };
   var ENTRY_COLS = "id,kind,sub,big,amount,date,month,note,ts";
 
   var sb = window.supabase.createClient(SB_URL, SB_KEY, {
-    auth: { persistSession: false, autoRefreshToken: true, detectSessionInUrl: false }
+    auth: { persistSession: false, autoRefreshToken: true, detectSessionInUrl: false, flowType: "implicit" }
   });
 
-  // accounts: [{uid, email, session}] kept on this device; active = uid
   var accts = { list: [], active: null };
-  var state = { entries: {}, settings: Object.assign({}, DEFAULT_SETTINGS), month: monthKey(new Date()), showAllLog: false };
+  var state = { entries: {}, settings: Object.assign({}, DEFAULT_SETTINGS), month: monthKey(new Date()), showAllLog: false, tab: "add" };
   var pending = [];
   var online = false, syncing = false;
 
@@ -436,12 +544,27 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
   function fmt(n) { return Number(n).toLocaleString("he-IL"); }
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
   function $(id) { return document.getElementById(id); }
+  function $$(sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   function lsGet(k, def) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch (e) { return def; } }
   function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
   function activeAcct() { for (var i = 0; i < accts.list.length; i++) if (accts.list[i].uid === accts.active) return accts.list[i]; return null; }
   function acctLabel(a) { return (a.name || a.email.split("@")[0]); }
+  function me() { var a = activeAcct(); return a ? Object.assign({}, a, { name: state.settings.name || a.name, avatar: state.settings.avatar }) : null; }
+
+  // ---------- bonus types ----------
+  function defaultTypes() {
+    var out = [];
+    ["device", "line", "repair"].forEach(function (k) {
+      DEFAULT_SUBS[k].forEach(function (d, i) { out.push({ id: "d-" + k + "-" + i, kind: k, name: d[0], ultra: !!d[1], amount: null }); });
+    });
+    return out;
+  }
+  function types() { return Array.isArray(state.settings.types) ? state.settings.types : defaultTypes(); }
+  function typesOf(kind) { return types().filter(function (t) { return t.kind === kind; }); }
+  function typeAmount(t) { return t.amount != null ? Number(t.amount) : (t.ultra ? Number(state.settings.big) : Number(state.settings.reg)); }
+  function saveTypes(list) { state.settings.types = list; persistSettings(); }
 
   // ---------- local cache ----------
   function saveAccts() { lsSet("bt.accounts", accts); }
@@ -464,10 +587,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     var who = a.email;
     if (pending.length) $("status").textContent = who + " · " + pending.length + " שינויים ממתינים לחיבור";
     else if (!online) $("status").textContent = who + " · לא מחובר לאינטרנט";
-    else $("status").textContent = who + " · מגובה";
+    else $("status").textContent = who + " · מגובה" + (a.provider === "google" ? " בחשבון Google" : "");
   }
   function queue(op) {
-    // collapse earlier ops on the same entry
     pending = pending.filter(function (p) { return !(op.id && p.id === op.id); });
     if (op.kind === "settings") pending = pending.filter(function (p) { return p.kind !== "settings"; });
     pending.push(op);
@@ -496,11 +618,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     var myAcct = accts.active;
     var r = await sb.from("entries").select(ENTRY_COLS).range(0, 49999);
     if (r.error) throw r.error;
-    var s = await sb.from("settings").select("name,phone,reg,big,avatar").maybeSingle();
+    var s = await sb.from("settings").select("name,phone,reg,big,avatar,types").maybeSingle();
     if (accts.active !== myAcct) return;
     var next = {};
     r.data.forEach(function (row) { var id = row.id; delete row.id; next[id] = row; });
-    // local changes not yet uploaded win
     pending.forEach(function (p) {
       if (p.kind === "upsert") next[p.id] = p.row;
       else if (p.kind === "delete") delete next[p.id];
@@ -509,10 +630,17 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     if (s.data) {
       if (!pending.some(function (p) { return p.kind === "settings"; })) state.settings = Object.assign({}, DEFAULT_SETTINGS, s.data);
     } else if (!s.error) {
+      var a0 = activeAcct();
+      if (a0 && !state.settings.name && a0.googleName) state.settings.name = a0.googleName;
       queue({ kind: "settings", row: Object.assign({}, state.settings) });
     }
     var a = activeAcct(); if (a) { a.name = state.settings.name; a.avatar = state.settings.avatar; saveAccts(); }
     saveCache(); render();
+  }
+  function persistSettings() {
+    var a = activeAcct(); if (a) { a.name = state.settings.name; a.avatar = state.settings.avatar; saveAccts(); }
+    saveCache(); render();
+    queue({ kind: "settings", row: Object.assign({}, state.settings) });
   }
 
   sb.auth.onAuthStateChange(function (event, session) {
@@ -546,6 +674,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     var u = session.user;
     var a = accts.list.filter(function (x) { return x.uid === u.id; })[0];
     if (!a) { a = { uid: u.id, email: u.email, name: "" }; accts.list.push(a); }
+    var md = u.user_metadata || {};
+    var provider = (u.app_metadata && u.app_metadata.provider) || "email";
+    if (provider === "google" || md.avatar_url || md.picture) {
+      a.googleAvatar = md.avatar_url || md.picture || a.googleAvatar || "";
+      a.googleName = md.full_name || md.name || a.googleName || "";
+      a.provider = "google";
+    }
     a.session = { access_token: session.access_token, refresh_token: session.refresh_token };
     accts.active = u.id; saveAccts();
     return activate(u.id);
@@ -554,7 +689,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
   // ---------- avatar ----------
   var gravatarCache = {};
   function initials(a) {
-    var n = (a.name || "").trim();
+    var n = (a.name || a.googleName || "").trim();
     if (n) { var parts = n.split(/\s+/); return (parts[0].charAt(0) + (parts[1] ? parts[1].charAt(0) : "")).toUpperCase(); }
     return (a.email || "?").charAt(0).toUpperCase();
   }
@@ -567,25 +702,38 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     } catch (e) { gravatarCache[email] = ""; }
     return gravatarCache[email];
   }
-  // photo the user set > their Gravatar (if they have one) > initials
+  // photo the user set > Google profile photo > Gravatar > initials
   function paintAvatar(box, a) {
     box.textContent = initials(a);
-    var key = (a.avatar ? "img:" + a.avatar.length : "g:") + a.email + "|" + (a.name || "");
+    var key = (a.avatar ? "img:" + a.avatar.length : "") + "|" + (a.googleAvatar || "") + "|" + a.email + "|" + (a.name || "");
     box.setAttribute("data-key", key);
-    function put(src) {
+    function put(src, fallback) {
       if (box.getAttribute("data-key") !== key) return;
-      var img = new Image(); img.alt = "";
+      var img = new Image(); img.alt = ""; img.referrerPolicy = "no-referrer";
       img.onload = function () { if (box.getAttribute("data-key") === key) { box.textContent = ""; box.appendChild(img); } };
+      img.onerror = function () { if (fallback) fallback(); };
       img.src = src;
     }
+    function grav() { if (a.email) gravatarUrl(a.email).then(function (u) { if (u) put(u); }); }
     if (a.avatar) put(a.avatar);
-    else if (a.email) gravatarUrl(a.email).then(function (u) { if (u) put(u); });
+    else if (a.googleAvatar) put(a.googleAvatar, grav);
+    else grav();
   }
 
+  // ---------- tabs ----------
+  function setTab(t) {
+    state.tab = t; lsSet("bt.tab", t);
+    ["add", "types", "summary", "settings"].forEach(function (n) { $("tab-" + n).hidden = n !== t; });
+    $$(".tabbar button").forEach(function (b) { if (b.getAttribute("data-tab") === t) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+    window.scrollTo(0, 0);
+    if (t === "settings") fillSettings();
+  }
+  $$(".tabbar button").forEach(function (b) { b.addEventListener("click", function () { setTab(b.getAttribute("data-tab")); }); });
+
   // ---------- render ----------
-  function monthEntries() {
-    var out = [];
-    for (var id in state.entries) { var e = state.entries[id]; if (e && e.month === state.month) out.push(Object.assign({ id: id }, e)); }
+  function monthEntries(m) {
+    var out = [], month = m || state.month;
+    for (var id in state.entries) { var e = state.entries[id]; if (e && (month === "*" || e.month === month)) out.push(Object.assign({ id: id }, e)); }
     out.sort(function (a, b) { return a.date === b.date ? b.ts - a.ts : (b.date < a.date ? -1 : 1); });
     return out;
   }
@@ -604,11 +752,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     var total = 0, cnt = 0, max = 1;
     rows.forEach(function (r) { total += r.amount; cnt += r.count; if (r.count > max) max = r.count; });
     $(sumId).textContent = cnt ? cnt + " · " + fmt(total) + " ₪" : "";
-    if (!rows.length) { box.appendChild(el("div", "empty-note", "עוד אין " + KIND_PL[kind] + " החודש. לחיצה על „" + KIND[kind] + "” למעלה מוסיפה.")); return; }
+    if (!rows.length) { box.appendChild(el("div", "empty-note", "אין " + KIND_PL[kind] + " בחודש הזה.")); return; }
     rows.forEach(function (r) {
       var row = el("div", "row"), name = el("div");
       name.appendChild(el("span", null, r.sub));
-      if (r.big) name.appendChild(el("span", "pill", "בונוס גדול"));
+      if (r.big) name.appendChild(el("span", "pill", "אולטרה"));
       var bar = el("div", "bar"), i = el("i"); i.style.width = Math.round(r.count / max * 100) + "%"; bar.appendChild(i); name.appendChild(bar);
       row.appendChild(name);
       row.appendChild(el("span", "cnt num", String(r.count)));
@@ -617,49 +765,64 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     });
   }
   function totals(list) {
-    var t = { all: 0, device: 0, line: 0, repair: 0 };
-    list.forEach(function (e) { t.all += Number(e.amount) || 0; t[e.kind] = (t[e.kind] || 0) + 1; });
+    var t = { all: 0, device: 0, line: 0, repair: 0, big: 0, count: list.length };
+    list.forEach(function (e) { t.all += Number(e.amount) || 0; t[e.kind] = (t[e.kind] || 0) + 1; if (e.big) t.big++; });
     return t;
   }
+  function countLine(t) { return t.count ? fmt(t.count) + " בונוסים" + (t.big ? " · מתוכם " + t.big + " אולטרה" : "") : "עוד אין בונוסים"; }
   function render() {
-    var list = monthEntries(), t = totals(list), a = activeAcct();
-    var me = a ? Object.assign({}, a, { name: state.settings.name, avatar: state.settings.avatar }) : null;
-    $("acctName").textContent = me ? acctLabel(me) : "התחברות";
-    $("acctAvatar").hidden = !me;
-    if (me) paintAvatar($("acctAvatar"), me);
-    var big = list.filter(function (e) { return e.big; }).length;
-    $("totalSub").textContent = "";
-    if (list.length) {
-      $("totalSub").appendChild(el("b", null, fmt(list.length)));
-      $("totalSub").appendChild(document.createTextNode(" בונוסים החודש" + (big ? " · מתוכם " + big + " גדולים" : "")));
-    } else $("totalSub").textContent = "עוד אין בונוסים החודש";
-    $("totalLabel").textContent = state.settings.name ? "מגיע ל" + state.settings.name + " החודש" : "מגיע לי החודש בבונוסים";
-    $("monthName").textContent = monthLabel(state.month);
-    $("nextMonth").disabled = state.month >= monthKey(new Date());
+    var list = monthEntries(), t = totals(list), m = me();
+    $("acctName").textContent = m ? acctLabel(m) : "התחברות";
+    $("acctAvatar").hidden = !m;
+    if (m) paintAvatar($("acctAvatar"), m);
+    $$(".monthName").forEach(function (x) { x.textContent = monthLabel(state.month); });
+    $$(".nextMonth").forEach(function (x) { x.disabled = state.month >= monthKey(new Date()); });
+    // add tab
+    var cur = monthEntries(monthKey(new Date())), ct = totals(cur);
+    $("miniTotal").textContent = fmt(ct.all);
+    $("miniLabel").textContent = MONTHS[new Date().getMonth()] + " עד עכשיו";
+    $("miniCount").textContent = countLine(ct);
+    renderLog($("recent"), cur.slice().sort(function (a, b) { return b.ts - a.ts; }).slice(0, 8), false);
+    $("sRecent").textContent = cur.length ? "" : "";
+    // summary tab
+    $("totalLabel").textContent = state.settings.name ? "מגיע ל" + state.settings.name + " בחודש הזה" : "מגיע לי בחודש הזה";
     $("total").textContent = fmt(t.all);
+    $("totalSub").textContent = "";
+    if (t.count) { $("totalSub").appendChild(el("b", null, fmt(t.count))); $("totalSub").appendChild(document.createTextNode(" בונוסים" + (t.big ? " · מתוכם " + t.big + " אולטרה" : ""))); }
+    else $("totalSub").textContent = "עוד אין בונוסים בחודש הזה";
     $("kDevices").textContent = t.device; $("kLines").textContent = t.line; $("kRepairs").textContent = t.repair;
     renderRows("rRepairs", "sRepairs", group(list, "repair"), "repair");
     renderRows("rLines", "sLines", group(list, "line"), "line");
     renderRows("rDevices", "sDevices", group(list, "device"), "device");
-    renderLog(list);
-    renderShare(list, t);
-    $("bRegVal").textContent = fmt(state.settings.reg);
-    $("bBigVal").textContent = fmt(state.settings.big);
-  }
-  function renderLog(list) {
-    var box = $("log"); box.textContent = "";
     $("sLog").textContent = list.length ? list.length + " רישומים" : "";
-    if (!list.length) { box.appendChild(el("div", "empty-note", "כאן יופיע כל מה שנרשם החודש, לפי ימים. אפשר למחוק רישום שגוי עם ✕.")); $("moreLog").hidden = true; return; }
-    var limit = state.showAllLog ? list.length : 15, lastDay = "";
-    list.slice(0, limit).forEach(function (e) {
-      if (e.date !== lastDay) {
+    var limit = state.showAllLog ? list.length : 15;
+    renderLog($("log"), list.slice(0, limit), true);
+    $("moreLog").hidden = list.length <= limit;
+    $("moreLog").textContent = "הצג את כל " + list.length + " הרישומים";
+    renderShare(list, t);
+    renderTypes();
+    $("bRegVal").textContent = fmt(state.settings.reg); $("bBigVal").textContent = fmt(state.settings.big);
+    $("tRegVal").textContent = fmt(state.settings.reg); $("tBigVal").textContent = fmt(state.settings.big);
+    if (document.activeElement !== $("sReg")) $("sReg").value = state.settings.reg;
+    if (document.activeElement !== $("sBig")) $("sBig").value = state.settings.big;
+  }
+  function renderLog(box, list, byDay) {
+    box.textContent = "";
+    if (!list.length) { box.appendChild(el("div", "empty-note", byDay ? "אין רישומים בחודש הזה." : "מה שתוסיף יופיע כאן. אפשר למחוק רישום שגוי עם ✕.")); return; }
+    var lastDay = "";
+    list.forEach(function (e) {
+      if (byDay && e.date !== lastDay) {
         lastDay = e.date; var p = e.date.split("-");
         var dow = new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString("he-IL", { weekday: "long" });
         box.appendChild(el("div", "log-day", dow + " · " + (+p[2]) + "." + (+p[1])));
       }
       var it = el("div", "log-item");
       var what = el("div", "what", KIND[e.kind] + " · " + e.sub);
-      if (e.note) what.appendChild(el("small", null, e.note));
+      var p2 = e.date.split("-");
+      var extra = [];
+      if (!byDay) extra.push((+p2[2]) + "." + (+p2[1]));
+      if (e.note) extra.push(e.note);
+      if (extra.length) what.appendChild(el("small", null, extra.join(" · ")));
       it.appendChild(what);
       it.appendChild(el("span", "val num" + (e.big ? " big" : ""), fmt(e.amount) + " ₪"));
       var d = el("button", "del", "✕"); d.type = "button"; d.setAttribute("aria-label", "מחיקת " + KIND[e.kind] + " " + e.sub);
@@ -667,8 +830,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
       it.appendChild(d);
       box.appendChild(it);
     });
-    $("moreLog").hidden = list.length <= limit;
-    $("moreLog").textContent = "הצג את כל " + list.length + " הרישומים";
   }
   function shareText(list, t) {
     var lines = [];
@@ -679,12 +840,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
       var amt = rows.reduce(function (s, r) { return s + r.amount; }, 0);
       var head = k === "device" ? "📱 מכשירים" : k === "line" ? "📶 קווים" : "🔧 תיקונים";
       lines.push(head + ": " + t[k] + " (" + fmt(amt) + " ₪)");
-      rows.forEach(function (r) { lines.push("• " + r.sub + (r.big ? " (בונוס גדול)" : "") + ": " + r.count); });
+      rows.forEach(function (r) { lines.push("• " + r.sub + (r.big ? " (אולטרה)" : "") + ": " + r.count); });
       lines.push("");
     });
     if (!list.length) { lines.push("אין רישומים בחודש הזה."); lines.push(""); }
-    var big = list.filter(function (e) { return e.big; }).length;
-    lines.push("🧾 מספר בונוסים: " + list.length + (big ? " (מתוכם " + big + " גדולים)" : ""));
+    lines.push("🧾 מספר בונוסים: " + t.count + (t.big ? " (מתוכם " + t.big + " אולטרה)" : ""));
     lines.push("💰 סה״כ לתשלום: " + fmt(t.all) + " ₪");
     return lines.join("\n");
   }
@@ -699,8 +859,88 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     $("shareText").value = txt;
     var num = waNumber(state.settings.phone);
     $("waLink").href = "https://wa.me/" + num + "?text=" + encodeURIComponent(txt);
-    $("waHint").textContent = num ? "ההודעה תיפתח בצ׳אט עם הבוס (" + state.settings.phone + ")." : "אפשר לשמור את מספר הבוס בהגדרות, וההודעה תיפתח ישר אצלו.";
+    $("waHint").textContent = num ? "ההודעה תיפתח בצ׳אט עם הבוס (" + state.settings.phone + ")." : "אפשר לשמור את מספר הבוס למעלה, וההודעה תיפתח ישר אצלו.";
   }
+
+  // ---------- types tab ----------
+  function renderTypes() {
+    ["device", "line", "repair"].forEach(function (k) {
+      var box = $("types-" + k); box.textContent = "";
+      var list = typesOf(k);
+      if (!list.length) box.appendChild(el("div", "empty-note", "אין סוגים. „אחר” תמיד זמין בהוספה."));
+      list.forEach(function (t) {
+        var row = el("div", "type-row");
+        var name = el("span", "t-name", t.name);
+        if (t.ultra) name.appendChild(el("span", "pill", "אולטרה"));
+        row.appendChild(name);
+        row.appendChild(el("span", "t-amt num", fmt(typeAmount(t)) + " ₪"));
+        var b = el("button", "edit-btn", "עריכה"); b.type = "button";
+        b.addEventListener("click", function () { openType(t.kind, t.id); });
+        row.appendChild(b);
+        box.appendChild(row);
+      });
+    });
+  }
+  var editType = null;
+  function setTypeTier(tier) {
+    editType.tier = tier;
+    $("tReg").setAttribute("aria-pressed", String(tier === "reg"));
+    $("tBig").setAttribute("aria-pressed", String(tier === "big"));
+    $("tCustom").setAttribute("aria-pressed", String(tier === "custom"));
+    $("tCustomBox").hidden = tier !== "custom";
+    $("tUltraWrap").hidden = tier !== "custom";
+  }
+  function openType(kind, id) {
+    var t = id ? types().filter(function (x) { return x.id === id; })[0] : null;
+    editType = { kind: kind, id: id || null, tier: "reg" };
+    $("typeTitle").textContent = t ? "עריכת " + t.name : "סוג " + KIND[kind] + " חדש";
+    $("tName").value = t ? t.name : "";
+    $("tAmt").value = t && t.amount != null ? t.amount : "";
+    $("tUltraFlag").checked = !!(t && t.ultra);
+    setTypeTier(!t ? "reg" : t.amount != null ? "custom" : t.ultra ? "big" : "reg");
+    $("tDelete").hidden = !t; $("tErr").hidden = true;
+    show($("typeSheet"));
+    if (!t) setTimeout(function () { $("tName").focus(); }, 50);
+  }
+  $("tReg").addEventListener("click", function () { setTypeTier("reg"); });
+  $("tBig").addEventListener("click", function () { setTypeTier("big"); });
+  $("tCustom").addEventListener("click", function () { setTypeTier("custom"); $("tAmt").focus(); });
+  $("tSave").addEventListener("click", function () {
+    var name = $("tName").value.trim();
+    if (!name) { $("tErr").textContent = "צריך לכתוב שם."; $("tErr").hidden = false; return; }
+    var amt = null, ultra = editType.tier === "big";
+    if (editType.tier === "custom") {
+      amt = parseInt($("tAmt").value, 10);
+      if (!(amt >= 0)) { $("tErr").textContent = "צריך לכתוב סכום."; $("tErr").hidden = false; return; }
+      ultra = $("tUltraFlag").checked;
+    }
+    var list = types().map(function (x) { return Object.assign({}, x); });
+    if (editType.id) list.forEach(function (x) { if (x.id === editType.id) { x.name = name; x.amount = amt; x.ultra = ultra; } });
+    else list.push({ id: "t-" + uid(), kind: editType.kind, name: name, ultra: ultra, amount: amt });
+    saveTypes(list); hide(); toast("נשמר: " + name);
+  });
+  $("tDelete").addEventListener("click", function () {
+    var before = types();
+    var gone = before.filter(function (x) { return x.id === editType.id; })[0];
+    saveTypes(before.filter(function (x) { return x.id !== editType.id; }));
+    hide();
+    toast("נמחק: " + (gone ? gone.name : ""), function () { saveTypes(before); });
+  });
+  $$("[data-addtype]").forEach(function (b) { b.addEventListener("click", function () { if (!activeAcct()) { openLogin("first"); return; } openType(b.getAttribute("data-addtype"), null); }); });
+  $("saveAmounts").addEventListener("click", function () {
+    var r = parseInt($("sReg").value, 10), b = parseInt($("sBig").value, 10);
+    if (r >= 0) state.settings.reg = r;
+    if (b >= 0) state.settings.big = b;
+    persistSettings(); toast("הסכומים נשמרו");
+  });
+  $("resetTypes").addEventListener("click", function () { $("resetTypesConfirm").hidden = false; $("resetTypes").hidden = true; });
+  $("resetTypesNo").addEventListener("click", function () { $("resetTypesConfirm").hidden = true; $("resetTypes").hidden = false; });
+  $("resetTypesYes").addEventListener("click", function () {
+    var before = types();
+    saveTypes(null);
+    $("resetTypesConfirm").hidden = true; $("resetTypes").hidden = false;
+    toast("הרשימה המקורית חזרה", function () { saveTypes(before); });
+  });
 
   // ---------- entries ----------
   function putEntry(id, e) {
@@ -731,16 +971,16 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
   function show(sheet) { hide(); openSheet = sheet; if (!sheet.classList.contains("full")) $("scrim").hidden = false; sheet.hidden = false; }
   function hide() { if (openSheet) openSheet.hidden = true; $("scrim").hidden = true; openSheet = null; }
   $("scrim").addEventListener("click", hide);
-  document.querySelectorAll("[data-close]").forEach(function (b) { b.addEventListener("click", hide); });
+  $$("[data-close]").forEach(function (b) { b.addEventListener("click", hide); });
   document.addEventListener("keydown", function (ev) { if (ev.key === "Escape" && openSheet && openSheet.id !== "loginSheet") hide(); });
 
-  // login
+  // ---------- login ----------
   var loginMode = "first";
   function openLogin(mode, email) {
     loginMode = mode;
     $("loginTitle").textContent = mode === "add" ? "הוספת חשבון" : mode === "relogin" ? "צריך להתחבר שוב" : "התחברות";
-    $("loginSub").textContent = mode === "add" ? "מתחברים לחשבון נוסף. אחר כך אפשר לעבור בין החשבונות בלחיצה על שם החשבון למעלה." :
-      mode === "relogin" ? "החיבור לחשבון הזה פג. הנתונים שמורים, צריך רק להזין סיסמה." :
+    $("loginSub").textContent = mode === "add" ? "מתחברים לחשבון נוסף. אחר כך עוברים בין החשבונות בלחיצה על שם החשבון למעלה." :
+      mode === "relogin" ? "החיבור לחשבון הזה פג. הנתונים שמורים, צריך רק להתחבר שוב." :
       "הנתונים נשמרים בחשבון שלך. בטלפון חדש פשוט מתחברים שוב והכל חוזר.";
     $("lEmail").value = email || ""; $("lPass").value = "";
     $("loginErr").hidden = true;
@@ -750,7 +990,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
   }
   $("loginClose").addEventListener("click", hide);
   function loginError(msg) { $("loginErr").textContent = msg; $("loginErr").hidden = false; }
-  function busy(on) { $("loginBtn").disabled = on; $("signupBtn").disabled = on; }
+  function busy(on) { $("loginBtn").disabled = on; $("signupBtn").disabled = on; $("googleBtn").disabled = on; }
   function readCreds() {
     var email = $("lEmail").value.trim().toLowerCase(), pass = $("lPass").value;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { loginError("כתובת האימייל לא תקינה."); return null; }
@@ -760,7 +1000,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
   async function doLogin(c) {
     var r = await sb.auth.signInWithPassword({ email: c.email, password: c.pass });
     if (r.error) {
-      if (/invalid/i.test(r.error.message)) loginError("האימייל או הסיסמה לא נכונים.");
+      if (/invalid/i.test(r.error.message)) loginError("האימייל או הסיסמה לא נכונים. אם נרשמת עם Google, לחץ „המשך עם Google”.");
       else if (/fetch|network/i.test(r.error.message)) loginError("אין חיבור לאינטרנט. נסה שוב.");
       else loginError("ההתחברות נכשלה: " + r.error.message);
       if (activeAcct() && activeAcct().session) sb.auth.setSession(activeAcct().session);
@@ -799,7 +1039,33 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
   });
   $("lPass").addEventListener("keydown", function (ev) { if (ev.key === "Enter") $("loginBtn").click(); });
 
-  // forgot password: email a code, then set a new password with it
+  // Google: show the button only once the provider is switched on in Supabase
+  fetch(SB_URL + "/auth/v1/settings", { headers: { apikey: SB_KEY } })
+    .then(function (r) { return r.json(); })
+    .then(function (s) { var on = !!(s && s.external && s.external.google); $("googleBtn").hidden = !on; $("orLine").hidden = !on; })
+    .catch(function () {});
+  $("googleBtn").addEventListener("click", async function () {
+    busy(true);
+    lsSet("bt.oauthMode", loginMode);
+    var r = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + "/", queryParams: { prompt: "select_account" } } });
+    if (r.error) { busy(false); loginError("לא הצלחתי לפתוח את Google. נסה שוב."); }
+  });
+  // coming back from Google: tokens arrive in the address after #
+  async function handleOAuthReturn() {
+    var h = location.hash.slice(1);
+    if (!h || (h.indexOf("access_token=") < 0 && h.indexOf("error") < 0)) return false;
+    var p = new URLSearchParams(h);
+    history.replaceState(null, "", location.pathname);
+    lsDel("bt.oauthMode");
+    if (p.get("error")) { openLogin(accts.list.length ? "add" : "first"); loginError("ההתחברות עם Google בוטלה או נכשלה."); return true; }
+    var r = await sb.auth.setSession({ access_token: p.get("access_token"), refresh_token: p.get("refresh_token") });
+    if (r.error || !r.data.session) { openLogin(accts.list.length ? "add" : "first"); loginError("ההתחברות עם Google נכשלה. נסה שוב."); return true; }
+    await addAccount(r.data.session);
+    toast("מחובר עם Google: " + r.data.session.user.email);
+    return true;
+  }
+
+  // forgot password
   async function resetCall(payload) {
     var res = await fetch(SB_URL + "/functions/v1/reset-password", {
       method: "POST", headers: { "Content-Type": "application/json", apikey: SB_KEY }, body: JSON.stringify(payload)
@@ -851,41 +1117,31 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     finally { $("rConfirm").disabled = false; }
   });
 
-  // change password while signed in
-  $("changePass").addEventListener("click", async function () {
-    var pass = $("newPass").value; $("passErr").hidden = true;
-    if (pass.length < 6) { $("passErr").textContent = "הסיסמה צריכה להיות לפחות 6 תווים."; $("passErr").hidden = false; return; }
-    $("changePass").disabled = true;
-    try {
-      var r = await sb.auth.updateUser({ password: pass });
-      if (r.error) { $("passErr").textContent = "לא הצלחתי לשנות סיסמה. בדוק חיבור לאינטרנט ונסה שוב."; $("passErr").hidden = false; return; }
-      $("newPass").value = ""; hide(); toast("הסיסמה שונתה");
-    } finally { $("changePass").disabled = false; }
-  });
-
-  // accounts
+  // ---------- accounts ----------
   function renderAccts() {
     var box = $("acctList"); box.textContent = "";
     accts.list.forEach(function (a) {
       var b = el("button", "acct-item"); b.type = "button";
       var cur = a.uid === accts.active;
       b.setAttribute("aria-current", String(cur));
-      var info = cur ? Object.assign({}, a, { name: state.settings.name, avatar: state.settings.avatar }) : a;
+      var info = cur ? me() : a;
       var av = el("span", "avatar"); paintAvatar(av, info); b.appendChild(av);
-      var who = el("span", "who"); who.appendChild(el("b", null, acctLabel(info))); who.appendChild(el("small", null, a.email));
+      var who = el("span", "who"); who.appendChild(el("b", null, acctLabel(info))); who.appendChild(el("small", null, a.email + (a.provider === "google" ? " · Google" : "")));
       b.appendChild(who);
-      b.appendChild(el("span", "tag", cur ? "פעיל" : (a.session ? "מעבר" : "צריך סיסמה")));
+      b.appendChild(el("span", "tag", cur ? "פעיל" : (a.session ? "מעבר" : "צריך להתחבר")));
       b.addEventListener("click", function () { hide(); if (!cur) { activate(a.uid); toast("עברת לחשבון של " + acctLabel(a)); } });
       box.appendChild(b);
     });
     var a = activeAcct();
     $("logoutBtn").textContent = a ? "התנתקות מ־" + a.email : "התנתקות";
     $("logoutBtn").hidden = !a; $("logoutConfirm").hidden = true;
-    $("newPassLbl").textContent = a ? "שינוי סיסמה ל־" + a.email : "שינוי סיסמה";
-    $("newPass").value = ""; $("passErr").hidden = true;
     $("logoutHint").textContent = pending.length ? "שים לב: יש " + pending.length + " שינויים שעוד לא עלו לגיבוי. התנתקות עכשיו תמחק אותם." : "הנתונים נשארים שמורים בחשבון. אפשר להתחבר שוב בכל זמן.";
+    $("newPassLbl").textContent = a ? (a.provider === "google" ? "הוספת סיסמה ל־" + a.email + " (בנוסף ל-Google)" : "שינוי סיסמה ל־" + a.email) : "שינוי סיסמה";
+    $("newPass").value = ""; $("passErr").hidden = true;
   }
-  $("acctBtn").addEventListener("click", function () { if (!accts.list.length) { openLogin("first"); return; } renderAccts(); show($("acctSheet")); });
+  function openAccts() { if (!accts.list.length) { openLogin("first"); return; } renderAccts(); show($("acctSheet")); }
+  $("acctBtn").addEventListener("click", openAccts);
+  $("openAccts").addEventListener("click", openAccts);
   $("addAcct").addEventListener("click", function () { openLogin("add"); });
   $("logoutBtn").addEventListener("click", function () { $("logoutConfirm").hidden = false; $("logoutBtn").hidden = true; });
   $("logoutNo").addEventListener("click", function () { $("logoutConfirm").hidden = true; $("logoutBtn").hidden = false; });
@@ -900,16 +1156,25 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     else { state.entries = {}; state.settings = Object.assign({}, DEFAULT_SETTINGS); pending = []; render(); setStatus(); openLogin("first"); }
     toast("התנתקת מ־" + a.email);
   });
+  $("changePass").addEventListener("click", async function () {
+    var pass = $("newPass").value; $("passErr").hidden = true;
+    if (pass.length < 6) { $("passErr").textContent = "הסיסמה צריכה להיות לפחות 6 תווים."; $("passErr").hidden = false; return; }
+    $("changePass").disabled = true;
+    try {
+      var r = await sb.auth.updateUser({ password: pass });
+      if (r.error) { $("passErr").textContent = "לא הצלחתי לשמור סיסמה. בדוק חיבור לאינטרנט ונסה שוב."; $("passErr").hidden = false; return; }
+      $("newPass").value = ""; hide(); toast("הסיסמה נשמרה");
+    } finally { $("changePass").disabled = false; }
+  });
 
-  // add entry
-  var draft = { kind: null, sub: null, bonus: "reg" };
+  // ---------- add entry ----------
+  var draft = { kind: null, sub: null, bonus: "reg", typeUltra: false };
   function setBonus(b) {
     draft.bonus = b;
     $("bReg").setAttribute("aria-pressed", String(b === "reg"));
     $("bBig").setAttribute("aria-pressed", String(b === "big"));
     $("bCustom").setAttribute("aria-pressed", String(b === "custom"));
     $("customBox").hidden = b !== "custom";
-    if (b === "custom") $("customAmt").focus();
     updateSave();
   }
   function bonusAmount() {
@@ -926,7 +1191,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
   }
   function openAdd(kind) {
     if (!activeAcct()) { openLogin("first"); return; }
-    draft = { kind: kind, sub: null, bonus: "reg" };
+    draft = { kind: kind, sub: null, bonus: "reg", typeUltra: false };
     $("addTitle").textContent = "הוספת " + KIND[kind];
     $("subLabel").textContent = kind === "line" ? "חברה" : kind === "repair" ? "סוג תיקון" : "סוג מכשיר";
     $("addNoteLbl").textContent = NOTE_LBL[kind][0];
@@ -934,73 +1199,61 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     $("subOtherLbl").textContent = kind === "line" ? "איזו חברה? (לא חובה)" : kind === "repair" ? "איזה תיקון? (לא חובה)" : "איזה מכשיר? (לא חובה)";
     $("customAmt").value = "";
     var box = $("subChips"); box.textContent = "";
-    SUBS[kind].forEach(function (s) {
-      var c = el("button", "chip", s.n); c.type = "button"; c.setAttribute("aria-pressed", "false");
-      if (s.big) c.appendChild(el("span", "pill", fmt(state.settings.big) + "₪"));
+    typesOf(kind).concat([{ id: "other", name: "אחר", ultra: false, amount: null }]).forEach(function (t) {
+      var c = el("button", "chip", t.name); c.type = "button"; c.setAttribute("aria-pressed", "false");
+      if (t.id !== "other" && (t.ultra || t.amount != null)) c.appendChild(el("span", "pill", fmt(typeAmount(t)) + "₪"));
       c.addEventListener("click", function () {
-        box.querySelectorAll(".chip").forEach(function (x) { x.setAttribute("aria-pressed", "false"); });
+        $$("#subChips .chip").forEach(function (x) { x.setAttribute("aria-pressed", "false"); });
         c.setAttribute("aria-pressed", "true");
-        draft.sub = s.n; $("subOtherBox").hidden = s.n !== "אחר";
-        setBonus(s.big ? "big" : "reg");
-        if (s.n === "אחר") $("subOther").focus();
+        draft.sub = t.name; draft.typeUltra = !!t.ultra;
+        $("subOtherBox").hidden = t.id !== "other";
+        if (t.amount != null) { $("customAmt").value = t.amount; setBonus("custom"); }
+        else setBonus(t.ultra ? "big" : "reg");
+        if (t.id === "other") $("subOther").focus();
       });
       box.appendChild(c);
     });
     $("subOther").value = ""; $("subOtherBox").hidden = true;
     $("addQty").value = 1; $("addNote").value = "";
-    var t = todayStr();
-    $("addDate").value = state.month === monthKey(new Date()) ? t : state.month + "-01";
-    $("addDate").max = t;
+    var t0 = todayStr();
+    $("addDate").value = t0; $("addDate").max = t0;
     setBonus("reg");
     show($("addSheet"));
   }
-  document.querySelectorAll("[data-add]").forEach(function (b) { b.addEventListener("click", function () { openAdd(b.getAttribute("data-add")); }); });
+  $$("[data-add]").forEach(function (b) { b.addEventListener("click", function () { openAdd(b.getAttribute("data-add")); }); });
   $("bReg").addEventListener("click", function () { setBonus("reg"); });
   $("bBig").addEventListener("click", function () { setBonus("big"); });
-  $("bCustom").addEventListener("click", function () { setBonus("custom"); });
+  $("bCustom").addEventListener("click", function () { setBonus("custom"); $("customAmt").focus(); });
   $("customAmt").addEventListener("input", updateSave);
   $("addQty").addEventListener("input", updateSave);
   $("subOther").addEventListener("input", updateSave);
   $("saveBtn").addEventListener("click", function () {
     if (!draft.sub) return;
     var sub = draftSub(), qty = draftQty(), amount = bonusAmount(), kind = draft.kind;
+    var ultra = draft.bonus === "big" || (draft.bonus === "custom" && draft.typeUltra);
     var date = $("addDate").value || todayStr();
     var ids = [];
     for (var i = 0; i < qty; i++) {
       var id = uid() + i; ids.push(id);
-      putEntry(id, { kind: kind, sub: sub, big: draft.bonus === "big", amount: amount, date: date, month: date.slice(0, 7), note: $("addNote").value.trim(), ts: Date.now() + i });
+      putEntry(id, { kind: kind, sub: sub, big: ultra, amount: amount, date: date, month: date.slice(0, 7), note: $("addNote").value.trim(), ts: Date.now() + i });
     }
     hide();
-    state.month = date.slice(0, 7); render();
     toast("נוסף: " + (qty > 1 ? qty + " × " : "") + KIND[kind] + " · " + sub + " (+" + fmt(amount * qty) + " ₪)", function () { ids.forEach(removeEntry); });
   });
 
-  // settings + backup
-  $("openSettings").addEventListener("click", function () {
-    if (!activeAcct()) { openLogin("first"); return; }
+  // ---------- settings ----------
+  var pendingAvatar = null;
+  function fillSettings() {
+    var m = me(); if (!m) return;
     $("sName").value = state.settings.name || ""; $("sPhone").value = state.settings.phone || "";
-    $("sReg").value = state.settings.reg; $("sBig").value = state.settings.big;
-    $("importText").value = ""; $("importErr").hidden = true;
+    $("setWho").textContent = acctLabel(m); $("setEmail").textContent = m.email + (m.provider === "google" ? " · מחובר עם Google" : "");
+    $("backupNote").textContent = "כל רישום נשמר אוטומטית בחשבון" + (m.provider === "google" ? " שמחובר ל-Google" : "") + ". כאן אפשר גם להעתיק עותק של הנתונים, או להדביק נתונים מגרסה קודמת.";
     pendingAvatar = null; paintSetAvatar();
-    show($("setSheet"));
-  });
-  $("saveSettings").addEventListener("click", function () {
-    state.settings.name = $("sName").value.trim();
-    state.settings.phone = $("sPhone").value.trim();
-    var r = parseInt($("sReg").value, 10), b = parseInt($("sBig").value, 10);
-    if (r >= 0) state.settings.reg = r;
-    if (b >= 0) state.settings.big = b;
-    if (pendingAvatar !== null) state.settings.avatar = pendingAvatar;
-    var a = activeAcct(); if (a) { a.name = state.settings.name; a.avatar = state.settings.avatar; saveAccts(); }
-    saveCache(); render();
-    queue({ kind: "settings", row: Object.assign({}, state.settings) });
-    hide(); toast("ההגדרות נשמרו");
-  });
-  var pendingAvatar = null; // null = unchanged, "" = removed, data URL = new photo
+  }
   function paintSetAvatar() {
-    var a = activeAcct(); if (!a) return;
+    var m = me(); if (!m) return;
     var av = pendingAvatar !== null ? pendingAvatar : state.settings.avatar;
-    paintAvatar($("setAvatar"), Object.assign({}, a, { name: $("sName").value.trim() || state.settings.name, avatar: av }));
+    paintAvatar($("setAvatar"), Object.assign({}, m, { avatar: av }));
     $("avatarRemove").hidden = !av;
   }
   $("avatarFile").addEventListener("change", function () {
@@ -1014,20 +1267,26 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
       c.getContext("2d").drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, S, S);
       URL.revokeObjectURL(url);
       pendingAvatar = c.toDataURL("image/jpeg", 0.85);
-      paintSetAvatar(); toast("לחץ „שמירה” כדי לשמור את התמונה");
+      state.settings.avatar = pendingAvatar; pendingAvatar = null;
+      persistSettings(); paintSetAvatar(); toast("תמונת הפרופיל עודכנה");
     };
     img.onerror = function () { URL.revokeObjectURL(url); toast("לא הצלחתי לפתוח את התמונה"); };
     img.src = url;
   });
-  $("avatarRemove").addEventListener("click", function () { pendingAvatar = ""; paintSetAvatar(); });
-
+  $("avatarRemove").addEventListener("click", function () { state.settings.avatar = ""; persistSettings(); paintSetAvatar(); });
+  $("saveSettings").addEventListener("click", function () {
+    if (!activeAcct()) { openLogin("first"); return; }
+    state.settings.name = $("sName").value.trim();
+    state.settings.phone = $("sPhone").value.trim();
+    persistSettings(); fillSettings(); toast("ההגדרות נשמרו");
+  });
   function copyText(txt, okMsg, fallbackEl) {
     var fallback = function () { if (fallbackEl) { fallbackEl.focus(); fallbackEl.select(); } toast("הטקסט מסומן – לחץ העתק"); };
     try { navigator.clipboard.writeText(txt).then(function () { toast(okMsg); }, fallback); } catch (e) { fallback(); }
   }
   $("exportBtn").addEventListener("click", function () {
     var a = activeAcct();
-    var data = JSON.stringify({ app: "bonus-tracker", v: 1, account: a && a.email, settings: state.settings, entries: state.entries });
+    var data = JSON.stringify({ app: "bonus-tracker", v: 2, account: a && a.email, settings: state.settings, entries: state.entries });
     $("importText").value = data;
     copyText(data, "הגיבוי הועתק. אפשר לשמור אותו בפתקים או לשלוח לעצמך", $("importText"));
   });
@@ -1044,14 +1303,76 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
       putEntry(id, { kind: e.kind, sub: String(e.sub || "אחר"), big: !!e.big, amount: Number(e.amount) || 0, date: String(e.date).slice(0, 10), month: String(e.month || String(e.date).slice(0, 7)), note: String(e.note || ""), ts: Number(e.ts) || Date.now() });
       n++;
     });
-    hide();
+    $("importText").value = "";
     toast(n ? "יובאו " + n + " רישומים" : "לא נמצאו רישומים חדשים לייבוא");
   });
 
-  // month nav / share
-  $("prevMonth").addEventListener("click", function () { state.month = shiftMonth(state.month, -1); state.showAllLog = false; render(); });
-  $("nextMonth").addEventListener("click", function () { if (state.month < monthKey(new Date())) { state.month = shiftMonth(state.month, 1); state.showAllLog = false; render(); } });
+  // ---------- Excel ----------
+  var xlsxLoading = null;
+  function loadXlsx() {
+    if (window.XLSX) return Promise.resolve(window.XLSX);
+    if (!xlsxLoading) xlsxLoading = new Promise(function (ok, bad) {
+      var s = document.createElement("script"); s.src = XLSX_SRC;
+      s.onload = function () { ok(window.XLSX); }; s.onerror = function () { xlsxLoading = null; bad(new Error("load")); };
+      document.head.appendChild(s);
+    });
+    return xlsxLoading;
+  }
+  function entryRows(list) {
+    return list.slice().sort(function (a, b) { return a.date === b.date ? a.ts - b.ts : (a.date < b.date ? -1 : 1); })
+      .map(function (e) { var p = e.date.split("-"); return [p[2] + "/" + p[1] + "/" + p[0], KIND_PL[e.kind], e.sub, e.big ? "כן" : "", e.note || "", Number(e.amount) || 0]; });
+  }
+  async function exportExcel(all) {
+    var btn = all ? $("xlAll") : $("xlMonth"); btn.disabled = true;
+    try {
+      var X = await loadXlsx();
+      var wb = X.utils.book_new(); wb.Workbook = { Views: [{ RTL: true }] };
+      var who = state.settings.name || (activeAcct() || {}).email || "";
+      var head = ["תאריך", "קטגוריה", "סוג", "אולטרה", "הערה", "סכום ₪"];
+      var fname;
+      if (!all) {
+        var list = monthEntries(), t = totals(list);
+        var rows = [["סיכום בונוסים – " + monthLabel(state.month)], [who], [], ["קטגוריה", "סוג", "אולטרה", "כמות", "סכום ₪"]];
+        ["device", "line", "repair"].forEach(function (k) { group(list, k).forEach(function (r) { rows.push([KIND_PL[k], r.sub, r.big ? "כן" : "", r.count, r.amount]); }); });
+        rows.push([]); rows.push(["מספר בונוסים", "", "", t.count]); rows.push(["מתוכם אולטרה", "", "", t.big]); rows.push(["סה״כ לתשלום", "", "", "", t.all]);
+        var ws1 = X.utils.aoa_to_sheet(rows); ws1["!cols"] = [{ wch: 16 }, { wch: 22 }, { wch: 9 }, { wch: 8 }, { wch: 10 }];
+        X.utils.book_append_sheet(wb, ws1, "סיכום");
+        var ws2 = X.utils.aoa_to_sheet([head].concat(entryRows(list))); ws2["!cols"] = [{ wch: 11 }, { wch: 10 }, { wch: 20 }, { wch: 8 }, { wch: 26 }, { wch: 9 }];
+        X.utils.book_append_sheet(wb, ws2, "רישומים");
+        fname = "bonus-" + state.month + ".xlsx";
+      } else {
+        var everything = monthEntries("*"), months = {};
+        everything.forEach(function (e) { (months[e.month] = months[e.month] || []).push(e); });
+        var mrows = [["סיכום בונוסים לפי חודשים"], [who], [], ["חודש", "מכשירים", "קווים", "תיקונים", "מספר בונוסים", "מתוכם אולטרה", "סה״כ ₪"]];
+        var grand = { count: 0, all: 0 };
+        Object.keys(months).sort().forEach(function (mk) { var t2 = totals(months[mk]); grand.count += t2.count; grand.all += t2.all; mrows.push([monthLabel(mk), t2.device, t2.line, t2.repair, t2.count, t2.big, t2.all]); });
+        mrows.push([]); mrows.push(["סה״כ", "", "", "", grand.count, "", grand.all]);
+        var ws3 = X.utils.aoa_to_sheet(mrows); ws3["!cols"] = [{ wch: 16 }, { wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 13 }, { wch: 13 }, { wch: 10 }];
+        X.utils.book_append_sheet(wb, ws3, "לפי חודשים");
+        var ws4 = X.utils.aoa_to_sheet([head].concat(entryRows(everything))); ws4["!cols"] = [{ wch: 11 }, { wch: 10 }, { wch: 20 }, { wch: 8 }, { wch: 26 }, { wch: 9 }];
+        X.utils.book_append_sheet(wb, ws4, "כל הרישומים");
+        fname = "bonus-all.xlsx";
+      }
+      var buf = X.write(wb, { type: "array", bookType: "xlsx" });
+      var file = new File([buf], fname, { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file], title: fname }); } catch (e) {}
+      } else {
+        var a = document.createElement("a"); a.href = URL.createObjectURL(file); a.download = fname;
+        document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+        toast("הקובץ ירד: " + fname);
+      }
+    } catch (e) { toast("לא הצלחתי ליצור קובץ אקסל. בדוק חיבור לאינטרנט ונסה שוב."); }
+    finally { btn.disabled = false; }
+  }
+  $("xlMonth").addEventListener("click", function () { exportExcel(false); });
+  $("xlAll").addEventListener("click", function () { exportExcel(true); });
+
+  // ---------- month nav / share ----------
+  $$(".prevMonth").forEach(function (b) { b.addEventListener("click", function () { state.month = shiftMonth(state.month, -1); state.showAllLog = false; render(); }); });
+  $$(".nextMonth").forEach(function (b) { b.addEventListener("click", function () { if (state.month < monthKey(new Date())) { state.month = shiftMonth(state.month, 1); state.showAllLog = false; render(); } }); });
   $("moreLog").addEventListener("click", function () { state.showAllLog = true; render(); });
+  $("goShare").addEventListener("click", function () { setTab("settings"); $("shareCard").scrollIntoView({ block: "start" }); });
   $("copyBtn").addEventListener("click", function () { copyText($("shareText").value, "הסיכום הועתק – הדבק בוואטסאפ לבוס", $("shareText")); });
   if (navigator.share) {
     $("nativeShare").hidden = false;
@@ -1064,11 +1385,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     if (document.visibilityState === "visible" && accts.active && !syncing) { flush(); pull().catch(function () {}); }
   });
 
-  // boot
+  // ---------- boot ----------
   accts = lsGet("bt.accounts", { list: [], active: null });
-  if (accts.active && activeAcct()) activate(accts.active);
-  else if (accts.list.length) activate(accts.list[0].uid);
-  else { render(); setStatus(); openLogin("first"); }
+  setTab(lsGet("bt.tab", "add"));
+  handleOAuthReturn().then(function (handled) {
+    if (handled) return;
+    if (accts.active && activeAcct()) activate(accts.active);
+    else if (accts.list.length) activate(accts.list[0].uid);
+    else { render(); setStatus(); openLogin("first"); }
+  });
 
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(function () {});
 })();
