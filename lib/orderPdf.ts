@@ -168,8 +168,8 @@ export async function buildOrderPdf(order: Order, assets: PdfAssets) {
     newPageIfNeeded(lines.length * 14 + 12);
     lines.forEach((line, i) => right(line, colName, y - i * 14, 10));
     right(String(item.qty), colQty, y, 10);
-    right(formatMoney(item.unit), colUnit, y, 10);
-    left(formatMoney(item.total), colTotal, y, 10);
+    right(item.gift ? '-' : formatMoney(item.unit), colUnit, y, 10);
+    left(item.gift ? 'חינם' : formatMoney(item.total), colTotal, y, 10);
     y -= lines.length * 14 + 6;
     page.drawLine({ start: { x: MARGIN, y: y + 2 }, end: { x: PAGE_W - MARGIN, y: y + 2 }, thickness: 0.5, color: LINE });
     y -= 10;

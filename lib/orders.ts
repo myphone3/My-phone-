@@ -40,17 +40,41 @@ export function orderNumber(id?: string) {
 
 export function orderItems(order: Order) {
   const items = Array.isArray(order.items) ? order.items : [];
-  return items.map((item) => {
+  return items.map((item: any) => {
     const qty = Number(item.quantity) || 1;
     const unit = Number(item.sale_price || item.price) || 0;
     const extras = [item.version, item.color].filter(Boolean).join(', ');
+    const gift = item.kind === 'gift' || item.gift === true;
     return {
-      name: (item.name || 'מוצר') + (extras ? ` (${extras})` : ''),
+      name: (gift ? 'מתנת הצטרפות: ' : '') + (item.name || 'מוצר') + (extras ? ` (${extras})` : ''),
       qty,
       unit,
       total: unit * qty,
+      gift,
     };
   });
+}
+
+// שורת עגלה ← בקשה לבסיס הנתונים (בלי מחירים: הם מחושבים שם)
+const UUID_PREFIX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+
+export function toOrderLine(item: any) {
+  const id = String(item.id || '');
+  const quantity = Number(item.quantity) || 1;
+  const bundle = id.match(/^(.{36})-bundle-\d+$/);
+  if (bundle) {
+    return { kind: 'bundle', parent_id: bundle[1], name: item.name, quantity };
+  }
+  if (id.endsWith('-upsell')) {
+    return { kind: 'upsell', product_id: item.productId || id.slice(0, 36), quantity: 1 };
+  }
+  return {
+    kind: 'product',
+    product_id: item.productId || id.match(UUID_PREFIX)?.[0] || id,
+    quantity,
+    version: item.version || item.selectedVersion || '',
+    color: item.color || item.selectedColor || '',
+  };
 }
 
 export function orderTotals(order: Order) {

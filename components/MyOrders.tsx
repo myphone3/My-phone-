@@ -110,7 +110,7 @@ function OrderDetails({ order, onClose }: { order: Order; onClose: () => void })
               <span>
                 {item.name} × {item.qty}
               </span>
-              <span className="whitespace-nowrap">{formatMoney(item.total)}</span>
+              <span className="whitespace-nowrap">{item.gift ? 'חינם' : formatMoney(item.total)}</span>
             </div>
           ))}
           {totals.discount > 0 && (
