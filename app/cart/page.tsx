@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import MyOrders from '@/components/MyOrders';
+import { Order, formatMoney, newUuid, orderItems, orderNumber, orderTotals, toOrderLine } from '@/lib/orders';
 
 // מאגר ערים רחב להצעות חכמות (לא חובה לבחור מתוכו, אפשר להקליד חופשי)
 const ISRAEL_CITIES = [
@@ -29,6 +31,11 @@ const ISRAEL_STREETS = [
 export default function CartPage() {
   const [step, setStep] = useState<'cart' | 'checkout'>('cart');
   const [cartItems, setCartItems] = useState<any[]>([]);
+
+  // לשונית פעילה: העגלה או ההזמנות שלי (נשמרת בכתובת: /cart?tab=orders)
+  const [view, setView] = useState<'cart' | 'orders'>('cart');
+  // ההזמנה שהושלמה עכשיו, למסך הסיום
+  const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
 
   // פרטי לקוח וכתובת חופשיים לגמרי
   const [name, setName] = useState('');
@@ -60,6 +67,12 @@ export default function CartPage() {
   
   // הגדרות מערכת
   const [settings, setSettings] = useState<any>(null);
+
+  // מתנת / הנחת הצטרפות (ההגדרות מהפאנל, והאם הלקוח זכאי)
+  const [welcomePromo, setWelcomePromo] = useState<any>(null);
+  const [giftProduct, setGiftProduct] = useState<any>(null);
+  const [customer, setCustomer] = useState<{ email: string; createdAt: string } | null>(null);
+  const [hasPastOrders, setHasPastOrders] = useState(false);
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number; isExpired: boolean } | null>(null);
 
   useEffect(() => {
@@ -72,7 +85,22 @@ export default function CartPage() {
       }
     }
     fetchPromos();
+    if (new URLSearchParams(window.location.search).get('tab') === 'orders') {
+      setView('orders');
+    }
+    const showOrders = () => {
+      setView('orders');
+      setPlacedOrder(null);
+    };
+    window.addEventListener('showMyOrders', showOrders);
+    return () => window.removeEventListener('showMyOrders', showOrders);
   }, []);
+
+  const switchView = (next: 'cart' | 'orders') => {
+    setView(next);
+    setPlacedOrder(null);
+    window.history.replaceState(null, '', next === 'orders' ? '/cart?tab=orders' : '/cart');
+  };
 
   // חיפוש ערים חכם להשלמה (לא מגביל הקלדה חופשית)
   const handleCityChange = (val: string) => {
@@ -127,6 +155,30 @@ export default function CartPage() {
     const { data: settingsData } = await supabase.from('settings').select('*').limit(1).maybeSingle();
     if (settingsData) {
       setSettings(settingsData);
+      try {
+        const promo = JSON.parse(settingsData.announcement_text || '');
+        if (promo?.welcome_active) {
+          setWelcomePromo(promo);
+          if (promo.welcome_type === 'מתנה' && promo.welcome_gift_product_id) {
+            const { data: prod } = await supabase
+              .from('products')
+              .select('id, name, price, sale_price, image_url, images')
+              .eq('id', promo.welcome_gift_product_id)
+              .maybeSingle();
+            if (prod) setGiftProduct(prod);
+          }
+        }
+      } catch {
+        // אין מבצע הצטרפות מוגדר
+      }
+    }
+
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
+    if (user?.email) {
+      setCustomer({ email: user.email, createdAt: user.created_at });
+      const { data: past } = await supabase.from('orders').select('id').ilike('email', user.email).limit(1);
+      setHasPastOrders(!!past && past.length > 0);
     }
   };
 
@@ -196,7 +248,36 @@ export default function CartPage() {
   const isFreeShippingEligible = isPromoActive && subtotalPrice >= thresholdMin;
   const shippingCost = isFreeShippingEligible ? 0 : 29;
 
-  const totalPrice = Math.max(0, subtotalPrice - discountAmount + shippingCost);
+  // מבצע הצטרפות: מי זכאי ומה מציגים (החישוב הסופי נעשה שוב בבסיס הנתונים בזמן ההזמנה)
+  const welcomeMin = Number(welcomePromo?.welcome_min_purchase) || 0;
+  const welcomeDays = Number(welcomePromo?.welcome_days_valid) || 0;
+  const welcomeDaysLeft =
+    customer && welcomeDays > 0
+      ? Math.ceil((new Date(customer.createdAt).getTime() + welcomeDays * 86400000 - Date.now()) / 86400000)
+      : null;
+  const isGiftType = welcomePromo?.welcome_type === 'מתנה';
+  const welcomeOfferName = isGiftType ? giftProduct?.name || 'מתנה' : `${Number(welcomePromo?.welcome_discount_value) || 0}% הנחה`;
+  const welcomeState: 'none' | 'register' | 'below' | 'eligible' = !welcomePromo || (isGiftType && !giftProduct)
+    ? 'none'
+    : !customer
+      ? 'register'
+      : hasPastOrders || (welcomeDaysLeft !== null && welcomeDaysLeft <= 0)
+        ? 'none'
+        : subtotalPrice < welcomeMin
+          ? 'below'
+          : 'eligible';
+  const welcomeDiscount =
+    welcomeState === 'eligible' && !isGiftType ? (subtotalPrice * (Number(welcomePromo?.welcome_discount_value) || 0)) / 100 : 0;
+  const welcomeMeta = welcomeDaysLeft !== null ? (welcomeDaysLeft === 1 ? 'נשאר יום אחד' : `נשארו ${welcomeDaysLeft} ימים`) : '';
+
+  const totalPrice = Math.max(0, subtotalPrice - Math.min(subtotalPrice, discountAmount + welcomeDiscount) + shippingCost);
+
+  const handleWelcomeSignup = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+  };
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -213,44 +294,143 @@ export default function CartPage() {
     }
 
     setSubmitting(true);
-    
-    const orderPayload = {
-      customer_name: name,
-      phone,
-      email,
-      city: city.trim(),
-      street: street.trim(),
-      building: building.trim(),
-      address: `עיר: ${city.trim()}, רחוב: ${street.trim()}, מס' בניין/דירה: ${building.trim()}`,
-      notes,
-      payment_method: 'credit',
-      items: cartItems,
-      subtotal: subtotalPrice,
-      discount_amount: discountAmount,
-      shipping_cost: shippingCost,
-      total_price: totalPrice,
-      status: 'חדש'
-    };
 
-    const { error } = await supabase.from('orders').insert([orderPayload]);
+    // מפתח חד-פעמי לשליחת מייל האישור (לקוח לא יכול לקרוא הזמנות מהבסיס)
+    const confirmationToken = newUuid();
 
-    setSubmitting(false);
+    // לבסיס הנתונים נשלח רק מה הלקוח רוצה. המחירים, ההנחות, המשלוח והמתנה מחושבים שם
+    let savedOrder: unknown = null;
+    let error: { message?: string } | null = null;
+    try {
+      const res = await supabase.rpc('place_order', {
+        p_items: cartItems.map(toOrderLine),
+        p_customer: { name, phone, email, city, street, building, notes },
+        p_coupon: appliedCoupon?.code || null,
+        p_confirmation_token: confirmationToken,
+      });
+      savedOrder = res.data;
+      error = res.error;
+    } catch (err: any) {
+      error = { message: err?.message };
+    } finally {
+      setSubmitting(false);
+    }
 
-    if (error) {
+    if (error || !savedOrder) {
       console.error('Supabase error:', error);
-      alert('שגיאה בשליחת ההזמנה לשרת: ' + error.message);
+      alert('שגיאה בשליחת ההזמנה לשרת: ' + (error?.message || 'נסו שוב'));
     } else {
-      alert('התשלום בוצע בהצלחה וההזמנה נקלטה! צוות NEW PHONE יצור איתך קשר בהקדם.');
+      const orderId = (savedOrder as Order).id;
+      setPlacedOrder(savedOrder as Order);
       localStorage.removeItem('cart');
       setCartItems([]);
+      setStep('cart');
       window.dispatchEvent(new Event('cartUpdated'));
-      window.location.href = '/';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // מייל אישור עם PDF (אם נכשל, ההזמנה עדיין נשמרה)
+      fetch('/api/order-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, token: confirmationToken }),
+        keepalive: true,
+      }).catch((err) => console.error('Order confirmation email failed:', err));
     }
   };
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6" dir="rtl">
-      
+
+      {/* לשוניות: העגלה שלי / ההזמנות שלי */}
+      <div className="flex gap-2 bg-gray-100 p-1.5 rounded-2xl">
+        {([
+          ['cart', '🛒 העגלה שלי'],
+          ['orders', '📦 ההזמנות שלי'],
+        ] as const).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => switchView(key)}
+            className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-black transition cursor-pointer ${
+              view === key && !(key === 'cart' && placedOrder) ? 'bg-white text-orange-700 shadow-sm' : 'text-gray-500 hover:text-gray-800'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {view === 'orders' ? (
+        <MyOrders />
+      ) : placedOrder ? (
+
+        /* === מסך סיום הזמנה === */
+        <div className="bg-white rounded-3xl border border-orange-100 shadow-lg shadow-orange-100/60 p-6 sm:p-8 text-center max-w-lg mx-auto">
+          <div className="relative w-24 h-24 mx-auto mb-4">
+            <img src="/Logo.JPG" alt="NEW PHONE" className="w-24 h-24 object-contain" />
+            <div className="absolute -top-1 -left-2 w-9 h-9 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 text-white text-lg font-black flex items-center justify-center border-4 border-white shadow-md">
+              ✓
+            </div>
+          </div>
+          <h2 className="text-2xl font-black text-gray-900 mb-1.5">התשלום בוצע בהצלחה!</h2>
+          <p className="text-sm text-gray-600 leading-relaxed mb-5">
+            תודה שקנית ב-NEW PHONE 🧡
+            <br />
+            אישור הזמנה נשלח למייל שלך.
+          </p>
+          <div className="inline-block bg-orange-50 border border-dashed border-orange-300 text-orange-700 font-black rounded-xl px-4 py-2 text-sm mb-5">
+            מספר הזמנה: <span dir="ltr">#{orderNumber(placedOrder.id)}</span>
+          </div>
+          <div className="bg-gray-50 rounded-2xl p-4 text-sm text-right space-y-1.5 mb-5">
+            {orderItems(placedOrder).map((item, i) => (
+              <div key={i} className="flex justify-between gap-3">
+                <span>
+                  {item.name} × {item.qty}
+                </span>
+                <span className="whitespace-nowrap">
+                  {item.gift ? (
+                    <>
+                      {item.original > 0 && <span className="line-through text-gray-400 text-xs ml-1.5">{formatMoney(item.original)}</span>}
+                      <span className="text-green-600 font-bold">חינם</span>
+                    </>
+                  ) : (
+                    formatMoney(item.total)
+                  )}
+                </span>
+              </div>
+            ))}
+            {orderTotals(placedOrder).discount > 0 && (
+              <div className="flex justify-between text-green-700">
+                <span>הנחה</span>
+                <span>-{formatMoney(orderTotals(placedOrder).discount)}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span>משלוח</span>
+              <span>{orderTotals(placedOrder).shipping > 0 ? formatMoney(orderTotals(placedOrder).shipping) : 'חינם'}</span>
+            </div>
+            <div className="flex justify-between border-t pt-2 mt-1 font-black text-orange-600 text-base">
+              <span>סה״כ</span>
+              <span>{formatMoney(orderTotals(placedOrder).total)}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => switchView('orders')}
+            className="block w-full bg-orange-600 hover:bg-orange-700 text-white py-3.5 rounded-2xl text-sm font-black transition cursor-pointer mb-2"
+          >
+            צפייה בהזמנות שלי
+          </button>
+          <Link
+            href="/"
+            className="block w-full bg-white border-2 border-orange-300 text-orange-700 hover:bg-orange-50 py-3 rounded-2xl text-sm font-black transition"
+          >
+            המשך קנייה
+          </Link>
+        </div>
+
+      ) : (<>
+
       {/* כותרת ושלבים */}
       <div className="flex items-center justify-between border-b pb-4">
         <h1 className="text-2xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
@@ -336,7 +516,74 @@ export default function CartPage() {
                 </div>
               );
             })}
+
+            {/* מתנת הצטרפות שנוספת אוטומטית */}
+            {welcomeState === 'eligible' && isGiftType && giftProduct && (
+              <div className="p-4 sm:p-6 flex items-center justify-between gap-4 bg-gradient-to-l from-orange-50 to-white">
+                <div className="flex items-center gap-4">
+                  <div className="relative w-16 h-16 bg-white rounded-2xl border flex items-center justify-center shrink-0">
+                    {giftProduct.image_url || giftProduct.images?.[0] ? (
+                      <img src={giftProduct.image_url || giftProduct.images?.[0]} alt={giftProduct.name} className="w-full h-full object-contain rounded-2xl" />
+                    ) : (
+                      <span>📦</span>
+                    )}
+                    <span className="absolute -top-2 -left-2 text-lg">🎁</span>
+                  </div>
+                  <div>
+                    <span className="inline-block bg-orange-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full mb-1">מתנת הצטרפות</span>
+                    <h3 className="font-black text-xs sm:text-sm text-gray-900">{giftProduct.name}</h3>
+                    <p className="text-[10px] text-orange-800 font-medium mt-0.5">
+                      מתנה על ההזמנה הראשונה{welcomeMeta ? ` · ${welcomeMeta}` : ''}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-left shrink-0">
+                  <span className="block text-[11px] text-gray-400 line-through">₪{giftProduct.sale_price || giftProduct.price}</span>
+                  <span className="text-sm font-black text-green-600">חינם</span>
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* חסר סכום למתנה / להנחה */}
+          {welcomeState === 'below' && (
+            <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 space-y-2">
+              <b className="text-sm font-black text-gray-900 block">
+                🎁 עוד ₪{Math.ceil(welcomeMin - subtotalPrice)} ומקבלים {isGiftType ? 'מתנה' : 'הנחה'}!
+              </b>
+              <p className="text-[11px] text-gray-500">
+                {isGiftType ? `${welcomeOfferName} במתנה` : welcomeOfferName} בקנייה מעל ₪{welcomeMin}
+                {welcomeMeta ? ` · ${welcomeMeta}` : ''}
+              </p>
+              <div className="h-2 bg-orange-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-l from-orange-600 to-orange-400 rounded-full"
+                  style={{ width: `${Math.min(100, Math.round((subtotalPrice / Math.max(welcomeMin, 1)) * 100))}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* מבקר שלא נרשם */}
+          {welcomeState === 'register' && (
+            <div className="flex items-center gap-3 bg-white border-2 border-dashed border-orange-300 rounded-2xl p-4">
+              <span className="text-3xl shrink-0">🎁</span>
+              <div className="flex-1">
+                <b className="text-sm font-black text-gray-900 block">מגיעה לך מתנה!</b>
+                <span className="text-[11px] text-gray-500">
+                  נרשמים לאתר ומקבלים {isGiftType ? `${welcomeOfferName} במתנה` : welcomeOfferName}
+                  {welcomeMin > 0 ? ` בקנייה מעל ₪${welcomeMin}` : ''}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleWelcomeSignup}
+                className="bg-orange-600 hover:bg-orange-700 text-white text-[11px] font-black px-3 py-2 rounded-xl whitespace-nowrap cursor-pointer"
+              >
+                הרשמה לאתר
+              </button>
+            </div>
+          )}
 
           <button
             type="button"
@@ -558,6 +805,23 @@ export default function CartPage() {
                 </div>
               )}
 
+              {welcomeState === 'eligible' && isGiftType && giftProduct && (
+                <div className="flex justify-between items-center text-green-600 font-bold">
+                  <span>🎁 מתנת הצטרפות: {giftProduct.name}</span>
+                  <span className="whitespace-nowrap">
+                    <span className="line-through text-gray-400 font-medium ml-1.5">₪{giftProduct.sale_price || giftProduct.price}</span>
+                    חינם
+                  </span>
+                </div>
+              )}
+
+              {welcomeDiscount > 0 && (
+                <div className="flex justify-between items-center text-green-600 font-bold">
+                  <span>🎁 הנחת הצטרפות ({Number(welcomePromo?.welcome_discount_value) || 0}%):</span>
+                  <span>-₪{welcomeDiscount.toFixed(1)}</span>
+                </div>
+              )}
+
               <div className="flex justify-between items-center text-gray-700">
                 <span>עלות משלוח מהיר עד הבית:</span>
                 {isFreeShippingEligible ? (
@@ -648,6 +912,8 @@ export default function CartPage() {
         </form>
 
       )}
+
+      </>)}
 
     </div>
   );

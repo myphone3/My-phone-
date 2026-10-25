@@ -2,16 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { orderNumber } from '@/lib/orders';
 
 // מספר הזמנה: 8 ספרות בלבד, מחושב מהמזהה הפנימי (תמיד אותו מספר לאותה הזמנה)
-const getOrderNumber = (id?: string) => {
-  if (!id) return '';
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
-  }
-  return String(10000000 + (hash % 90000000));
-};
+const getOrderNumber = orderNumber;
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -43,16 +37,25 @@ export default function AdminOrdersPage() {
     if (customerEmail) {
       const orderNumber = getOrderNumber(orderId);
       try {
-        await fetch('/api/send-email', {
+        // שליחת מייל מותרת רק למנהל מחובר, לכן מצרפים את ההתחברות שלו
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+          alert('הסטטוס עודכן, אך המייל ללקוח לא נשלח (צריך להתחבר מחדש)');
+          return;
+        }
+        const res = await fetch('/api/send-email', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
           body: JSON.stringify({
             to: customerEmail,
             subject: `עדכון סטטוס הזמנה #${orderNumber}`,
             message: `שלום ${customerName || 'לקוח יקר'},\n\nההזמנה שלך (#${orderNumber}) עודכנה לסטטוס: ${newStatus}.\n\nNEW PHONE`
           })
         });
-      } catch (err) {}
+        if (!res.ok) alert('הסטטוס עודכן, אך שליחת המייל ללקוח נכשלה');
+      } catch (err) {
+        alert('הסטטוס עודכן, אך שליחת המייל ללקוח נכשלה');
+      }
     }
   };
 
