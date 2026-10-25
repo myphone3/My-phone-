@@ -39,16 +39,23 @@ export default function AdminOrdersPage() {
       try {
         // שליחת מייל מותרת רק למנהל מחובר, לכן מצרפים את ההתחברות שלו
         const { data: { session } } = await supabase.auth.getSession();
-        await fetch('/api/send-email', {
+        if (!session?.access_token) {
+          alert('הסטטוס עודכן, אך המייל ללקוח לא נשלח (צריך להתחבר מחדש)');
+          return;
+        }
+        const res = await fetch('/api/send-email', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
           body: JSON.stringify({
             to: customerEmail,
             subject: `עדכון סטטוס הזמנה #${orderNumber}`,
             message: `שלום ${customerName || 'לקוח יקר'},\n\nההזמנה שלך (#${orderNumber}) עודכנה לסטטוס: ${newStatus}.\n\nNEW PHONE`
           })
         });
-      } catch (err) {}
+        if (!res.ok) alert('הסטטוס עודכן, אך שליחת המייל ללקוח נכשלה');
+      } catch (err) {
+        alert('הסטטוס עודכן, אך שליחת המייל ללקוח נכשלה');
+      }
     }
   };
 

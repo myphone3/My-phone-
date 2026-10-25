@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import MyOrders from '@/components/MyOrders';
-import { Order, formatMoney, orderItems, orderNumber, orderTotals, toOrderLine } from '@/lib/orders';
+import { Order, formatMoney, newUuid, orderItems, orderNumber, orderTotals, toOrderLine } from '@/lib/orders';
 
 // מאגר ערים רחב להצעות חכמות (לא חובה לבחור מתוכו, אפשר להקליד חופשי)
 const ISRAEL_CITIES = [
@@ -296,17 +296,25 @@ export default function CartPage() {
     setSubmitting(true);
 
     // מפתח חד-פעמי לשליחת מייל האישור (לקוח לא יכול לקרוא הזמנות מהבסיס)
-    const confirmationToken = crypto.randomUUID();
+    const confirmationToken = newUuid();
 
     // לבסיס הנתונים נשלח רק מה הלקוח רוצה. המחירים, ההנחות, המשלוח והמתנה מחושבים שם
-    const { data: savedOrder, error } = await supabase.rpc('place_order', {
-      p_items: cartItems.map(toOrderLine),
-      p_customer: { name, phone, email, city, street, building, notes },
-      p_coupon: appliedCoupon?.code || null,
-      p_confirmation_token: confirmationToken,
-    });
-
-    setSubmitting(false);
+    let savedOrder: unknown = null;
+    let error: { message?: string } | null = null;
+    try {
+      const res = await supabase.rpc('place_order', {
+        p_items: cartItems.map(toOrderLine),
+        p_customer: { name, phone, email, city, street, building, notes },
+        p_coupon: appliedCoupon?.code || null,
+        p_confirmation_token: confirmationToken,
+      });
+      savedOrder = res.data;
+      error = res.error;
+    } catch (err: any) {
+      error = { message: err?.message };
+    } finally {
+      setSubmitting(false);
+    }
 
     if (error || !savedOrder) {
       console.error('Supabase error:', error);

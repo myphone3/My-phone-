@@ -27,9 +27,12 @@ export async function POST(request: Request) {
     }
 
     const publicDir = path.join(process.cwd(), 'public');
-    const [regular, bold, logo] = await Promise.all(
-      [PDF_ASSET_PATHS.regular, PDF_ASSET_PATHS.bold, PDF_ASSET_PATHS.logo].map((p) => readFile(path.join(publicDir, p)))
-    );
+    // הלוגו לא חובה: אם אין, ה-PDF מציג כותרת טקסט
+    const [regular, bold, logo] = await Promise.all([
+      readFile(path.join(publicDir, PDF_ASSET_PATHS.regular)),
+      readFile(path.join(publicDir, PDF_ASSET_PATHS.bold)),
+      readFile(path.join(publicDir, PDF_ASSET_PATHS.logo)).catch(() => undefined),
+    ]);
     const pdf = await buildOrderPdf(order, { regular, bold, logo });
 
     const number = orderNumber(order.id);

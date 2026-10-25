@@ -164,27 +164,41 @@ export default function MyOrders() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [selected, setSelected] = useState<Order | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    setLoadFailed(false);
+    const { data: { session } } = await supabase.auth.getSession();
+    const email = session?.user?.email;
+    if (!email) {
+      setLoggedIn(false);
+      setLoading(false);
+      return;
+    }
+    setLoggedIn(true);
+    // לקוח רואה רק את ההזמנות שלו (גם לפי הרשאות בבסיס הנתונים). הסינון כאן הוא בשביל מנהלים, שרואים הכול
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .ilike('email', email)
+      .order('created_at', { ascending: false });
+    if (error) setLoadFailed(true);
+    else setOrders((data as Order[]) || []);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const load = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const email = session?.user?.email;
-      if (!email) {
-        setLoggedIn(false);
-        setLoading(false);
-        return;
-      }
-      setLoggedIn(true);
-      // לקוח רואה רק את ההזמנות שלו (גם לפי הרשאות בבסיס הנתונים). הסינון כאן הוא בשביל מנהלים, שרואים הכול
-      const { data } = await supabase
-        .from('orders')
-        .select('*')
-        .ilike('email', email)
-        .order('created_at', { ascending: false });
-      setOrders((data as Order[]) || []);
-      setLoading(false);
-    };
     load();
+    // התנתקות (גם מלשונית אחרת): מסתירים מיד את ההזמנות
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        setOrders([]);
+        setSelected(null);
+        setLoggedIn(false);
+      }
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleLogin = async () => {
@@ -196,6 +210,21 @@ export default function MyOrders() {
 
   if (loading) {
     return <div className="text-center py-16 text-gray-500 text-sm font-medium">טוען הזמנות...</div>;
+  }
+
+  if (loadFailed) {
+    return (
+      <div className="text-center py-16 bg-white rounded-3xl border p-8 space-y-4 shadow-sm">
+        <h2 className="text-lg font-black text-gray-900">לא הצלחנו לטעון את ההזמנות</h2>
+        <button
+          type="button"
+          onClick={load}
+          className="inline-block bg-orange-600 text-white px-6 py-3 rounded-2xl text-xs font-bold hover:bg-orange-700 transition shadow-sm cursor-pointer"
+        >
+          נסו שוב
+        </button>
+      </div>
+    );
   }
 
   if (!loggedIn) {
