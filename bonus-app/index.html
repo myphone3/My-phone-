@@ -222,6 +222,35 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   .sheet:not([hidden]):not(.full) { animation: up .18s ease-out; }
   @keyframes up { from { transform: translateY(30px); opacity: .6; } to { transform: none; opacity: 1; } }
 }
+
+/* additions: dynamic categories, team */
+.tabbar-inner { display: flex; }
+.tabbar-inner button { flex: 1 1 0; }
+.adds { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+.kpis { grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); }
+.seg { grid-template-columns: repeat(5, 1fr); }
+.seg button { font-size: .8rem; }
+.icon-pick { display: flex; flex-wrap: wrap; gap: 8px; }
+.icon-pick button { width: 48px; height: 48px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--bg); display: grid; place-items: center; }
+.icon-pick button[aria-pressed="true"] { border-color: var(--accent); background: var(--soft); }
+.icon-pick svg, .cat-ic svg { width: 24px; height: 24px; stroke: var(--accent); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.cat-head { display: flex; align-items: center; gap: 8px; }
+.cat-ic { width: 34px; height: 34px; border-radius: 10px; background: var(--soft); display: grid; place-items: center; flex-shrink: 0; }
+.cat-ic svg { width: 20px; height: 20px; }
+.toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.toggle-row input { width: 22px; height: 22px; accent-color: var(--accent); }
+.code-box { font-family: var(--font-display); font-size: 2rem; font-weight: 800; letter-spacing: .25em; text-align: center; background: var(--soft); border-radius: 14px; padding: 10px; direction: ltr; }
+.member-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); width: 100%; background: transparent; border-left: 0; border-right: 0; border-bottom: 0; text-align: right; }
+.member-row:first-child { border-top: 0; }
+.member-row .who { flex: 1; min-width: 0; }
+.member-row .who b { display: block; }
+.member-row .who small { color: var(--muted); overflow-wrap: anywhere; }
+.member-row .m-total { text-align: left; }
+.member-row .m-total b { display: block; font-family: var(--font-display); color: var(--accent); }
+.member-row .m-total small { color: var(--muted); }
+.member-row .avatar { width: 40px; height: 40px; }
+.team-total { display: flex; justify-content: space-between; font-weight: 700; padding-top: 8px; border-top: 2px solid var(--line); }
+.readonly-note { background: var(--soft); border-radius: 12px; padding: 10px 12px; font-size: .9rem; }
 </style>
 </head>
 <body>
@@ -280,33 +309,14 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 
   <!-- TAB: add -->
   <section class="tab" id="tab-add" aria-label="הוספת בונוס">
-    <div class="adds" role="group" aria-label="הוספה מהירה">
-      <button class="add" type="button" data-add="device"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg></span>מכשיר<span class="plus">+ מכירה</span></button>
-      <button class="add" type="button" data-add="line"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6v8H9z"/><path d="M9 12h6M12 8v8"/></svg></span>קו<span class="plus">+ חיבור</span></button>
-      <button class="add" type="button" data-add="repair"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6.5a4 4 0 0 0-5.3 5.2L3.5 17.4l3.1 3.1 5.7-5.7a4 4 0 0 0 5.2-5.3l-2.4 2.4-2.2-.6-.6-2.2z"/></svg></span>תיקון<span class="plus">+ תיקון</span></button>
-    </div>
+    <div class="adds" id="addKeys" role="group" aria-label="הוספה מהירה"></div>
     <section class="card" aria-labelledby="hToday">
       <div class="card-head"><h2 id="hToday">נוספו היום</h2><span class="sum num" id="sToday"></span></div>
       <div class="log" id="todayList"></div>
     </section>
   </section>
 
-  <!-- TAB: month list -->
-  <section class="tab" id="tab-month" aria-label="הבונוסים של החודש" hidden>
-    <section class="hero">
-      <div class="month-nav">
-        <button type="button" class="prevMonth" aria-label="חודש קודם">›</button>
-        <div class="month-name monthName"></div>
-        <button type="button" class="nextMonth" aria-label="חודש הבא">‹</button>
-      </div>
-      <div class="total-sub num" id="monthListSub"></div>
-    </section>
-    <section class="card" aria-label="רשימת הבונוסים">
-      <div class="log" id="monthList"></div>
-    </section>
-  </section>
-
-  <!-- TAB: summary -->
+  <!-- TAB: summary (month summary + full list) -->
   <section class="tab" id="tab-summary" aria-label="סיכום" hidden>
     <section class="hero" aria-label="סיכום החודש">
       <div class="month-nav">
@@ -319,11 +329,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
         <div class="total num"><span id="total">0</span><small>₪</small></div>
         <div class="total-sub num" id="totalSub"></div>
       </div>
-      <div class="kpis">
-        <div class="kpi"><b class="num" id="kDevices">0</b><span>מכשירים</span></div>
-        <div class="kpi"><b class="num" id="kLines">0</b><span>קווים</span></div>
-        <div class="kpi"><b class="num" id="kRepairs">0</b><span>תיקונים</span></div>
-      </div>
+      <div class="kpis" id="kpis"></div>
     </section>
     <section class="card" aria-labelledby="hTier">
       <div class="card-head"><h2 id="hTier">לפי סוג בונוס</h2></div>
@@ -333,17 +339,52 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       </div>
       <div class="hint num" id="compare"></div>
     </section>
-    <section class="card" aria-labelledby="hRepairs">
-      <div class="card-head"><h2 id="hRepairs">תיקונים</h2><span class="sum num" id="sRepairs"></span></div>
-      <div class="rows" id="rRepairs"></div>
+    <div class="tab" id="catCards"></div>
+    <section class="card" aria-labelledby="hLog">
+      <div class="card-head"><h2 id="hLog">כל הרישומים בחודש</h2><span class="sum num" id="sLog"></span></div>
+      <div class="log" id="monthList"></div>
     </section>
-    <section class="card" aria-labelledby="hLines">
-      <div class="card-head"><h2 id="hLines">קווים לפי חברה</h2><span class="sum num" id="sLines"></span></div>
-      <div class="rows" id="rLines"></div>
+  </section>
+
+  <!-- TAB: team (managers) -->
+  <section class="tab" id="tab-team" aria-label="הצוות שלי" hidden>
+    <section class="hero">
+      <div class="month-nav">
+        <button type="button" class="prevMonth" aria-label="חודש קודם">›</button>
+        <div class="month-name monthName"></div>
+        <button type="button" class="nextMonth" aria-label="חודש הבא">‹</button>
+      </div>
+      <div>
+        <div class="total-label" id="teamNameLbl">הצוות</div>
+        <div class="total num"><span id="teamTotal">0</span><small>₪</small></div>
+        <div class="total-sub num" id="teamSub"></div>
+      </div>
     </section>
-    <section class="card" aria-labelledby="hDevices">
-      <div class="card-head"><h2 id="hDevices">מכשירים</h2><span class="sum num" id="sDevices"></span></div>
-      <div class="rows" id="rDevices"></div>
+    <section class="card">
+      <div class="card-head"><h2>העובדים</h2><button class="mini-btn" type="button" id="teamRefresh">רענון</button></div>
+      <div id="memberList"></div>
+      <div class="hint">לחיצה על עובד מציגה את כל הבונוסים שלו בחודש, ושם אפשר גם לאפס לו סיסמה.</div>
+    </section>
+    <section class="card">
+      <div class="card-head"><h2>צירוף עובדים</h2></div>
+      <div class="hint">עובד עם טלפון: שלח לו את הקוד. הוא נרשם באפליקציה ומזין את הקוד.</div>
+      <div class="code-box num" id="teamCode">------</div>
+      <div class="btns">
+        <a class="btn wa" id="inviteWa" href="https://wa.me/" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#wa-icon"/></svg>שליחת הזמנה</a>
+        <button class="btn ghost" type="button" id="inviteCopy">העתקת הזמנה</button>
+      </div>
+      <div class="section">
+        <h3>פתיחת חשבון לעובד</h3>
+        <div class="hint">מתאים גם לעובד בלי טלפון. אתה בוחר לו סיסמה, ואפשר להחליף אותה בכל זמן.</div>
+        <div class="inline">
+          <div class="field"><label class="lbl" for="nmName">שם</label><input id="nmName" type="text"></div>
+          <div class="field"><label class="lbl" for="nmPhone">טלפון</label><input id="nmPhone" type="tel" inputmode="tel" dir="ltr"></div>
+        </div>
+        <div class="field"><label class="lbl" for="nmEmail">אימייל (משמש להתחברות)</label><input id="nmEmail" type="email" dir="ltr" inputmode="email"></div>
+        <div class="field"><label class="lbl" for="nmPass">סיסמה (לפחות 6 תווים)</label><input id="nmPass" type="text" dir="ltr" autocomplete="off"></div>
+        <button class="btn primary" type="button" id="nmAdd">פתיחת החשבון וצירוף לצוות</button>
+        <div class="err" id="nmErr" hidden></div>
+      </div>
     </section>
   </section>
 
@@ -351,7 +392,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   <section class="tab" id="tab-settings" aria-label="הגדרות" hidden>
     <div class="seg" aria-label="הגדרות">
       <button type="button" data-sub="profile">פרופיל</button>
-      <button type="button" data-sub="types">סוגים ומחירים</button>
+      <button type="button" data-sub="types">בונוסים</button>
+      <button type="button" data-sub="team">צוות</button>
       <button type="button" data-sub="share">שיתוף</button>
       <button type="button" data-sub="backup">גיבוי</button>
     </div>
@@ -367,21 +409,20 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
           <button class="btn ghost" type="button" id="avatarRemove">הסרת תמונה</button>
         </div>
         <div class="field"><label class="lbl" for="sName">השם שלי (יופיע בסיכום)</label><input id="sName" type="text" autocomplete="name"></div>
-        <button class="btn primary" type="button" id="saveName">שמירת השם</button>
+        <div class="field"><label class="lbl" for="sMyPhone">הטלפון שלי</label><input id="sMyPhone" type="tel" inputmode="tel" dir="ltr" autocomplete="tel"></div>
+        <div class="err" id="profErr" hidden></div>
+        <button class="btn primary" type="button" id="saveProfile">שמירה</button>
       </section>
       <section class="card">
         <div class="card-head"><h2>חשבונות</h2></div>
-        <div class="hint">אפשר לשמור כמה חשבונות באותו טלפון ולעבור ביניהם, למשל של עובד שאין לו טלפון.</div>
+        <div class="hint">אפשר לשמור כמה חשבונות באותו טלפון ולעבור ביניהם בלחיצה על העיגול למעלה.</div>
         <button class="btn ghost wide" type="button" id="openAccts">חשבונות, סיסמה והתנתקות</button>
       </section>
     </div>
 
     <div class="subtab" id="sub-types" hidden>
-      <div class="hint">מה שמופיע כאן הוא מה שתראה כשתלחץ מכשיר, קו או תיקון. שינוי שם או מחיר משפיע רק על רישומים חדשים.</div>
-      <section class="card"><div class="card-head"><h2>תיקונים</h2></div><div class="rows" id="types-repair"></div><button class="add-type" type="button" data-addtype="repair">+ סוג תיקון חדש</button></section>
-      <section class="card"><div class="card-head"><h2>קווים (חברות)</h2></div><div class="rows" id="types-line"></div><button class="add-type" type="button" data-addtype="line">+ חברה חדשה</button></section>
-      <section class="card"><div class="card-head"><h2>מכשירים</h2></div><div class="rows" id="types-device"></div><button class="add-type" type="button" data-addtype="device">+ סוג מכשיר חדש</button></section>
-      <section class="card">
+      <div class="readonly-note" id="typesNote" hidden></div>
+      <section class="card" id="basePrices">
         <div class="card-head"><h2>מחירי בסיס</h2></div>
         <div class="inline">
           <div class="field"><label class="lbl" for="sReg">בונוס רגיל (₪)</label><input id="sReg" type="number" min="0" inputmode="numeric"></div>
@@ -390,8 +431,42 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
         <button class="btn primary" type="button" id="saveAmounts">שמירת המחירים</button>
         <div class="hint">סוג שמסומן „רגיל” או „אולטרה” מקבל את המחיר מכאן. סוג עם „מחיר מיוחד” שומר על המחיר שלו.</div>
       </section>
+      <section class="card" id="otherCard" hidden>
+        <label class="toggle-row"><span><b>לאפשר „אחר”</b><br><span class="hint">העובדים יוכלו לרשום בונוס שלא מופיע ברשימה</span></span><input type="checkbox" id="allowOther"></label>
+      </section>
+      <div class="tab" id="typeCards"></div>
+      <button class="add-type" type="button" id="addCat">+ קטגוריית בונוס חדשה (למשל: הגעה בזמן)</button>
       <button class="btn ghost" type="button" id="resetTypes">החזרת הרשימה המקורית</button>
       <div class="btns" id="resetTypesConfirm" hidden><button class="btn danger" type="button" id="resetTypesYes">כן, להחזיר</button><button class="btn ghost" type="button" id="resetTypesNo">ביטול</button></div>
+    </div>
+
+    <div class="subtab" id="sub-team" hidden>
+      <section class="card" id="teamNotReady" hidden>
+        <div class="card-head"><h2>צוות</h2></div>
+        <div class="hint">האפשרות הזו תיפתח אחרי עדכון בסיס הנתונים.</div>
+      </section>
+      <div class="subtab" id="teamNone" hidden>
+        <section class="card">
+          <div class="card-head"><h2>אני מנהל: יצירת צוות</h2></div>
+          <div class="hint">אחרי שתיצור צוות תקבל קוד לעובדים, ותוכל לראות את הבונוסים של כולם ולקבוע להם סוגים ומחירים.</div>
+          <div class="field"><label class="lbl" for="newTeamName">שם הצוות או החנות</label><input id="newTeamName" type="text" placeholder="למשל: New Phone סניף מרכז"></div>
+          <button class="btn primary" type="button" id="createTeam">יצירת צוות</button>
+        </section>
+        <section class="card">
+          <div class="card-head"><h2>אני עובד: הצטרפות לצוות</h2></div>
+          <div class="field"><label class="lbl" for="joinCode">קוד מהמנהל</label><input id="joinCode" type="text" dir="ltr" maxlength="6" autocapitalize="characters" placeholder="ABC123"></div>
+          <button class="btn primary" type="button" id="joinTeam">הצטרפות</button>
+        </section>
+        <div class="err" id="teamErr" hidden></div>
+      </div>
+      <section class="card" id="teamIn" hidden>
+        <div class="card-head"><h2 id="teamInName"></h2><span class="pill" id="teamRole"></span></div>
+        <div class="hint" id="teamInNote"></div>
+        <button class="btn ghost" type="button" id="goTeamTab" hidden>לניהול העובדים</button>
+        <button class="btn danger" type="button" id="leaveTeam"></button>
+        <div class="btns" id="leaveConfirm" hidden><button class="btn danger" type="button" id="leaveYes">כן</button><button class="btn ghost" type="button" id="leaveNo">ביטול</button></div>
+        <div class="err" id="leaveErr" hidden></div>
+      </section>
     </div>
 
     <div class="subtab" id="sub-share" hidden>
@@ -465,14 +540,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 <nav class="tabbar" aria-label="ניווט">
   <div class="tabbar-inner">
     <button type="button" data-tab="add"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>הוספה</button>
-    <button type="button" data-tab="month"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M8 14h4M8 17h7"/></svg>החודש</button>
     <button type="button" data-tab="summary"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>סיכום</button>
+    <button type="button" data-tab="team" id="teamTabBtn" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2c3 .2 5.5 2.6 5.5 5.8"/></svg>צוות</button>
     <button type="button" data-tab="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>הגדרות</button>
   </div>
 </nav>
 
 <div class="scrim" id="scrim" hidden></div>
 
+<!-- login / signup -->
 <div class="sheet full" id="loginSheet" role="dialog" aria-modal="true" aria-labelledby="loginTitle" hidden>
   <div class="sheet-inner">
     <div class="sheet-head">
@@ -483,42 +559,48 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       </div>
       <button class="icon-btn" type="button" id="loginClose">סגירה</button>
     </div>
+    <div class="seg" style="grid-template-columns:1fr 1fr" id="loginModes">
+      <button type="button" data-lmode="in" aria-current="true">כניסה</button>
+      <button type="button" data-lmode="up" aria-current="false">הרשמה</button>
+    </div>
     <button class="btn google wide" type="button" id="googleBtn" hidden>
       <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
       המשך עם Google
     </button>
-    <div class="or" id="orLine" hidden>או עם אימייל וסיסמה</div>
+    <div class="field upOnly" hidden><label class="lbl" for="lName">שם מלא</label><input id="lName" type="text" autocomplete="name"></div>
+    <div class="field upOnly" hidden><label class="lbl" for="lPhone">מספר טלפון (חובה)</label><input id="lPhone" type="tel" inputmode="tel" dir="ltr" autocomplete="tel" placeholder="050-1234567"></div>
     <div class="field"><label class="lbl" for="lEmail">אימייל</label><input id="lEmail" type="email" dir="ltr" autocomplete="username" inputmode="email" placeholder="name@gmail.com"></div>
     <div class="field"><label class="lbl" for="lPass">סיסמה (לפחות 6 תווים)</label><input id="lPass" type="password" dir="ltr" autocomplete="current-password"></div>
+    <div class="field upOnly" hidden><label class="lbl" for="lCode">קוד צוות מהמנהל (לא חובה)</label><input id="lCode" type="text" dir="ltr" maxlength="6" autocapitalize="characters" placeholder="ABC123"></div>
     <div class="err" id="loginErr" role="alert" hidden></div>
-    <button class="save" type="button" id="loginBtn">התחברות</button>
-    <button class="save alt" type="button" id="signupBtn">יצירת חשבון חדש</button>
-    <button class="btn ghost" type="button" id="forgotBtn">שכחתי סיסמה</button>
+    <button class="save inOnly" type="button" id="loginBtn">כניסה</button>
+    <button class="save upOnly" type="button" id="signupBtn" hidden>יצירת חשבון</button>
+    <button class="btn ghost inOnly" type="button" id="forgotBtn">שכחתי סיסמה</button>
     <div class="hint">נרשמים רק פעם אחת. אחרי זה האפליקציה נכנסת לבד בכל פתיחה.</div>
   </div>
 </div>
 
+<!-- forgot password -->
 <div class="sheet full" id="resetSheet" role="dialog" aria-modal="true" aria-labelledby="resetTitle" hidden>
   <div class="sheet-inner">
     <div class="sheet-head">
-      <div class="login-hero">
-        <h3 id="resetTitle">איפוס סיסמה</h3>
-        <div class="hint">נשלח קוד בן 6 ספרות למייל של החשבון. רק מי שיש לו גישה למייל יכול לאפס.</div>
-      </div>
+      <div class="login-hero"><h3 id="resetTitle">שכחתי סיסמה</h3></div>
       <button class="icon-btn" type="button" id="resetBack">חזרה</button>
     </div>
+    <div class="readonly-note"><b>עובד בצוות?</b> המנהל שלך יכול לקבוע לך סיסמה חדשה מתוך האפליקציה, בלשונית „צוות”. פשוט תבקש ממנו.</div>
+    <div class="hint">אפשרות נוספת: קוד במייל (עובד רק אם הוגדר שליחת מיילים).</div>
     <div class="field"><label class="lbl" for="rEmail">אימייל של החשבון</label><input id="rEmail" type="email" dir="ltr" autocomplete="username" inputmode="email"></div>
-    <button class="save" type="button" id="rSend">שליחת קוד למייל</button>
+    <button class="save alt" type="button" id="rSend">שליחת קוד למייל</button>
     <div id="rStep2" class="sheet-inner" hidden>
       <div class="field"><label class="lbl" for="rCode">הקוד שקיבלת במייל</label><input id="rCode" type="text" dir="ltr" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456"></div>
       <div class="field"><label class="lbl" for="rPass">סיסמה חדשה (לפחות 6 תווים)</label><input id="rPass" type="password" dir="ltr" autocomplete="new-password"></div>
       <button class="save" type="button" id="rConfirm">שמירת הסיסמה החדשה</button>
-      <div class="hint">הקוד לא הגיע? בדוק בתיקיית הספאם, או לחץ שוב על „שליחת קוד” אחרי דקה.</div>
     </div>
     <div class="err" id="rErr" role="alert" hidden></div>
   </div>
 </div>
 
+<!-- accounts -->
 <div class="sheet" id="acctSheet" role="dialog" aria-modal="true" aria-labelledby="acctTitle" hidden>
   <div class="sheet-inner">
     <div class="sheet-head"><h3 id="acctTitle">חשבונות במכשיר</h3><button class="icon-btn" type="button" data-close>סגירה</button></div>
@@ -540,16 +622,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   </div>
 </div>
 
+<!-- add / edit entry -->
 <div class="sheet" id="addSheet" role="dialog" aria-modal="true" aria-labelledby="addTitle" hidden>
   <div class="sheet-inner">
     <div class="sheet-head"><h3 id="addTitle">הוספה</h3><button class="icon-btn" type="button" data-close>סגירה</button></div>
     <div class="field" id="kindBox" hidden>
       <span class="lbl">קטגוריה</span>
-      <div class="chips" id="kindChips">
-        <button class="chip" type="button" data-kind="device">מכשיר</button>
-        <button class="chip" type="button" data-kind="line">קו</button>
-        <button class="chip" type="button" data-kind="repair">תיקון</button>
-      </div>
+      <div class="chips" id="kindChips"></div>
     </div>
     <div class="field">
       <span class="lbl" id="subLabel">סוג</span>
@@ -581,6 +660,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   </div>
 </div>
 
+<!-- edit type -->
 <div class="sheet" id="typeSheet" role="dialog" aria-modal="true" aria-labelledby="typeTitle" hidden>
   <div class="sheet-inner">
     <div class="sheet-head"><h3 id="typeTitle">עריכת סוג</h3><button class="icon-btn" type="button" data-close>סגירה</button></div>
@@ -601,6 +681,44 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   </div>
 </div>
 
+<!-- edit category -->
+<div class="sheet" id="catSheet" role="dialog" aria-modal="true" aria-labelledby="catTitle" hidden>
+  <div class="sheet-inner">
+    <div class="sheet-head"><h3 id="catTitle">קטגוריה</h3><button class="icon-btn" type="button" data-close>סגירה</button></div>
+    <div class="field"><label class="lbl" for="cgName">שם (יחיד), למשל: הגעה בזמן</label><input id="cgName" type="text"></div>
+    <div class="field"><label class="lbl" for="cgPlural">שם ברבים לסיכום (לא חובה)</label><input id="cgPlural" type="text" placeholder="למשל: הגעות בזמן"></div>
+    <div class="field"><span class="lbl">אייקון</span><div class="icon-pick" id="cgIcons"></div></div>
+    <div class="err" id="cgErr" hidden></div>
+    <button class="save" type="button" id="cgSave">שמירה</button>
+    <button class="btn danger" type="button" id="cgDelete">מחיקת הקטגוריה</button>
+    <div class="hint" id="cgHint"></div>
+  </div>
+</div>
+
+<!-- team member (manager view) -->
+<div class="sheet" id="memberSheet" role="dialog" aria-modal="true" aria-labelledby="mbTitle" hidden>
+  <div class="sheet-inner">
+    <div class="sheet-head">
+      <div class="profile-row"><span class="avatar lg" id="mbAvatar" aria-hidden="true"></span><div class="who"><b id="mbTitle"></b><small id="mbContact"></small></div></div>
+      <button class="icon-btn" type="button" data-close>סגירה</button>
+    </div>
+    <div class="split">
+      <div class="stat"><b class="num" id="mbTotal">0 ₪</b><span id="mbMonth"></span></div>
+      <div class="stat"><b class="num" id="mbCount">0</b><span>בונוסים</span></div>
+    </div>
+    <div class="rows" id="mbCats"></div>
+    <div class="log" id="mbList"></div>
+    <div class="section" id="mbAdmin">
+      <div class="field"><label class="lbl" for="mbPass">סיסמה חדשה לעובד</label><input id="mbPass" type="text" dir="ltr" autocomplete="off" placeholder="לפחות 6 תווים"></div>
+      <button class="btn ghost" type="button" id="mbSetPass">שמירת סיסמה חדשה</button>
+      <button class="btn danger" type="button" id="mbRemove">הוצאה מהצוות</button>
+      <div class="btns" id="mbRemoveConfirm" hidden><button class="btn danger" type="button" id="mbRemoveYes">כן, להוציא</button><button class="btn ghost" type="button" id="mbRemoveNo">ביטול</button></div>
+      <div class="err" id="mbErr" hidden></div>
+      <div class="hint">הוצאה מהצוות לא מוחקת את החשבון או את הבונוסים של העובד.</div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status" hidden><span id="toastMsg"></span><button type="button" id="toastUndo" hidden>ביטול</button></div>
 
 <script src="/supabase.js"></script>
@@ -611,8 +729,23 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   var SB_KEY = "sb_publishable_Gl3S59e9W1GgE6Tp5y-9Cw_tj1nNeGi";
   var XLSX_SRC = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
   var MONTHS = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
-  var KIND = { device: "מכשיר", line: "קו", repair: "תיקון" };
-  var KIND_PL = { device: "מכשירים", line: "קווים", repair: "תיקונים" };
+  var ICONS = {
+    phone: '<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/>',
+    sim: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6v8H9z"/><path d="M9 12h6M12 8v8"/>',
+    tool: '<path d="M14.5 6.5a4 4 0 0 0-5.3 5.2L3.5 17.4l3.1 3.1 5.7-5.7a4 4 0 0 0 5.2-5.3l-2.4 2.4-2.2-.6-.6-2.2z"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
+    gift: '<rect x="3.5" y="8" width="17" height="4" rx="1"/><path d="M5 12v8h14v-8M12 8v12M12 8c-1.5-3-5-3-5-1s3 1 5 1zm0 0c1.5-3 5-3 5-1s-3 1-5 1z"/>',
+    cart: '<path d="M3 4h2l2.4 10.5h10.2L20 7H6.2"/><circle cx="9" cy="19" r="1.5"/><circle cx="17" cy="19" r="1.5"/>',
+    heart: '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',
+    shield: '<path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6z"/>',
+    headphones: '<path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/>'
+  };
+  var DEFAULT_CATS = [
+    { id: "device", name: "מכשיר", plural: "מכשירים", icon: "phone", subLabel: "סוג מכשיר", plus: "מכירה" },
+    { id: "line", name: "קו", plural: "קווים", icon: "sim", subLabel: "חברה", plus: "חיבור" },
+    { id: "repair", name: "תיקון", plural: "תיקונים", icon: "tool", subLabel: "סוג תיקון", plus: "תיקון" }
+  ];
   var DEFAULT_SUBS = {
     device: [["אייפון"], ["סמסונג"], ["שיאומי"], ["כשר"]],
     line: [["פלאפון"], ["סלקום"], ["פרטנר"], ["הוט מובייל"], ["גולן טלקום"], ["019 מובייל"], ["רמי לוי"]],
@@ -623,18 +756,22 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     repair: ["איזה מכשיר? (לא חובה)", "למשל: Galaxy S24"],
     line: ["הערה (לא חובה)", "למשל: 3 קווים משפחה, ניוד מסלקום"]
   };
-  var DEFAULT_SETTINGS = { name: "", phone: "", reg: 10, big: 50, avatar: "", types: null, contacts: null };
+  var SHARE_EMOJI = { device: "📱", line: "📶", repair: "🔧" };
+  var DEFAULT_SETTINGS = { name: "", phone: "", my_phone: "", reg: 10, big: 50, avatar: "", types: null, cats: null, contacts: null };
   var ENTRY_COLS = "id,kind,sub,big,amount,date,month,note,ts";
+  var SETTINGS_COLS = "name,phone,reg,big,avatar,types,contacts,my_phone,cats";
+  var SETTINGS_COLS_OLD = "name,phone,reg,big,avatar,types,contacts";
 
   var sb = window.supabase.createClient(SB_URL, SB_KEY, {
     auth: { persistSession: false, autoRefreshToken: true, detectSessionInUrl: false, flowType: "implicit" }
   });
 
   var accts = { list: [], active: null };
-  var state = { entries: {}, settings: Object.assign({}, DEFAULT_SETTINGS), month: monthKey(new Date()), tab: "add", sub: "profile" };
+  var state = { entries: {}, settings: Object.assign({}, DEFAULT_SETTINGS), team: null, teamReady: true, month: monthKey(new Date()), tab: "add", sub: "profile" };
   var share = { period: "this", picked: [], to: null };
   var pending = [];
   var online = false, syncing = false;
+  var pendingJoin = "";
 
   function pad(n) { return (n < 10 ? "0" : "") + n; }
   function monthKey(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1); }
@@ -646,14 +783,31 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   function $(id) { return document.getElementById(id); }
   function $$(sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function icon(name) { var s = document.createElementNS("http://www.w3.org/2000/svg", "svg"); s.setAttribute("viewBox", "0 0 24 24"); s.setAttribute("aria-hidden", "true"); s.innerHTML = ICONS[name] || ICONS.star; return s; }
   function lsGet(k, def) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch (e) { return def; } }
   function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
   function activeAcct() { for (var i = 0; i < accts.list.length; i++) if (accts.list[i].uid === accts.active) return accts.list[i]; return null; }
-  function acctLabel(a) { return (a.name || a.googleName || a.email.split("@")[0]); }
+  function acctLabel(a) { return (a.name || a.googleName || (a.email || "?").split("@")[0]); }
   function me() { var a = activeAcct(); return a ? Object.assign({}, a, { name: state.settings.name || a.name, avatar: state.settings.avatar }) : null; }
+  function isManager() { return !!(state.team && state.team.role === "manager"); }
+  function isMember() { return !!(state.team && state.team.role === "member"); }
+  function phoneOk(p) { return String(p || "").replace(/\D/g, "").length >= 9; }
 
-  // ---------- bonus types ----------
+  // ---------- bonus config (team rules win over personal ones) ----------
+  function cfg() {
+    var src = state.team || state.settings;
+    return { reg: Number(src.reg), big: Number(src.big), types: src.types, cats: src.cats, allowOther: state.team ? state.team.allow_other !== false : true };
+  }
+  function cats() { var c = cfg().cats; return Array.isArray(c) && c.length ? c : (Array.isArray(c) ? [] : DEFAULT_CATS); }
+  function catOf(kind) {
+    var c = cats().filter(function (x) { return x.id === kind; })[0];
+    if (c) return c;
+    var d = DEFAULT_CATS.filter(function (x) { return x.id === kind; })[0];
+    return d || { id: kind, name: kind, plural: kind, icon: "star" };
+  }
+  function catName(kind) { return catOf(kind).name; }
+  function catPlural(kind) { var c = catOf(kind); return c.plural || c.name; }
   function defaultTypes() {
     var out = [];
     ["device", "line", "repair"].forEach(function (k) {
@@ -661,10 +815,24 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     });
     return out;
   }
-  function types() { return Array.isArray(state.settings.types) ? state.settings.types : defaultTypes(); }
+  function types() { var t = cfg().types; return Array.isArray(t) ? t : defaultTypes(); }
   function typesOf(kind) { return types().filter(function (t) { return t.kind === kind; }); }
-  function typeAmount(t) { return t.amount != null ? Number(t.amount) : (t.ultra ? Number(state.settings.big) : Number(state.settings.reg)); }
-  function saveTypes(list) { state.settings.types = list; persistSettings(); }
+  function typeAmount(t) { return t.amount != null ? Number(t.amount) : (t.ultra ? cfg().big : cfg().reg); }
+  function canEditConfig() { return !isMember(); }
+  function saveConfig(patch) {
+    if (isMember()) { toast("רק המנהל יכול לשנות את הבונוסים"); return; }
+    if (state.team) {
+      Object.assign(state.team, patch); saveCache(); render();
+      sb.from("teams").update(patch).eq("id", state.team.id).then(function (r) { if (r.error) toast("השינוי לא נשמר בשרת. בדוק חיבור ונסה שוב."); });
+      return;
+    }
+    Object.assign(state.settings, patch); persistSettings();
+  }
+  function kindsIn(list) {
+    var ks = cats().map(function (c) { return c.id; });
+    list.forEach(function (e) { if (ks.indexOf(e.kind) < 0) ks.push(e.kind); });
+    return ks;
+  }
 
   // ---------- saved numbers ----------
   function contacts() {
@@ -682,13 +850,14 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   function saveAccts() { lsSet("bt.accounts", accts); }
   function saveCache() {
     if (!accts.active) return;
-    lsSet("bt.cache." + accts.active, { entries: state.entries, settings: state.settings });
+    lsSet("bt.cache." + accts.active, { entries: state.entries, settings: state.settings, team: state.team });
     lsSet("bt.pending." + accts.active, pending);
   }
   function loadCache(id) {
     var c = lsGet("bt.cache." + id, null);
     state.entries = (c && c.entries) || {};
     state.settings = Object.assign({}, DEFAULT_SETTINGS, (c && c.settings) || {});
+    state.team = (c && c.team) || null;
     pending = lsGet("bt.pending." + id, []);
   }
 
@@ -696,16 +865,26 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   function setStatus() {
     var a = activeAcct();
     if (!a) { $("status").textContent = "לא מחובר"; return; }
-    var who = a.email;
+    var who = a.email + (state.team ? " · " + state.team.name : "");
     if (pending.length) $("status").textContent = who + " · " + pending.length + " שינויים ממתינים לחיבור";
     else if (!online) $("status").textContent = who + " · לא מחובר לאינטרנט";
-    else $("status").textContent = who + " · מגובה" + (a.provider === "google" ? " בחשבון Google" : "");
+    else $("status").textContent = who + " · מגובה";
   }
   function queue(op) {
     pending = pending.filter(function (p) { return !(op.id && p.id === op.id); });
     if (op.kind === "settings") pending = pending.filter(function (p) { return p.kind !== "settings"; });
     pending.push(op);
     saveCache(); setStatus(); flush();
+  }
+  async function upsertSettings(myAcct, row) {
+    var full = Object.assign({ user_id: myAcct }, row);
+    var res = await sb.from("settings").upsert(full, { onConflict: "user_id" });
+    if (res.error && /my_phone|cats|column/i.test(res.error.message || "")) {
+      // database not updated yet: save what it knows
+      delete full.my_phone; delete full.cats;
+      res = await sb.from("settings").upsert(full, { onConflict: "user_id" });
+    }
+    return res;
   }
   async function flush() {
     if (syncing || !online || !pending.length) return;
@@ -716,21 +895,32 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
         var op = pending[0], res;
         if (op.kind === "upsert") res = await sb.from("entries").upsert(Object.assign({ user_id: myAcct }, op.row), { onConflict: "user_id,id" });
         else if (op.kind === "delete") res = await sb.from("entries").delete().eq("id", op.id);
-        else if (op.kind === "settings") res = await sb.from("settings").upsert(Object.assign({ user_id: myAcct }, op.row), { onConflict: "user_id" });
+        else if (op.kind === "settings") res = await upsertSettings(myAcct, op.row);
         if (res && res.error) throw res.error;
         if (accts.active !== myAcct) break;
-        pending.shift(); saveCache();
+        // queue() may have replaced or reordered ops while this one was uploading
+        pending = pending.filter(function (x) { return x !== op; }); saveCache();
       }
     } catch (e) {
       online = false;
       setTimeout(function () { online = true; flush(); }, 15000);
     } finally { syncing = false; setStatus(); }
   }
+  async function loadTeam(myAcct) {
+    var tm = await sb.from("team_members").select("role,team_id").eq("user_id", myAcct).maybeSingle();
+    if (tm.error) { state.teamReady = false; state.team = null; return; }
+    state.teamReady = true;
+    if (!tm.data) { state.team = null; return; }
+    var tr = await sb.from("teams").select("*").eq("id", tm.data.team_id).maybeSingle();
+    state.team = tr.data ? Object.assign({}, tr.data, { role: tm.data.role }) : null;
+  }
   async function pull() {
     var myAcct = accts.active;
     var r = await sb.from("entries").select(ENTRY_COLS).range(0, 49999);
     if (r.error) throw r.error;
-    var s = await sb.from("settings").select("name,phone,reg,big,avatar,types,contacts").maybeSingle();
+    var s = await sb.from("settings").select(SETTINGS_COLS).maybeSingle();
+    if (s.error) s = await sb.from("settings").select(SETTINGS_COLS_OLD).maybeSingle();
+    await loadTeam(myAcct);
     if (accts.active !== myAcct) return;
     var next = {};
     r.data.forEach(function (row) { var id = row.id; delete row.id; next[id] = row; });
@@ -748,6 +938,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     }
     var a = activeAcct(); if (a) { a.name = state.settings.name; a.avatar = state.settings.avatar; saveAccts(); }
     saveCache(); render();
+    if (pendingJoin && !state.team && state.teamReady) { var code = pendingJoin; pendingJoin = ""; joinTeam(code); }
   }
   function persistSettings() {
     var a = activeAcct(); if (a) { a.name = state.settings.name; a.avatar = state.settings.avatar; saveAccts(); }
@@ -781,6 +972,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     online = true;
     try { await flush(); await pull(); } catch (e) { online = false; }
     setStatus();
+    if (state.tab === "team") loadOverview();
   }
   function addAccount(session) {
     var u = session.user;
@@ -833,22 +1025,26 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   }
 
   // ---------- tabs ----------
+  var TABS = ["add", "summary", "team", "settings"], SUBS = ["profile", "types", "team", "share", "backup"];
   function setTab(t) {
+    if (t === "team" && !isManager()) t = "add";
     state.tab = t; lsSet("bt.tab", t);
-    ["add", "month", "summary", "settings"].forEach(function (n) { $("tab-" + n).hidden = n !== t; });
+    TABS.forEach(function (n) { $("tab-" + n).hidden = n !== t; });
     $$(".tabbar button").forEach(function (b) { if (b.getAttribute("data-tab") === t) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
     window.scrollTo(0, 0);
     if (t === "settings") setSub(state.sub);
+    if (t === "team") loadOverview();
   }
   function setSub(s) {
     state.sub = s; lsSet("bt.sub", s);
-    ["profile", "types", "share", "backup"].forEach(function (n) { $("sub-" + n).hidden = n !== s; });
-    $$(".seg button").forEach(function (b) { b.setAttribute("aria-current", String(b.getAttribute("data-sub") === s)); });
+    SUBS.forEach(function (n) { $("sub-" + n).hidden = n !== s; });
+    $$("#tab-settings .seg button").forEach(function (b) { b.setAttribute("aria-current", String(b.getAttribute("data-sub") === s)); });
     if (s === "profile") fillProfile();
     if (s === "share") renderSharePanel();
+    if (s === "team") renderTeamSettings();
   }
   $$(".tabbar button").forEach(function (b) { b.addEventListener("click", function () { setTab(b.getAttribute("data-tab")); }); });
-  $$(".seg button").forEach(function (b) { b.addEventListener("click", function () { setSub(b.getAttribute("data-sub")); }); });
+  $$("#tab-settings .seg button").forEach(function (b) { b.addEventListener("click", function () { setSub(b.getAttribute("data-sub")); }); });
 
   // ---------- data helpers ----------
   function entriesWhere(fn) {
@@ -869,8 +1065,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     return order.map(function (k) { return m[k]; }).sort(function (a, b) { return b.count - a.count; });
   }
   function totals(list) {
-    var t = { all: 0, device: 0, line: 0, repair: 0, big: 0, bigAmt: 0, count: list.length };
-    list.forEach(function (e) { var a = Number(e.amount) || 0; t.all += a; t[e.kind] = (t[e.kind] || 0) + 1; if (e.big) { t.big++; t.bigAmt += a; } });
+    var t = { all: 0, big: 0, bigAmt: 0, count: list.length, byKind: {}, amtByKind: {} };
+    list.forEach(function (e) {
+      var a = Number(e.amount) || 0; t.all += a;
+      t.byKind[e.kind] = (t.byKind[e.kind] || 0) + 1; t.amtByKind[e.kind] = (t.amtByKind[e.kind] || 0) + a;
+      if (e.big) { t.big++; t.bigAmt += a; }
+    });
     return t;
   }
   function countLine(t) { return t.count ? fmt(t.count) + " בונוסים" + (t.big ? " · " + t.big + " אולטרה" : "") : "אין עדיין"; }
@@ -880,25 +1080,28 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     var m = me();
     $("acctBtn").setAttribute("aria-label", m ? "חשבון: " + acctLabel(m) : "התחברות");
     if (m) paintAvatar($("acctAvatar"), m); else $("acctAvatar").textContent = "?";
+    $("teamTabBtn").hidden = !isManager();
+    if (state.tab === "team" && !isManager()) setTab("add");
     $$(".monthName").forEach(function (x) { x.textContent = monthLabel(state.month); });
     $$(".nextMonth").forEach(function (x) { x.disabled = state.month >= monthKey(new Date()); });
 
-    var today = todayStr(), cur = monthKey(new Date());
+    renderAddKeys();
+    var today = todayStr();
     var todays = entriesWhere(function (e) { return e.date === today; }).sort(function (a, b) { return b.ts - a.ts; });
     var tt = totals(todays);
     $("sToday").textContent = todays.length ? countLine(tt) + " · " + fmt(tt.all) + " ₪" : "";
-    renderLog($("todayList"), todays, false, "עוד לא נוסף כלום היום. לחץ על מכשיר, קו או תיקון.");
+    renderLog($("todayList"), todays, false, "עוד לא נוסף כלום היום. לחץ על אחד הכפתורים למעלה.");
 
     var list = monthEntries(state.month), t = totals(list);
-    $("monthListSub").textContent = list.length ? fmt(t.count) + " בונוסים · " + fmt(t.all) + " ₪" : "אין רישומים בחודש הזה";
-    renderLog($("monthList"), list, true, "אין רישומים בחודש הזה.");
-
     $("totalLabel").textContent = state.settings.name ? "מגיע ל" + state.settings.name + " בחודש הזה" : "מגיע לי בחודש הזה";
     $("total").textContent = fmt(t.all);
     $("totalSub").textContent = "";
     if (t.count) { $("totalSub").appendChild(el("b", null, fmt(t.count))); $("totalSub").appendChild(document.createTextNode(" בונוסים" + (t.big ? " · מתוכם " + t.big + " אולטרה" : ""))); }
     else $("totalSub").textContent = "אין בונוסים בחודש הזה";
-    $("kDevices").textContent = t.device; $("kLines").textContent = t.line; $("kRepairs").textContent = t.repair;
+    var kp = $("kpis"); kp.textContent = "";
+    kindsIn(list).forEach(function (k) {
+      var d = el("div", "kpi"); d.appendChild(el("b", "num", String(t.byKind[k] || 0))); d.appendChild(el("span", null, catPlural(k))); kp.appendChild(d);
+    });
     $("tierReg").textContent = fmt(t.count - t.big) + " · " + fmt(t.all - t.bigAmt) + " ₪";
     $("tierUltra").textContent = fmt(t.big) + " · " + fmt(t.bigAmt) + " ₪";
     var pm = shiftMonth(state.month, -1), prev = totals(monthEntries(pm));
@@ -908,35 +1111,62 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       cmp.appendChild(document.createTextNode("לעומת " + monthLabel(pm) + " (" + fmt(prev.all) + " ₪): "));
       cmp.appendChild(el("b", diff > 0 ? "trend-up" : diff < 0 ? "trend-down" : "", (diff > 0 ? "+" : "") + fmt(diff) + " ₪"));
     }
-    renderRows("rRepairs", "sRepairs", group(list, "repair"), "repair");
-    renderRows("rLines", "sLines", group(list, "line"), "line");
-    renderRows("rDevices", "sDevices", group(list, "device"), "device");
+    renderCatCards(list);
+    $("sLog").textContent = list.length ? list.length + " רישומים" : "";
+    renderLog($("monthList"), list, true, "אין רישומים בחודש הזה.");
 
     renderTypes();
     if (state.tab === "settings" && state.sub === "share") renderSharePanel();
-    $("bRegVal").textContent = fmt(state.settings.reg); $("bBigVal").textContent = fmt(state.settings.big);
-    $("tRegVal").textContent = fmt(state.settings.reg); $("tBigVal").textContent = fmt(state.settings.big);
-    if (document.activeElement !== $("sReg")) $("sReg").value = state.settings.reg;
-    if (document.activeElement !== $("sBig")) $("sBig").value = state.settings.big;
+    if (state.tab === "settings" && state.sub === "team") renderTeamSettings();
+    var c = cfg();
+    $("bRegVal").textContent = fmt(c.reg); $("bBigVal").textContent = fmt(c.big);
+    $("tRegVal").textContent = fmt(c.reg); $("tBigVal").textContent = fmt(c.big);
+    if (document.activeElement !== $("sReg")) $("sReg").value = c.reg;
+    if (document.activeElement !== $("sBig")) $("sBig").value = c.big;
+    if (state.team) { $("teamNameLbl").textContent = state.team.name; $("teamCode").textContent = state.team.join_code || "------"; updateInvite(); }
   }
-  function renderRows(boxId, sumId, rows, kind) {
-    var box = $(boxId); box.textContent = "";
-    var total = 0, cnt = 0, max = 1;
-    rows.forEach(function (r) { total += r.amount; cnt += r.count; if (r.count > max) max = r.count; });
-    $(sumId).textContent = cnt ? cnt + " · " + fmt(total) + " ₪" : "";
-    if (!rows.length) { box.appendChild(el("div", "empty-note", "אין " + KIND_PL[kind] + " בחודש הזה.")); return; }
-    rows.forEach(function (r) {
-      var row = el("div", "row"), name = el("div");
-      name.appendChild(el("span", null, r.sub));
-      if (r.big) name.appendChild(el("span", "pill", "אולטרה"));
-      var bar = el("div", "bar"), i = el("i"); i.style.width = Math.round(r.count / max * 100) + "%"; bar.appendChild(i); name.appendChild(bar);
-      row.appendChild(name);
-      row.appendChild(el("span", "cnt num", String(r.count)));
-      row.appendChild(el("span", "amt num", fmt(r.amount) + " ₪"));
-      box.appendChild(row);
+  function renderAddKeys() {
+    var box = $("addKeys"); box.textContent = "";
+    var cs = cats();
+    if (!cs.length) { box.appendChild(el("div", "empty-note", "אין קטגוריות בונוס. " + (canEditConfig() ? "אפשר להוסיף בהגדרות ← בונוסים." : "המנהל צריך להגדיר בונוסים."))); return; }
+    cs.forEach(function (c) {
+      var b = el("button", "add"); b.type = "button";
+      var ic = el("span", "ic"); ic.appendChild(icon(c.icon)); b.appendChild(ic);
+      b.appendChild(document.createTextNode(c.name));
+      b.appendChild(el("span", "plus", "+ " + (c.plus || "הוספה")));
+      b.addEventListener("click", function () { openAdd(c.id); });
+      box.appendChild(b);
     });
   }
-  function renderLog(box, list, byDay, emptyMsg) {
+  function renderCatCards(list) {
+    var box = $("catCards"); box.textContent = "";
+    kindsIn(list).forEach(function (k) {
+      var rows = group(list, k);
+      var card = el("section", "card");
+      var head = el("div", "card-head");
+      var h = el("div", "cat-head"); var ic = el("span", "cat-ic"); ic.appendChild(icon(catOf(k).icon)); h.appendChild(ic); h.appendChild(el("h2", null, catPlural(k)));
+      head.appendChild(h);
+      var total = 0, cnt = 0, max = 1;
+      rows.forEach(function (r) { total += r.amount; cnt += r.count; if (r.count > max) max = r.count; });
+      head.appendChild(el("span", "sum num", cnt ? cnt + " · " + fmt(total) + " ₪" : ""));
+      card.appendChild(head);
+      var rb = el("div", "rows");
+      if (!rows.length) rb.appendChild(el("div", "empty-note", "אין בחודש הזה."));
+      rows.forEach(function (r) {
+        var row = el("div", "row"), name = el("div");
+        name.appendChild(el("span", null, r.sub));
+        if (r.big) name.appendChild(el("span", "pill", "אולטרה"));
+        var bar = el("div", "bar"), i = el("i"); i.style.width = Math.round(r.count / max * 100) + "%"; bar.appendChild(i); name.appendChild(bar);
+        row.appendChild(name);
+        row.appendChild(el("span", "cnt num", String(r.count)));
+        row.appendChild(el("span", "amt num", fmt(r.amount) + " ₪"));
+        rb.appendChild(row);
+      });
+      card.appendChild(rb);
+      box.appendChild(card);
+    });
+  }
+  function renderLog(box, list, byDay, emptyMsg, readOnly) {
     box.textContent = "";
     if (!list.length) { box.appendChild(el("div", "empty-note", emptyMsg)); return; }
     var lastDay = "", dayTotals = {};
@@ -949,15 +1179,16 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
         box.appendChild(h);
       }
       var it = el("div", "log-item");
-      var what = el("div", "what", KIND[e.kind] + " · " + e.sub);
+      var what = el("div", "what", catName(e.kind) + " · " + e.sub);
       if (e.big) what.appendChild(el("span", "pill", "אולטרה"));
       if (e.note) what.appendChild(el("small", null, e.note));
       it.appendChild(what);
       it.appendChild(el("span", "val num" + (e.big ? " big" : ""), fmt(e.amount) + " ₪"));
-      var ed = el("button", "mini-btn", "עריכה"); ed.type = "button"; ed.setAttribute("aria-label", "עריכת " + KIND[e.kind] + " " + e.sub);
+      if (readOnly) { it.appendChild(el("span")); it.appendChild(el("span")); box.appendChild(it); return; }
+      var ed = el("button", "mini-btn", "עריכה"); ed.type = "button"; ed.setAttribute("aria-label", "עריכת " + catName(e.kind) + " " + e.sub);
       ed.addEventListener("click", function () { openEdit(e.id); });
       it.appendChild(ed);
-      var d = el("button", "mini-btn del", "✕"); d.type = "button"; d.setAttribute("aria-label", "מחיקת " + KIND[e.kind] + " " + e.sub);
+      var d = el("button", "mini-btn del", "✕"); d.type = "button"; d.setAttribute("aria-label", "מחיקת " + catName(e.kind) + " " + e.sub);
       d.addEventListener("click", function () { deleteWithUndo(e.id); });
       it.appendChild(d);
       box.appendChild(it);
@@ -988,11 +1219,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       ms.forEach(function (mk) { var mt = totals(monthEntries(mk)); lines.push("🗓 " + monthLabel(mk) + ": " + mt.count + " בונוסים · " + fmt(mt.all) + " ₪"); });
       lines.push("");
     }
-    ["device", "line", "repair"].forEach(function (k) {
+    kindsIn(list).forEach(function (k) {
       var rows = group(list, k); if (!rows.length) return;
-      var amt = rows.reduce(function (s, r) { return s + r.amount; }, 0);
-      var head = k === "device" ? "📱 מכשירים" : k === "line" ? "📶 קווים" : "🔧 תיקונים";
-      lines.push(head + ": " + t[k] + " (" + fmt(amt) + " ₪)");
+      lines.push((SHARE_EMOJI[k] || "⭐") + " " + catPlural(k) + ": " + t.byKind[k] + " (" + fmt(t.amtByKind[k]) + " ₪)");
       rows.forEach(function (r) { lines.push("• " + r.sub + (r.big ? " (אולטרה)" : "") + ": " + r.count); });
       lines.push("");
     });
@@ -1090,7 +1319,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   }
   $("cAdd").addEventListener("click", function () {
     var name = $("cName").value.trim(), phone = $("cPhone").value.trim(); $("cErr").hidden = true;
-    if (!name || waNumber(phone).length < 9) { $("cErr").textContent = "צריך שם ומספר טלפון תקין."; $("cErr").hidden = false; return; }
+    if (!name || !phoneOk(phone)) { $("cErr").textContent = "צריך שם ומספר טלפון תקין."; $("cErr").hidden = false; return; }
     var boss = $("cBoss").checked || !contacts().length;
     var list = contacts().map(function (x) { return Object.assign({}, x, { boss: boss ? false : x.boss }); });
     var id = "c-" + uid();
@@ -1123,7 +1352,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   }
   function entryRows(list) {
     return list.slice().sort(function (a, b) { return a.date === b.date ? a.ts - b.ts : (a.date < b.date ? -1 : 1); })
-      .map(function (e) { var p = e.date.split("-"); return [p[2] + "/" + p[1] + "/" + p[0], KIND_PL[e.kind], e.sub, e.big ? "כן" : "", e.note || "", Number(e.amount) || 0]; });
+      .map(function (e) { var p = e.date.split("-"); return [p[2] + "/" + p[1] + "/" + p[0], catPlural(e.kind), e.sub, e.big ? "כן" : "", e.note || "", Number(e.amount) || 0]; });
   }
   async function shareFile(file, okMsg) {
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -1141,20 +1370,21 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       var wb = X.utils.book_new(); wb.Workbook = { Views: [{ RTL: true }] };
       var who = state.settings.name || (activeAcct() || {}).email || "";
       var list = entriesWhere(function (e) { return ms.indexOf(e.month) >= 0; }), t = totals(list);
+      var ks = kindsIn(list);
       var rows = [["סיכום בונוסים – " + periodLabel(ms)], [who], [], ["קטגוריה", "סוג", "אולטרה", "כמות", "סכום ₪"]];
-      ["device", "line", "repair"].forEach(function (k) { group(list, k).forEach(function (r) { rows.push([KIND_PL[k], r.sub, r.big ? "כן" : "", r.count, r.amount]); }); });
+      ks.forEach(function (k) { group(list, k).forEach(function (r) { rows.push([catPlural(k), r.sub, r.big ? "כן" : "", r.count, r.amount]); }); });
       rows.push([]); rows.push(["מספר בונוסים", "", "", t.count]); rows.push(["מתוכם אולטרה", "", "", t.big]); rows.push(["סה״כ לתשלום", "", "", "", t.all]);
       var ws1 = X.utils.aoa_to_sheet(rows); ws1["!cols"] = [{ wch: 16 }, { wch: 22 }, { wch: 9 }, { wch: 8 }, { wch: 10 }];
       X.utils.book_append_sheet(wb, ws1, "סיכום");
       if (ms.length > 1) {
-        var mrows = [["חודש", "מכשירים", "קווים", "תיקונים", "מספר בונוסים", "מתוכם אולטרה", "סה״כ ₪"]];
-        ms.forEach(function (mk) { var t2 = totals(monthEntries(mk)); mrows.push([monthLabel(mk), t2.device, t2.line, t2.repair, t2.count, t2.big, t2.all]); });
-        mrows.push([]); mrows.push(["סה״כ", t.device, t.line, t.repair, t.count, t.big, t.all]);
-        var ws3 = X.utils.aoa_to_sheet(mrows); ws3["!cols"] = [{ wch: 16 }, { wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 13 }, { wch: 13 }, { wch: 10 }];
+        var mrows = [["חודש"].concat(ks.map(catPlural)).concat(["מספר בונוסים", "מתוכם אולטרה", "סה״כ ₪"])];
+        ms.forEach(function (mk) { var t2 = totals(monthEntries(mk)); mrows.push([monthLabel(mk)].concat(ks.map(function (k) { return t2.byKind[k] || 0; })).concat([t2.count, t2.big, t2.all])); });
+        mrows.push([]); mrows.push(["סה״כ"].concat(ks.map(function (k) { return t.byKind[k] || 0; })).concat([t.count, t.big, t.all]));
+        var ws3 = X.utils.aoa_to_sheet(mrows);
         X.utils.book_append_sheet(wb, ws3, "לפי חודשים");
       }
       var ws2 = X.utils.aoa_to_sheet([["תאריך", "קטגוריה", "סוג", "אולטרה", "הערה", "סכום ₪"]].concat(entryRows(list)));
-      ws2["!cols"] = [{ wch: 11 }, { wch: 10 }, { wch: 20 }, { wch: 8 }, { wch: 26 }, { wch: 9 }];
+      ws2["!cols"] = [{ wch: 11 }, { wch: 12 }, { wch: 20 }, { wch: 8 }, { wch: 26 }, { wch: 9 }];
       X.utils.book_append_sheet(wb, ws2, "רישומים");
       var fname = "bonus-" + (ms.length === 1 ? ms[0] : ms[0] + "_to_" + ms[ms.length - 1]) + ".xlsx";
       var buf = X.write(wb, { type: "array", bookType: "xlsx" });
@@ -1165,25 +1395,42 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   $("xlBtn").addEventListener("click", function () { var ms = shareMonths(); if (!ms.length) { toast("בחר לפחות חודש אחד"); return; } exportExcel(ms, $("xlBtn")); });
   $("xlAll").addEventListener("click", function () { exportExcel(availableMonths().slice().sort(), $("xlAll")); });
 
-  // ---------- types (settings) ----------
+  // ---------- bonus settings (categories, types, prices) ----------
   function renderTypes() {
-    ["device", "line", "repair"].forEach(function (k) {
-      var box = $("types-" + k); box.textContent = "";
-      var list = typesOf(k);
-      if (!list.length) box.appendChild(el("div", "empty-note", "אין סוגים. „אחר” תמיד זמין בהוספה."));
+    var editable = canEditConfig();
+    $("typesNote").hidden = editable;
+    if (!editable) $("typesNote").textContent = "את סוגי הבונוסים והמחירים קובע המנהל של " + (state.team ? state.team.name : "הצוות") + ". כאן אפשר רק לראות אותם.";
+    $("basePrices").hidden = !editable;
+    $("addCat").hidden = !editable; $("resetTypes").hidden = !editable;
+    $("otherCard").hidden = !isManager();
+    $("allowOther").checked = cfg().allowOther;
+    var box = $("typeCards"); box.textContent = "";
+    cats().forEach(function (c) {
+      var card = el("section", "card");
+      var head = el("div", "card-head");
+      var h = el("div", "cat-head"); var ic = el("span", "cat-ic"); ic.appendChild(icon(c.icon)); h.appendChild(ic); h.appendChild(el("h2", null, c.plural || c.name));
+      head.appendChild(h);
+      if (editable) { var eb = el("button", "mini-btn", "עריכת קטגוריה"); eb.type = "button"; eb.addEventListener("click", function () { openCat(c.id); }); head.appendChild(eb); }
+      card.appendChild(head);
+      var rows = el("div", "rows");
+      var list = typesOf(c.id);
+      if (!list.length) rows.appendChild(el("div", "empty-note", "אין סוגים בקטגוריה הזו."));
       list.forEach(function (t) {
         var row = el("div", "type-row");
         var name = el("span", "t-name", t.name);
         if (t.ultra) name.appendChild(el("span", "pill", "אולטרה"));
         row.appendChild(name);
         row.appendChild(el("span", "t-amt num", fmt(typeAmount(t)) + " ₪"));
-        var b = el("button", "mini-btn", "עריכה"); b.type = "button";
-        b.addEventListener("click", function () { openType(t.kind, t.id); });
-        row.appendChild(b);
-        box.appendChild(row);
+        if (editable) { var b = el("button", "mini-btn", "עריכה"); b.type = "button"; b.addEventListener("click", function () { openType(t.kind, t.id); }); row.appendChild(b); }
+        else row.appendChild(el("span"));
+        rows.appendChild(row);
       });
+      card.appendChild(rows);
+      if (editable) { var ab = el("button", "add-type", "+ סוג חדש ב" + (c.plural || c.name)); ab.type = "button"; ab.addEventListener("click", function () { openType(c.id, null); }); card.appendChild(ab); }
+      box.appendChild(card);
     });
   }
+  $("allowOther").addEventListener("change", function () { saveConfig({ allow_other: $("allowOther").checked }); toast($("allowOther").checked ? "„אחר” מופעל" : "„אחר” כבוי"); });
   var editType = null;
   function setTypeTier(tier) {
     editType.tier = tier;
@@ -1196,7 +1443,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   function openType(kind, id) {
     var t = id ? types().filter(function (x) { return x.id === id; })[0] : null;
     editType = { kind: kind, id: id || null, tier: "reg" };
-    $("typeTitle").textContent = t ? "עריכת " + t.name : "סוג " + KIND[kind] + " חדש";
+    $("typeTitle").textContent = t ? "עריכת " + t.name : "סוג חדש ב" + catPlural(kind);
     $("tName").value = t ? t.name : "";
     $("tAmt").value = t && t.amount != null ? t.amount : "";
     $("tUltraFlag").checked = !!(t && t.ultra);
@@ -1220,29 +1467,234 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     var list = types().map(function (x) { return Object.assign({}, x); });
     if (editType.id) list.forEach(function (x) { if (x.id === editType.id) { x.name = name; x.amount = amt; x.ultra = ultra; } });
     else list.push({ id: "t-" + uid(), kind: editType.kind, name: name, ultra: ultra, amount: amt });
-    saveTypes(list); hide(); toast("נשמר: " + name);
+    saveConfig({ types: list }); hide(); toast("נשמר: " + name);
   });
   $("tDelete").addEventListener("click", function () {
     var before = types();
     var gone = before.filter(function (x) { return x.id === editType.id; })[0];
-    saveTypes(before.filter(function (x) { return x.id !== editType.id; }));
+    saveConfig({ types: before.filter(function (x) { return x.id !== editType.id; }) });
     hide();
-    toast("נמחק: " + (gone ? gone.name : ""), function () { saveTypes(before); });
+    toast("נמחק: " + (gone ? gone.name : ""), function () { saveConfig({ types: before }); });
   });
-  $$("[data-addtype]").forEach(function (b) { b.addEventListener("click", function () { if (!activeAcct()) { openLogin("first"); return; } openType(b.getAttribute("data-addtype"), null); }); });
+
+  var editCat = null;
+  function paintIconPick(sel) {
+    var box = $("cgIcons"); box.textContent = "";
+    Object.keys(ICONS).forEach(function (k) {
+      var b = el("button"); b.type = "button"; b.setAttribute("aria-pressed", String(k === sel)); b.setAttribute("aria-label", k);
+      b.appendChild(icon(k));
+      b.addEventListener("click", function () { editCat.icon = k; paintIconPick(k); });
+      box.appendChild(b);
+    });
+  }
+  function openCat(id) {
+    var c = id ? cats().filter(function (x) { return x.id === id; })[0] : null;
+    editCat = { id: id || null, icon: c ? c.icon : "star" };
+    $("catTitle").textContent = c ? "עריכת " + (c.plural || c.name) : "קטגוריית בונוס חדשה";
+    $("cgName").value = c ? c.name : ""; $("cgPlural").value = c ? (c.plural || "") : "";
+    $("cgDelete").hidden = !c; $("cgErr").hidden = true;
+    $("cgHint").textContent = c ? "מחיקת קטגוריה לא מוחקת בונוסים שכבר נרשמו עליה. הם יישארו בסיכום." : "תיווצר גם אפשרות אחת בשם הזה, ואפשר להוסיף עוד סוגים אחר כך.";
+    paintIconPick(editCat.icon);
+    show($("catSheet"));
+    if (!c) setTimeout(function () { $("cgName").focus(); }, 50);
+  }
+  $("addCat").addEventListener("click", function () { if (!activeAcct()) { openLogin("first"); return; } openCat(null); });
+  $("cgSave").addEventListener("click", function () {
+    var name = $("cgName").value.trim(), plural = $("cgPlural").value.trim() || name;
+    if (!name) { $("cgErr").textContent = "צריך לכתוב שם."; $("cgErr").hidden = false; return; }
+    var list = cats().map(function (x) { return Object.assign({}, x); });
+    var patch = {};
+    if (editCat.id) list.forEach(function (x) { if (x.id === editCat.id) { x.name = name; x.plural = plural; x.icon = editCat.icon; } });
+    else {
+      var id = "c-" + uid();
+      list.push({ id: id, name: name, plural: plural, icon: editCat.icon, subLabel: "סוג", plus: "הוספה" });
+      patch.types = types().concat([{ id: "t-" + uid(), kind: id, name: name, ultra: false, amount: null }]);
+    }
+    patch.cats = list;
+    saveConfig(patch); hide(); toast("נשמר: " + name);
+  });
+  $("cgDelete").addEventListener("click", function () {
+    var beforeCats = cats(), beforeTypes = types();
+    var gone = beforeCats.filter(function (x) { return x.id === editCat.id; })[0];
+    saveConfig({ cats: beforeCats.filter(function (x) { return x.id !== editCat.id; }), types: beforeTypes.filter(function (t) { return t.kind !== editCat.id; }) });
+    hide();
+    toast("נמחקה הקטגוריה: " + (gone ? gone.plural || gone.name : ""), function () { saveConfig({ cats: beforeCats, types: beforeTypes }); });
+  });
   $("saveAmounts").addEventListener("click", function () {
-    var r = parseInt($("sReg").value, 10), b = parseInt($("sBig").value, 10);
-    if (r >= 0) state.settings.reg = r;
-    if (b >= 0) state.settings.big = b;
-    persistSettings(); toast("המחירים נשמרו");
+    var r = parseInt($("sReg").value, 10), b = parseInt($("sBig").value, 10), patch = {};
+    if (r >= 0) patch.reg = r;
+    if (b >= 0) patch.big = b;
+    saveConfig(patch); toast("המחירים נשמרו");
   });
   $("resetTypes").addEventListener("click", function () { $("resetTypesConfirm").hidden = false; $("resetTypes").hidden = true; });
   $("resetTypesNo").addEventListener("click", function () { $("resetTypesConfirm").hidden = true; $("resetTypes").hidden = false; });
   $("resetTypesYes").addEventListener("click", function () {
-    var before = types();
-    saveTypes(null);
+    var before = { types: types(), cats: cats() };
+    saveConfig({ types: null, cats: null });
     $("resetTypesConfirm").hidden = true; $("resetTypes").hidden = false;
-    toast("הרשימה המקורית חזרה", function () { saveTypes(before); });
+    toast("הרשימה המקורית חזרה", function () { saveConfig(before); });
+  });
+
+  // ---------- team ----------
+  function rpcError(err) {
+    var m = (err && err.message) || "";
+    if (/already_in_team/.test(m)) return "אתה כבר בצוות. צריך לצאת ממנו קודם.";
+    if (/bad_code/.test(m)) return "הקוד לא נכון. בדוק אותו עם המנהל.";
+    if (/team_not_empty/.test(m)) return "אי אפשר למחוק צוות שיש בו עובדים. קודם צריך להוציא אותם.";
+    if (/name_required/.test(m)) return "צריך לכתוב שם לצוות.";
+    if (/function|does not exist|schema cache/i.test(m)) return "האפשרות הזו תעבוד אחרי עדכון בסיס הנתונים.";
+    return "משהו השתבש. בדוק חיבור לאינטרנט ונסה שוב.";
+  }
+  function renderTeamSettings() {
+    $("teamNotReady").hidden = state.teamReady;
+    $("teamNone").hidden = !state.teamReady || !!state.team;
+    $("teamIn").hidden = !state.team;
+    $("teamErr").hidden = true; $("leaveErr").hidden = true; $("leaveConfirm").hidden = true; $("leaveTeam").hidden = false;
+    if (pendingJoin && !$("joinCode").value) $("joinCode").value = pendingJoin;
+    if (!state.team) return;
+    $("teamInName").textContent = state.team.name;
+    $("teamRole").textContent = isManager() ? "מנהל" : "עובד";
+    $("teamInNote").textContent = isManager() ? "קוד ההצטרפות: " + state.team.join_code + ". את העובדים והבונוסים שלהם רואים בלשונית „צוות” למטה. את סוגי הבונוסים והמחירים של הצוות קובעים ב„בונוסים”." : "המנהל רואה את הבונוסים שלך וקובע את סוגי הבונוסים והמחירים.";
+    $("goTeamTab").hidden = !isManager();
+    $("leaveTeam").textContent = isManager() ? "מחיקת הצוות" : "יציאה מהצוות";
+  }
+  async function afterTeamChange(msg) {
+    var a = activeAcct(); if (a) await loadTeam(a.uid);
+    saveCache(); render(); renderTeamSettings(); setStatus(); toast(msg);
+  }
+  $("createTeam").addEventListener("click", async function () {
+    var name = $("newTeamName").value.trim(); $("teamErr").hidden = true;
+    if (!name) { $("teamErr").textContent = "צריך לכתוב שם לצוות."; $("teamErr").hidden = false; return; }
+    $("createTeam").disabled = true;
+    try {
+      // the team starts with the manager's current bonus list
+      await flush();
+      var r = await sb.rpc("create_team", { p_name: name });
+      if (r.error) { $("teamErr").textContent = rpcError(r.error); $("teamErr").hidden = false; return; }
+      await afterTeamChange("הצוות נוצר. הקוד לעובדים: " + r.data.join_code);
+    } finally { $("createTeam").disabled = false; }
+  });
+  async function joinTeam(code) {
+    var r = await sb.rpc("join_team", { p_code: code });
+    if (r.error) { $("teamErr").textContent = rpcError(r.error); $("teamErr").hidden = false; toast(rpcError(r.error)); return false; }
+    await afterTeamChange("הצטרפת לצוות " + r.data.name);
+    return true;
+  }
+  $("joinTeam").addEventListener("click", async function () {
+    var code = $("joinCode").value.trim(); $("teamErr").hidden = true;
+    if (code.length < 6) { $("teamErr").textContent = "הקוד הוא 6 תווים."; $("teamErr").hidden = false; return; }
+    $("joinTeam").disabled = true;
+    try { if (await joinTeam(code)) { $("joinCode").value = ""; pendingJoin = ""; } } finally { $("joinTeam").disabled = false; }
+  });
+  $("goTeamTab").addEventListener("click", function () { setTab("team"); });
+  $("leaveTeam").addEventListener("click", function () { $("leaveConfirm").hidden = false; $("leaveTeam").hidden = true; });
+  $("leaveNo").addEventListener("click", function () { $("leaveConfirm").hidden = true; $("leaveTeam").hidden = false; });
+  $("leaveYes").addEventListener("click", async function () {
+    var r = await sb.rpc("leave_team");
+    if (r.error) { $("leaveErr").textContent = rpcError(r.error); $("leaveErr").hidden = false; $("leaveConfirm").hidden = true; $("leaveTeam").hidden = false; return; }
+    await afterTeamChange(isManager() ? "הצוות נמחק" : "יצאת מהצוות");
+  });
+
+  // manager tab
+  var overview = [];
+  async function loadOverview() {
+    if (!isManager()) return;
+    var box = $("memberList");
+    if (!overview.length) { box.textContent = ""; box.appendChild(el("div", "empty-note", "טוען…")); }
+    var r = await sb.rpc("team_overview", { p_month: state.month });
+    if (r.error) { box.textContent = ""; box.appendChild(el("div", "empty-note", "לא הצלחתי לטעון את העובדים. בדוק חיבור לאינטרנט.")); return; }
+    overview = r.data || [];
+    renderOverview();
+  }
+  function renderOverview() {
+    var box = $("memberList"); box.textContent = "";
+    var sum = 0, cnt = 0;
+    overview.forEach(function (m) {
+      sum += m.total; cnt += m.cnt;
+      var b = el("button", "member-row"); b.type = "button";
+      var av = el("span", "avatar"); paintAvatar(av, { name: m.name, email: m.email, avatar: m.avatar }); b.appendChild(av);
+      var who = el("span", "who"); who.appendChild(el("b", null, (m.name || m.email.split("@")[0]) + (m.role === "manager" ? " (אני)" : "")));
+      who.appendChild(el("small", null, m.phone || m.email)); b.appendChild(who);
+      var tot = el("span", "m-total num"); tot.appendChild(el("b", null, fmt(m.total) + " ₪")); tot.appendChild(el("small", null, m.cnt + " בונוסים" + (m.ultra ? " · " + m.ultra + " אולטרה" : ""))); b.appendChild(tot);
+      b.addEventListener("click", function () { openMember(m); });
+      box.appendChild(b);
+    });
+    if (!overview.length) box.appendChild(el("div", "empty-note", "עדיין אין עובדים בצוות."));
+    $("teamTotal").textContent = fmt(sum);
+    $("teamSub").textContent = (overview.length) + " אנשים בצוות · " + fmt(cnt) + " בונוסים";
+  }
+  $("teamRefresh").addEventListener("click", loadOverview);
+  function inviteText() {
+    return "הוזמנת לצוות " + state.team.name + " ביומן בונוסים 🎉\n" +
+      "1. פותחים את הקישור: " + location.origin + "/?join=" + state.team.join_code + "\n" +
+      "2. נרשמים עם שם, טלפון ומייל\n" +
+      "קוד הצוות: " + state.team.join_code;
+  }
+  function updateInvite() { if (state.team) $("inviteWa").href = "https://wa.me/?text=" + encodeURIComponent(inviteText()); }
+  $("inviteCopy").addEventListener("click", function () { copyText(inviteText(), "ההזמנה הועתקה"); });
+  async function teamAdmin(body) {
+    var r = await sb.functions.invoke("team-admin", { body: body });
+    if (!r.error) return { ok: true, data: r.data };
+    var code = "failed";
+    try { var j = await r.error.context.json(); code = j.error || code; } catch (e) {}
+    return { ok: false, error: code };
+  }
+  var ADMIN_MSG = { exists: "כבר יש חשבון עם המייל הזה. שלח לעובד את קוד הצוות כדי שיצטרף.", bad_email: "כתובת המייל לא תקינה.", weak_password: "הסיסמה צריכה להיות 6 עד 72 תווים.", not_manager: "רק מנהל יכול לעשות את זה.", not_allowed: "אין הרשאה לעובד הזה." };
+  $("nmAdd").addEventListener("click", async function () {
+    var name = $("nmName").value.trim(), phone = $("nmPhone").value.trim(), email = $("nmEmail").value.trim().toLowerCase(), pass = $("nmPass").value;
+    $("nmErr").hidden = true;
+    var bad = !name ? "צריך שם." : !phoneOk(phone) ? "צריך מספר טלפון תקין." : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? "צריך מייל תקין." : pass.length < 6 ? "הסיסמה צריכה להיות לפחות 6 תווים." : "";
+    if (bad) { $("nmErr").textContent = bad; $("nmErr").hidden = false; return; }
+    $("nmAdd").disabled = true;
+    try {
+      var r = await teamAdmin({ action: "create_member", name: name, phone: phone, email: email, password: pass });
+      if (!r.ok) { $("nmErr").textContent = ADMIN_MSG[r.error] || "פתיחת החשבון נכשלה. נסה שוב."; $("nmErr").hidden = false; return; }
+      ["nmName", "nmPhone", "nmEmail", "nmPass"].forEach(function (i) { $(i).value = ""; });
+      toast("החשבון של " + name + " נפתח. כניסה: " + email);
+      loadOverview();
+    } catch (e) { $("nmErr").textContent = "אין חיבור לאינטרנט."; $("nmErr").hidden = false; }
+    finally { $("nmAdd").disabled = false; }
+  });
+  var openMemberRow = null;
+  async function openMember(m) {
+    openMemberRow = m;
+    paintAvatar($("mbAvatar"), { name: m.name, email: m.email, avatar: m.avatar });
+    $("mbTitle").textContent = m.name || m.email;
+    $("mbContact").textContent = [m.phone, m.email].filter(Boolean).join(" · ");
+    $("mbTotal").textContent = fmt(m.total) + " ₪"; $("mbCount").textContent = m.cnt; $("mbMonth").textContent = monthLabel(state.month);
+    $("mbAdmin").hidden = m.role === "manager";
+    $("mbErr").hidden = true; $("mbPass").value = ""; $("mbRemoveConfirm").hidden = true; $("mbRemove").hidden = false;
+    $("mbCats").textContent = ""; $("mbList").textContent = ""; $("mbList").appendChild(el("div", "empty-note", "טוען…"));
+    show($("memberSheet"));
+    var r = await sb.from("entries").select(ENTRY_COLS).eq("user_id", m.user_id).eq("month", state.month);
+    if (openMemberRow !== m) return;
+    if (r.error) { $("mbList").textContent = ""; $("mbList").appendChild(el("div", "empty-note", "לא הצלחתי לטעון את הרישומים.")); return; }
+    var list = (r.data || []).slice().sort(function (a, b) { return a.date === b.date ? b.ts - a.ts : (b.date < a.date ? -1 : 1); });
+    var t = totals(list);
+    kindsIn(list).forEach(function (k) {
+      if (!t.byKind[k]) return;
+      var row = el("div", "row"); row.appendChild(el("span", null, catPlural(k))); row.appendChild(el("span", "cnt num", String(t.byKind[k]))); row.appendChild(el("span", "amt num", fmt(t.amtByKind[k]) + " ₪"));
+      $("mbCats").appendChild(row);
+    });
+    renderLog($("mbList"), list, true, "אין רישומים בחודש הזה.", true);
+  }
+  $("mbSetPass").addEventListener("click", async function () {
+    var pass = $("mbPass").value; $("mbErr").hidden = true;
+    if (pass.length < 6) { $("mbErr").textContent = "הסיסמה צריכה להיות לפחות 6 תווים."; $("mbErr").hidden = false; return; }
+    $("mbSetPass").disabled = true;
+    try {
+      var r = await teamAdmin({ action: "reset_password", user_id: openMemberRow.user_id, password: pass });
+      if (!r.ok) { $("mbErr").textContent = ADMIN_MSG[r.error] || "לא הצלחתי לשנות סיסמה."; $("mbErr").hidden = false; return; }
+      toast("הסיסמה החדשה של " + (openMemberRow.name || openMemberRow.email) + ": " + pass);
+      $("mbPass").value = "";
+    } finally { $("mbSetPass").disabled = false; }
+  });
+  $("mbRemove").addEventListener("click", function () { $("mbRemoveConfirm").hidden = false; $("mbRemove").hidden = true; });
+  $("mbRemoveNo").addEventListener("click", function () { $("mbRemoveConfirm").hidden = true; $("mbRemove").hidden = false; });
+  $("mbRemoveYes").addEventListener("click", async function () {
+    var r = await sb.rpc("remove_member", { p_user: openMemberRow.user_id });
+    if (r.error) { $("mbErr").textContent = rpcError(r.error); $("mbErr").hidden = false; return; }
+    hide(); toast((openMemberRow.name || openMemberRow.email) + " הוצא מהצוות"); loadOverview();
   });
 
   // ---------- entries ----------
@@ -1257,7 +1709,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   function deleteWithUndo(id) {
     var e = state.entries[id]; if (!e) return;
     removeEntry(id);
-    toast("נמחק: " + KIND[e.kind] + " · " + e.sub, function () { putEntry(id, e); });
+    toast("נמחק: " + catName(e.kind) + " · " + e.sub, function () { putEntry(id, e); });
   }
 
   // ---------- toast ----------
@@ -1277,18 +1729,28 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   $$("[data-close]").forEach(function (b) { b.addEventListener("click", hide); });
   document.addEventListener("keydown", function (ev) { if (ev.key === "Escape" && openSheet && openSheet.id !== "loginSheet") hide(); });
 
-  // ---------- login ----------
-  var loginMode = "first";
+  // ---------- login / signup ----------
+  var loginMode = "first", lmode = "in";
+  function setLmode(m) {
+    lmode = m;
+    $$("#loginModes button").forEach(function (b) { b.setAttribute("aria-current", String(b.getAttribute("data-lmode") === m)); });
+    $$(".upOnly").forEach(function (x) { x.hidden = m !== "up"; });
+    $$(".inOnly").forEach(function (x) { x.hidden = m !== "in"; });
+    $("lPass").autocomplete = m === "up" ? "new-password" : "current-password";
+    $("loginErr").hidden = true;
+  }
+  $$("#loginModes button").forEach(function (b) { b.addEventListener("click", function () { setLmode(b.getAttribute("data-lmode")); }); });
   function openLogin(mode, email) {
     loginMode = mode;
-    $("loginTitle").textContent = mode === "add" ? "הוספת חשבון" : mode === "relogin" ? "צריך להתחבר שוב" : "התחברות";
-    $("loginSub").textContent = mode === "add" ? "מתחברים לחשבון נוסף. אחר כך עוברים בין החשבונות בלחיצה על שם החשבון למעלה." :
+    $("loginTitle").textContent = mode === "add" ? "הוספת חשבון" : mode === "relogin" ? "צריך להתחבר שוב" : "ברוך הבא";
+    $("loginSub").textContent = mode === "add" ? "מתחברים לחשבון נוסף. אחר כך עוברים בין החשבונות בלחיצה על העיגול למעלה." :
       mode === "relogin" ? "החיבור לחשבון הזה פג. הנתונים שמורים, צריך רק להתחבר שוב." :
       "הנתונים נשמרים בחשבון שלך. בטלפון חדש פשוט מתחברים שוב והכל חוזר.";
     $("lEmail").value = email || ""; $("lPass").value = "";
-    $("loginErr").hidden = true;
+    if (pendingJoin) $("lCode").value = pendingJoin;
+    $("loginModes").hidden = mode === "relogin";
+    setLmode(mode === "relogin" ? "in" : (pendingJoin && !accts.list.length ? "up" : "in"));
     $("loginClose").hidden = !accts.list.length;
-    $("signupBtn").hidden = mode === "relogin";
     show($("loginSheet"));
   }
   $("loginClose").addEventListener("click", hide);
@@ -1303,7 +1765,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   async function doLogin(c) {
     var r = await sb.auth.signInWithPassword({ email: c.email, password: c.pass });
     if (r.error) {
-      if (/invalid/i.test(r.error.message)) loginError("האימייל או הסיסמה לא נכונים. אם נרשמת עם Google, לחץ „המשך עם Google”.");
+      if (/invalid/i.test(r.error.message)) loginError("האימייל או הסיסמה לא נכונים.");
       else if (/fetch|network/i.test(r.error.message)) loginError("אין חיבור לאינטרנט. נסה שוב.");
       else loginError("ההתחברות נכשלה: " + r.error.message);
       if (activeAcct() && activeAcct().session) sb.auth.setSession(activeAcct().session);
@@ -1321,6 +1783,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   });
   $("signupBtn").addEventListener("click", async function () {
     $("loginErr").hidden = true;
+    var name = $("lName").value.trim(), phone = $("lPhone").value.trim(), code = $("lCode").value.trim();
+    if (!name) { loginError("צריך לכתוב שם."); return; }
+    if (!phoneOk(phone)) { loginError("צריך מספר טלפון תקין."); return; }
     var c = readCreds(); if (!c) return;
     busy(true);
     try {
@@ -1330,29 +1795,32 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       });
       var body = await res.json().catch(function () { return {}; });
       if (!res.ok) {
-        if (body.error === "exists") loginError("כבר יש חשבון עם האימייל הזה. לחץ „התחברות”.");
+        if (body.error === "exists") loginError("כבר יש חשבון עם האימייל הזה. עבור ל„כניסה”.");
         else if (body.error === "bad_email") loginError("כתובת האימייל לא תקינה.");
         else if (body.error === "weak_password") loginError("הסיסמה צריכה להיות 6 עד 72 תווים.");
         else loginError("יצירת החשבון נכשלה. נסה שוב בעוד רגע.");
         return;
       }
-      await doLogin(c);
+      if (code) pendingJoin = code;
+      if (await doLogin(c)) {
+        state.settings.name = name; state.settings.my_phone = phone; persistSettings();
+        $("lName").value = ""; $("lPhone").value = ""; $("lCode").value = "";
+        if (pendingJoin && state.teamReady && !state.team) { var pj = pendingJoin; pendingJoin = ""; joinTeam(pj); }
+      }
     } catch (e) { loginError("אין חיבור לאינטרנט. נסה שוב."); }
     finally { busy(false); }
   });
-  $("lPass").addEventListener("keydown", function (ev) { if (ev.key === "Enter") $("loginBtn").click(); });
+  $("lPass").addEventListener("keydown", function (ev) { if (ev.key === "Enter") (lmode === "up" ? $("signupBtn") : $("loginBtn")).click(); });
 
-  // Google: the button shows only once the provider is switched on in Supabase
   fetch(SB_URL + "/auth/v1/settings", { headers: { apikey: SB_KEY } })
     .then(function (r) { return r.json(); })
-    .then(function (s) { var on = !!(s && s.external && s.external.google); $("googleBtn").hidden = !on; $("orLine").hidden = !on; })
+    .then(function (s) { $("googleBtn").hidden = !(s && s.external && s.external.google); })
     .catch(function () {});
   $("googleBtn").addEventListener("click", async function () {
     busy(true);
     var r = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + "/", queryParams: { prompt: "select_account" } } });
     if (r.error) { busy(false); loginError("לא הצלחתי לפתוח את Google. נסה שוב."); }
   });
-  // coming back from Google: tokens arrive in the address after #
   async function handleOAuthReturn() {
     var h = location.hash.slice(1);
     if (!h || (h.indexOf("access_token=") < 0 && h.indexOf("error") < 0)) return false;
@@ -1377,7 +1845,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   function resetError(msg) { $("rErr").textContent = msg; $("rErr").hidden = !msg; }
   var RESET_MSG = {
     bad_email: "כתובת האימייל לא תקינה.", wait: "כבר נשלח קוד בדקה האחרונה. חכה רגע ונסה שוב.",
-    send_failed: "לא הצלחתי לשלוח מייל כרגע. נסה שוב מאוחר יותר.", bad_code: "הקוד לא נכון. בדוק ונסה שוב.",
+    send_failed: "שליחת מיילים עוד לא מוגדרת. בקש מהמנהל לאפס לך סיסמה.", bad_code: "הקוד לא נכון. בדוק ונסה שוב.",
     expired: "הקוד פג. שלח קוד חדש.", too_many: "יותר מדי ניסיונות. שלח קוד חדש.", weak_password: "הסיסמה צריכה להיות 6 עד 72 תווים."
   };
   var resetFrom = "first";
@@ -1427,7 +1895,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       b.setAttribute("aria-current", String(cur));
       var info = cur ? me() : a;
       var av = el("span", "avatar"); paintAvatar(av, info); b.appendChild(av);
-      var who = el("span", "who"); who.appendChild(el("b", null, acctLabel(info))); who.appendChild(el("small", null, a.email + (a.provider === "google" ? " · Google" : "")));
+      var who = el("span", "who"); who.appendChild(el("b", null, acctLabel(info))); who.appendChild(el("small", null, a.email));
       b.appendChild(who);
       b.appendChild(el("span", "tag", cur ? "פעיל" : (a.session ? "מעבר" : "צריך להתחבר")));
       b.addEventListener("click", function () { hide(); if (!cur) { activate(a.uid); toast("עברת לחשבון של " + acctLabel(a)); } });
@@ -1437,7 +1905,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     $("logoutBtn").textContent = a ? "התנתקות מ־" + a.email : "התנתקות";
     $("logoutBtn").hidden = !a; $("logoutConfirm").hidden = true;
     $("logoutHint").textContent = pending.length ? "שים לב: יש " + pending.length + " שינויים שעוד לא עלו לגיבוי. התנתקות עכשיו תמחק אותם." : "הנתונים נשארים שמורים בחשבון. אפשר להתחבר שוב בכל זמן.";
-    $("newPassLbl").textContent = a ? (a.provider === "google" ? "הוספת סיסמה ל־" + a.email + " (בנוסף ל-Google)" : "שינוי סיסמה ל־" + a.email) : "שינוי סיסמה";
+    $("newPassLbl").textContent = a ? "שינוי סיסמה ל־" + a.email : "שינוי סיסמה";
     $("newPass").value = ""; $("passErr").hidden = true;
   }
   function openAccts() { if (!accts.list.length) { openLogin("first"); return; } renderAccts(); show($("acctSheet")); }
@@ -1454,7 +1922,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     accts.active = accts.list.length ? accts.list[0].uid : null; saveAccts();
     hide();
     if (accts.active) activate(accts.active);
-    else { state.entries = {}; state.settings = Object.assign({}, DEFAULT_SETTINGS); pending = []; render(); setStatus(); openLogin("first"); }
+    else { state.entries = {}; state.settings = Object.assign({}, DEFAULT_SETTINGS); state.team = null; pending = []; render(); setStatus(); openLogin("first"); }
     toast("התנתקת מ־" + a.email);
   });
   $("changePass").addEventListener("click", async function () {
@@ -1479,9 +1947,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     updateSave();
   }
   function bonusAmount() {
-    if (draft.bonus === "big") return Number(state.settings.big) || 0;
+    if (draft.bonus === "big") return cfg().big || 0;
     if (draft.bonus === "custom") return Math.max(0, parseInt($("customAmt").value, 10) || 0);
-    return Number(state.settings.reg) || 0;
+    return cfg().reg || 0;
   }
   function draftSub() { return draft.sub === "אחר" ? ($("subOther").value.trim() || "אחר") : draft.sub; }
   function draftQty() { return draft.mode === "edit" ? 1 : Math.max(1, Math.min(50, parseInt($("addQty").value, 10) || 1)); }
@@ -1491,30 +1959,47 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     if (!draft.sub) { $("saveBtn").textContent = "בחר סוג כדי לשמור"; return; }
     $("saveBtn").textContent = (draft.mode === "edit" ? "שמירת שינויים · " : "שמירה · ") + (qty > 1 ? qty + " × " : "") + draftSub() + " · " + (draft.mode === "edit" ? "" : "+") + fmt(bonusAmount() * qty) + " ₪";
   }
+  function fillKindChips(kind) {
+    var box = $("kindChips"); box.textContent = "";
+    var ks = cats().map(function (c) { return c.id; });
+    if (ks.indexOf(kind) < 0) ks.push(kind);
+    ks.forEach(function (k) {
+      var c = el("button", "chip", catName(k)); c.type = "button"; c.setAttribute("aria-pressed", String(k === kind));
+      c.addEventListener("click", function () { fillKind(k, null); fillKindChips(k); updateSave(); });
+      box.appendChild(c);
+    });
+  }
   function fillKind(kind, keepSub) {
     draft.kind = kind;
-    $$("#kindChips .chip").forEach(function (c) { c.setAttribute("aria-pressed", String(c.getAttribute("data-kind") === kind)); });
-    $("subLabel").textContent = kind === "line" ? "חברה" : kind === "repair" ? "סוג תיקון" : "סוג מכשיר";
-    $("addNoteLbl").textContent = NOTE_LBL[kind][0];
-    $("addNote").placeholder = NOTE_LBL[kind][1];
-    $("subOtherLbl").textContent = kind === "line" ? "איזו חברה? (לא חובה)" : kind === "repair" ? "איזה תיקון? (לא חובה)" : "איזה מכשיר? (לא חובה)";
+    var c = catOf(kind);
+    $("subLabel").textContent = c.subLabel || "סוג";
+    var nl = NOTE_LBL[kind] || ["הערה (לא חובה)", ""];
+    $("addNoteLbl").textContent = nl[0]; $("addNote").placeholder = nl[1];
+    $("subOtherLbl").textContent = "מה בדיוק? (לא חובה)";
     var box = $("subChips"); box.textContent = "";
-    var list = typesOf(kind).concat([{ id: "other", name: "אחר", ultra: false, amount: null }]);
+    var list = typesOf(kind).slice();
+    var withOther = cfg().allowOther || (keepSub && !list.some(function (t) { return t.name === keepSub; }));
+    if (withOther) list.push({ id: "other", name: "אחר", ultra: false, amount: null });
     var matched = null;
     list.forEach(function (t) {
-      var c = el("button", "chip", t.name); c.type = "button"; c.setAttribute("aria-pressed", "false");
-      if (t.id !== "other" && (t.ultra || t.amount != null)) c.appendChild(el("span", "pill", fmt(typeAmount(t)) + "₪"));
-      c.addEventListener("click", function () { pickType(c, t); });
-      box.appendChild(c);
-      if (keepSub && t.id !== "other" && t.name === keepSub) matched = c;
+      var ch = el("button", "chip", t.name); ch.type = "button"; ch.setAttribute("aria-pressed", "false");
+      if (t.id !== "other" && (t.ultra || t.amount != null)) ch.appendChild(el("span", "pill", fmt(typeAmount(t)) + "₪"));
+      ch.addEventListener("click", function () { pickType(ch, t); });
+      box.appendChild(ch);
+      if (keepSub && t.id !== "other" && t.name === keepSub) matched = ch;
     });
+    if (!list.length) box.appendChild(el("div", "empty-note", "אין סוגים בקטגוריה הזו."));
     if (keepSub) {
       var chip = matched || box.lastChild;
-      chip.setAttribute("aria-pressed", "true");
+      if (chip && chip.setAttribute) chip.setAttribute("aria-pressed", "true");
       draft.sub = matched ? keepSub : "אחר";
       $("subOtherBox").hidden = !!matched;
       $("subOther").value = matched || keepSub === "אחר" ? "" : keepSub;
-    } else { draft.sub = null; $("subOtherBox").hidden = true; $("subOther").value = ""; }
+    } else {
+      draft.sub = null; $("subOtherBox").hidden = true; $("subOther").value = "";
+      var real = typesOf(kind);
+      if (real.length === 1 && !cfg().allowOther) pickType(box.firstChild, real[0]);
+    }
   }
   function pickType(chip, t) {
     $$("#subChips .chip").forEach(function (x) { x.setAttribute("aria-pressed", "false"); });
@@ -1528,13 +2013,14 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   function openAdd(kind) {
     if (!activeAcct()) { openLogin("first"); return; }
     draft = { mode: "add", id: null, kind: kind, sub: null, bonus: "reg", typeUltra: false };
-    $("addTitle").textContent = "הוספת " + KIND[kind];
+    $("addTitle").textContent = "הוספת " + catName(kind);
     $("kindBox").hidden = true; $("qtyBox").hidden = false; $("entryDelete").hidden = true;
     $("customAmt").value = "";
-    fillKind(kind, null);
     $("addQty").value = 1; $("addNote").value = "";
     var t0 = todayStr(); $("addDate").value = t0; $("addDate").max = t0;
     setBonus("reg");
+    fillKind(kind, null);
+    updateSave();
     show($("addSheet"));
   }
   function openEdit(id) {
@@ -1542,17 +2028,16 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     draft = { mode: "edit", id: id, kind: e.kind, sub: null, bonus: "reg", typeUltra: !!e.big };
     $("addTitle").textContent = "עריכת רישום";
     $("kindBox").hidden = false; $("qtyBox").hidden = true; $("entryDelete").hidden = false;
+    fillKindChips(e.kind);
     fillKind(e.kind, e.sub);
     var amt = Number(e.amount) || 0;
-    if (e.big && amt === Number(state.settings.big)) setBonus("big");
-    else if (!e.big && amt === Number(state.settings.reg)) setBonus("reg");
+    if (e.big && amt === cfg().big) setBonus("big");
+    else if (!e.big && amt === cfg().reg) setBonus("reg");
     else { $("customAmt").value = amt; setBonus("custom"); }
     $("addNote").value = e.note || "";
     $("addDate").value = e.date; $("addDate").max = todayStr();
     show($("addSheet"));
   }
-  $$("#kindChips .chip").forEach(function (c) { c.addEventListener("click", function () { fillKind(c.getAttribute("data-kind"), null); updateSave(); }); });
-  $$("[data-add]").forEach(function (b) { b.addEventListener("click", function () { openAdd(b.getAttribute("data-add")); }); });
   $("bReg").addEventListener("click", function () { setBonus("reg"); });
   $("bBig").addEventListener("click", function () { setBonus("big"); });
   $("bCustom").addEventListener("click", function () { setBonus("custom"); $("customAmt").focus(); });
@@ -1577,7 +2062,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       putEntry(id, { kind: kind, sub: sub, big: ultra, amount: amount, date: date, month: date.slice(0, 7), note: note, ts: Date.now() + i });
     }
     hide();
-    toast("נוסף: " + (qty > 1 ? qty + " × " : "") + KIND[kind] + " · " + sub + " (+" + fmt(amount * qty) + " ₪)", function () { ids.forEach(removeEntry); });
+    toast("נוסף: " + (qty > 1 ? qty + " × " : "") + catName(kind) + " · " + sub + " (+" + fmt(amount * qty) + " ₪)", function () { ids.forEach(removeEntry); });
   });
   $("entryDelete").addEventListener("click", function () { var id = draft.id; hide(); deleteWithUndo(id); });
 
@@ -1585,10 +2070,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   function fillProfile() {
     var m = me(); if (!m) return;
     $("sName").value = state.settings.name || "";
-    $("setWho").textContent = acctLabel(m); $("setEmail").textContent = m.email + (m.provider === "google" ? " · מחובר עם Google" : "");
-    $("backupNote").textContent = "כל רישום נשמר אוטומטית בחשבון שלך" + (m.provider === "google" ? " שמחובר ל-Google" : "") + ". בטלפון חדש מתחברים לאותו חשבון והכל חוזר.";
+    $("sMyPhone").value = state.settings.my_phone || "";
+    $("setWho").textContent = acctLabel(m);
+    $("setEmail").textContent = m.email + (state.team ? " · " + (isManager() ? "מנהל ב" : "עובד ב") + state.team.name : "");
     paintAvatar($("setAvatar"), m);
     $("avatarRemove").hidden = !state.settings.avatar;
+    $("profErr").hidden = true;
+    if (!state.settings.my_phone) { $("profErr").textContent = "חסר מספר טלפון. הוסף אותו ושמור."; $("profErr").hidden = false; }
   }
   $("avatarFile").addEventListener("change", function () {
     var file = $("avatarFile").files && $("avatarFile").files[0];
@@ -1607,16 +2095,19 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     img.src = url;
   });
   $("avatarRemove").addEventListener("click", function () { state.settings.avatar = ""; persistSettings(); fillProfile(); });
-  $("saveName").addEventListener("click", function () {
+  $("saveProfile").addEventListener("click", function () {
     if (!activeAcct()) { openLogin("first"); return; }
+    var ph = $("sMyPhone").value.trim();
+    if (!phoneOk(ph)) { $("profErr").textContent = "צריך מספר טלפון תקין."; $("profErr").hidden = false; return; }
     state.settings.name = $("sName").value.trim();
-    persistSettings(); fillProfile(); toast("השם נשמר");
+    state.settings.my_phone = ph;
+    persistSettings(); fillProfile(); toast("נשמר");
   });
 
   // ---------- backup ----------
   function backupJson() {
     var a = activeAcct();
-    return JSON.stringify({ app: "bonus-tracker", v: 3, account: a && a.email, exported: new Date().toISOString(), settings: state.settings, entries: state.entries });
+    return JSON.stringify({ app: "bonus-tracker", v: 4, account: a && a.email, exported: new Date().toISOString(), settings: state.settings, entries: state.entries });
   }
   $("exportBtn").addEventListener("click", function () {
     var data = backupJson(); $("importText").value = data;
@@ -1633,9 +2124,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     if (!src || typeof src !== "object") { $("importErr").textContent = "זה לא נראה כמו גיבוי. נסה שוב עם הקובץ או הטקסט המלא."; $("importErr").hidden = false; return; }
     var n = 0, list = Array.isArray(src) ? src : Object.keys(src).map(function (k) { return Object.assign({ id: k }, src[k]); });
     list.forEach(function (e) {
-      if (!e || !KIND[e.kind] || !e.date || state.entries[e.id]) return;
+      if (!e || !e.kind || !e.date || state.entries[e.id]) return;
       var id = String(e.id || uid());
-      putEntry(id, { kind: e.kind, sub: String(e.sub || "אחר"), big: !!e.big, amount: Number(e.amount) || 0, date: String(e.date).slice(0, 10), month: String(e.month || String(e.date).slice(0, 7)), note: String(e.note || ""), ts: Number(e.ts) || Date.now() });
+      putEntry(id, { kind: String(e.kind), sub: String(e.sub || "אחר"), big: !!e.big, amount: Number(e.amount) || 0, date: String(e.date).slice(0, 10), month: String(e.month || String(e.date).slice(0, 7)), note: String(e.note || ""), ts: Number(e.ts) || Date.now() });
       n++;
     });
     $("importText").value = "";
@@ -1649,21 +2140,27 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   });
 
   // ---------- month nav ----------
-  $$(".prevMonth").forEach(function (b) { b.addEventListener("click", function () { state.month = shiftMonth(state.month, -1); render(); }); });
-  $$(".nextMonth").forEach(function (b) { b.addEventListener("click", function () { if (state.month < monthKey(new Date())) { state.month = shiftMonth(state.month, 1); render(); } }); });
+  function monthChanged() { render(); if (state.tab === "team") loadOverview(); }
+  $$(".prevMonth").forEach(function (b) { b.addEventListener("click", function () { state.month = shiftMonth(state.month, -1); monthChanged(); }); });
+  $$(".nextMonth").forEach(function (b) { b.addEventListener("click", function () { if (state.month < monthKey(new Date())) { state.month = shiftMonth(state.month, 1); monthChanged(); } }); });
 
   window.addEventListener("online", function () { online = true; var a = activeAcct(); if (a) activate(a.uid); });
   window.addEventListener("offline", function () { online = false; setStatus(); });
   document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "visible" && accts.active && !syncing) { flush(); pull().catch(function () {}); }
+    if (document.visibilityState === "visible" && accts.active && !syncing) { flush(); pull().then(function () { if (state.tab === "team") loadOverview(); }).catch(function () {}); }
   });
 
   // ---------- boot ----------
+  try {
+    var q = new URLSearchParams(location.search), j = (q.get("join") || "").trim().toUpperCase();
+    if (/^[A-Z0-9]{6}$/.test(j)) { pendingJoin = j; history.replaceState(null, "", location.pathname + location.hash); }
+  } catch (e) {}
   accts = lsGet("bt.accounts", { list: [], active: null });
   state.sub = lsGet("bt.sub", "profile");
-  if (["profile", "types", "share", "backup"].indexOf(state.sub) < 0) state.sub = "profile";
+  if (SUBS.indexOf(state.sub) < 0) state.sub = "profile";
   var savedTab = lsGet("bt.tab", "add");
-  setTab(["add", "month", "summary", "settings"].indexOf(savedTab) >= 0 ? savedTab : "add");
+  if (accts.active) loadCache(accts.active);
+  setTab(TABS.indexOf(savedTab) >= 0 ? savedTab : "add");
   handleOAuthReturn().then(function (handled) {
     if (handled) return;
     if (accts.active && activeAcct()) activate(accts.active);
