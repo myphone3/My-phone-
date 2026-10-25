@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>יומן בונוסים</title>
 <meta name="description" content="רישום מכירות מכשירים, קווים ותיקונים וסיכום בונוסים חודשי">
-<meta name="theme-color" content="#0b6e66">
+<meta name="theme-color" content="#12234a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="בונוסים">
@@ -18,8 +18,9 @@
 <style>
 /* Layout: one narrow phone column — account bar, month ledger, three big "add" keys, breakdown, log, share */
 :root {
-  --bg: #f3f5f8; --surface: #ffffff; --ink: #14202e; --muted: #5b6878; --line: #dde3ea;
-  --accent: #0b6e66; --accent-ink: #ffffff; --gold: #b9770e; --gold-soft: #fbf0db; --soft: #e6f2f0;
+  --bg: #f3f4f8; --surface: #ffffff; --ink: #0f1b33; --muted: #59627a; --line: #dcdfe8;
+  --accent: #172a55; --accent-ink: #ffffff; --gold: #a87a12; --gold-soft: #f8efd6; --soft: #e8ecf6;
+  --hero: #12234a; --hero-ink: #f1f4fb; --hero-gold: #e8bf55;
   --danger: #b3261e; --wa: #128c4a;
   --font-display: "Rubik", "Assistant", system-ui, sans-serif;
   --font-body: "Assistant", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
@@ -27,8 +28,9 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0f151c; --surface: #18212b; --ink: #e9eef3; --muted: #9aa7b5; --line: #2a3542;
-    --accent: #3cc2b3; --accent-ink: #062320; --gold: #f0b54e; --gold-soft: #3a2c12; --soft: #16312e;
+    --bg: #0a1224; --surface: #121c34; --ink: #e9edf6; --muted: #9aa4bd; --line: #26314d;
+    --accent: #e2b84a; --accent-ink: #161004; --gold: #e8bf55; --gold-soft: #3a2f12; --soft: #1b2744;
+    --hero: #16285a; --hero-ink: #eef2fb; --hero-gold: #f0c860;
     --danger: #f2827a; --wa: #3ccf7f; color-scheme: dark;
   }
 }
@@ -56,25 +58,34 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 .status { font-size: .8rem; color: var(--muted); overflow-wrap: anywhere; }
 .top-btns { display: flex; gap: 6px; flex-shrink: 0; }
 .icon-btn { background: transparent; border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; font-size: .9rem; color: var(--muted); }
-.acct-btn { background: var(--soft); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: .9rem; font-weight: 700; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acct-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--soft); border: 1px solid var(--line); border-radius: 999px; padding: 4px 4px 4px 12px; font-size: .9rem; font-weight: 700; max-width: 170px; }
+.acct-btn .acct-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.avatar { flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; background: var(--hero); color: var(--hero-gold); display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: .95rem; overflow: hidden; border: 2px solid var(--hero-gold); }
+.avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.avatar.lg { width: 64px; height: 64px; font-size: 1.6rem; }
+.brand-row { display: flex; align-items: center; gap: 8px; }
+.brand-row svg { width: 28px; height: 28px; flex-shrink: 0; }
+.profile-row { display: flex; align-items: center; gap: 14px; }
 
-.ledger { background: var(--accent); color: var(--accent-ink); border-radius: 18px; padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 12px; }
+.ledger { background: var(--hero); color: var(--hero-ink); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hero-gold) 25%, transparent); border-radius: 18px; padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 12px; }
 .month-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.month-nav button { background: color-mix(in srgb, var(--accent-ink) 14%, transparent); border: 0; border-radius: 10px; width: 40px; height: 36px; font-size: 1.2rem; color: var(--accent-ink); }
+.month-nav button { background: color-mix(in srgb, var(--hero-ink) 12%, transparent); border: 0; border-radius: 10px; width: 40px; height: 36px; font-size: 1.2rem; color: var(--hero-ink); }
 .month-nav button:disabled { opacity: .35; cursor: default; }
 .month-name { font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; }
 .total-label { font-size: .8rem; letter-spacing: .06em; opacity: .85; }
-.total { font-family: var(--font-display); font-weight: 800; font-size: 3rem; line-height: 1; }
+.total { font-family: var(--font-display); font-weight: 800; font-size: 3rem; line-height: 1; color: var(--hero-gold); }
+.total-sub { font-size: .9rem; opacity: .9; margin-top: 6px; }
+.total-sub b { color: var(--hero-gold); }
 .total small { font-size: 1.4rem; font-weight: 700; margin-inline-start: 4px; }
 .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.kpi { background: color-mix(in srgb, var(--accent-ink) 12%, transparent); border-radius: 12px; padding: 8px 10px; }
+.kpi { background: color-mix(in srgb, var(--hero-ink) 10%, transparent); border-radius: 12px; padding: 8px 10px; }
 .kpi b { display: block; font-family: var(--font-display); font-size: 1.35rem; }
 .kpi span { font-size: .8rem; opacity: .9; }
 
 .adds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .add { background: var(--surface); border: 1.5px solid var(--line); border-radius: 16px; padding: 14px 6px 12px; display: flex; flex-direction: column; align-items: center; gap: 6px; font-weight: 700; font-size: 1rem; transition: transform .08s; }
 .add:active { transform: scale(.97); }
-.add svg { width: 30px; height: 30px; stroke: var(--accent); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.add svg { width: 30px; height: 30px; stroke: var(--gold); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .add .plus { font-size: .75rem; color: var(--muted); font-weight: 600; }
 
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
@@ -86,7 +97,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 .row .cnt { font-weight: 700; min-width: 2ch; text-align: center; }
 .row .amt { color: var(--muted); min-width: 5ch; text-align: left; font-size: .9rem; }
 .bar { height: 4px; background: var(--soft); border-radius: 4px; margin-top: 4px; overflow: hidden; }
-.bar i { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+.bar i { display: block; height: 100%; background: var(--gold); border-radius: 4px; }
 .pill { display: inline-block; font-size: .72rem; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--gold-soft); color: var(--gold); margin-inline-start: 6px; vertical-align: 1px; }
 .empty-note { color: var(--muted); font-size: .92rem; }
 
@@ -140,13 +151,14 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 .acct-list { display: flex; flex-direction: column; gap: 8px; }
 .acct-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1.5px solid var(--line); background: var(--bg); border-radius: 14px; padding: 12px 14px; text-align: right; width: 100%; }
 .acct-item[aria-current="true"] { border-color: var(--accent); background: var(--soft); }
-.acct-item .who { min-width: 0; }
+.acct-item .who { min-width: 0; flex: 1; }
+.acct-item .avatar { width: 40px; height: 40px; }
 .acct-item .who b { display: block; }
 .acct-item .who small { color: var(--muted); overflow-wrap: anywhere; }
 .acct-item .tag { font-size: .75rem; font-weight: 700; color: var(--accent); flex-shrink: 0; }
 
 .login-hero { display: flex; flex-direction: column; gap: 6px; padding-bottom: 6px; }
-.login-hero .logo { width: 56px; height: 56px; border-radius: 14px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: 1.8rem; }
+.login-hero .logo { width: 64px; height: 64px; }
 
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 30; background: var(--ink); color: var(--bg); border-radius: 12px; padding: 10px 14px; display: flex; align-items: center; gap: 12px; font-weight: 600; width: max-content; max-width: calc(100% - 32px); box-shadow: 0 6px 20px rgba(0,0,0,.25); }
 .toast button { background: transparent; border: 0; color: var(--soft); font-weight: 800; text-decoration: underline; }
@@ -157,14 +169,25 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="coins" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="15" fill="#12234a"/>
+  <g stroke="#8a6410" stroke-width="1.2">
+    <ellipse cx="24" cy="47" rx="13" ry="5" fill="#b8892a"/><ellipse cx="24" cy="44" rx="13" ry="5" fill="#e8bf55"/>
+    <ellipse cx="24" cy="39" rx="13" ry="5" fill="#b8892a"/><ellipse cx="24" cy="36" rx="13" ry="5" fill="#e8bf55"/>
+    <ellipse cx="24" cy="31" rx="13" ry="5" fill="#b8892a"/><ellipse cx="24" cy="28" rx="13" ry="5" fill="#f3d27a"/>
+  </g>
+  <circle cx="42" cy="36" r="14" fill="#f0c860" stroke="#8a6410" stroke-width="1.6"/>
+  <circle cx="42" cy="36" r="10" fill="none" stroke="#a87a12" stroke-width="1.4"/>
+  <text x="42" y="41.5" text-anchor="middle" font-family="Arial, sans-serif" font-weight="700" font-size="15" fill="#6e4f0c">₪</text>
+</symbol></svg>
 <div class="wrap" id="main">
   <div class="top">
     <div class="top-start">
-      <div class="brand">יומן בונוסים</div>
+      <div class="brand-row"><svg aria-hidden="true"><use href="#coins"/></svg><div class="brand">יומן בונוסים</div></div>
       <div class="status" id="status">טוען…</div>
     </div>
     <div class="top-btns">
-      <button class="acct-btn" id="acctBtn" type="button">חשבון</button>
+      <button class="acct-btn" id="acctBtn" type="button" aria-label="חשבונות"><span class="acct-name" id="acctName">חשבון</span><span class="avatar" id="acctAvatar" aria-hidden="true"></span></button>
       <button class="icon-btn" id="openSettings" type="button">הגדרות</button>
     </div>
   </div>
@@ -178,6 +201,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     <div>
       <div class="total-label" id="totalLabel">מגיע לי החודש בבונוסים</div>
       <div class="total num"><span id="total">0</span><small>₪</small></div>
+      <div class="total-sub num" id="totalSub"></div>
     </div>
     <div class="kpis">
       <div class="kpi"><b class="num" id="kDevices">0</b><span>מכשירים</span></div>
@@ -239,7 +263,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
   <div class="sheet-inner">
     <div class="sheet-head">
       <div class="login-hero">
-        <div class="logo" aria-hidden="true">₪</div>
+        <svg class="logo" aria-hidden="true"><use href="#coins"/></svg>
         <h3 id="loginTitle">התחברות</h3>
         <div class="hint" id="loginSub">הנתונים נשמרים בחשבון שלך. בטלפון חדש פשוט מתחברים שוב והכל חוזר.</div>
       </div>
@@ -337,6 +361,14 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 <div class="sheet" id="setSheet" role="dialog" aria-modal="true" aria-labelledby="setTitle" hidden>
   <div class="sheet-inner">
     <div class="sheet-head"><h3 id="setTitle">הגדרות</h3><button class="icon-btn" type="button" data-close>סגירה</button></div>
+    <div class="profile-row">
+      <span class="avatar lg" id="setAvatar" aria-hidden="true"></span>
+      <div class="btns">
+        <label class="btn ghost" for="avatarFile">החלפת תמונת פרופיל</label>
+        <button class="btn ghost" type="button" id="avatarRemove">הסרה</button>
+      </div>
+      <input id="avatarFile" type="file" accept="image/*" hidden>
+    </div>
     <div class="field"><label class="lbl" for="sName">השם שלי (יופיע בסיכום)</label><input id="sName" type="text" autocomplete="name"></div>
     <div class="field"><label class="lbl" for="sPhone">וואטסאפ של הבוס</label><input id="sPhone" type="tel" placeholder="050-1234567" inputmode="tel"></div>
     <div class="inline">
@@ -383,7 +415,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     repair: ["איזה מכשיר? (לא חובה)", "למשל: Galaxy S24"],
     line: ["הערה (לא חובה)", "למשל: 3 קווים משפחה, ניוד מסלקום"]
   };
-  var DEFAULT_SETTINGS = { name: "", phone: "", reg: 10, big: 50 };
+  var DEFAULT_SETTINGS = { name: "", phone: "", reg: 10, big: 50, avatar: "" };
   var ENTRY_COLS = "id,kind,sub,big,amount,date,month,note,ts";
 
   var sb = window.supabase.createClient(SB_URL, SB_KEY, {
@@ -464,7 +496,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     var myAcct = accts.active;
     var r = await sb.from("entries").select(ENTRY_COLS).range(0, 49999);
     if (r.error) throw r.error;
-    var s = await sb.from("settings").select("name,phone,reg,big").maybeSingle();
+    var s = await sb.from("settings").select("name,phone,reg,big,avatar").maybeSingle();
     if (accts.active !== myAcct) return;
     var next = {};
     r.data.forEach(function (row) { var id = row.id; delete row.id; next[id] = row; });
@@ -479,7 +511,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     } else if (!s.error) {
       queue({ kind: "settings", row: Object.assign({}, state.settings) });
     }
-    var a = activeAcct(); if (a) { a.name = state.settings.name; saveAccts(); }
+    var a = activeAcct(); if (a) { a.name = state.settings.name; a.avatar = state.settings.avatar; saveAccts(); }
     saveCache(); render();
   }
 
@@ -517,6 +549,37 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     a.session = { access_token: session.access_token, refresh_token: session.refresh_token };
     accts.active = u.id; saveAccts();
     return activate(u.id);
+  }
+
+  // ---------- avatar ----------
+  var gravatarCache = {};
+  function initials(a) {
+    var n = (a.name || "").trim();
+    if (n) { var parts = n.split(/\s+/); return (parts[0].charAt(0) + (parts[1] ? parts[1].charAt(0) : "")).toUpperCase(); }
+    return (a.email || "?").charAt(0).toUpperCase();
+  }
+  async function gravatarUrl(email) {
+    if (gravatarCache[email] !== undefined) return gravatarCache[email];
+    try {
+      var buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(email.trim().toLowerCase()));
+      var hex = Array.from(new Uint8Array(buf)).map(function (b) { return b.toString(16).padStart(2, "0"); }).join("");
+      gravatarCache[email] = "https://gravatar.com/avatar/" + hex + "?s=160&d=404";
+    } catch (e) { gravatarCache[email] = ""; }
+    return gravatarCache[email];
+  }
+  // photo the user set > their Gravatar (if they have one) > initials
+  function paintAvatar(box, a) {
+    box.textContent = initials(a);
+    var key = (a.avatar ? "img:" + a.avatar.length : "g:") + a.email + "|" + (a.name || "");
+    box.setAttribute("data-key", key);
+    function put(src) {
+      if (box.getAttribute("data-key") !== key) return;
+      var img = new Image(); img.alt = "";
+      img.onload = function () { if (box.getAttribute("data-key") === key) { box.textContent = ""; box.appendChild(img); } };
+      img.src = src;
+    }
+    if (a.avatar) put(a.avatar);
+    else if (a.email) gravatarUrl(a.email).then(function (u) { if (u) put(u); });
   }
 
   // ---------- render ----------
@@ -560,7 +623,16 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
   }
   function render() {
     var list = monthEntries(), t = totals(list), a = activeAcct();
-    $("acctBtn").textContent = a ? acctLabel(Object.assign({}, a, { name: state.settings.name })) : "חשבון";
+    var me = a ? Object.assign({}, a, { name: state.settings.name, avatar: state.settings.avatar }) : null;
+    $("acctName").textContent = me ? acctLabel(me) : "התחברות";
+    $("acctAvatar").hidden = !me;
+    if (me) paintAvatar($("acctAvatar"), me);
+    var big = list.filter(function (e) { return e.big; }).length;
+    $("totalSub").textContent = "";
+    if (list.length) {
+      $("totalSub").appendChild(el("b", null, fmt(list.length)));
+      $("totalSub").appendChild(document.createTextNode(" בונוסים החודש" + (big ? " · מתוכם " + big + " גדולים" : "")));
+    } else $("totalSub").textContent = "עוד אין בונוסים החודש";
     $("totalLabel").textContent = state.settings.name ? "מגיע ל" + state.settings.name + " החודש" : "מגיע לי החודש בבונוסים";
     $("monthName").textContent = monthLabel(state.month);
     $("nextMonth").disabled = state.month >= monthKey(new Date());
@@ -611,7 +683,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
       lines.push("");
     });
     if (!list.length) { lines.push("אין רישומים בחודש הזה."); lines.push(""); }
-    lines.push("סה״כ בונוסים: " + fmt(t.all) + " ₪");
+    var big = list.filter(function (e) { return e.big; }).length;
+    lines.push("🧾 מספר בונוסים: " + list.length + (big ? " (מתוכם " + big + " גדולים)" : ""));
+    lines.push("💰 סה״כ לתשלום: " + fmt(t.all) + " ₪");
     return lines.join("\n");
   }
   function waNumber(p) {
@@ -796,7 +870,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
       var b = el("button", "acct-item"); b.type = "button";
       var cur = a.uid === accts.active;
       b.setAttribute("aria-current", String(cur));
-      var who = el("span", "who"); who.appendChild(el("b", null, cur ? acctLabel(Object.assign({}, a, { name: state.settings.name })) : acctLabel(a))); who.appendChild(el("small", null, a.email));
+      var info = cur ? Object.assign({}, a, { name: state.settings.name, avatar: state.settings.avatar }) : a;
+      var av = el("span", "avatar"); paintAvatar(av, info); b.appendChild(av);
+      var who = el("span", "who"); who.appendChild(el("b", null, acctLabel(info))); who.appendChild(el("small", null, a.email));
       b.appendChild(who);
       b.appendChild(el("span", "tag", cur ? "פעיל" : (a.session ? "מעבר" : "צריך סיסמה")));
       b.addEventListener("click", function () { hide(); if (!cur) { activate(a.uid); toast("עברת לחשבון של " + acctLabel(a)); } });
@@ -905,6 +981,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     $("sName").value = state.settings.name || ""; $("sPhone").value = state.settings.phone || "";
     $("sReg").value = state.settings.reg; $("sBig").value = state.settings.big;
     $("importText").value = ""; $("importErr").hidden = true;
+    pendingAvatar = null; paintSetAvatar();
     show($("setSheet"));
   });
   $("saveSettings").addEventListener("click", function () {
@@ -913,11 +990,37 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     var r = parseInt($("sReg").value, 10), b = parseInt($("sBig").value, 10);
     if (r >= 0) state.settings.reg = r;
     if (b >= 0) state.settings.big = b;
-    var a = activeAcct(); if (a) { a.name = state.settings.name; saveAccts(); }
+    if (pendingAvatar !== null) state.settings.avatar = pendingAvatar;
+    var a = activeAcct(); if (a) { a.name = state.settings.name; a.avatar = state.settings.avatar; saveAccts(); }
     saveCache(); render();
     queue({ kind: "settings", row: Object.assign({}, state.settings) });
     hide(); toast("ההגדרות נשמרו");
   });
+  var pendingAvatar = null; // null = unchanged, "" = removed, data URL = new photo
+  function paintSetAvatar() {
+    var a = activeAcct(); if (!a) return;
+    var av = pendingAvatar !== null ? pendingAvatar : state.settings.avatar;
+    paintAvatar($("setAvatar"), Object.assign({}, a, { name: $("sName").value.trim() || state.settings.name, avatar: av }));
+    $("avatarRemove").hidden = !av;
+  }
+  $("avatarFile").addEventListener("change", function () {
+    var file = $("avatarFile").files && $("avatarFile").files[0];
+    $("avatarFile").value = "";
+    if (!file) return;
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onload = function () {
+      var S = 160, c = document.createElement("canvas"); c.width = S; c.height = S;
+      var side = Math.min(img.width, img.height);
+      c.getContext("2d").drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, S, S);
+      URL.revokeObjectURL(url);
+      pendingAvatar = c.toDataURL("image/jpeg", 0.85);
+      paintSetAvatar(); toast("לחץ „שמירה” כדי לשמור את התמונה");
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); toast("לא הצלחתי לפתוח את התמונה"); };
+    img.src = url;
+  });
+  $("avatarRemove").addEventListener("click", function () { pendingAvatar = ""; paintSetAvatar(); });
+
   function copyText(txt, okMsg, fallbackEl) {
     var fallback = function () { if (fallbackEl) { fallbackEl.focus(); fallbackEl.select(); } toast("הטקסט מסומן – לחץ העתק"); };
     try { navigator.clipboard.writeText(txt).then(function () { toast(okMsg); }, fallback); } catch (e) { fallback(); }

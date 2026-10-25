@@ -1,10 +1,11 @@
 // App-shell cache so the app opens without a connection. Data calls to Supabase always go to the network.
-const CACHE = "bonus-v2";
+const CACHE = "bonus-v3";
 const SHELL = [
   "/",
   "/manifest.webmanifest",
   "/icon-192.png",
   "/apple-touch-icon.png",
+  "/icon-512.png",
   "/supabase.js"
 ];
 
