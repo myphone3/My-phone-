@@ -251,6 +251,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 .member-row .avatar { width: 40px; height: 40px; }
 .team-total { display: flex; justify-content: space-between; font-weight: 700; padding-top: 8px; border-top: 2px solid var(--line); }
 .readonly-note { background: var(--soft); border-radius: 12px; padding: 10px 12px; font-size: .9rem; }
+.pill.ok { background: #e3f6ea; color: #17803d; }
+@media (prefers-color-scheme: dark) { .pill.ok { background: #173d26; color: #7fe0a3; } }
+.member-row .m-total .pill { display: block; margin: 3px 0 0; text-align: center; }
 </style>
 </head>
 <body>
@@ -340,6 +343,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       <div class="hint num" id="compare"></div>
     </section>
     <div class="tab" id="catCards"></div>
+    <div class="readonly-note" id="lockNote" hidden>🔒 המנהל אישר את החודש הזה, אז אי אפשר לשנות בו רישומים. אם צריך תיקון, פנה למנהל.</div>
     <section class="card" aria-labelledby="hLog">
       <div class="card-head"><h2 id="hLog">כל הרישומים בחודש</h2><span class="sum num" id="sLog"></span></div>
       <div class="log" id="monthList"></div>
@@ -362,6 +366,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     </section>
     <section class="card">
       <div class="card-head"><h2>העובדים</h2><button class="mini-btn" type="button" id="teamRefresh">רענון</button></div>
+      <button class="btn primary" type="button" id="approveAll" hidden>אישור החודש לכל מי שממתין</button>
       <div id="memberList"></div>
       <div class="hint">לחיצה על עובד מציגה את כל הבונוסים שלו בחודש, ושם אפשר גם לאפס לו סיסמה.</div>
     </section>
@@ -422,6 +427,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 
     <div class="subtab" id="sub-types" hidden>
       <div class="readonly-note" id="typesNote" hidden></div>
+      <section class="card" id="cfgTargetCard" hidden>
+        <div class="card-head"><h2>הבונוסים של מי?</h2></div>
+        <div class="chips" id="cfgTargets"></div>
+        <div class="hint" id="cfgTargetNote"></div>
+        <button class="btn primary" type="button" id="cfgCustomize" hidden>הגדרת בונוסים אישיים לעובד הזה</button>
+        <button class="btn ghost" type="button" id="cfgReset" hidden>החזרה לבונוסים של הצוות</button>
+      </section>
       <section class="card" id="basePrices">
         <div class="card-head"><h2>מחירי בסיס</h2></div>
         <div class="inline">
@@ -561,22 +573,22 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     </div>
     <div class="seg" style="grid-template-columns:1fr 1fr" id="loginModes">
       <button type="button" data-lmode="in" aria-current="true">כניסה</button>
-      <button type="button" data-lmode="up" aria-current="false">הרשמה</button>
+      <button type="button" data-lmode="up" aria-current="false">הרשמה כעובד</button>
     </div>
     <button class="btn google wide" type="button" id="googleBtn" hidden>
       <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
       המשך עם Google
     </button>
+    <div class="field upOnly" hidden><label class="lbl" for="lCode">קוד הצוות שקיבלת מהמנהל</label><input id="lCode" type="text" dir="ltr" maxlength="6" autocapitalize="characters" autocomplete="off" placeholder="ABC123"></div>
     <div class="field upOnly" hidden><label class="lbl" for="lName">שם מלא</label><input id="lName" type="text" autocomplete="name"></div>
     <div class="field upOnly" hidden><label class="lbl" for="lPhone">מספר טלפון (חובה)</label><input id="lPhone" type="tel" inputmode="tel" dir="ltr" autocomplete="tel" placeholder="050-1234567"></div>
     <div class="field"><label class="lbl" for="lEmail">אימייל</label><input id="lEmail" type="email" dir="ltr" autocomplete="username" inputmode="email" placeholder="name@gmail.com"></div>
     <div class="field"><label class="lbl" for="lPass">סיסמה (לפחות 6 תווים)</label><input id="lPass" type="password" dir="ltr" autocomplete="current-password"></div>
-    <div class="field upOnly" hidden><label class="lbl" for="lCode">קוד צוות מהמנהל (לא חובה)</label><input id="lCode" type="text" dir="ltr" maxlength="6" autocapitalize="characters" placeholder="ABC123"></div>
-    <div class="err" id="loginErr" role="alert" hidden></div>
+        <div class="err" id="loginErr" role="alert" hidden></div>
     <button class="save inOnly" type="button" id="loginBtn">כניסה</button>
-    <button class="save upOnly" type="button" id="signupBtn" hidden>יצירת חשבון</button>
+    <button class="save upOnly" type="button" id="signupBtn" hidden>הרשמה והצטרפות לצוות</button>
     <button class="btn ghost inOnly" type="button" id="forgotBtn">שכחתי סיסמה</button>
-    <div class="hint">נרשמים רק פעם אחת. אחרי זה האפליקציה נכנסת לבד בכל פתיחה.</div>
+    <div class="hint" id="loginFoot">נרשמים רק פעם אחת. אחרי זה האפליקציה נכנסת לבד בכל פתיחה.</div>
   </div>
 </div>
 
@@ -706,6 +718,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       <div class="stat"><b class="num" id="mbTotal">0 ₪</b><span id="mbMonth"></span></div>
       <div class="stat"><b class="num" id="mbCount">0</b><span>בונוסים</span></div>
     </div>
+    <div class="readonly-note" id="mbApprovedNote" hidden></div>
+    <button class="save" type="button" id="mbApprove">אישור החודש</button>
+    <button class="btn ghost" type="button" id="mbUnapprove" hidden>ביטול האישור (לפתוח לעריכה)</button>
+    <button class="btn ghost" type="button" id="mbBonuses">הבונוסים של העובד הזה</button>
     <div class="rows" id="mbCats"></div>
     <div class="log" id="mbList"></div>
     <div class="section" id="mbAdmin">
@@ -767,7 +783,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   });
 
   var accts = { list: [], active: null };
-  var state = { entries: {}, settings: Object.assign({}, DEFAULT_SETTINGS), team: null, teamReady: true, month: monthKey(new Date()), tab: "add", sub: "profile" };
+  var state = { entries: {}, settings: Object.assign({}, DEFAULT_SETTINGS), team: null, teamReady: true, memberCfg: {}, cfgTarget: null, approved: {}, month: monthKey(new Date()), tab: "add", sub: "profile" };
   var share = { period: "this", picked: [], to: null };
   var pending = [];
   var online = false, syncing = false;
@@ -794,14 +810,31 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   function isMember() { return !!(state.team && state.team.role === "member"); }
   function phoneOk(p) { return String(p || "").replace(/\D/g, "").length >= 9; }
 
-  // ---------- bonus config (team rules win over personal ones) ----------
+  // ---------- bonus config ----------
+  // A worker gets their own config if the manager set one, else the team's; without a team, the personal settings.
+  function confFrom(src) { return { reg: Number(src.reg), big: Number(src.big), types: src.types, cats: src.cats, allowOther: src.allow_other !== false }; }
   function cfg() {
-    var src = state.team || state.settings;
-    return { reg: Number(src.reg), big: Number(src.big), types: src.types, cats: src.cats, allowOther: state.team ? state.team.allow_other !== false : true };
+    if (state.team) return confFrom(state.team.myConfig || state.team);
+    var c = confFrom(state.settings); c.allowOther = true; return c;
   }
-  function cats() { var c = cfg().cats; return Array.isArray(c) && c.length ? c : (Array.isArray(c) ? [] : DEFAULT_CATS); }
+  // the config being edited in Settings → Bonuses (team default, one worker, or personal)
+  function econf() {
+    if (!state.team) return cfg();
+    if (!state.cfgTarget) return confFrom(state.team);
+    return confFrom(state.memberCfg[state.cfgTarget] || state.team);
+  }
+  function targetHasOwn() { return !!(state.cfgTarget && state.memberCfg[state.cfgTarget]); }
+  function catsC(c) { return Array.isArray(c.cats) && c.cats.length ? c.cats : (Array.isArray(c.cats) ? [] : DEFAULT_CATS); }
+  function typesC(c) { return Array.isArray(c.types) ? c.types : defaultTypes(); }
+  function typesOfC(c, kind) { return typesC(c).filter(function (t) { return t.kind === kind; }); }
+  function typeAmountC(c, t) { return t.amount != null ? Number(t.amount) : (t.ultra ? c.big : c.reg); }
+  function cats() { return catsC(cfg()); }
+  function types() { return typesC(cfg()); }
+  function typesOf(kind) { return typesOfC(cfg(), kind); }
+  function typeAmount(t) { return typeAmountC(cfg(), t); }
   function catOf(kind) {
-    var c = cats().filter(function (x) { return x.id === kind; })[0];
+    var all = cats().concat(state.cfgTarget ? catsC(econf()) : []);
+    var c = all.filter(function (x) { return x.id === kind; })[0];
     if (c) return c;
     var d = DEFAULT_CATS.filter(function (x) { return x.id === kind; })[0];
     return d || { id: kind, name: kind, plural: kind, icon: "star" };
@@ -815,18 +848,31 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     });
     return out;
   }
-  function types() { var t = cfg().types; return Array.isArray(t) ? t : defaultTypes(); }
-  function typesOf(kind) { return types().filter(function (t) { return t.kind === kind; }); }
-  function typeAmount(t) { return t.amount != null ? Number(t.amount) : (t.ultra ? cfg().big : cfg().reg); }
-  function canEditConfig() { return !isMember(); }
+  function canEditConfig() { return !isMember() && (!state.cfgTarget || targetHasOwn()); }
+  function patchToRow(patch) {
+    var row = {};
+    Object.keys(patch).forEach(function (k) { row[k === "allowOther" ? "allow_other" : k] = patch[k]; });
+    return row;
+  }
   function saveConfig(patch) {
     if (isMember()) { toast("רק המנהל יכול לשנות את הבונוסים"); return; }
-    if (state.team) {
+    patch = patchToRow(patch);
+    if (!state.team) { Object.assign(state.settings, patch); persistSettings(); return; }
+    var done = function (r) { if (r.error) toast("השינוי לא נשמר בשרת. בדוק חיבור ונסה שוב."); };
+    if (!state.cfgTarget) {
       Object.assign(state.team, patch); saveCache(); render();
-      sb.from("teams").update(patch).eq("id", state.team.id).then(function (r) { if (r.error) toast("השינוי לא נשמר בשרת. בדוק חיבור ונסה שוב."); });
+      sb.from("teams").update(patch).eq("id", state.team.id).then(done);
       return;
     }
-    Object.assign(state.settings, patch); persistSettings();
+    var uidT = state.cfgTarget;
+    var next = Object.assign({}, state.memberCfg[uidT] || {}, patch);
+    setMemberCfg(uidT, next);
+  }
+  function setMemberCfg(uidT, conf) {
+    if (conf) state.memberCfg[uidT] = conf; else delete state.memberCfg[uidT];
+    if (uidT === (activeAcct() || {}).uid) state.team.myConfig = conf;
+    saveCache(); render();
+    sb.from("team_members").update({ config: conf }).eq("user_id", uidT).then(function (r) { if (r.error) toast("השינוי לא נשמר בשרת. בדוק חיבור ונסה שוב."); });
   }
   function kindsIn(list) {
     var ks = cats().map(function (c) { return c.id; });
@@ -850,7 +896,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   function saveAccts() { lsSet("bt.accounts", accts); }
   function saveCache() {
     if (!accts.active) return;
-    lsSet("bt.cache." + accts.active, { entries: state.entries, settings: state.settings, team: state.team });
+    lsSet("bt.cache." + accts.active, { entries: state.entries, settings: state.settings, team: state.team, approved: state.approved });
     lsSet("bt.pending." + accts.active, pending);
   }
   function loadCache(id) {
@@ -858,6 +904,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     state.entries = (c && c.entries) || {};
     state.settings = Object.assign({}, DEFAULT_SETTINGS, (c && c.settings) || {});
     state.team = (c && c.team) || null;
+    state.approved = (c && c.approved) || {};
+    state.memberCfg = {}; state.cfgTarget = null;
     pending = lsGet("bt.pending." + id, []);
   }
 
@@ -896,10 +944,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
         if (op.kind === "upsert") res = await sb.from("entries").upsert(Object.assign({ user_id: myAcct }, op.row), { onConflict: "user_id,id" });
         else if (op.kind === "delete") res = await sb.from("entries").delete().eq("id", op.id);
         else if (op.kind === "settings") res = await upsertSettings(myAcct, op.row);
+        if (res && res.error && (res.error.code === "42501" || /row-level security/i.test(res.error.message || "")) && op.kind !== "settings") {
+          toast("החודש הזה כבר אושר על ידי המנהל, אז השינוי לא נשמר.");
+          pending = pending.filter(function (x) { return x !== op; }); saveCache();
+          var a1 = activeAcct(); if (a1) pull().catch(function () {});
+          continue;
+        }
         if (res && res.error) throw res.error;
         if (accts.active !== myAcct) break;
-        // queue() may have replaced or reordered ops while this one was uploading
-        pending = pending.filter(function (x) { return x !== op; }); saveCache();
+        pending.shift(); saveCache();
       }
     } catch (e) {
       online = false;
@@ -907,12 +960,19 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     } finally { syncing = false; setStatus(); }
   }
   async function loadTeam(myAcct) {
-    var tm = await sb.from("team_members").select("role,team_id").eq("user_id", myAcct).maybeSingle();
+    var tm = await sb.from("team_members").select("role,team_id,config").eq("user_id", myAcct).maybeSingle();
     if (tm.error) { state.teamReady = false; state.team = null; return; }
     state.teamReady = true;
+    var ap = await sb.from("month_approvals").select("month").eq("user_id", myAcct);
+    if (!ap.error) { state.approved = {}; (ap.data || []).forEach(function (r) { state.approved[r.month] = true; }); }
     if (!tm.data) { state.team = null; return; }
     var tr = await sb.from("teams").select("*").eq("id", tm.data.team_id).maybeSingle();
-    state.team = tr.data ? Object.assign({}, tr.data, { role: tm.data.role }) : null;
+    state.team = tr.data ? Object.assign({}, tr.data, { role: tm.data.role, myConfig: tm.data.config || null }) : null;
+    if (state.team && tm.data.role === "manager") {
+      var ms = await sb.from("team_members").select("user_id,config").eq("team_id", tm.data.team_id);
+      state.memberCfg = {};
+      (ms.data || []).forEach(function (r) { if (r.config) state.memberCfg[r.user_id] = r.config; });
+    }
   }
   async function pull() {
     var myAcct = accts.active;
@@ -938,7 +998,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     }
     var a = activeAcct(); if (a) { a.name = state.settings.name; a.avatar = state.settings.avatar; saveAccts(); }
     saveCache(); render();
-    if (pendingJoin && !state.team && state.teamReady) { var code = pendingJoin; pendingJoin = ""; joinTeam(code); }
   }
   function persistSettings() {
     var a = activeAcct(); if (a) { a.name = state.settings.name; a.avatar = state.settings.avatar; saveAccts(); }
@@ -1025,7 +1084,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   }
 
   // ---------- tabs ----------
-  var TABS = ["add", "summary", "team", "settings"], SUBS = ["profile", "types", "team", "share", "backup"];
+  var TABS = ["add", "summary", "team", "settings"], SUBS = ["profile", "types", "team", "share", "backup"], MEMBER_SUBS = ["profile", "share"];
   function setTab(t) {
     if (t === "team" && !isManager()) t = "add";
     state.tab = t; lsSet("bt.tab", t);
@@ -1036,12 +1095,14 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     if (t === "team") loadOverview();
   }
   function setSub(s) {
+    if (isMember() && MEMBER_SUBS.indexOf(s) < 0) s = "profile";
     state.sub = s; lsSet("bt.sub", s);
     SUBS.forEach(function (n) { $("sub-" + n).hidden = n !== s; });
     $$("#tab-settings .seg button").forEach(function (b) { b.setAttribute("aria-current", String(b.getAttribute("data-sub") === s)); });
     if (s === "profile") fillProfile();
     if (s === "share") renderSharePanel();
     if (s === "team") renderTeamSettings();
+    if (s === "types") renderTypes();
   }
   $$(".tabbar button").forEach(function (b) { b.addEventListener("click", function () { setTab(b.getAttribute("data-tab")); }); });
   $$("#tab-settings .seg button").forEach(function (b) { b.addEventListener("click", function () { setSub(b.getAttribute("data-sub")); }); });
@@ -1091,6 +1152,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     var tt = totals(todays);
     $("sToday").textContent = todays.length ? countLine(tt) + " · " + fmt(tt.all) + " ₪" : "";
     renderLog($("todayList"), todays, false, "עוד לא נוסף כלום היום. לחץ על אחד הכפתורים למעלה.");
+    $("lockNote").hidden = !state.approved[state.month];
 
     var list = monthEntries(state.month), t = totals(list);
     $("totalLabel").textContent = state.settings.name ? "מגיע ל" + state.settings.name + " בחודש הזה" : "מגיע לי בחודש הזה";
@@ -1098,6 +1160,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     $("totalSub").textContent = "";
     if (t.count) { $("totalSub").appendChild(el("b", null, fmt(t.count))); $("totalSub").appendChild(document.createTextNode(" בונוסים" + (t.big ? " · מתוכם " + t.big + " אולטרה" : ""))); }
     else $("totalSub").textContent = "אין בונוסים בחודש הזה";
+    if (state.approved[state.month]) $("totalSub").appendChild(el("span", "pill", "✓ אושר על ידי המנהל"));
     var kp = $("kpis"); kp.textContent = "";
     kindsIn(list).forEach(function (k) {
       var d = el("div", "kpi"); d.appendChild(el("b", "num", String(t.byKind[k] || 0))); d.appendChild(el("span", null, catPlural(k))); kp.appendChild(d);
@@ -1121,8 +1184,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     var c = cfg();
     $("bRegVal").textContent = fmt(c.reg); $("bBigVal").textContent = fmt(c.big);
     $("tRegVal").textContent = fmt(c.reg); $("tBigVal").textContent = fmt(c.big);
-    if (document.activeElement !== $("sReg")) $("sReg").value = c.reg;
-    if (document.activeElement !== $("sBig")) $("sBig").value = c.big;
+    $$("#tab-settings .seg button").forEach(function (b) { b.hidden = isMember() && MEMBER_SUBS.indexOf(b.getAttribute("data-sub")) < 0; });
+    $("tab-settings").querySelector(".seg").style.gridTemplateColumns = isMember() ? "1fr 1fr" : "";
+    if (isMember() && MEMBER_SUBS.indexOf(state.sub) < 0 && state.tab === "settings") setSub("profile");
     if (state.team) { $("teamNameLbl").textContent = state.team.name; $("teamCode").textContent = state.team.join_code || "------"; updateInvite(); }
   }
   function renderAddKeys() {
@@ -1184,7 +1248,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       if (e.note) what.appendChild(el("small", null, e.note));
       it.appendChild(what);
       it.appendChild(el("span", "val num" + (e.big ? " big" : ""), fmt(e.amount) + " ₪"));
-      if (readOnly) { it.appendChild(el("span")); it.appendChild(el("span")); box.appendChild(it); return; }
+      if (typeof readOnly === "function") { readOnly(it, e); box.appendChild(it); return; }
+      if (readOnly || state.approved[e.month]) { it.appendChild(el("span")); it.appendChild(el("span", "hint", readOnly ? "" : "🔒")); box.appendChild(it); return; }
       var ed = el("button", "mini-btn", "עריכה"); ed.type = "button"; ed.setAttribute("aria-label", "עריכת " + catName(e.kind) + " " + e.sub);
       ed.addEventListener("click", function () { openEdit(e.id); });
       it.appendChild(ed);
@@ -1396,16 +1461,40 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   $("xlAll").addEventListener("click", function () { exportExcel(availableMonths().slice().sort(), $("xlAll")); });
 
   // ---------- bonus settings (categories, types, prices) ----------
+  function renderTargets() {
+    var box = $("cfgTargets"); box.textContent = "";
+    $("cfgTargetCard").hidden = !isManager();
+    if (!isManager()) return;
+    var mk = function (id, label, custom) {
+      var c = el("button", "chip", label + (custom ? " ✎" : "")); c.type = "button";
+      c.setAttribute("aria-pressed", String((state.cfgTarget || null) === id));
+      c.addEventListener("click", function () { state.cfgTarget = id; renderTypes(); });
+      box.appendChild(c);
+    };
+    mk(null, "כל הצוות", false);
+    overview.forEach(function (m) { mk(m.user_id, (m.name || m.email.split("@")[0]) + (m.role === "manager" ? " (אני)" : ""), !!state.memberCfg[m.user_id]); });
+    if (!overview.length) loadOverview();
+    var who = state.cfgTarget ? overview.filter(function (m) { return m.user_id === state.cfgTarget; })[0] : null;
+    var wn = who ? (who.name || who.email) : "";
+    $("cfgCustomize").hidden = !state.cfgTarget || targetHasOwn();
+    $("cfgReset").hidden = !targetHasOwn();
+    $("cfgTargetNote").textContent = !state.cfgTarget ? "אלה הבונוסים של כל מי שאין לו הגדרה אישית." :
+      targetHasOwn() ? "בונוסים אישיים של " + wn + ". מה שתשנה כאן חל רק על " + wn + "." :
+      "כרגע " + wn + " על הבונוסים של כל הצוות. אפשר להגדיר בונוסים אישיים.";
+  }
   function renderTypes() {
-    var editable = canEditConfig();
-    $("typesNote").hidden = editable;
-    if (!editable) $("typesNote").textContent = "את סוגי הבונוסים והמחירים קובע המנהל של " + (state.team ? state.team.name : "הצוות") + ". כאן אפשר רק לראות אותם.";
+    renderTargets();
+    var editable = canEditConfig(), E = econf();
+    $("typesNote").hidden = !isMember();
+    if (isMember()) $("typesNote").textContent = "את סוגי הבונוסים והמחירים קובע המנהל של " + (state.team ? state.team.name : "הצוות") + ".";
     $("basePrices").hidden = !editable;
-    $("addCat").hidden = !editable; $("resetTypes").hidden = !editable;
-    $("otherCard").hidden = !isManager();
-    $("allowOther").checked = cfg().allowOther;
+    $("addCat").hidden = !editable; $("resetTypes").hidden = !editable || !!state.cfgTarget;
+    $("otherCard").hidden = !isManager() || !editable;
+    $("allowOther").checked = E.allowOther;
+    if (document.activeElement !== $("sReg")) $("sReg").value = E.reg;
+    if (document.activeElement !== $("sBig")) $("sBig").value = E.big;
     var box = $("typeCards"); box.textContent = "";
-    cats().forEach(function (c) {
+    catsC(E).forEach(function (c) {
       var card = el("section", "card");
       var head = el("div", "card-head");
       var h = el("div", "cat-head"); var ic = el("span", "cat-ic"); ic.appendChild(icon(c.icon)); h.appendChild(ic); h.appendChild(el("h2", null, c.plural || c.name));
@@ -1413,14 +1502,14 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       if (editable) { var eb = el("button", "mini-btn", "עריכת קטגוריה"); eb.type = "button"; eb.addEventListener("click", function () { openCat(c.id); }); head.appendChild(eb); }
       card.appendChild(head);
       var rows = el("div", "rows");
-      var list = typesOf(c.id);
+      var list = typesOfC(E, c.id);
       if (!list.length) rows.appendChild(el("div", "empty-note", "אין סוגים בקטגוריה הזו."));
       list.forEach(function (t) {
         var row = el("div", "type-row");
         var name = el("span", "t-name", t.name);
         if (t.ultra) name.appendChild(el("span", "pill", "אולטרה"));
         row.appendChild(name);
-        row.appendChild(el("span", "t-amt num", fmt(typeAmount(t)) + " ₪"));
+        row.appendChild(el("span", "t-amt num", fmt(typeAmountC(E, t)) + " ₪"));
         if (editable) { var b = el("button", "mini-btn", "עריכה"); b.type = "button"; b.addEventListener("click", function () { openType(t.kind, t.id); }); row.appendChild(b); }
         else row.appendChild(el("span"));
         rows.appendChild(row);
@@ -1441,7 +1530,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     $("tUltraWrap").hidden = tier !== "custom";
   }
   function openType(kind, id) {
-    var t = id ? types().filter(function (x) { return x.id === id; })[0] : null;
+    var t = id ? typesC(econf()).filter(function (x) { return x.id === id; })[0] : null;
     editType = { kind: kind, id: id || null, tier: "reg" };
     $("typeTitle").textContent = t ? "עריכת " + t.name : "סוג חדש ב" + catPlural(kind);
     $("tName").value = t ? t.name : "";
@@ -1464,13 +1553,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       if (!(amt >= 0)) { $("tErr").textContent = "צריך לכתוב מחיר."; $("tErr").hidden = false; return; }
       ultra = $("tUltraFlag").checked;
     }
-    var list = types().map(function (x) { return Object.assign({}, x); });
+    var list = typesC(econf()).map(function (x) { return Object.assign({}, x); });
     if (editType.id) list.forEach(function (x) { if (x.id === editType.id) { x.name = name; x.amount = amt; x.ultra = ultra; } });
     else list.push({ id: "t-" + uid(), kind: editType.kind, name: name, ultra: ultra, amount: amt });
     saveConfig({ types: list }); hide(); toast("נשמר: " + name);
   });
   $("tDelete").addEventListener("click", function () {
-    var before = types();
+    var before = typesC(econf());
     var gone = before.filter(function (x) { return x.id === editType.id; })[0];
     saveConfig({ types: before.filter(function (x) { return x.id !== editType.id; }) });
     hide();
@@ -1488,7 +1577,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     });
   }
   function openCat(id) {
-    var c = id ? cats().filter(function (x) { return x.id === id; })[0] : null;
+    var c = id ? catsC(econf()).filter(function (x) { return x.id === id; })[0] : null;
     editCat = { id: id || null, icon: c ? c.icon : "star" };
     $("catTitle").textContent = c ? "עריכת " + (c.plural || c.name) : "קטגוריית בונוס חדשה";
     $("cgName").value = c ? c.name : ""; $("cgPlural").value = c ? (c.plural || "") : "";
@@ -1502,23 +1591,34 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   $("cgSave").addEventListener("click", function () {
     var name = $("cgName").value.trim(), plural = $("cgPlural").value.trim() || name;
     if (!name) { $("cgErr").textContent = "צריך לכתוב שם."; $("cgErr").hidden = false; return; }
-    var list = cats().map(function (x) { return Object.assign({}, x); });
+    var list = catsC(econf()).map(function (x) { return Object.assign({}, x); });
     var patch = {};
     if (editCat.id) list.forEach(function (x) { if (x.id === editCat.id) { x.name = name; x.plural = plural; x.icon = editCat.icon; } });
     else {
       var id = "c-" + uid();
       list.push({ id: id, name: name, plural: plural, icon: editCat.icon, subLabel: "סוג", plus: "הוספה" });
-      patch.types = types().concat([{ id: "t-" + uid(), kind: id, name: name, ultra: false, amount: null }]);
+      patch.types = typesC(econf()).concat([{ id: "t-" + uid(), kind: id, name: name, ultra: false, amount: null }]);
     }
     patch.cats = list;
     saveConfig(patch); hide(); toast("נשמר: " + name);
   });
   $("cgDelete").addEventListener("click", function () {
-    var beforeCats = cats(), beforeTypes = types();
+    var beforeCats = catsC(econf()), beforeTypes = typesC(econf());
     var gone = beforeCats.filter(function (x) { return x.id === editCat.id; })[0];
     saveConfig({ cats: beforeCats.filter(function (x) { return x.id !== editCat.id; }), types: beforeTypes.filter(function (t) { return t.kind !== editCat.id; }) });
     hide();
     toast("נמחקה הקטגוריה: " + (gone ? gone.plural || gone.name : ""), function () { saveConfig({ cats: beforeCats, types: beforeTypes }); });
+  });
+  $("cfgCustomize").addEventListener("click", function () {
+    var t = state.team;
+    setMemberCfg(state.cfgTarget, { reg: t.reg, big: t.big, types: typesC(confFrom(t)), cats: catsC(confFrom(t)), allow_other: t.allow_other !== false });
+    toast("עכשיו אפשר לשנות את הבונוסים רק לעובד הזה");
+  });
+  $("cfgReset").addEventListener("click", function () {
+    var uidT = state.cfgTarget, before = state.memberCfg[uidT];
+    delete state.memberCfg[uidT];
+    setMemberCfg(uidT, null); delete state.memberCfg[uidT]; render();
+    toast("העובד חזר לבונוסים של הצוות", function () { setMemberCfg(uidT, before); });
   });
   $("saveAmounts").addEventListener("click", function () {
     var r = parseInt($("sReg").value, 10), b = parseInt($("sBig").value, 10), patch = {};
@@ -1529,7 +1629,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   $("resetTypes").addEventListener("click", function () { $("resetTypesConfirm").hidden = false; $("resetTypes").hidden = true; });
   $("resetTypesNo").addEventListener("click", function () { $("resetTypesConfirm").hidden = true; $("resetTypes").hidden = false; });
   $("resetTypesYes").addEventListener("click", function () {
-    var before = { types: types(), cats: cats() };
+    var before = { types: typesC(econf()), cats: catsC(econf()) };
     saveConfig({ types: null, cats: null });
     $("resetTypesConfirm").hidden = true; $("resetTypes").hidden = false;
     toast("הרשימה המקורית חזרה", function () { saveConfig(before); });
@@ -1608,22 +1708,39 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   }
   function renderOverview() {
     var box = $("memberList"); box.textContent = "";
-    var sum = 0, cnt = 0;
+    var sum = 0, cnt = 0, appr = 0;
     overview.forEach(function (m) {
-      sum += m.total; cnt += m.cnt;
+      sum += m.total; cnt += m.cnt; if (m.approved) appr++;
       var b = el("button", "member-row"); b.type = "button";
       var av = el("span", "avatar"); paintAvatar(av, { name: m.name, email: m.email, avatar: m.avatar }); b.appendChild(av);
       var who = el("span", "who"); who.appendChild(el("b", null, (m.name || m.email.split("@")[0]) + (m.role === "manager" ? " (אני)" : "")));
       who.appendChild(el("small", null, m.phone || m.email)); b.appendChild(who);
-      var tot = el("span", "m-total num"); tot.appendChild(el("b", null, fmt(m.total) + " ₪")); tot.appendChild(el("small", null, m.cnt + " בונוסים" + (m.ultra ? " · " + m.ultra + " אולטרה" : ""))); b.appendChild(tot);
+      var tot = el("span", "m-total num"); tot.appendChild(el("b", null, fmt(m.total) + " ₪")); tot.appendChild(el("small", null, m.cnt + " בונוסים" + (m.ultra ? " · " + m.ultra + " אולטרה" : "")));
+      if (m.approved) tot.appendChild(el("span", "pill ok", "✓ אושר")); else if (m.cnt) tot.appendChild(el("span", "pill", "ממתין לאישור"));
+      b.appendChild(tot);
       b.addEventListener("click", function () { openMember(m); });
       box.appendChild(b);
     });
     if (!overview.length) box.appendChild(el("div", "empty-note", "עדיין אין עובדים בצוות."));
     $("teamTotal").textContent = fmt(sum);
-    $("teamSub").textContent = (overview.length) + " אנשים בצוות · " + fmt(cnt) + " בונוסים";
+    $("approveAll").hidden = !overview.some(function (m) { return !m.approved && m.cnt; });
+    $("teamSub").textContent = overview.length + " אנשים · " + fmt(cnt) + " בונוסים · " + appr + " מתוך " + overview.length + " אושרו";
+    if (state.tab === "settings" && state.sub === "types") renderTargets();
   }
   $("teamRefresh").addEventListener("click", loadOverview);
+  $("approveAll").addEventListener("click", async function () {
+    var waiting = overview.filter(function (m) { return !m.approved && m.cnt; });
+    $("approveAll").disabled = true;
+    try {
+      for (var i = 0; i < waiting.length; i++) {
+        var r = await sb.rpc("approve_month", { p_user: waiting[i].user_id, p_month: state.month, p_approve: true });
+        if (r.error) { toast(rpcError(r.error)); break; }
+        if (waiting[i].user_id === (activeAcct() || {}).uid) { state.approved[state.month] = true; saveCache(); render(); }
+      }
+      toast("אושר " + monthLabel(state.month) + " ל-" + waiting.length + " עובדים");
+      loadOverview();
+    } finally { $("approveAll").disabled = false; }
+  });
   function inviteText() {
     return "הוזמנת לצוות " + state.team.name + " ביומן בונוסים 🎉\n" +
       "1. פותחים את הקישור: " + location.origin + "/?join=" + state.team.join_code + "\n" +
@@ -1663,6 +1780,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     $("mbContact").textContent = [m.phone, m.email].filter(Boolean).join(" · ");
     $("mbTotal").textContent = fmt(m.total) + " ₪"; $("mbCount").textContent = m.cnt; $("mbMonth").textContent = monthLabel(state.month);
     $("mbAdmin").hidden = m.role === "manager";
+    paintApproval(m);
     $("mbErr").hidden = true; $("mbPass").value = ""; $("mbRemoveConfirm").hidden = true; $("mbRemove").hidden = false;
     $("mbCats").textContent = ""; $("mbList").textContent = ""; $("mbList").appendChild(el("div", "empty-note", "טוען…"));
     show($("memberSheet"));
@@ -1676,8 +1794,39 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       var row = el("div", "row"); row.appendChild(el("span", null, catPlural(k))); row.appendChild(el("span", "cnt num", String(t.byKind[k]))); row.appendChild(el("span", "amt num", fmt(t.amtByKind[k]) + " ₪"));
       $("mbCats").appendChild(row);
     });
-    renderLog($("mbList"), list, true, "אין רישומים בחודש הזה.", true);
+    renderLog($("mbList"), list, true, "אין רישומים בחודש הזה.", function (it, e) {
+      it.appendChild(el("span"));
+      if (m.approved) { it.appendChild(el("span", "hint", "🔒")); return; }
+      var d = el("button", "mini-btn del", "✕"); d.type = "button"; d.setAttribute("aria-label", "מחיקת " + e.sub);
+      d.addEventListener("click", async function () {
+        var r = await sb.from("entries").delete().eq("user_id", m.user_id).eq("id", e.id);
+        if (r.error) { toast("לא הצלחתי למחוק. בדוק חיבור."); return; }
+        toast("נמחק מהרישומים של " + (m.name || m.email)); await loadOverview();
+        var fresh = overview.filter(function (x) { return x.user_id === m.user_id; })[0]; if (fresh) openMember(fresh);
+      });
+      it.appendChild(d);
+    });
   }
+  function paintApproval(m) {
+    $("mbApprove").hidden = !!m.approved || !m.cnt;
+    $("mbUnapprove").hidden = !m.approved;
+    $("mbApprovedNote").hidden = !m.approved;
+    $("mbApprovedNote").textContent = "✓ החודש אושר. העובד לא יכול לשנות בו רישומים.";
+    $("mbApprove").textContent = "אישור " + monthLabel(state.month) + " · " + fmt(m.total) + " ₪";
+  }
+  async function setApproval(ok) {
+    var m = openMemberRow;
+    var r = await sb.rpc("approve_month", { p_user: m.user_id, p_month: state.month, p_approve: ok });
+    if (r.error) { toast(rpcError(r.error)); return; }
+    m.approved = ok; paintApproval(m);
+    if (m.user_id === (activeAcct() || {}).uid) { if (ok) state.approved[state.month] = true; else delete state.approved[state.month]; saveCache(); render(); }
+    toast(ok ? "אושר: " + (m.name || m.email) + " · " + monthLabel(state.month) : "האישור בוטל");
+    await loadOverview();
+    var fresh = overview.filter(function (x) { return x.user_id === m.user_id; })[0]; if (fresh) openMember(fresh);
+  }
+  $("mbApprove").addEventListener("click", function () { setApproval(true); });
+  $("mbUnapprove").addEventListener("click", function () { setApproval(false); });
+  $("mbBonuses").addEventListener("click", function () { var id = openMemberRow.user_id; hide(); state.cfgTarget = id; setTab("settings"); setSub("types"); });
   $("mbSetPass").addEventListener("click", async function () {
     var pass = $("mbPass").value; $("mbErr").hidden = true;
     if (pass.length < 6) { $("mbErr").textContent = "הסיסמה צריכה להיות לפחות 6 תווים."; $("mbErr").hidden = false; return; }
@@ -1783,7 +1932,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   });
   $("signupBtn").addEventListener("click", async function () {
     $("loginErr").hidden = true;
-    var name = $("lName").value.trim(), phone = $("lPhone").value.trim(), code = $("lCode").value.trim();
+    var name = $("lName").value.trim(), phone = $("lPhone").value.trim(), code = $("lCode").value.trim().toUpperCase();
+    if (!/^[A-Z0-9]{6}$/.test(code)) { loginError("צריך את קוד הצוות (6 תווים) שקיבלת מהמנהל."); return; }
     if (!name) { loginError("צריך לכתוב שם."); return; }
     if (!phoneOk(phone)) { loginError("צריך מספר טלפון תקין."); return; }
     var c = readCreds(); if (!c) return;
@@ -1791,22 +1941,21 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     try {
       var res = await fetch(SB_URL + "/functions/v1/signup", {
         method: "POST", headers: { "Content-Type": "application/json", apikey: SB_KEY },
-        body: JSON.stringify({ email: c.email, password: c.pass })
+        body: JSON.stringify({ email: c.email, password: c.pass, name: name, phone: phone, code: code })
       });
       var body = await res.json().catch(function () { return {}; });
       if (!res.ok) {
         if (body.error === "exists") loginError("כבר יש חשבון עם האימייל הזה. עבור ל„כניסה”.");
+        else if (body.error === "bad_code") loginError("קוד הצוות לא נכון. בדוק אותו עם המנהל.");
+        else if (body.error === "bad_phone") loginError("צריך מספר טלפון תקין.");
+        else if (body.error === "not_ready") loginError("ההרשמה עוד לא פתוחה. נסה שוב מאוחר יותר.");
         else if (body.error === "bad_email") loginError("כתובת האימייל לא תקינה.");
         else if (body.error === "weak_password") loginError("הסיסמה צריכה להיות 6 עד 72 תווים.");
         else loginError("יצירת החשבון נכשלה. נסה שוב בעוד רגע.");
         return;
       }
-      if (code) pendingJoin = code;
-      if (await doLogin(c)) {
-        state.settings.name = name; state.settings.my_phone = phone; persistSettings();
-        $("lName").value = ""; $("lPhone").value = ""; $("lCode").value = "";
-        if (pendingJoin && state.teamReady && !state.team) { var pj = pendingJoin; pendingJoin = ""; joinTeam(pj); }
-      }
+      pendingJoin = "";
+      if (await doLogin(c)) { $("lName").value = ""; $("lPhone").value = ""; $("lCode").value = ""; }
     } catch (e) { loginError("אין חיבור לאינטרנט. נסה שוב."); }
     finally { busy(false); }
   });
@@ -2050,6 +2199,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     var ultra = draft.bonus === "big" || (draft.bonus === "custom" && draft.typeUltra);
     var date = $("addDate").value || todayStr();
     var note = $("addNote").value.trim();
+    if (state.approved[date.slice(0, 7)]) { toast("המנהל כבר אישר את " + monthLabel(date.slice(0, 7)) + ". אי אפשר להוסיף או לשנות בו."); return; }
     if (draft.mode === "edit") {
       var eid = draft.id, before = Object.assign({}, state.entries[eid]);
       putEntry(eid, Object.assign({}, before, { kind: kind, sub: sub, big: ultra, amount: amount, date: date, month: date.slice(0, 7), note: note }));
