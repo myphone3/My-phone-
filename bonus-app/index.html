@@ -1,0 +1,880 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>יומן בונוסים</title>
+<meta name="description" content="רישום מכירות מכשירים, קווים ותיקונים וסיכום בונוסים חודשי">
+<meta name="theme-color" content="#0b6e66">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="בונוסים">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700;800&family=Assistant:wght@400;600;700&display=swap">
+<style>
+/* Layout: one narrow phone column — account bar, month ledger, three big "add" keys, breakdown, log, share */
+:root {
+  --bg: #f3f5f8; --surface: #ffffff; --ink: #14202e; --muted: #5b6878; --line: #dde3ea;
+  --accent: #0b6e66; --accent-ink: #ffffff; --gold: #b9770e; --gold-soft: #fbf0db; --soft: #e6f2f0;
+  --danger: #b3261e; --wa: #128c4a;
+  --font-display: "Rubik", "Assistant", system-ui, sans-serif;
+  --font-body: "Assistant", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f151c; --surface: #18212b; --ink: #e9eef3; --muted: #9aa7b5; --line: #2a3542;
+    --accent: #3cc2b3; --accent-ink: #062320; --gold: #f0b54e; --gold-soft: #3a2c12; --soft: #16312e;
+    --danger: #f2827a; --wa: #3ccf7f; color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-top: calc(12px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+}
+[hidden] { display: none !important; }
+.wrap { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+h1, h2, h3 { font-family: var(--font-display); margin: 0; text-wrap: balance; }
+h2 { font-size: 1.05rem; font-weight: 700; }
+button { font: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+
+.top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.top-start { min-width: 0; }
+.brand { font-family: var(--font-display); font-size: 1.15rem; font-weight: 800; }
+.status { font-size: .8rem; color: var(--muted); overflow-wrap: anywhere; }
+.top-btns { display: flex; gap: 6px; flex-shrink: 0; }
+.icon-btn { background: transparent; border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; font-size: .9rem; color: var(--muted); }
+.acct-btn { background: var(--soft); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: .9rem; font-weight: 700; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.ledger { background: var(--accent); color: var(--accent-ink); border-radius: 18px; padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 12px; }
+.month-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.month-nav button { background: color-mix(in srgb, var(--accent-ink) 14%, transparent); border: 0; border-radius: 10px; width: 40px; height: 36px; font-size: 1.2rem; color: var(--accent-ink); }
+.month-nav button:disabled { opacity: .35; cursor: default; }
+.month-name { font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; }
+.total-label { font-size: .8rem; letter-spacing: .06em; opacity: .85; }
+.total { font-family: var(--font-display); font-weight: 800; font-size: 3rem; line-height: 1; }
+.total small { font-size: 1.4rem; font-weight: 700; margin-inline-start: 4px; }
+.kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.kpi { background: color-mix(in srgb, var(--accent-ink) 12%, transparent); border-radius: 12px; padding: 8px 10px; }
+.kpi b { display: block; font-family: var(--font-display); font-size: 1.35rem; }
+.kpi span { font-size: .8rem; opacity: .9; }
+
+.adds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.add { background: var(--surface); border: 1.5px solid var(--line); border-radius: 16px; padding: 14px 6px 12px; display: flex; flex-direction: column; align-items: center; gap: 6px; font-weight: 700; font-size: 1rem; transition: transform .08s; }
+.add:active { transform: scale(.97); }
+.add svg { width: 30px; height: 30px; stroke: var(--accent); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.add .plus { font-size: .75rem; color: var(--muted); font-weight: 600; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.card-head .sum { color: var(--muted); font-size: .9rem; }
+.rows { display: flex; flex-direction: column; }
+.row { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; padding: 7px 0; border-top: 1px dashed var(--line); }
+.row:first-child { border-top: 0; }
+.row .cnt { font-weight: 700; min-width: 2ch; text-align: center; }
+.row .amt { color: var(--muted); min-width: 5ch; text-align: left; font-size: .9rem; }
+.bar { height: 4px; background: var(--soft); border-radius: 4px; margin-top: 4px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+.pill { display: inline-block; font-size: .72rem; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--gold-soft); color: var(--gold); margin-inline-start: 6px; vertical-align: 1px; }
+.empty-note { color: var(--muted); font-size: .92rem; }
+
+.log { display: flex; flex-direction: column; }
+.log-day { font-size: .78rem; color: var(--muted); font-weight: 700; letter-spacing: .04em; padding: 10px 0 4px; }
+.log-item { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+.log-item .what { min-width: 0; }
+.log-item .what small { display: block; color: var(--muted); font-size: .82rem; overflow-wrap: anywhere; }
+.log-item .val { font-weight: 700; }
+.log-item .val.big { color: var(--gold); }
+.del { background: transparent; border: 0; color: var(--muted); font-size: 1.1rem; padding: 4px 8px; border-radius: 8px; }
+.more-btn { background: transparent; border: 0; color: var(--accent); font-weight: 700; padding: 8px 0 0; align-self: flex-start; }
+
+.share-text { width: 100%; min-height: 150px; resize: vertical; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--bg); color: var(--ink); font: inherit; font-size: .92rem; line-height: 1.5; }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { border: 0; border-radius: 12px; padding: 11px 16px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; font-size: 1rem; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); }
+.btn.wa { background: var(--wa); color: #fff; }
+.btn.ghost { background: var(--soft); color: var(--ink); }
+.btn.danger { background: transparent; color: var(--danger); border: 1.5px solid var(--danger); }
+.hint { font-size: .82rem; color: var(--muted); }
+.err { font-size: .9rem; color: var(--danger); font-weight: 600; }
+
+.scrim { position: fixed; inset: 0; background: rgba(8, 14, 20, .45); z-index: 20; }
+.sheet { position: fixed; inset: auto 0 0 0; z-index: 21; background: var(--surface); border-radius: 20px 20px 0 0; max-height: 90vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px));
+  padding-top: 16px; padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -10px 30px rgba(0,0,0,.18); }
+.sheet.full { inset: 0; border-radius: 0; max-height: none; padding-top: calc(24px + env(safe-area-inset-top, 0px)); }
+.sheet-inner { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.sheet h3 { font-size: 1.2rem; }
+.lbl { font-size: .82rem; color: var(--muted); font-weight: 700; letter-spacing: .03em; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1.5px solid var(--line); background: var(--bg); border-radius: 999px; padding: 8px 14px; font-weight: 600; }
+.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field input, .field textarea { display: block; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--bg); color: var(--ink); font: inherit; font-size: 16px; width: 100%; min-width: 0; max-width: 100%; min-height: 46px; -webkit-appearance: none; appearance: none; }
+.field input[type="date"] { text-align: right; }
+.field input[type="date"]::-webkit-date-and-time-value { text-align: right; }
+.field input[dir="ltr"] { text-align: left; }
+.inline { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.bonus-toggle { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.bonus-toggle button { border: 1.5px solid var(--line); background: var(--bg); border-radius: 12px; padding: 10px 4px; font-weight: 700; line-height: 1.25; }
+.bonus-toggle button[aria-pressed="true"] { border-color: var(--accent); background: var(--soft); }
+.bonus-toggle button.gold[aria-pressed="true"] { border-color: var(--gold); background: var(--gold-soft); color: var(--gold); }
+.save { background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 14px; padding: 14px; font-weight: 800; font-size: 1.05rem; font-family: var(--font-display); }
+.save:disabled { opacity: .45; cursor: default; }
+.save.alt { background: var(--soft); color: var(--ink); }
+.section { border-top: 1px solid var(--line); padding-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+
+.acct-list { display: flex; flex-direction: column; gap: 8px; }
+.acct-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1.5px solid var(--line); background: var(--bg); border-radius: 14px; padding: 12px 14px; text-align: right; width: 100%; }
+.acct-item[aria-current="true"] { border-color: var(--accent); background: var(--soft); }
+.acct-item .who { min-width: 0; }
+.acct-item .who b { display: block; }
+.acct-item .who small { color: var(--muted); overflow-wrap: anywhere; }
+.acct-item .tag { font-size: .75rem; font-weight: 700; color: var(--accent); flex-shrink: 0; }
+
+.login-hero { display: flex; flex-direction: column; gap: 6px; padding-bottom: 6px; }
+.login-hero .logo { width: 56px; height: 56px; border-radius: 14px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: 1.8rem; }
+
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 30; background: var(--ink); color: var(--bg); border-radius: 12px; padding: 10px 14px; display: flex; align-items: center; gap: 12px; font-weight: 600; width: max-content; max-width: calc(100% - 32px); box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+.toast button { background: transparent; border: 0; color: var(--soft); font-weight: 800; text-decoration: underline; }
+@media (prefers-reduced-motion: no-preference) {
+  .sheet:not([hidden]):not(.full) { animation: up .18s ease-out; }
+  @keyframes up { from { transform: translateY(30px); opacity: .6; } to { transform: none; opacity: 1; } }
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="main">
+  <div class="top">
+    <div class="top-start">
+      <div class="brand">יומן בונוסים</div>
+      <div class="status" id="status">טוען…</div>
+    </div>
+    <div class="top-btns">
+      <button class="acct-btn" id="acctBtn" type="button">חשבון</button>
+      <button class="icon-btn" id="openSettings" type="button">הגדרות</button>
+    </div>
+  </div>
+
+  <section class="ledger" aria-label="סיכום החודש">
+    <div class="month-nav">
+      <button type="button" id="prevMonth" aria-label="חודש קודם">›</button>
+      <div class="month-name" id="monthName"></div>
+      <button type="button" id="nextMonth" aria-label="חודש הבא">‹</button>
+    </div>
+    <div>
+      <div class="total-label" id="totalLabel">מגיע לי החודש בבונוסים</div>
+      <div class="total num"><span id="total">0</span><small>₪</small></div>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><b class="num" id="kDevices">0</b><span>מכשירים</span></div>
+      <div class="kpi"><b class="num" id="kLines">0</b><span>קווים</span></div>
+      <div class="kpi"><b class="num" id="kRepairs">0</b><span>תיקונים</span></div>
+    </div>
+  </section>
+
+  <div class="adds" role="group" aria-label="הוספה מהירה">
+    <button class="add" type="button" data-add="device">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg>
+      מכשיר<span class="plus">+ מכירה</span>
+    </button>
+    <button class="add" type="button" data-add="line">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6v8H9z"/><path d="M9 12h6M12 8v8"/></svg>
+      קו<span class="plus">+ חיבור</span>
+    </button>
+    <button class="add" type="button" data-add="repair">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6.5a4 4 0 0 0-5.3 5.2L3.5 17.4l3.1 3.1 5.7-5.7a4 4 0 0 0 5.2-5.3l-2.4 2.4-2.2-.6-.6-2.2z"/></svg>
+      תיקון<span class="plus">+ תיקון</span>
+    </button>
+  </div>
+
+  <section class="card" aria-labelledby="hRepairs">
+    <div class="card-head"><h2 id="hRepairs">תיקונים לפי סוג</h2><span class="sum num" id="sRepairs"></span></div>
+    <div class="rows" id="rRepairs"></div>
+  </section>
+  <section class="card" aria-labelledby="hLines">
+    <div class="card-head"><h2 id="hLines">קווים לפי חברה</h2><span class="sum num" id="sLines"></span></div>
+    <div class="rows" id="rLines"></div>
+  </section>
+  <section class="card" aria-labelledby="hDevices">
+    <div class="card-head"><h2 id="hDevices">מכשירים שנמכרו</h2><span class="sum num" id="sDevices"></span></div>
+    <div class="rows" id="rDevices"></div>
+  </section>
+
+  <section class="card" aria-labelledby="hLog">
+    <div class="card-head"><h2 id="hLog">כל הרישומים בחודש</h2><span class="sum num" id="sLog"></span></div>
+    <div class="log" id="log"></div>
+    <button class="more-btn" type="button" id="moreLog" hidden>הצג הכל</button>
+  </section>
+
+  <section class="card" aria-labelledby="hShare">
+    <div class="card-head"><h2 id="hShare">סיכום לבוס</h2></div>
+    <textarea class="share-text" id="shareText" readonly aria-label="טקסט הסיכום"></textarea>
+    <div class="btns">
+      <a class="btn wa" id="waLink" href="https://wa.me/" target="_blank" rel="noopener">שליחה בוואטסאפ</a>
+      <button class="btn ghost" type="button" id="nativeShare" hidden>שיתוף…</button>
+      <button class="btn primary" type="button" id="copyBtn">העתקה</button>
+    </div>
+    <div class="hint" id="waHint"></div>
+  </section>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+
+<!-- login / add account -->
+<div class="sheet full" id="loginSheet" role="dialog" aria-modal="true" aria-labelledby="loginTitle" hidden>
+  <div class="sheet-inner">
+    <div class="sheet-head">
+      <div class="login-hero">
+        <div class="logo" aria-hidden="true">₪</div>
+        <h3 id="loginTitle">התחברות</h3>
+        <div class="hint" id="loginSub">הנתונים נשמרים בחשבון שלך. בטלפון חדש פשוט מתחברים שוב והכל חוזר.</div>
+      </div>
+      <button class="icon-btn" type="button" id="loginClose">סגירה</button>
+    </div>
+    <div class="field"><label class="lbl" for="lEmail">אימייל</label><input id="lEmail" type="email" dir="ltr" autocomplete="username" inputmode="email" placeholder="name@gmail.com"></div>
+    <div class="field"><label class="lbl" for="lPass">סיסמה (לפחות 6 תווים)</label><input id="lPass" type="password" dir="ltr" autocomplete="current-password"></div>
+    <div class="err" id="loginErr" role="alert" hidden></div>
+    <button class="save" type="button" id="loginBtn">התחברות</button>
+    <button class="save alt" type="button" id="signupBtn">יצירת חשבון חדש</button>
+    <div class="hint">חשבון חדש נוצר מיד, בלי מייל אימות. כדאי לשמור את הסיסמה במקום בטוח.</div>
+  </div>
+</div>
+
+<!-- accounts -->
+<div class="sheet" id="acctSheet" role="dialog" aria-modal="true" aria-labelledby="acctTitle" hidden>
+  <div class="sheet-inner">
+    <div class="sheet-head"><h3 id="acctTitle">חשבונות במכשיר</h3><button class="icon-btn" type="button" data-close>סגירה</button></div>
+    <div class="hint">אפשר לשמור כאן כמה חשבונות ולעבור ביניהם, למשל של עובד שאין לו טלפון.</div>
+    <div class="acct-list" id="acctList"></div>
+    <button class="save" type="button" id="addAcct">+ הוספת חשבון</button>
+    <div class="section">
+      <button class="btn danger" type="button" id="logoutBtn">התנתקות מהחשבון הזה</button>
+      <div class="confirm-row btns" id="logoutConfirm" hidden>
+        <button class="btn danger" type="button" id="logoutYes">כן, להתנתק</button>
+        <button class="btn ghost" type="button" id="logoutNo">ביטול</button>
+      </div>
+      <div class="hint" id="logoutHint">הנתונים נשארים שמורים בחשבון. אפשר להתחבר שוב בכל זמן.</div>
+    </div>
+  </div>
+</div>
+
+<!-- add entry -->
+<div class="sheet" id="addSheet" role="dialog" aria-modal="true" aria-labelledby="addTitle" hidden>
+  <div class="sheet-inner">
+    <div class="sheet-head"><h3 id="addTitle">הוספה</h3><button class="icon-btn" type="button" data-close>סגירה</button></div>
+    <div class="field">
+      <span class="lbl" id="subLabel">סוג</span>
+      <div class="chips" id="subChips" role="group" aria-labelledby="subLabel"></div>
+    </div>
+    <div class="field" id="subOtherBox" hidden>
+      <label class="lbl" for="subOther" id="subOtherLbl">מה בדיוק? (לא חובה)</label>
+      <input id="subOther" type="text" placeholder="כתוב כאן…">
+    </div>
+    <div class="field">
+      <span class="lbl">בונוס</span>
+      <div class="bonus-toggle">
+        <button type="button" id="bReg" aria-pressed="true">רגיל<br><span class="num" id="bRegVal">10</span> ₪</button>
+        <button type="button" id="bBig" class="gold" aria-pressed="false">גדול<br><span class="num" id="bBigVal">50</span> ₪</button>
+        <button type="button" id="bCustom" aria-pressed="false">סכום<br>אחר</button>
+      </div>
+    </div>
+    <div class="field" id="customBox" hidden>
+      <label class="lbl" for="customAmt">סכום הבונוס (₪)</label>
+      <input id="customAmt" type="number" min="0" inputmode="numeric" placeholder="למשל 30">
+    </div>
+    <div class="inline">
+      <div class="field"><label class="lbl" for="addQty">כמות</label><input id="addQty" type="number" min="1" max="50" value="1" inputmode="numeric"></div>
+      <div class="field"><label class="lbl" for="addDate">תאריך</label><input id="addDate" type="date"></div>
+    </div>
+    <div class="field"><label class="lbl" for="addNote" id="addNoteLbl">הערה (לא חובה)</label><input id="addNote" type="text" placeholder="למשל: לקוח קבוע"></div>
+    <button class="save" type="button" id="saveBtn" disabled>בחר סוג כדי לשמור</button>
+  </div>
+</div>
+
+<!-- settings -->
+<div class="sheet" id="setSheet" role="dialog" aria-modal="true" aria-labelledby="setTitle" hidden>
+  <div class="sheet-inner">
+    <div class="sheet-head"><h3 id="setTitle">הגדרות</h3><button class="icon-btn" type="button" data-close>סגירה</button></div>
+    <div class="field"><label class="lbl" for="sName">השם שלי (יופיע בסיכום)</label><input id="sName" type="text" autocomplete="name"></div>
+    <div class="field"><label class="lbl" for="sPhone">וואטסאפ של הבוס</label><input id="sPhone" type="tel" placeholder="050-1234567" inputmode="tel"></div>
+    <div class="inline">
+      <div class="field"><label class="lbl" for="sReg">בונוס רגיל (₪)</label><input id="sReg" type="number" min="0" inputmode="numeric"></div>
+      <div class="field"><label class="lbl" for="sBig">בונוס גדול (₪)</label><input id="sBig" type="number" min="0" inputmode="numeric"></div>
+    </div>
+    <div class="hint">שינוי סכום משפיע רק על רישומים חדשים.</div>
+    <button class="save" type="button" id="saveSettings">שמירה</button>
+
+    <div class="section">
+      <h3>גיבוי והעברת נתונים</h3>
+      <div class="hint">כל רישום נשמר אוטומטית בחשבון. כאן אפשר גם להעתיק עותק של הנתונים, או להדביק נתונים מהגרסה הקודמת של האפליקציה.</div>
+      <div class="btns">
+        <button class="btn ghost" type="button" id="exportBtn">העתקת גיבוי</button>
+      </div>
+      <div class="field">
+        <label class="lbl" for="importText">הדבקת גיבוי לייבוא</label>
+        <textarea id="importText" rows="3" dir="ltr" placeholder='{"entries": …}'></textarea>
+      </div>
+      <button class="btn primary" type="button" id="importBtn">ייבוא לחשבון הזה</button>
+      <div class="err" id="importErr" hidden></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" hidden><span id="toastMsg"></span><button type="button" id="toastUndo" hidden>ביטול</button></div>
+
+<script src="/supabase.js"></script>
+<script>
+(function () {
+  "use strict";
+  var SB_URL = "https://lgdtbdhzbfjtmkllktty.supabase.co";
+  var SB_KEY = "sb_publishable_Gl3S59e9W1GgE6Tp5y-9Cw_tj1nNeGi";
+  var MONTHS = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+  var KIND = { device: "מכשיר", line: "קו", repair: "תיקון" };
+  var KIND_PL = { device: "מכשירים", line: "קווים", repair: "תיקונים" };
+  var SUBS = {
+    device: [{ n: "אייפון" }, { n: "סמסונג" }, { n: "שיאומי" }, { n: "כשר" }, { n: "אחר" }],
+    line: [{ n: "פלאפון" }, { n: "סלקום" }, { n: "פרטנר" }, { n: "הוט מובייל" }, { n: "גולן טלקום" }, { n: "019 מובייל" }, { n: "רמי לוי" }, { n: "אחר" }],
+    repair: [{ n: "מסך" }, { n: "סוללה" }, { n: "שקע טעינה" }, { n: "זכוכית אחורית" }, { n: "מצלמה", big: true }, { n: "סמארטפון יקר", big: true }, { n: "לוח אם", big: true }, { n: "תוכנה" }, { n: "אחר" }]
+  };
+  var NOTE_LBL = {
+    device: ["איזה דגם? (לא חובה)", "למשל: iPhone 16 Pro 256GB"],
+    repair: ["איזה מכשיר? (לא חובה)", "למשל: Galaxy S24"],
+    line: ["הערה (לא חובה)", "למשל: 3 קווים משפחה, ניוד מסלקום"]
+  };
+  var DEFAULT_SETTINGS = { name: "", phone: "", reg: 10, big: 50 };
+  var ENTRY_COLS = "id,kind,sub,big,amount,date,month,note,ts";
+
+  var sb = window.supabase.createClient(SB_URL, SB_KEY, {
+    auth: { persistSession: false, autoRefreshToken: true, detectSessionInUrl: false }
+  });
+
+  // accounts: [{uid, email, session}] kept on this device; active = uid
+  var accts = { list: [], active: null };
+  var state = { entries: {}, settings: Object.assign({}, DEFAULT_SETTINGS), month: monthKey(new Date()), showAllLog: false };
+  var pending = [];
+  var online = false, syncing = false;
+
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function monthKey(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1); }
+  function todayStr() { var d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function monthLabel(k) { var p = k.split("-"); return MONTHS[+p[1] - 1] + " " + p[0]; }
+  function shiftMonth(k, by) { var p = k.split("-"); return monthKey(new Date(+p[0], +p[1] - 1 + by, 1)); }
+  function fmt(n) { return Number(n).toLocaleString("he-IL"); }
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function lsGet(k, def) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch (e) { return def; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+  function activeAcct() { for (var i = 0; i < accts.list.length; i++) if (accts.list[i].uid === accts.active) return accts.list[i]; return null; }
+  function acctLabel(a) { return (a.name || a.email.split("@")[0]); }
+
+  // ---------- local cache ----------
+  function saveAccts() { lsSet("bt.accounts", accts); }
+  function saveCache() {
+    if (!accts.active) return;
+    lsSet("bt.cache." + accts.active, { entries: state.entries, settings: state.settings });
+    lsSet("bt.pending." + accts.active, pending);
+  }
+  function loadCache(id) {
+    var c = lsGet("bt.cache." + id, null);
+    state.entries = (c && c.entries) || {};
+    state.settings = Object.assign({}, DEFAULT_SETTINGS, (c && c.settings) || {});
+    pending = lsGet("bt.pending." + id, []);
+  }
+
+  // ---------- sync ----------
+  function setStatus() {
+    var a = activeAcct();
+    if (!a) { $("status").textContent = "לא מחובר"; return; }
+    var who = a.email;
+    if (pending.length) $("status").textContent = who + " · " + pending.length + " שינויים ממתינים לחיבור";
+    else if (!online) $("status").textContent = who + " · לא מחובר לאינטרנט";
+    else $("status").textContent = who + " · מגובה";
+  }
+  function queue(op) {
+    // collapse earlier ops on the same entry
+    pending = pending.filter(function (p) { return !(op.id && p.id === op.id); });
+    if (op.kind === "settings") pending = pending.filter(function (p) { return p.kind !== "settings"; });
+    pending.push(op);
+    saveCache(); setStatus(); flush();
+  }
+  async function flush() {
+    if (syncing || !online || !pending.length) return;
+    var myAcct = accts.active;
+    syncing = true;
+    try {
+      while (pending.length && accts.active === myAcct) {
+        var op = pending[0], res;
+        if (op.kind === "upsert") res = await sb.from("entries").upsert(Object.assign({ user_id: myAcct }, op.row), { onConflict: "user_id,id" });
+        else if (op.kind === "delete") res = await sb.from("entries").delete().eq("id", op.id);
+        else if (op.kind === "settings") res = await sb.from("settings").upsert(Object.assign({ user_id: myAcct }, op.row), { onConflict: "user_id" });
+        if (res && res.error) throw res.error;
+        if (accts.active !== myAcct) break;
+        pending.shift(); saveCache();
+      }
+    } catch (e) {
+      online = false;
+      setTimeout(function () { online = true; flush(); }, 15000);
+    } finally { syncing = false; setStatus(); }
+  }
+  async function pull() {
+    var myAcct = accts.active;
+    var r = await sb.from("entries").select(ENTRY_COLS).range(0, 49999);
+    if (r.error) throw r.error;
+    var s = await sb.from("settings").select("name,phone,reg,big").maybeSingle();
+    if (accts.active !== myAcct) return;
+    var next = {};
+    r.data.forEach(function (row) { var id = row.id; delete row.id; next[id] = row; });
+    // local changes not yet uploaded win
+    pending.forEach(function (p) {
+      if (p.kind === "upsert") next[p.id] = p.row;
+      else if (p.kind === "delete") delete next[p.id];
+    });
+    state.entries = next;
+    if (s.data) {
+      if (!pending.some(function (p) { return p.kind === "settings"; })) state.settings = Object.assign({}, DEFAULT_SETTINGS, s.data);
+    } else if (!s.error) {
+      queue({ kind: "settings", row: Object.assign({}, state.settings) });
+    }
+    var a = activeAcct(); if (a) { a.name = state.settings.name; saveAccts(); }
+    saveCache(); render();
+  }
+
+  sb.auth.onAuthStateChange(function (event, session) {
+    if (!session) return;
+    var a = activeAcct();
+    if (a && session.user && session.user.id === a.uid) {
+      a.session = { access_token: session.access_token, refresh_token: session.refresh_token };
+      saveAccts();
+    }
+  });
+
+  async function activate(id) {
+    var a = accts.list.filter(function (x) { return x.uid === id; })[0];
+    if (!a) return;
+    accts.active = id; saveAccts();
+    loadCache(id); state.showAllLog = false; render(); setStatus();
+    if (!a.session) { openLogin("relogin", a.email); return; }
+    var r = await sb.auth.setSession(a.session);
+    if (accts.active !== id) return;
+    if (r.error || !r.data.session) {
+      if (r.error && /fetch|network|Failed/i.test(r.error.message || "")) { online = false; setStatus(); setTimeout(function () { if (accts.active === id) activate(id); }, 15000); return; }
+      a.session = null; saveAccts(); openLogin("relogin", a.email); return;
+    }
+    a.session = { access_token: r.data.session.access_token, refresh_token: r.data.session.refresh_token };
+    saveAccts();
+    online = true;
+    try { await flush(); await pull(); } catch (e) { online = false; }
+    setStatus();
+  }
+  function addAccount(session) {
+    var u = session.user;
+    var a = accts.list.filter(function (x) { return x.uid === u.id; })[0];
+    if (!a) { a = { uid: u.id, email: u.email, name: "" }; accts.list.push(a); }
+    a.session = { access_token: session.access_token, refresh_token: session.refresh_token };
+    accts.active = u.id; saveAccts();
+    return activate(u.id);
+  }
+
+  // ---------- render ----------
+  function monthEntries() {
+    var out = [];
+    for (var id in state.entries) { var e = state.entries[id]; if (e && e.month === state.month) out.push(Object.assign({ id: id }, e)); }
+    out.sort(function (a, b) { return a.date === b.date ? b.ts - a.ts : (b.date < a.date ? -1 : 1); });
+    return out;
+  }
+  function group(list, kind) {
+    var m = {}, order = [];
+    list.forEach(function (e) {
+      if (e.kind !== kind) return;
+      var key = e.sub + (e.big ? "|big" : "");
+      if (!m[key]) { m[key] = { sub: e.sub, big: !!e.big, count: 0, amount: 0 }; order.push(key); }
+      m[key].count += 1; m[key].amount += Number(e.amount) || 0;
+    });
+    return order.map(function (k) { return m[k]; }).sort(function (a, b) { return b.count - a.count; });
+  }
+  function renderRows(boxId, sumId, rows, kind) {
+    var box = $(boxId); box.textContent = "";
+    var total = 0, cnt = 0, max = 1;
+    rows.forEach(function (r) { total += r.amount; cnt += r.count; if (r.count > max) max = r.count; });
+    $(sumId).textContent = cnt ? cnt + " · " + fmt(total) + " ₪" : "";
+    if (!rows.length) { box.appendChild(el("div", "empty-note", "עוד אין " + KIND_PL[kind] + " החודש. לחיצה על „" + KIND[kind] + "” למעלה מוסיפה.")); return; }
+    rows.forEach(function (r) {
+      var row = el("div", "row"), name = el("div");
+      name.appendChild(el("span", null, r.sub));
+      if (r.big) name.appendChild(el("span", "pill", "בונוס גדול"));
+      var bar = el("div", "bar"), i = el("i"); i.style.width = Math.round(r.count / max * 100) + "%"; bar.appendChild(i); name.appendChild(bar);
+      row.appendChild(name);
+      row.appendChild(el("span", "cnt num", String(r.count)));
+      row.appendChild(el("span", "amt num", fmt(r.amount) + " ₪"));
+      box.appendChild(row);
+    });
+  }
+  function totals(list) {
+    var t = { all: 0, device: 0, line: 0, repair: 0 };
+    list.forEach(function (e) { t.all += Number(e.amount) || 0; t[e.kind] = (t[e.kind] || 0) + 1; });
+    return t;
+  }
+  function render() {
+    var list = monthEntries(), t = totals(list), a = activeAcct();
+    $("acctBtn").textContent = a ? acctLabel(Object.assign({}, a, { name: state.settings.name })) : "חשבון";
+    $("totalLabel").textContent = state.settings.name ? "מגיע ל" + state.settings.name + " החודש" : "מגיע לי החודש בבונוסים";
+    $("monthName").textContent = monthLabel(state.month);
+    $("nextMonth").disabled = state.month >= monthKey(new Date());
+    $("total").textContent = fmt(t.all);
+    $("kDevices").textContent = t.device; $("kLines").textContent = t.line; $("kRepairs").textContent = t.repair;
+    renderRows("rRepairs", "sRepairs", group(list, "repair"), "repair");
+    renderRows("rLines", "sLines", group(list, "line"), "line");
+    renderRows("rDevices", "sDevices", group(list, "device"), "device");
+    renderLog(list);
+    renderShare(list, t);
+    $("bRegVal").textContent = fmt(state.settings.reg);
+    $("bBigVal").textContent = fmt(state.settings.big);
+  }
+  function renderLog(list) {
+    var box = $("log"); box.textContent = "";
+    $("sLog").textContent = list.length ? list.length + " רישומים" : "";
+    if (!list.length) { box.appendChild(el("div", "empty-note", "כאן יופיע כל מה שנרשם החודש, לפי ימים. אפשר למחוק רישום שגוי עם ✕.")); $("moreLog").hidden = true; return; }
+    var limit = state.showAllLog ? list.length : 15, lastDay = "";
+    list.slice(0, limit).forEach(function (e) {
+      if (e.date !== lastDay) {
+        lastDay = e.date; var p = e.date.split("-");
+        var dow = new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString("he-IL", { weekday: "long" });
+        box.appendChild(el("div", "log-day", dow + " · " + (+p[2]) + "." + (+p[1])));
+      }
+      var it = el("div", "log-item");
+      var what = el("div", "what", KIND[e.kind] + " · " + e.sub);
+      if (e.note) what.appendChild(el("small", null, e.note));
+      it.appendChild(what);
+      it.appendChild(el("span", "val num" + (e.big ? " big" : ""), fmt(e.amount) + " ₪"));
+      var d = el("button", "del", "✕"); d.type = "button"; d.setAttribute("aria-label", "מחיקת " + KIND[e.kind] + " " + e.sub);
+      d.addEventListener("click", function () { deleteWithUndo(e.id); });
+      it.appendChild(d);
+      box.appendChild(it);
+    });
+    $("moreLog").hidden = list.length <= limit;
+    $("moreLog").textContent = "הצג את כל " + list.length + " הרישומים";
+  }
+  function shareText(list, t) {
+    var lines = [];
+    lines.push("סיכום בונוסים – " + monthLabel(state.month) + (state.settings.name ? " – " + state.settings.name : ""));
+    lines.push("");
+    ["device", "line", "repair"].forEach(function (k) {
+      var rows = group(list, k); if (!rows.length) return;
+      var amt = rows.reduce(function (s, r) { return s + r.amount; }, 0);
+      var head = k === "device" ? "📱 מכשירים" : k === "line" ? "📶 קווים" : "🔧 תיקונים";
+      lines.push(head + ": " + t[k] + " (" + fmt(amt) + " ₪)");
+      rows.forEach(function (r) { lines.push("• " + r.sub + (r.big ? " (בונוס גדול)" : "") + ": " + r.count); });
+      lines.push("");
+    });
+    if (!list.length) { lines.push("אין רישומים בחודש הזה."); lines.push(""); }
+    lines.push("סה״כ בונוסים: " + fmt(t.all) + " ₪");
+    return lines.join("\n");
+  }
+  function waNumber(p) {
+    var d = String(p || "").replace(/\D/g, "");
+    if (!d) return "";
+    if (d.charAt(0) === "0") d = "972" + d.slice(1);
+    return d;
+  }
+  function renderShare(list, t) {
+    var txt = shareText(list, t);
+    $("shareText").value = txt;
+    var num = waNumber(state.settings.phone);
+    $("waLink").href = "https://wa.me/" + num + "?text=" + encodeURIComponent(txt);
+    $("waHint").textContent = num ? "ההודעה תיפתח בצ׳אט עם הבוס (" + state.settings.phone + ")." : "אפשר לשמור את מספר הבוס בהגדרות, וההודעה תיפתח ישר אצלו.";
+  }
+
+  // ---------- entries ----------
+  function putEntry(id, e) {
+    state.entries[id] = e; saveCache(); render();
+    queue({ kind: "upsert", id: id, row: Object.assign({ id: id }, e) });
+  }
+  function removeEntry(id) {
+    delete state.entries[id]; saveCache(); render();
+    queue({ kind: "delete", id: id });
+  }
+  function deleteWithUndo(id) {
+    var e = state.entries[id]; if (!e) return;
+    removeEntry(id);
+    toast("נמחק: " + KIND[e.kind] + " · " + e.sub, function () { putEntry(id, e); });
+  }
+
+  // ---------- toast ----------
+  var toastTimer = null, undoFn = null;
+  function toast(msg, undo) {
+    $("toastMsg").textContent = msg; undoFn = undo || null;
+    $("toastUndo").hidden = !undo; $("toast").hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { $("toast").hidden = true; undoFn = null; }, 4500);
+  }
+  $("toastUndo").addEventListener("click", function () { if (undoFn) undoFn(); $("toast").hidden = true; undoFn = null; });
+
+  // ---------- sheets ----------
+  var openSheet = null;
+  function show(sheet) { hide(); openSheet = sheet; if (!sheet.classList.contains("full")) $("scrim").hidden = false; sheet.hidden = false; }
+  function hide() { if (openSheet) openSheet.hidden = true; $("scrim").hidden = true; openSheet = null; }
+  $("scrim").addEventListener("click", hide);
+  document.querySelectorAll("[data-close]").forEach(function (b) { b.addEventListener("click", hide); });
+  document.addEventListener("keydown", function (ev) { if (ev.key === "Escape" && openSheet && openSheet.id !== "loginSheet") hide(); });
+
+  // login
+  var loginMode = "first";
+  function openLogin(mode, email) {
+    loginMode = mode;
+    $("loginTitle").textContent = mode === "add" ? "הוספת חשבון" : mode === "relogin" ? "צריך להתחבר שוב" : "התחברות";
+    $("loginSub").textContent = mode === "add" ? "מתחברים לחשבון נוסף. אחר כך אפשר לעבור בין החשבונות בלחיצה על שם החשבון למעלה." :
+      mode === "relogin" ? "החיבור לחשבון הזה פג. הנתונים שמורים, צריך רק להזין סיסמה." :
+      "הנתונים נשמרים בחשבון שלך. בטלפון חדש פשוט מתחברים שוב והכל חוזר.";
+    $("lEmail").value = email || ""; $("lPass").value = "";
+    $("loginErr").hidden = true;
+    $("loginClose").hidden = !accts.list.length;
+    $("signupBtn").hidden = mode === "relogin";
+    show($("loginSheet"));
+  }
+  $("loginClose").addEventListener("click", hide);
+  function loginError(msg) { $("loginErr").textContent = msg; $("loginErr").hidden = false; }
+  function busy(on) { $("loginBtn").disabled = on; $("signupBtn").disabled = on; }
+  function readCreds() {
+    var email = $("lEmail").value.trim().toLowerCase(), pass = $("lPass").value;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { loginError("כתובת האימייל לא תקינה."); return null; }
+    if (pass.length < 6) { loginError("הסיסמה צריכה להיות לפחות 6 תווים."); return null; }
+    return { email: email, pass: pass };
+  }
+  async function doLogin(c) {
+    var r = await sb.auth.signInWithPassword({ email: c.email, password: c.pass });
+    if (r.error) {
+      if (/invalid/i.test(r.error.message)) loginError("האימייל או הסיסמה לא נכונים.");
+      else if (/fetch|network/i.test(r.error.message)) loginError("אין חיבור לאינטרנט. נסה שוב.");
+      else loginError("ההתחברות נכשלה: " + r.error.message);
+      if (activeAcct() && activeAcct().session) sb.auth.setSession(activeAcct().session);
+      return false;
+    }
+    hide();
+    await addAccount(r.data.session);
+    toast("מחובר: " + c.email);
+    return true;
+  }
+  $("loginBtn").addEventListener("click", async function () {
+    $("loginErr").hidden = true;
+    var c = readCreds(); if (!c) return;
+    busy(true); try { await doLogin(c); } finally { busy(false); }
+  });
+  $("signupBtn").addEventListener("click", async function () {
+    $("loginErr").hidden = true;
+    var c = readCreds(); if (!c) return;
+    busy(true);
+    try {
+      var res = await fetch(SB_URL + "/functions/v1/signup", {
+        method: "POST", headers: { "Content-Type": "application/json", apikey: SB_KEY },
+        body: JSON.stringify({ email: c.email, password: c.pass })
+      });
+      var body = await res.json().catch(function () { return {}; });
+      if (!res.ok) {
+        if (body.error === "exists") loginError("כבר יש חשבון עם האימייל הזה. לחץ „התחברות”.");
+        else if (body.error === "bad_email") loginError("כתובת האימייל לא תקינה.");
+        else if (body.error === "weak_password") loginError("הסיסמה צריכה להיות 6 עד 72 תווים.");
+        else loginError("יצירת החשבון נכשלה. נסה שוב בעוד רגע.");
+        return;
+      }
+      await doLogin(c);
+    } catch (e) { loginError("אין חיבור לאינטרנט. נסה שוב."); }
+    finally { busy(false); }
+  });
+  $("lPass").addEventListener("keydown", function (ev) { if (ev.key === "Enter") $("loginBtn").click(); });
+
+  // accounts
+  function renderAccts() {
+    var box = $("acctList"); box.textContent = "";
+    accts.list.forEach(function (a) {
+      var b = el("button", "acct-item"); b.type = "button";
+      var cur = a.uid === accts.active;
+      b.setAttribute("aria-current", String(cur));
+      var who = el("span", "who"); who.appendChild(el("b", null, cur ? acctLabel(Object.assign({}, a, { name: state.settings.name })) : acctLabel(a))); who.appendChild(el("small", null, a.email));
+      b.appendChild(who);
+      b.appendChild(el("span", "tag", cur ? "פעיל" : (a.session ? "מעבר" : "צריך סיסמה")));
+      b.addEventListener("click", function () { hide(); if (!cur) { activate(a.uid); toast("עברת לחשבון של " + acctLabel(a)); } });
+      box.appendChild(b);
+    });
+    var a = activeAcct();
+    $("logoutBtn").textContent = a ? "התנתקות מ־" + a.email : "התנתקות";
+    $("logoutBtn").hidden = !a; $("logoutConfirm").hidden = true;
+    $("logoutHint").textContent = pending.length ? "שים לב: יש " + pending.length + " שינויים שעוד לא עלו לגיבוי. התנתקות עכשיו תמחק אותם." : "הנתונים נשארים שמורים בחשבון. אפשר להתחבר שוב בכל זמן.";
+  }
+  $("acctBtn").addEventListener("click", function () { if (!accts.list.length) { openLogin("first"); return; } renderAccts(); show($("acctSheet")); });
+  $("addAcct").addEventListener("click", function () { openLogin("add"); });
+  $("logoutBtn").addEventListener("click", function () { $("logoutConfirm").hidden = false; $("logoutBtn").hidden = true; });
+  $("logoutNo").addEventListener("click", function () { $("logoutConfirm").hidden = true; $("logoutBtn").hidden = false; });
+  $("logoutYes").addEventListener("click", async function () {
+    var a = activeAcct(); if (!a) return;
+    try { await sb.auth.signOut({ scope: "local" }); } catch (e) {}
+    accts.list = accts.list.filter(function (x) { return x.uid !== a.uid; });
+    lsDel("bt.cache." + a.uid); lsDel("bt.pending." + a.uid);
+    accts.active = accts.list.length ? accts.list[0].uid : null; saveAccts();
+    hide();
+    if (accts.active) activate(accts.active);
+    else { state.entries = {}; state.settings = Object.assign({}, DEFAULT_SETTINGS); pending = []; render(); setStatus(); openLogin("first"); }
+    toast("התנתקת מ־" + a.email);
+  });
+
+  // add entry
+  var draft = { kind: null, sub: null, bonus: "reg" };
+  function setBonus(b) {
+    draft.bonus = b;
+    $("bReg").setAttribute("aria-pressed", String(b === "reg"));
+    $("bBig").setAttribute("aria-pressed", String(b === "big"));
+    $("bCustom").setAttribute("aria-pressed", String(b === "custom"));
+    $("customBox").hidden = b !== "custom";
+    if (b === "custom") $("customAmt").focus();
+    updateSave();
+  }
+  function bonusAmount() {
+    if (draft.bonus === "big") return Number(state.settings.big) || 0;
+    if (draft.bonus === "custom") return Math.max(0, parseInt($("customAmt").value, 10) || 0);
+    return Number(state.settings.reg) || 0;
+  }
+  function draftSub() { return draft.sub === "אחר" ? ($("subOther").value.trim() || "אחר") : draft.sub; }
+  function draftQty() { return Math.max(1, Math.min(50, parseInt($("addQty").value, 10) || 1)); }
+  function updateSave() {
+    var qty = draftQty();
+    $("saveBtn").disabled = !draft.sub;
+    $("saveBtn").textContent = draft.sub ? "שמירה · " + (qty > 1 ? qty + " × " : "") + draftSub() + " · +" + fmt(bonusAmount() * qty) + " ₪" : "בחר סוג כדי לשמור";
+  }
+  function openAdd(kind) {
+    if (!activeAcct()) { openLogin("first"); return; }
+    draft = { kind: kind, sub: null, bonus: "reg" };
+    $("addTitle").textContent = "הוספת " + KIND[kind];
+    $("subLabel").textContent = kind === "line" ? "חברה" : kind === "repair" ? "סוג תיקון" : "סוג מכשיר";
+    $("addNoteLbl").textContent = NOTE_LBL[kind][0];
+    $("addNote").placeholder = NOTE_LBL[kind][1];
+    $("subOtherLbl").textContent = kind === "line" ? "איזו חברה? (לא חובה)" : kind === "repair" ? "איזה תיקון? (לא חובה)" : "איזה מכשיר? (לא חובה)";
+    $("customAmt").value = "";
+    var box = $("subChips"); box.textContent = "";
+    SUBS[kind].forEach(function (s) {
+      var c = el("button", "chip", s.n); c.type = "button"; c.setAttribute("aria-pressed", "false");
+      if (s.big) c.appendChild(el("span", "pill", fmt(state.settings.big) + "₪"));
+      c.addEventListener("click", function () {
+        box.querySelectorAll(".chip").forEach(function (x) { x.setAttribute("aria-pressed", "false"); });
+        c.setAttribute("aria-pressed", "true");
+        draft.sub = s.n; $("subOtherBox").hidden = s.n !== "אחר";
+        setBonus(s.big ? "big" : "reg");
+        if (s.n === "אחר") $("subOther").focus();
+      });
+      box.appendChild(c);
+    });
+    $("subOther").value = ""; $("subOtherBox").hidden = true;
+    $("addQty").value = 1; $("addNote").value = "";
+    var t = todayStr();
+    $("addDate").value = state.month === monthKey(new Date()) ? t : state.month + "-01";
+    $("addDate").max = t;
+    setBonus("reg");
+    show($("addSheet"));
+  }
+  document.querySelectorAll("[data-add]").forEach(function (b) { b.addEventListener("click", function () { openAdd(b.getAttribute("data-add")); }); });
+  $("bReg").addEventListener("click", function () { setBonus("reg"); });
+  $("bBig").addEventListener("click", function () { setBonus("big"); });
+  $("bCustom").addEventListener("click", function () { setBonus("custom"); });
+  $("customAmt").addEventListener("input", updateSave);
+  $("addQty").addEventListener("input", updateSave);
+  $("subOther").addEventListener("input", updateSave);
+  $("saveBtn").addEventListener("click", function () {
+    if (!draft.sub) return;
+    var sub = draftSub(), qty = draftQty(), amount = bonusAmount(), kind = draft.kind;
+    var date = $("addDate").value || todayStr();
+    var ids = [];
+    for (var i = 0; i < qty; i++) {
+      var id = uid() + i; ids.push(id);
+      putEntry(id, { kind: kind, sub: sub, big: draft.bonus === "big", amount: amount, date: date, month: date.slice(0, 7), note: $("addNote").value.trim(), ts: Date.now() + i });
+    }
+    hide();
+    state.month = date.slice(0, 7); render();
+    toast("נוסף: " + (qty > 1 ? qty + " × " : "") + KIND[kind] + " · " + sub + " (+" + fmt(amount * qty) + " ₪)", function () { ids.forEach(removeEntry); });
+  });
+
+  // settings + backup
+  $("openSettings").addEventListener("click", function () {
+    if (!activeAcct()) { openLogin("first"); return; }
+    $("sName").value = state.settings.name || ""; $("sPhone").value = state.settings.phone || "";
+    $("sReg").value = state.settings.reg; $("sBig").value = state.settings.big;
+    $("importText").value = ""; $("importErr").hidden = true;
+    show($("setSheet"));
+  });
+  $("saveSettings").addEventListener("click", function () {
+    state.settings.name = $("sName").value.trim();
+    state.settings.phone = $("sPhone").value.trim();
+    var r = parseInt($("sReg").value, 10), b = parseInt($("sBig").value, 10);
+    if (r >= 0) state.settings.reg = r;
+    if (b >= 0) state.settings.big = b;
+    var a = activeAcct(); if (a) { a.name = state.settings.name; saveAccts(); }
+    saveCache(); render();
+    queue({ kind: "settings", row: Object.assign({}, state.settings) });
+    hide(); toast("ההגדרות נשמרו");
+  });
+  function copyText(txt, okMsg, fallbackEl) {
+    var fallback = function () { if (fallbackEl) { fallbackEl.focus(); fallbackEl.select(); } toast("הטקסט מסומן – לחץ העתק"); };
+    try { navigator.clipboard.writeText(txt).then(function () { toast(okMsg); }, fallback); } catch (e) { fallback(); }
+  }
+  $("exportBtn").addEventListener("click", function () {
+    var a = activeAcct();
+    var data = JSON.stringify({ app: "bonus-tracker", v: 1, account: a && a.email, settings: state.settings, entries: state.entries });
+    $("importText").value = data;
+    copyText(data, "הגיבוי הועתק. אפשר לשמור אותו בפתקים או לשלוח לעצמך", $("importText"));
+  });
+  $("importBtn").addEventListener("click", function () {
+    $("importErr").hidden = true;
+    var data;
+    try { data = JSON.parse($("importText").value); } catch (e) { data = null; }
+    var src = data && (data.entries || data);
+    if (!src || typeof src !== "object") { $("importErr").textContent = "הטקסט לא נראה כמו גיבוי. הדבק את כל הטקסט שהועתק."; $("importErr").hidden = false; return; }
+    var n = 0, list = Array.isArray(src) ? src : Object.keys(src).map(function (k) { return Object.assign({ id: k }, src[k]); });
+    list.forEach(function (e) {
+      if (!e || !KIND[e.kind] || !e.date || state.entries[e.id]) return;
+      var id = String(e.id || uid());
+      putEntry(id, { kind: e.kind, sub: String(e.sub || "אחר"), big: !!e.big, amount: Number(e.amount) || 0, date: String(e.date).slice(0, 10), month: String(e.month || String(e.date).slice(0, 7)), note: String(e.note || ""), ts: Number(e.ts) || Date.now() });
+      n++;
+    });
+    hide();
+    toast(n ? "יובאו " + n + " רישומים" : "לא נמצאו רישומים חדשים לייבוא");
+  });
+
+  // month nav / share
+  $("prevMonth").addEventListener("click", function () { state.month = shiftMonth(state.month, -1); state.showAllLog = false; render(); });
+  $("nextMonth").addEventListener("click", function () { if (state.month < monthKey(new Date())) { state.month = shiftMonth(state.month, 1); state.showAllLog = false; render(); } });
+  $("moreLog").addEventListener("click", function () { state.showAllLog = true; render(); });
+  $("copyBtn").addEventListener("click", function () { copyText($("shareText").value, "הסיכום הועתק – הדבק בוואטסאפ לבוס", $("shareText")); });
+  if (navigator.share) {
+    $("nativeShare").hidden = false;
+    $("nativeShare").addEventListener("click", function () { navigator.share({ text: $("shareText").value }).catch(function () {}); });
+  }
+
+  window.addEventListener("online", function () { online = true; var a = activeAcct(); if (a) activate(a.uid); });
+  window.addEventListener("offline", function () { online = false; setStatus(); });
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible" && accts.active && !syncing) { flush(); pull().catch(function () {}); }
+  });
+
+  // boot
+  accts = lsGet("bt.accounts", { list: [], active: null });
+  if (accts.active && activeAcct()) activate(accts.active);
+  else if (accts.list.length) activate(accts.list[0].uid);
+  else { render(); setStatus(); openLogin("first"); }
+
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(function () {});
+})();
+</script>
+</body>
+</html>
