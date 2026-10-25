@@ -8,6 +8,12 @@ const nextConfig = {
       },
     ],
   },
+  experimental: {
+    // הגופנים ל-PDF נקראים מהדיסק במייל אישור ההזמנה
+    outputFileTracingIncludes: {
+      '/api/order-confirmation': ['./public/fonts/**'],
+    },
+  },
 };
 
 module.exports = nextConfig;

@@ -2,16 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { orderNumber } from '@/lib/orders';
 
 // מספר הזמנה: 8 ספרות בלבד, מחושב מהמזהה הפנימי (תמיד אותו מספר לאותה הזמנה)
-const getOrderNumber = (id?: string) => {
-  if (!id) return '';
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
-  }
-  return String(10000000 + (hash % 90000000));
-};
+const getOrderNumber = orderNumber;
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -43,9 +37,11 @@ export default function AdminOrdersPage() {
     if (customerEmail) {
       const orderNumber = getOrderNumber(orderId);
       try {
+        // שליחת מייל מותרת רק למנהל מחובר, לכן מצרפים את ההתחברות שלו
+        const { data: { session } } = await supabase.auth.getSession();
         await fetch('/api/send-email', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
           body: JSON.stringify({
             to: customerEmail,
             subject: `עדכון סטטוס הזמנה #${orderNumber}`,

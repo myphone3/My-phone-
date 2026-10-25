@@ -521,6 +521,20 @@ export default function Header() {
                     )}
                   </div>
 
+                  {user && (
+                    <Link
+                      href="/cart?tab=orders"
+                      onClick={() => {
+                        setDropdownOpen(false);
+                        // אם כבר בעמוד העגלה, מעבירים אותו ללשונית ההזמנות
+                        window.dispatchEvent(new Event('showMyOrders'));
+                      }}
+                      className="w-full bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-800 font-black py-3 rounded-xl text-xs transition flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <span>📦 ההזמנות שלי</span>
+                    </Link>
+                  )}
+
                   {user && isUserAdmin && (
                     <a
                       href="/admin"

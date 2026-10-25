@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import MyOrders from '@/components/MyOrders';
+import { Order, formatMoney, orderItems, orderNumber, orderTotals } from '@/lib/orders';
 
 // מאגר ערים רחב להצעות חכמות (לא חובה לבחור מתוכו, אפשר להקליד חופשי)
 const ISRAEL_CITIES = [
@@ -29,6 +31,11 @@ const ISRAEL_STREETS = [
 export default function CartPage() {
   const [step, setStep] = useState<'cart' | 'checkout'>('cart');
   const [cartItems, setCartItems] = useState<any[]>([]);
+
+  // לשונית פעילה: העגלה או ההזמנות שלי (נשמרת בכתובת: /cart?tab=orders)
+  const [view, setView] = useState<'cart' | 'orders'>('cart');
+  // ההזמנה שהושלמה עכשיו, למסך הסיום
+  const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
 
   // פרטי לקוח וכתובת חופשיים לגמרי
   const [name, setName] = useState('');
@@ -72,7 +79,22 @@ export default function CartPage() {
       }
     }
     fetchPromos();
+    if (new URLSearchParams(window.location.search).get('tab') === 'orders') {
+      setView('orders');
+    }
+    const showOrders = () => {
+      setView('orders');
+      setPlacedOrder(null);
+    };
+    window.addEventListener('showMyOrders', showOrders);
+    return () => window.removeEventListener('showMyOrders', showOrders);
   }, []);
+
+  const switchView = (next: 'cart' | 'orders') => {
+    setView(next);
+    setPlacedOrder(null);
+    window.history.replaceState(null, '', next === 'orders' ? '/cart?tab=orders' : '/cart');
+  };
 
   // חיפוש ערים חכם להשלמה (לא מגביל הקלדה חופשית)
   const handleCityChange = (val: string) => {
@@ -213,8 +235,14 @@ export default function CartPage() {
     }
 
     setSubmitting(true);
-    
+
+    // מזהה ההזמנה ומפתח חד-פעמי לשליחת מייל האישור נוצרים כאן, כי לקוח לא יכול לקרוא הזמנות מהבסיס
+    const orderId = crypto.randomUUID();
+    const confirmationToken = crypto.randomUUID();
+
     const orderPayload = {
+      id: orderId,
+      confirmation_token: confirmationToken,
       customer_name: name,
       phone,
       email,
@@ -240,17 +268,105 @@ export default function CartPage() {
       console.error('Supabase error:', error);
       alert('שגיאה בשליחת ההזמנה לשרת: ' + error.message);
     } else {
-      alert('התשלום בוצע בהצלחה וההזמנה נקלטה! צוות NEW PHONE יצור איתך קשר בהקדם.');
+      const { confirmation_token, ...orderForScreen } = orderPayload;
+      setPlacedOrder({ ...orderForScreen, created_at: new Date().toISOString() });
       localStorage.removeItem('cart');
       setCartItems([]);
+      setStep('cart');
       window.dispatchEvent(new Event('cartUpdated'));
-      window.location.href = '/';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // מייל אישור עם PDF (אם נכשל, ההזמנה עדיין נשמרה)
+      fetch('/api/order-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, token: confirmation_token }),
+        keepalive: true,
+      }).catch((err) => console.error('Order confirmation email failed:', err));
     }
   };
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6" dir="rtl">
-      
+
+      {/* לשוניות: העגלה שלי / ההזמנות שלי */}
+      <div className="flex gap-2 bg-gray-100 p-1.5 rounded-2xl">
+        {([
+          ['cart', '🛒 העגלה שלי'],
+          ['orders', '📦 ההזמנות שלי'],
+        ] as const).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => switchView(key)}
+            className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-black transition cursor-pointer ${
+              view === key && !(key === 'cart' && placedOrder) ? 'bg-white text-orange-700 shadow-sm' : 'text-gray-500 hover:text-gray-800'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {view === 'orders' ? (
+        <MyOrders />
+      ) : placedOrder ? (
+
+        /* === מסך סיום הזמנה === */
+        <div className="bg-white rounded-3xl border border-orange-100 shadow-lg shadow-orange-100/60 p-6 sm:p-8 text-center max-w-lg mx-auto">
+          <div className="w-[72px] h-[72px] rounded-full bg-gradient-to-br from-orange-400 to-orange-600 text-white text-4xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-orange-300/60">
+            ✓
+          </div>
+          <h2 className="text-2xl font-black text-gray-900 mb-1.5">התשלום בוצע בהצלחה!</h2>
+          <p className="text-sm text-gray-600 leading-relaxed mb-5">
+            תודה שקנית ב-NEW PHONE 🧡
+            <br />
+            אישור הזמנה וסיכום בקובץ PDF נשלחו למייל שלך.
+          </p>
+          <div className="inline-block bg-orange-50 border border-dashed border-orange-300 text-orange-700 font-black rounded-xl px-4 py-2 text-sm mb-5">
+            מספר הזמנה: <span dir="ltr">#{orderNumber(placedOrder.id)}</span>
+          </div>
+          <div className="bg-gray-50 rounded-2xl p-4 text-sm text-right space-y-1.5 mb-5">
+            {orderItems(placedOrder).map((item, i) => (
+              <div key={i} className="flex justify-between gap-3">
+                <span>
+                  {item.name} × {item.qty}
+                </span>
+                <span className="whitespace-nowrap">{formatMoney(item.total)}</span>
+              </div>
+            ))}
+            {orderTotals(placedOrder).discount > 0 && (
+              <div className="flex justify-between text-green-700">
+                <span>הנחה</span>
+                <span>-{formatMoney(orderTotals(placedOrder).discount)}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span>משלוח</span>
+              <span>{orderTotals(placedOrder).shipping > 0 ? formatMoney(orderTotals(placedOrder).shipping) : 'חינם'}</span>
+            </div>
+            <div className="flex justify-between border-t pt-2 mt-1 font-black text-orange-600 text-base">
+              <span>סה״כ ששולם</span>
+              <span>{formatMoney(orderTotals(placedOrder).total)}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => switchView('orders')}
+            className="block w-full bg-orange-600 hover:bg-orange-700 text-white py-3.5 rounded-2xl text-sm font-black transition cursor-pointer mb-2"
+          >
+            צפייה בהזמנות שלי
+          </button>
+          <Link
+            href="/"
+            className="block w-full bg-white border-2 border-orange-300 text-orange-700 hover:bg-orange-50 py-3 rounded-2xl text-sm font-black transition"
+          >
+            המשך קנייה
+          </Link>
+        </div>
+
+      ) : (<>
+
       {/* כותרת ושלבים */}
       <div className="flex items-center justify-between border-b pb-4">
         <h1 className="text-2xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
@@ -648,6 +764,8 @@ export default function CartPage() {
         </form>
 
       )}
+
+      </>)}
 
     </div>
   );
