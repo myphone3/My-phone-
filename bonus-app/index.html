@@ -274,6 +274,39 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 .search input { flex: 1; }
 .img-row { display: flex; align-items: center; gap: 10px; }
 .img-row img { width: 56px; height: 56px; border-radius: 12px; object-fit: cover; }
+.top-end { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.bell { position: relative; width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); display: grid; place-items: center; }
+.bell svg { width: 22px; height: 22px; stroke: var(--ink); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.bell .dot { position: absolute; top: 6px; inset-inline-end: 7px; width: 10px; height: 10px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 0 2px var(--surface); }
+.qs-results { display: flex; flex-direction: column; gap: 6px; }
+.qs-item { display: flex; align-items: center; gap: 10px; width: 100%; text-align: right; background: var(--bg); border: 1.5px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.qs-item .cat-ic { width: 30px; height: 30px; }
+.qs-item .who { flex: 1; min-width: 0; }
+.qs-item .who b { display: block; }
+.qs-item .who small { color: var(--muted); }
+.qs-item .price { font-weight: 800; color: var(--accent); }
+.msg-item { border-top: 1px solid var(--line); padding: 12px 0; display: flex; flex-direction: column; gap: 4px; }
+.msg-item:first-child { border-top: 0; }
+.msg-item .msg { white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg-item.new { background: linear-gradient(90deg, transparent, var(--soft)); }
+.hist-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); width: 100%; background: transparent; border-left: 0; border-right: 0; border-bottom: 0; text-align: right; }
+.hist-row:first-child { border-top: 0; }
+.hist-row b { font-family: var(--font-display); }
+.lock { display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; }
+.pin-dots { display: flex; gap: 14px; direction: ltr; }
+.pin-dots i { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--accent); }
+.pin-dots i.on { background: var(--accent); }
+.keypad { display: grid; grid-template-columns: repeat(3, 72px); gap: 14px; direction: ltr; }
+.keypad button { height: 72px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); font-size: 1.6rem; font-family: var(--font-display); font-weight: 700; }
+.keypad button.txt { font-size: .85rem; border: 0; background: transparent; }
+.store { background: linear-gradient(160deg, var(--hero-a), var(--hero-b)); color: #fff; }
+.store .sheet-inner { max-width: 900px; }
+.store h1 { font-size: 2.2rem; text-align: center; }
+.promo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+.promo { background: rgba(255,255,255,.14); border-radius: 22px; padding: 18px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.promo img { width: 120px; height: 120px; border-radius: 20px; object-fit: cover; background: #fff; }
+.promo b { font-family: var(--font-display); font-size: 1.5rem; }
+.store .icon-btn { color: #fff; border-color: rgba(255,255,255,.5); }
 @media (prefers-color-scheme: dark) { .pill.ok { background: #173d26; color: #7fe0a3; } }
 .member-row .m-total .pill { display: block; margin: 3px 0 0; text-align: center; }
 </style>
@@ -329,13 +362,20 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       <div class="brand-row"><svg aria-hidden="true"><use href="#logo"/></svg><div class="brand">יומן בונוסים</div></div>
       <div class="status" id="status" hidden></div>
     </div>
-    <button class="acct-btn" id="acctBtn" type="button" aria-label="חשבונות"><span class="avatar" id="acctAvatar" aria-hidden="true">?</span></button>
+    <div class="top-end">
+      <button class="bell" id="bellBtn" type="button" aria-label="הודעות מהמנהל" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><span class="dot" id="bellDot" hidden></span></button>
+      <button class="acct-btn" id="acctBtn" type="button" aria-label="חשבונות"><span class="avatar" id="acctAvatar" aria-hidden="true">?</span></button>
+    </div>
   </div>
 
   <!-- TAB: add -->
   <section class="tab" id="tab-add" aria-label="הוספת בונוס">
     <div class="banner" id="msgBanner" hidden><b>📣 הודעה מהמנהל</b><div class="msg" id="msgText"></div><div class="hint" id="msgDate"></div><div class="btns"><button class="mini-btn" type="button" id="msgDismiss">הבנתי</button></div></div>
     <div class="banner" id="remindBanner" hidden><b id="remindTitle"></b><div class="hint" id="remindText"></div><div class="btns"><button class="mini-btn" type="button" id="remindGo" hidden>מעבר לאישור</button></div></div>
+    <section class="card" aria-label="חיפוש מהיר">
+      <div class="field search"><input id="qsBox" type="search" placeholder="🔍 מה עשית? למשל: מסך, פרטנר, אייפון" aria-label="חיפוש בונוס" autocomplete="off"></div>
+      <div class="qs-results" id="qsResults" hidden></div>
+    </section>
     <section class="card goal" id="goalCard" hidden>
       <div class="goal-row"><b id="goalTitle"></b><span class="num" id="goalNums"></span></div>
       <div class="goal-bar"><i id="goalBar"></i></div>
@@ -365,8 +405,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       <div class="kpis" id="kpis"></div>
     </section>
     <section class="card chart" aria-labelledby="hChart">
-      <div class="card-head"><h2 id="hChart">6 חודשים אחרונים</h2></div>
+      <div class="card-head"><h2 id="hChart">ההיסטוריה שלי</h2><div class="chips" id="rangeChips"><button class="chip" type="button" data-range="6" aria-pressed="true">6 חודשים</button><button class="chip" type="button" data-range="12" aria-pressed="false">שנה</button></div></div>
       <div id="myChart"></div>
+      <div id="histList"></div>
     </section>
     <section class="card" aria-labelledby="hTier">
       <div class="card-head"><h2 id="hTier">לפי סוג בונוס</h2></div>
@@ -405,6 +446,17 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       <div id="memberList"></div>
       <div class="hint">לחיצה על עובד מציגה את כל הבונוסים שלו בחודש. שם אפשר לאשר, לקבוע יעד אישי ולאפס סיסמה. רק אתה רואה את הדירוג.</div>
       <button class="btn xl" type="button" id="teamXl">אקסל של כל הצוות לחודש הזה</button>
+      <button class="btn ghost" type="button" id="storeBtn">🖥 מצב תצוגה בחנות (המבצעים)</button>
+    </section>
+    <section class="card" id="branchCard" hidden>
+      <div class="card-head"><h2>🏬 סניפים</h2></div>
+      <div class="hint">כל הסניפים שלך במקום אחד. לכל סניף יש מנהל משלו, ואתה רואה את כולם.</div>
+      <div id="branchList"></div>
+      <div class="search"><input id="newBranch" type="text" placeholder="שם הסניף החדש"><button class="mini-btn" type="button" id="addBranch">+ סניף</button></div>
+    </section>
+    <section class="card">
+      <div class="card-head"><h2>🧾 היסטוריית אישורים</h2></div>
+      <div id="apprList"></div>
     </section>
     <section class="card chart">
       <div class="card-head"><h2>הצוות ב-6 חודשים אחרונים</h2></div>
@@ -414,7 +466,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       <div class="card-head"><h2>📣 הודעה לצוות</h2></div>
       <div class="hint">מופיעה לכל העובדים בראש מסך ההוספה. אפשר להשאיר ריק.</div>
       <div class="field"><textarea id="teamMsg" rows="3" placeholder="למשל: החודש בונוס כפול על אייפון 17"></textarea></div>
-      <div class="btns"><button class="btn primary" type="button" id="teamMsgSave">פרסום ההודעה</button><button class="btn ghost" type="button" id="teamMsgClear">מחיקת ההודעה</button></div>
+      <div class="btns"><button class="btn primary" type="button" id="teamMsgSave">פרסום ושליחת התראה</button><button class="btn ghost" type="button" id="teamMsgAll">כל ההודעות</button></div>
     </section>
     <section class="card">
       <div class="card-head"><h2>🎯 יעד חודשי</h2></div>
@@ -469,6 +521,16 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
         <div class="field"><label class="lbl" for="sMyPhone">הטלפון שלי</label><input id="sMyPhone" type="tel" inputmode="tel" dir="ltr" autocomplete="tel"></div>
         <div class="err" id="profErr" hidden></div>
         <button class="btn primary" type="button" id="saveProfile">שמירה</button>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2>🔔 התראות לטלפון</h2></div>
+        <div class="hint" id="pushNote"></div>
+        <div class="btns"><button class="btn primary" type="button" id="pushOn">הפעלת התראות</button><button class="btn ghost" type="button" id="pushTest" hidden>שליחת התראת ניסיון</button><button class="btn ghost" type="button" id="pushOff" hidden>כיבוי</button></div>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2>🔒 נעילת האפליקציה</h2></div>
+        <div class="hint" id="lockNoteP"></div>
+        <div class="btns"><button class="btn primary" type="button" id="pinSet">קביעת קוד</button><button class="btn ghost" type="button" id="bioSet" hidden>הוספת Face ID / טביעת אצבע</button><button class="btn ghost" type="button" id="pinOff" hidden>ביטול הנעילה</button></div>
       </section>
       <section class="card">
         <div class="card-head"><h2>חשבונות</h2></div>
@@ -792,6 +854,53 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   </div>
 </div>
 
+<div class="sheet" id="inboxSheet" role="dialog" aria-modal="true" aria-labelledby="inboxTitle" hidden>
+  <div class="sheet-inner">
+    <div class="sheet-head"><h3 id="inboxTitle">📣 הודעות מהמנהל</h3><button class="icon-btn" type="button" data-close>סגירה</button></div>
+    <div id="inboxList"></div>
+  </div>
+</div>
+
+<div class="sheet full" id="lockSheet" role="dialog" aria-modal="true" aria-labelledby="lockTitle" hidden>
+  <div class="sheet-inner lock">
+    <svg class="logo" aria-hidden="true" style="width:72px;height:72px"><use href="#logo"/></svg>
+    <h3 id="lockTitle">הקלד קוד</h3>
+    <div class="pin-dots" id="pinDots"><i></i><i></i><i></i><i></i></div>
+    <div class="err" id="pinErr" hidden></div>
+    <div class="keypad" id="keypad"></div>
+    <button class="btn ghost" type="button" id="bioUnlock" hidden>פתיחה עם Face ID</button>
+    <button class="btn ghost" type="button" id="pinForgot">שכחתי את הקוד</button>
+    <button class="btn ghost" type="button" id="pinCancel" hidden>ביטול</button>
+  </div>
+</div>
+
+<div class="sheet full store" id="storeSheet" role="dialog" aria-modal="true" aria-labelledby="storeTitle" hidden>
+  <div class="sheet-inner">
+    <div class="sheet-head"><span></span><button class="icon-btn" type="button" id="storeClose">סגירה</button></div>
+    <h1 id="storeTitle">המבצעים שלנו</h1>
+    <div class="promo-grid" id="promoGrid"></div>
+  </div>
+</div>
+
+<div class="sheet" id="branchSheet" role="dialog" aria-modal="true" aria-labelledby="brTitle" hidden>
+  <div class="sheet-inner">
+    <div class="sheet-head"><h3 id="brTitle"></h3><button class="icon-btn" type="button" data-close>סגירה</button></div>
+    <div class="hint" id="brInfo"></div>
+    <div id="brMembers"></div>
+    <div class="section" id="brMgrBox">
+      <h3>פתיחת חשבון מנהל לסניף</h3>
+      <div class="inline">
+        <div class="field"><label class="lbl" for="brName">שם</label><input id="brName" type="text"></div>
+        <div class="field"><label class="lbl" for="brPhone">טלפון</label><input id="brPhone" type="tel" dir="ltr" inputmode="tel"></div>
+      </div>
+      <div class="field"><label class="lbl" for="brEmail">אימייל</label><input id="brEmail" type="email" dir="ltr" inputmode="email"></div>
+      <div class="field"><label class="lbl" for="brPass">סיסמה</label><input id="brPass" type="text" dir="ltr" autocomplete="off"></div>
+      <button class="btn primary" type="button" id="brAddMgr">פתיחת המנהל</button>
+      <div class="err" id="brErr" hidden></div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status" hidden><span id="toastMsg"></span><button type="button" id="toastUndo" hidden>ביטול</button></div>
 
 <script src="/supabase.js"></script>
@@ -840,7 +949,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   });
 
   var accts = { list: [], active: null };
-  var state = { entries: {}, settings: Object.assign({}, DEFAULT_SETTINGS), team: null, teamReady: true, memberCfg: {}, memberGoal: {}, cfgTarget: null, approved: {}, search: "", month: monthKey(new Date()), tab: "add", sub: "profile" };
+  var state = { entries: {}, settings: Object.assign({}, DEFAULT_SETTINGS), team: null, teamReady: true, memberCfg: {}, memberGoal: {}, cfgTarget: null, approved: {}, search: "", messages: [], range: 6, month: monthKey(new Date()), tab: "add", sub: "profile" };
   var share = { period: "this", picked: [], to: null };
   var pending = [];
   var online = false, syncing = false;
@@ -953,7 +1062,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   function saveAccts() { lsSet("bt.accounts", accts); }
   function saveCache() {
     if (!accts.active) return;
-    lsSet("bt.cache." + accts.active, { entries: state.entries, settings: state.settings, team: state.team, approved: state.approved });
+    lsSet("bt.cache." + accts.active, { entries: state.entries, settings: state.settings, team: state.team, approved: state.approved, messages: state.messages });
     lsSet("bt.pending." + accts.active, pending);
   }
   function loadCache(id) {
@@ -962,6 +1071,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     state.settings = Object.assign({}, DEFAULT_SETTINGS, (c && c.settings) || {});
     state.team = (c && c.team) || null;
     state.approved = (c && c.approved) || {};
+    state.messages = (c && c.messages) || [];
     state.memberCfg = {}; state.cfgTarget = null;
     pending = lsGet("bt.pending." + id, []);
   }
@@ -1022,6 +1132,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     if (!tm.data) { state.team = null; return; }
     var tr = await sb.from("teams").select("*").eq("id", tm.data.team_id).maybeSingle();
     state.team = tr.data ? Object.assign({}, tr.data, { role: tm.data.role, myConfig: tm.data.config || null, myGoal: tm.data.goal }) : null;
+    if (state.team) {
+      var mr = await sb.from("team_messages").select("id,body,created_at").order("created_at", { ascending: false }).limit(60);
+      if (!mr.error) state.messages = mr.data || [];
+    }
     if (state.team && tm.data.role === "manager") {
       var ms = await sb.from("team_members").select("user_id,config,goal").eq("team_id", tm.data.team_id);
       state.memberCfg = {}; state.memberGoal = {};
@@ -1154,7 +1268,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     state.sub = s; lsSet("bt.sub", s);
     SUBS.forEach(function (n) { $("sub-" + n).hidden = n !== s; });
     $$("#tab-settings .seg button").forEach(function (b) { b.setAttribute("aria-current", String(b.getAttribute("data-sub") === s)); });
-    if (s === "profile") fillProfile();
+    if (s === "profile") { fillProfile(); renderPush(); renderLockCard(); }
     if (s === "share") renderSharePanel();
     if (s === "team") renderTeamSettings();
     if (s === "types") renderTypes();
@@ -1243,9 +1357,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       $("heroGoalPct").textContent = Math.round(t.all / g * 100) + "%";
       $("heroGoalBar").style.width = Math.min(100, Math.round(t.all / g * 100)) + "%";
     }
-    var series = [];
-    for (var i = 5; i >= 0; i--) { var mk = shiftMonth(state.month, -i); series.push({ m: mk, v: totals(monthEntries(mk)).all }); }
-    drawChart($("myChart"), series);
+    renderHistory();
+    countUse();
     var kp = $("kpis"); kp.textContent = "";
     kindsIn(list).forEach(function (k) {
       var d = el("div", "kpi"); d.appendChild(el("b", "num", String(t.byKind[k] || 0))); d.appendChild(el("span", null, catPlural(k))); kp.appendChild(d);
@@ -1284,12 +1397,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     if (state.team) { $("teamNameLbl").textContent = state.team.name; $("teamCode").textContent = state.team.join_code || "------"; updateInvite(); }
   }
   function renderBanners() {
-    var t = state.team;
-    var showMsg = !!(t && t.message && t.message.trim() && lsGet("bt.msgSeen." + t.id, "") !== String(t.message_at || t.message));
+    var t = state.team, latest = state.messages[0];
+    var unread = unreadCount();
+    $("bellBtn").hidden = !t; $("bellDot").hidden = !unread;
+    $("bellBtn").setAttribute("aria-label", unread ? unread + " הודעות חדשות מהמנהל" : "הודעות מהמנהל");
+    var showMsg = !!(latest && unread);
     $("msgBanner").hidden = !showMsg;
     if (showMsg) {
-      $("msgText").textContent = t.message;
-      $("msgDate").textContent = t.message_at ? new Date(t.message_at).toLocaleDateString("he-IL", { day: "numeric", month: "long" }) : "";
+      $("msgText").textContent = latest.body;
+      $("msgDate").textContent = msgDate(latest.created_at) + (unread === 2 ? " · ועוד הודעה חדשה אחת" : unread > 2 ? " · ועוד " + (unread - 1) + " הודעות חדשות" : "");
     }
     // end-of-month reminders
     var now = new Date(), day = now.getDate(), last = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -1311,10 +1427,26 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     prevWaiting = r.error ? 0 : (r.data || []).filter(function (m) { return m.cnt && !m.approved; }).length;
     renderBanners();
   }
-  $("msgDismiss").addEventListener("click", function () { var t = state.team; if (t) lsSet("bt.msgSeen." + t.id, String(t.message_at || t.message)); renderBanners(); });
+  function seenKey() { return "bt.msgSeenAt." + (state.team ? state.team.id : "") + "." + accts.active; }
+  function unreadCount() { var seen = lsGet(seenKey(), ""); return state.messages.filter(function (m) { return m.created_at > seen; }).length; }
+  function markSeen() { if (state.messages[0]) lsSet(seenKey(), state.messages[0].created_at); renderBanners(); }
+  function msgDate(iso) { return new Date(iso).toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "long" }) + " · " + new Date(iso).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" }); }
+  $("msgDismiss").addEventListener("click", markSeen);
+  function openInbox() {
+    var seen = lsGet(seenKey(), ""), box = $("inboxList"); box.textContent = "";
+    if (!state.messages.length) box.appendChild(el("div", "empty-note", "עדיין אין הודעות מהמנהל."));
+    state.messages.forEach(function (m) {
+      var it = el("div", "msg-item" + (m.created_at > seen ? " new" : ""));
+      it.appendChild(el("span", "hint", msgDate(m.created_at) + (m.created_at > seen ? " · חדש" : "")));
+      it.appendChild(el("div", "msg", m.body));
+      box.appendChild(it);
+    });
+    show($("inboxSheet")); markSeen();
+  }
+  $("bellBtn").addEventListener("click", openInbox);
   $("remindGo").addEventListener("click", function () { state.month = shiftMonth(monthKey(new Date()), -1); setTab("team"); render(); });
   function drawChart(box, series) {
-    var W = 340, H = 150, padB = 26, padT = 20, n = series.length, bw = 34, gap = (W - n * bw) / (n + 1);
+    var W = 340, H = 150, padB = 26, padT = 20, n = series.length, bw = Math.min(34, Math.floor(W / n * 0.62)), gap = (W - n * bw) / (n + 1);
     var max = Math.max.apply(null, series.map(function (x) { return x.v; }).concat([1]));
     var NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg");
     svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("role", "img");
@@ -1332,10 +1464,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       r.setAttribute("x", xi); r.setAttribute("y", y); r.setAttribute("width", bw); r.setAttribute("height", Math.max(h, 2)); r.setAttribute("rx", 6);
       r.setAttribute("fill", i === n - 1 ? acc : soft); svg.appendChild(r);
       var v = document.createElementNS(NS, "text"); v.setAttribute("x", xi + bw / 2); v.setAttribute("y", y - 5); v.setAttribute("text-anchor", "middle");
-      v.setAttribute("font-size", "11"); v.setAttribute("font-weight", "700"); v.setAttribute("fill", ink); v.textContent = x.v ? fmt(x.v) : "";
+      v.setAttribute("font-size", n > 8 ? "9" : "11"); v.setAttribute("font-weight", "700"); v.setAttribute("fill", ink); v.textContent = x.v ? fmt(x.v) : "";
       svg.appendChild(v);
       var l = document.createElementNS(NS, "text"); l.setAttribute("x", xi + bw / 2); l.setAttribute("y", H - 8); l.setAttribute("text-anchor", "middle");
-      l.setAttribute("font-size", "11"); l.setAttribute("fill", muted); l.textContent = MONTHS[+x.m.split("-")[1] - 1].slice(0, 3) + "׳";
+      l.setAttribute("font-size", n > 8 ? "9" : "11"); l.setAttribute("fill", muted); l.textContent = MONTHS[+x.m.split("-")[1] - 1].slice(0, 3) + "׳";
       svg.appendChild(l);
     });
     box.textContent = ""; box.appendChild(svg);
@@ -1895,10 +2027,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     $("teamTotal").textContent = fmt(sum);
     $("approveAll").hidden = !overview.some(function (m) { return !m.approved && m.cnt; });
     if (state.team) {
-      if (document.activeElement !== $("teamMsg")) $("teamMsg").value = state.team.message || "";
       if (document.activeElement !== $("teamGoal")) $("teamGoal").value = state.team.goal || "";
     }
-    loadTeamChart();
+    loadTeamChart(); loadApprovals(); loadBranches();
     $("teamSub").textContent = overview.length + " אנשים · " + fmt(cnt) + " בונוסים · " + appr + " מתוך " + overview.length + " אושרו";
     if (state.tab === "settings" && state.sub === "types") renderTargets();
   }
@@ -1915,12 +2046,21 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     Object.assign(state.team, patch); saveCache(); render();
     sb.from("teams").update(patch).eq("id", state.team.id).then(function (r) { toast(r.error ? "לא נשמר. בדוק חיבור ונסה שוב." : okMsg); });
   }
-  $("teamMsgSave").addEventListener("click", function () {
+  $("teamMsgSave").addEventListener("click", async function () {
     var m = $("teamMsg").value.trim();
-    if (!m) { toast("כתוב הודעה, או לחץ „מחיקת ההודעה”"); return; }
-    updateTeam({ message: m, message_at: new Date().toISOString() }, "ההודעה פורסמה לכל הצוות");
+    if (!m) { toast("כתוב הודעה קודם"); return; }
+    $("teamMsgSave").disabled = true;
+    try {
+      var r = await sb.from("team_messages").insert({ team_id: state.team.id, body: m }).select("id,body,created_at").single();
+      if (r.error) { toast("ההודעה לא נשלחה. בדוק חיבור ונסה שוב."); return; }
+      state.messages.unshift(r.data); lsSet(seenKey(), r.data.created_at); saveCache();
+      $("teamMsg").value = ""; renderBanners();
+      var pr = await sb.functions.invoke("push", { body: { action: "message" } });
+      var n = pr.data && pr.data.sent;
+      toast("ההודעה פורסמה" + (n ? " ונשלחה התראה ל-" + n + " מכשירים" : ""));
+    } finally { $("teamMsgSave").disabled = false; }
   });
-  $("teamMsgClear").addEventListener("click", function () { $("teamMsg").value = ""; updateTeam({ message: "", message_at: null }, "ההודעה נמחקה"); });
+  $("teamMsgAll").addEventListener("click", openInbox);
   $("teamGoalSave").addEventListener("click", function () {
     var g = parseInt($("teamGoal").value, 10);
     updateTeam({ goal: g > 0 ? g : null }, g > 0 ? "היעד נשמר: " + fmt(g) + " ₪" : "היעד הוסר");
@@ -2106,7 +2246,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   function hide() { if (openSheet) openSheet.hidden = true; $("scrim").hidden = true; openSheet = null; }
   $("scrim").addEventListener("click", hide);
   $$("[data-close]").forEach(function (b) { b.addEventListener("click", hide); });
-  document.addEventListener("keydown", function (ev) { if (ev.key === "Escape" && openSheet && openSheet.id !== "loginSheet") hide(); });
+  document.addEventListener("keydown", function (ev) { if (ev.key === "Escape" && openSheet && openSheet.id !== "loginSheet" && openSheet.id !== "lockSheet") hide(); });
 
   // ---------- login / signup ----------
   var loginMode = "first", lmode = "in";
@@ -2393,7 +2533,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     else setBonus(t.ultra ? "big" : "reg");
     if (t.id === "other") $("subOther").focus();
   }
-  function openAdd(kind) {
+  function openAdd(kind, preSub) {
     if (!activeAcct()) { openLogin("first"); return; }
     draft = { mode: "add", id: null, kind: kind, sub: null, bonus: "reg", typeUltra: false };
     $("addTitle").textContent = "הוספת " + catName(kind);
@@ -2403,6 +2543,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     var t0 = todayStr(); $("addDate").value = t0; $("addDate").max = t0;
     setBonus("reg");
     fillKind(kind, null);
+    if (preSub) { var pc = $$("#subChips .chip").filter(function (x) { return x.textContent.indexOf(preSub) === 0 || (preSub === "אחר" && x.textContent === "אחר"); })[0]; if (pc) pc.click(); }
     updateSave();
     show($("addSheet"));
   }
@@ -2529,6 +2670,293 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     f.text().then(importData, function () { toast("לא הצלחתי לקרוא את הקובץ"); });
   });
 
+  // ---------- smart search when adding ----------
+  var SYN = [
+    ["אייפון", "איפון", "iphone", "apple", "אפל"], ["סמסונג", "samsung", "galaxy", "גלקסי"], ["שיאומי", "xiaomi", "redmi", "רדמי"],
+    ["מסך", "screen", "display", "תצוגה", "זכוכית קדמית"], ["סוללה", "battery", "בטריה", "בטרייה"], ["שקע", "טעינה", "charging", "port", "מטען"],
+    ["מצלמה", "camera"], ["לוח אם", "motherboard", "board"], ["תוכנה", "software", "עדכון", "פריצה", "שחזור"], ["זכוכית", "glass", "גב"],
+    ["פלאפון", "pelephone"], ["סלקום", "cellcom"], ["פרטנר", "partner", "אורנג", "orange"], ["הוט", "hot"], ["גולן", "golan"], ["כשר", "kosher"],
+    ["קו", "קווים", "line", "סים", "sim", "חיבור", "ניוד"], ["מכשיר", "מכשירים", "טלפון", "פלאפון חדש", "device", "phone"], ["תיקון", "תיקונים", "repair", "fix"]
+  ];
+  function norm(t) { return String(t || "").toLowerCase().replace(/[ךםןףץ]/g, function (c) { return "כמנפצ"["ךםןףץ".indexOf(c)]; }).replace(/["'׳״\-_.]/g, "").replace(/\s+/g, " ").trim(); }
+  function lev1(a, b) { // true when a and b differ by at most one edit
+    if (Math.abs(a.length - b.length) > 1) return false;
+    var i = 0, j = 0, d = 0;
+    while (i < a.length && j < b.length) {
+      if (a[i] === b[j]) { i++; j++; continue; }
+      if (++d > 1) return false;
+      if (a.length > b.length) i++; else if (b.length > a.length) j++; else { i++; j++; }
+    }
+    return d + (a.length - i) + (b.length - j) <= 1;
+  }
+  function synonymsOf(word) { var out = [word]; SYN.forEach(function (g) { if (g.some(function (x) { var n = norm(x); return n === word || (word.length >= 3 && n.indexOf(word) === 0); })) out = out.concat(g.map(norm)); }); return out; }
+  function scoreText(q, text) {
+    var t = norm(text); if (!t) return 0;
+    if (t === q) return 100; if (t.indexOf(q) === 0) return 90; if (t.indexOf(q) >= 0) return 75;
+    var best = 0;
+    q.split(" ").forEach(function (w) {
+      if (!w) return;
+      synonymsOf(w).forEach(function (s) { if (s.length >= 2 && t.indexOf(s) >= 0) best = Math.max(best, s === w ? 70 : 60); });
+      if (w.length >= 3) t.split(" ").forEach(function (tw) { if (lev1(w, tw)) best = Math.max(best, 50); });
+    });
+    return best;
+  }
+  function quickSearch() {
+    var raw = $("qsBox").value, q = norm(raw), box = $("qsResults"); box.textContent = "";
+    box.hidden = !q; if (!q) return;
+    var today = todayStr(), found = [];
+    cats().forEach(function (c) {
+      var cs = scoreText(q, c.name + " " + (c.plural || ""));
+      typesOf(c.id).forEach(function (t) {
+        if (!typeActive(t, today)) return;
+        var sc = Math.max(scoreText(q, t.name), cs ? cs - 30 : 0);
+        if (sc) found.push({ sc: sc + (useCount[t.kind + "|" + t.name] || 0) / 100, c: c, t: t });
+      });
+    });
+    found.sort(function (a, b) { return b.sc - a.sc; });
+    found.slice(0, 8).forEach(function (f) {
+      var b = el("button", "qs-item"); b.type = "button";
+      var ic = el("span", "cat-ic"); if (f.t.img) { var im = el("img", "t-img"); im.src = f.t.img; im.alt = ""; im.style.margin = "0"; ic.appendChild(im); } else ic.appendChild(icon(f.c.icon)); b.appendChild(ic);
+      var who = el("span", "who"); who.appendChild(el("b", null, f.t.name)); who.appendChild(el("small", null, f.c.name)); b.appendChild(who);
+      b.appendChild(el("span", "price num", "+" + fmt(typeAmount(f.t)) + " ₪"));
+      b.addEventListener("click", function () { $("qsBox").value = ""; quickSearch(); openAdd(f.c.id, f.t.name); });
+      box.appendChild(b);
+    });
+    var best = found.length ? found[0].sc : 0;
+    if (cfg().allowOther && best < 70) cats().slice(0, 3).forEach(function (c) {
+      var b = el("button", "qs-item"); b.type = "button";
+      var ic = el("span", "cat-ic"); ic.appendChild(icon(c.icon)); b.appendChild(ic);
+      var who = el("span", "who"); who.appendChild(el("b", null, "„" + raw.trim() + "”")); who.appendChild(el("small", null, "לרשום כ„אחר” ב" + (c.plural || c.name))); b.appendChild(who);
+      b.addEventListener("click", function () { $("qsBox").value = ""; quickSearch(); openAdd(c.id, "אחר"); $("subOther").value = raw.trim(); updateSave(); });
+      box.appendChild(b);
+    });
+    if (!box.children.length) box.appendChild(el("div", "empty-note", "לא נמצא. נסה מילה אחרת, או בחר קטגוריה למטה."));
+  }
+  var useCount = {};
+  function countUse() { useCount = {}; for (var id in state.entries) { var e = state.entries[id]; if (e) useCount[e.kind + "|" + e.sub] = (useCount[e.kind + "|" + e.sub] || 0) + 1; } }
+  $("qsBox").addEventListener("input", quickSearch);
+
+  // ---------- my history ----------
+  function renderHistory() {
+    var series = [];
+    for (var i = state.range - 1; i >= 0; i--) { var mk = shiftMonth(state.month, -i); series.push({ m: mk, v: totals(monthEntries(mk)).all }); }
+    drawChart($("myChart"), series);
+    var box = $("histList"); box.textContent = "";
+    availableMonths().filter(function (mk) { return monthEntries(mk).length; }).forEach(function (mk) {
+      var t = totals(monthEntries(mk));
+      var b = el("button", "hist-row"); b.type = "button";
+      var n = el("span"); n.appendChild(el("b", null, monthLabel(mk))); if (state.approved[mk]) n.appendChild(el("span", "pill ok", "✓ אושר")); b.appendChild(n);
+      b.appendChild(el("span", "hint num", t.count + " בונוסים"));
+      b.appendChild(el("b", "num", fmt(t.all) + " ₪"));
+      b.addEventListener("click", function () { state.month = mk; render(); window.scrollTo(0, 0); });
+      box.appendChild(b);
+    });
+  }
+  $$("#rangeChips .chip").forEach(function (c) { c.addEventListener("click", function () { state.range = +c.getAttribute("data-range"); $$("#rangeChips .chip").forEach(function (x) { x.setAttribute("aria-pressed", String(x === c)); }); renderHistory(); }); });
+
+  // ---------- approvals log (manager) ----------
+  async function loadApprovals() {
+    var box = $("apprList");
+    var r = await sb.from("month_approvals").select("user_id,month,approved_by,approved_at,total,cnt").order("approved_at", { ascending: false }).limit(40);
+    box.textContent = "";
+    if (r.error || !(r.data || []).length) { box.appendChild(el("div", "empty-note", "עדיין לא אושרו חודשים.")); return; }
+    var byId = {}; overview.forEach(function (m) { byId[m.user_id] = m.name || m.email; });
+    r.data.forEach(function (a) {
+      var row = el("div", "hist-row");
+      var n = el("span"); n.appendChild(el("b", null, (byId[a.user_id] || "עובד") + " · " + monthLabel(a.month)));
+      n.appendChild(el("small", "hint", " אושר " + new Date(a.approved_at).toLocaleDateString("he-IL") + (byId[a.approved_by] ? " על ידי " + byId[a.approved_by] : "")));
+      row.appendChild(n); row.appendChild(el("span", "hint num", a.cnt + " בונוסים")); row.appendChild(el("b", "num", fmt(a.total) + " ₪"));
+      box.appendChild(row);
+    });
+  }
+
+  // ---------- branches (main manager) ----------
+  var branchKey = "";
+  async function loadBranches(force) {
+    var isOwner = isManager() && state.team.owner_id === (activeAcct() || {}).uid;
+    $("branchCard").hidden = !isOwner; if (!isOwner) return;
+    if (!force && branchKey === state.month) return; branchKey = state.month;
+    var r = await sb.rpc("branches_overview", { p_month: state.month });
+    var box = $("branchList"); box.textContent = "";
+    (r.data || []).forEach(function (br) {
+      var b = el("button", "hist-row"); b.type = "button";
+      var n = el("span"); n.appendChild(el("b", null, br.name + (br.is_mine ? " (הסניף שלי)" : ""))); n.appendChild(el("small", "hint", " · " + (br.manager_name || "אין מנהל") + " · " + br.people + " אנשים")); b.appendChild(n);
+      b.appendChild(el("span", "hint num", br.approved + "/" + br.people + " אושרו"));
+      b.appendChild(el("b", "num", fmt(br.total) + " ₪"));
+      b.addEventListener("click", function () { openBranch(br); });
+      box.appendChild(b);
+    });
+  }
+  var openBr = null;
+  async function openBranch(br) {
+    openBr = br;
+    $("brTitle").textContent = br.name; $("brInfo").textContent = "קוד הצטרפות לעובדים בסניף: " + br.join_code + " · " + monthLabel(state.month);
+    $("brMgrBox").hidden = br.is_mine || !!br.manager_name; $("brErr").hidden = true;
+    var box = $("brMembers"); box.textContent = ""; box.appendChild(el("div", "empty-note", "טוען…"));
+    show($("branchSheet"));
+    var r = await sb.rpc("branch_members", { p_team: br.team_id, p_month: state.month });
+    box.textContent = "";
+    if (!(r.data || []).length) box.appendChild(el("div", "empty-note", "עדיין אין אנשים בסניף."));
+    (r.data || []).forEach(function (m) {
+      var row = el("div", "hist-row");
+      var n = el("span"); n.appendChild(el("b", null, (m.name || m.email) + (m.role === "manager" ? " (מנהל)" : ""))); n.appendChild(el("small", "hint", " " + (m.phone || m.email)));
+      if (m.approved) n.appendChild(el("span", "pill ok", "✓")); row.appendChild(n);
+      row.appendChild(el("span", "hint num", m.cnt + " בונוסים")); row.appendChild(el("b", "num", fmt(m.total) + " ₪"));
+      box.appendChild(row);
+    });
+  }
+  $("addBranch").addEventListener("click", async function () {
+    var name = $("newBranch").value.trim(); if (!name) { toast("כתוב שם לסניף"); return; }
+    var r = await sb.rpc("create_branch", { p_name: name });
+    if (r.error) { toast(rpcError(r.error)); return; }
+    $("newBranch").value = ""; toast("נפתח סניף: " + name + ". עכשיו אפשר לפתוח לו מנהל."); loadBranches(true);
+  });
+  $("brAddMgr").addEventListener("click", async function () {
+    var name = $("brName").value.trim(), phone = $("brPhone").value.trim(), email = $("brEmail").value.trim().toLowerCase(), pass = $("brPass").value;
+    $("brErr").hidden = true;
+    var bad = !name ? "צריך שם." : !phoneOk(phone) ? "צריך טלפון תקין." : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? "צריך מייל תקין." : pass.length < 6 ? "סיסמה של לפחות 6 תווים." : "";
+    if (bad) { $("brErr").textContent = bad; $("brErr").hidden = false; return; }
+    var r = await teamAdmin({ action: "create_branch_manager", team_id: openBr.team_id, name: name, phone: phone, email: email, password: pass });
+    if (!r.ok) { $("brErr").textContent = ADMIN_MSG[r.error] || "לא הצלחתי לפתוח את החשבון."; $("brErr").hidden = false; return; }
+    ["brName", "brPhone", "brEmail", "brPass"].forEach(function (i) { $(i).value = ""; });
+    hide(); toast("נפתח מנהל לסניף " + openBr.name + ". כניסה: " + email); loadBranches(true);
+  });
+
+  // ---------- store display ----------
+  function openStore() {
+    var today = todayStr(), grid = $("promoGrid"); grid.textContent = "";
+    var promos = types().filter(function (t) { return (t.from || t.to) && typeActive(t, today); });
+    $("storeTitle").textContent = promos.length ? "המבצעים שלנו" : "אין מבצעים פעילים כרגע";
+    promos.forEach(function (t) {
+      var c = el("div", "promo");
+      if (t.img) { var im = el("img"); im.src = t.img; im.alt = ""; c.appendChild(im); } else { var ic = el("span", "cat-ic"); ic.style.width = "96px"; ic.style.height = "96px"; ic.appendChild(icon(catOf(t.kind).icon)); c.appendChild(ic); }
+      c.appendChild(el("b", null, t.name));
+      if (t.to) c.appendChild(el("span", null, "בתוקף עד " + dmy(t.to)));
+      grid.appendChild(c);
+    });
+    show($("storeSheet"));
+    try { if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(function () {}); } catch (e) {}
+    if (!promos.length) toast("כדי שיופיעו כאן מבצעים, סמן סוגי בונוס כ„בונוס זמני” בהגדרות");
+  }
+  $("storeBtn").addEventListener("click", openStore);
+  $("storeClose").addEventListener("click", function () { hide(); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {} });
+
+  // ---------- push notifications ----------
+  var VAPID_PUB = "BIz4tbiDB9dsqaduAJJsIQdelA-Q451QZwORbGZmCbiNc70iUAAIW4aBBrsRM6oOMj2o5JVDgGH0PVeorp6mXx0";
+  function b64ToBytes(s) { s = s.replace(/-/g, "+").replace(/_/g, "/"); while (s.length % 4) s += "="; var bin = atob(s), out = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; }
+  var isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  var standalone = window.navigator.standalone === true || (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+  async function pushState() {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return isIOS && !standalone ? "need-home" : "unsupported";
+    if (Notification.permission === "denied") return "denied";
+    var reg = await navigator.serviceWorker.ready, sub = await reg.pushManager.getSubscription();
+    return sub ? "on" : "off";
+  }
+  async function renderPush() {
+    var st = await pushState();
+    var notes = {
+      "need-home": "באייפון, התראות עובדות רק מהאייקון במסך הבית: ב-Safari לחץ על כפתור השיתוף ← „הוסף למסך הבית”, ופתח את האפליקציה משם.",
+      unsupported: "הדפדפן הזה לא תומך בהתראות.",
+      denied: "ההתראות חסומות. אפשר להפעיל אותן בהגדרות הטלפון ← התראות ← בונוסים.",
+      on: "ההתראות פועלות במכשיר הזה ✓. תקבל התראה על הודעה חדשה מהמנהל" + (isManager() ? ", ותזכורת לאשר את החודש בתחילת כל חודש." : ", ותזכורת בסוף החודש."),
+      off: "קבל התראה לטלפון כשהמנהל שולח הודעה" + (isManager() ? ", ותזכורת לאשר בונוסים בתחילת החודש." : ", ותזכורת לבדוק את הבונוסים בסוף החודש.")
+    };
+    $("pushNote").textContent = notes[st];
+    $("pushOn").hidden = st !== "off"; $("pushTest").hidden = st !== "on"; $("pushOff").hidden = st !== "on";
+  }
+  $("pushOn").addEventListener("click", async function () {
+    try {
+      var perm = await Notification.requestPermission();
+      if (perm !== "granted") { renderPush(); return; }
+      var reg = await navigator.serviceWorker.ready;
+      var sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(VAPID_PUB) });
+      var r = await sb.from("push_subs").upsert({ endpoint: sub.endpoint, sub: sub.toJSON() }, { onConflict: "endpoint" });
+      if (r.error) { toast("לא הצלחתי לשמור את המכשיר. נסה שוב."); return; }
+      toast("ההתראות הופעלו 🔔"); renderPush();
+    } catch (e) { toast("לא הצלחתי להפעיל התראות במכשיר הזה."); }
+  });
+  $("pushTest").addEventListener("click", async function () { var r = await sb.functions.invoke("push", { body: { action: "test" } }); toast(r.data && r.data.sent ? "נשלחה התראת ניסיון" : "לא נשלחה. נסה לכבות ולהפעיל שוב."); });
+  $("pushOff").addEventListener("click", async function () {
+    var reg = await navigator.serviceWorker.ready, sub = await reg.pushManager.getSubscription();
+    if (sub) { await sb.from("push_subs").delete().eq("endpoint", sub.endpoint); await sub.unsubscribe(); }
+    toast("ההתראות כובו"); renderPush();
+  });
+
+  // ---------- app lock (this device only) ----------
+  var pinBuf = "", pinMode = "unlock", pinFirst = "", lastHidden = 0;
+  async function sha(t) { var b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("bt-pin|" + t)); return Array.from(new Uint8Array(b)).map(function (x) { return x.toString(16).padStart(2, "0"); }).join(""); }
+  function lockOn() { return !!lsGet("bt.pin", ""); }
+  function renderLockCard() {
+    $("lockNoteP").textContent = lockOn() ? "האפליקציה ננעלת בכל פתיחה ואחרי 2 דקות ברקע." + (lsGet("bt.bio", "") ? " Face ID / טביעת אצבע פעיל." : "") : "קוד של 4 ספרות שיידרש בכל פתיחה, אם הטלפון משותף. חל רק על המכשיר הזה.";
+    $("pinSet").textContent = lockOn() ? "החלפת קוד" : "קביעת קוד";
+    $("pinOff").hidden = !lockOn();
+    $("bioSet").hidden = !lockOn() || !!lsGet("bt.bio", "") || !window.PublicKeyCredential;
+  }
+  function paintPin() { $$("#pinDots i").forEach(function (d, i) { d.className = i < pinBuf.length ? "on" : ""; }); }
+  function openLock(mode) {
+    pinMode = mode; pinBuf = ""; pinFirst = ""; paintPin(); $("pinErr").hidden = true;
+    $("lockTitle").textContent = mode === "unlock" ? "הקלד קוד" : "בחר קוד של 4 ספרות";
+    $("pinForgot").hidden = mode !== "unlock"; $("pinCancel").hidden = mode === "unlock";
+    $("bioUnlock").hidden = !(mode === "unlock" && lsGet("bt.bio", ""));
+    show($("lockSheet"));
+    if (mode === "unlock" && lsGet("bt.bio", "")) bioUnlock();
+  }
+  async function pinDigit(d) {
+    if (pinBuf.length >= 4) return;
+    pinBuf += d; paintPin(); if (pinBuf.length < 4) return;
+    var code = pinBuf;
+    if (pinMode === "unlock") {
+      if (await sha(code) === lsGet("bt.pin", "")) { hide(); }
+      else { $("pinErr").textContent = "קוד שגוי"; $("pinErr").hidden = false; pinBuf = ""; setTimeout(paintPin, 150); }
+    } else if (!pinFirst) { pinFirst = code; pinBuf = ""; paintPin(); $("lockTitle").textContent = "הקלד שוב לאישור"; }
+    else if (pinFirst === code) { lsSet("bt.pin", await sha(code)); hide(); renderLockCard(); toast("הקוד נשמר 🔒"); }
+    else { $("pinErr").textContent = "הקודים לא תואמים. נסה שוב."; $("pinErr").hidden = false; pinFirst = ""; pinBuf = ""; paintPin(); $("lockTitle").textContent = "בחר קוד של 4 ספרות"; }
+  }
+  (function buildKeypad() {
+    var kp = $("keypad");
+    ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "⌫"].forEach(function (k) {
+      var b = el("button", k === "⌫" ? "txt" : "", k); b.type = "button";
+      if (!k) { b.style.visibility = "hidden"; b.tabIndex = -1; }
+      b.addEventListener("click", function () { if (k === "⌫") { pinBuf = pinBuf.slice(0, -1); paintPin(); } else if (k) pinDigit(k); });
+      kp.appendChild(b);
+    });
+  })();
+  async function bioUnlock() {
+    try {
+      var id = b64ToBytes(lsGet("bt.bio", ""));
+      await navigator.credentials.get({ publicKey: { challenge: crypto.getRandomValues(new Uint8Array(32)), allowCredentials: [{ type: "public-key", id: id }], userVerification: "required", timeout: 60000 } });
+      hide();
+    } catch (e) {}
+  }
+  $("bioUnlock").addEventListener("click", bioUnlock);
+  $("bioSet").addEventListener("click", async function () {
+    try {
+      var a = activeAcct() || { uid: "u", email: "user" };
+      var cred = await navigator.credentials.create({ publicKey: {
+        challenge: crypto.getRandomValues(new Uint8Array(32)), rp: { name: "יומן בונוסים" },
+        user: { id: new TextEncoder().encode(a.uid.slice(0, 32)), name: a.email, displayName: a.email },
+        pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
+        authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required" }, timeout: 60000 } });
+      var raw = new Uint8Array(cred.rawId), s = ""; for (var i = 0; i < raw.length; i++) s += String.fromCharCode(raw[i]);
+      lsSet("bt.bio", btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")); renderLockCard(); toast("Face ID / טביעת אצבע הופעל");
+    } catch (e) { toast("לא הצלחתי להפעיל. אפשר להמשיך עם הקוד."); }
+  });
+  $("pinSet").addEventListener("click", function () { openLock("set"); });
+  $("pinCancel").addEventListener("click", hide);
+  $("pinOff").addEventListener("click", function () { lsDel("bt.pin"); lsDel("bt.bio"); renderLockCard(); toast("הנעילה בוטלה"); });
+  $("pinForgot").addEventListener("click", async function () {
+    // forgetting the code means signing out on this device; data stays safe in the account
+    for (var i = 0; i < accts.list.length; i++) { lsDel("bt.cache." + accts.list[i].uid); lsDel("bt.pending." + accts.list[i].uid); }
+    accts = { list: [], active: null }; saveAccts(); lsDel("bt.pin"); lsDel("bt.bio");
+    try { await sb.auth.signOut({ scope: "local" }); } catch (e) {}
+    state.entries = {}; state.team = null; pending = []; hide(); render(); openLogin("first");
+    toast("התנתקת מהמכשיר. התחבר שוב כדי להמשיך.");
+  });
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "hidden") lastHidden = Date.now();
+    else if (lockOn() && lastHidden && Date.now() - lastHidden > 120000 && accts.list.length) openLock("unlock");
+  });
+
   // ---------- month nav ----------
   function monthChanged() { render(); if (state.tab === "team") loadOverview(); }
   $$(".prevMonth").forEach(function (b) { b.addEventListener("click", function () { state.month = shiftMonth(state.month, -1); monthChanged(); }); });
@@ -2543,7 +2971,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   // ---------- boot ----------
   try {
     var q = new URLSearchParams(location.search), j = (q.get("join") || "").trim().toUpperCase();
-    if (/^[A-Z0-9]{6}$/.test(j)) { pendingJoin = j; history.replaceState(null, "", location.pathname + location.hash); }
+    if (/^[A-Z0-9]{6}$/.test(j)) pendingJoin = j;
+    var wantTab = q.get("tab");
+    if (wantTab) { if (wantTab === "inbox") setTimeout(function () { if (state.team) openInbox(); }, 1500); else lsSet("bt.tab", wantTab); }
+    if (location.search) history.replaceState(null, "", location.pathname + location.hash);
   } catch (e) {}
   accts = lsGet("bt.accounts", { list: [], active: null });
   state.sub = lsGet("bt.sub", "profile");
@@ -2558,6 +2989,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     else { render(); setStatus(); openLogin("first"); }
   });
 
+  if (lockOn() && accts.list.length) openLock("unlock");
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(function () {});
 })();
 </script>
