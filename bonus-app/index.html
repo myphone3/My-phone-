@@ -250,7 +250,30 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     <div class="err" id="loginErr" role="alert" hidden></div>
     <button class="save" type="button" id="loginBtn">התחברות</button>
     <button class="save alt" type="button" id="signupBtn">יצירת חשבון חדש</button>
-    <div class="hint">חשבון חדש נוצר מיד, בלי מייל אימות. כדאי לשמור את הסיסמה במקום בטוח.</div>
+    <button class="more-btn" type="button" id="forgotBtn">שכחתי סיסמה</button>
+    <div class="hint">נרשמים רק פעם אחת. אחרי זה האפליקציה נכנסת לבד בכל פתיחה.</div>
+  </div>
+</div>
+
+<!-- forgot password -->
+<div class="sheet full" id="resetSheet" role="dialog" aria-modal="true" aria-labelledby="resetTitle" hidden>
+  <div class="sheet-inner">
+    <div class="sheet-head">
+      <div class="login-hero">
+        <h3 id="resetTitle">איפוס סיסמה</h3>
+        <div class="hint" id="resetSub">נשלח קוד בן 6 ספרות למייל של החשבון. רק מי שיש לו גישה למייל יכול לאפס.</div>
+      </div>
+      <button class="icon-btn" type="button" id="resetBack">חזרה</button>
+    </div>
+    <div class="field"><label class="lbl" for="rEmail">אימייל של החשבון</label><input id="rEmail" type="email" dir="ltr" autocomplete="username" inputmode="email"></div>
+    <button class="save" type="button" id="rSend">שליחת קוד למייל</button>
+    <div id="rStep2" class="sheet-inner" hidden>
+      <div class="field"><label class="lbl" for="rCode">הקוד שקיבלת במייל</label><input id="rCode" type="text" dir="ltr" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456"></div>
+      <div class="field"><label class="lbl" for="rPass">סיסמה חדשה (לפחות 6 תווים)</label><input id="rPass" type="password" dir="ltr" autocomplete="new-password"></div>
+      <button class="save" type="button" id="rConfirm">שמירת הסיסמה החדשה</button>
+      <div class="hint">הקוד לא הגיע? בדוק בתיקיית הספאם, או לחץ שוב על „שליחת קוד” אחרי דקה.</div>
+    </div>
+    <div class="err" id="rErr" role="alert" hidden></div>
   </div>
 </div>
 
@@ -261,6 +284,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     <div class="hint">אפשר לשמור כאן כמה חשבונות ולעבור ביניהם, למשל של עובד שאין לו טלפון.</div>
     <div class="acct-list" id="acctList"></div>
     <button class="save" type="button" id="addAcct">+ הוספת חשבון</button>
+    <div class="section">
+      <div class="field"><label class="lbl" for="newPass" id="newPassLbl">שינוי סיסמה לחשבון הזה</label><input id="newPass" type="password" dir="ltr" autocomplete="new-password" placeholder="סיסמה חדשה"></div>
+      <button class="btn ghost" type="button" id="changePass">שמירת סיסמה חדשה</button>
+      <div class="err" id="passErr" hidden></div>
+    </div>
     <div class="section">
       <button class="btn danger" type="button" id="logoutBtn">התנתקות מהחשבון הזה</button>
       <div class="confirm-row btns" id="logoutConfirm" hidden>
@@ -697,6 +725,70 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
   });
   $("lPass").addEventListener("keydown", function (ev) { if (ev.key === "Enter") $("loginBtn").click(); });
 
+  // forgot password: email a code, then set a new password with it
+  async function resetCall(payload) {
+    var res = await fetch(SB_URL + "/functions/v1/reset-password", {
+      method: "POST", headers: { "Content-Type": "application/json", apikey: SB_KEY }, body: JSON.stringify(payload)
+    });
+    var body = await res.json().catch(function () { return {}; });
+    return { ok: res.ok, error: body.error };
+  }
+  function resetError(msg) { $("rErr").textContent = msg; $("rErr").hidden = !msg; }
+  var RESET_MSG = {
+    bad_email: "כתובת האימייל לא תקינה.", wait: "כבר נשלח קוד בדקה האחרונה. חכה רגע ונסה שוב.",
+    send_failed: "לא הצלחתי לשלוח מייל כרגע. נסה שוב מאוחר יותר.", bad_code: "הקוד לא נכון. בדוק ונסה שוב.",
+    expired: "הקוד פג. שלח קוד חדש.", too_many: "יותר מדי ניסיונות. שלח קוד חדש.", weak_password: "הסיסמה צריכה להיות 6 עד 72 תווים."
+  };
+  var resetFrom = "first";
+  $("forgotBtn").addEventListener("click", function () {
+    resetFrom = loginMode;
+    $("rEmail").value = $("lEmail").value.trim(); $("rCode").value = ""; $("rPass").value = "";
+    $("rStep2").hidden = true; resetError("");
+    show($("resetSheet"));
+  });
+  $("resetBack").addEventListener("click", function () { openLogin(resetFrom, $("rEmail").value.trim()); });
+  $("rSend").addEventListener("click", async function () {
+    resetError("");
+    var email = $("rEmail").value.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { resetError(RESET_MSG.bad_email); return; }
+    $("rSend").disabled = true;
+    try {
+      var r = await resetCall({ action: "request", email: email });
+      if (!r.ok) { resetError(RESET_MSG[r.error] || "משהו השתבש. נסה שוב."); return; }
+      $("rStep2").hidden = false; $("rCode").focus();
+      toast("אם יש חשבון עם המייל הזה, נשלח אליו קוד");
+    } catch (e) { resetError("אין חיבור לאינטרנט. נסה שוב."); }
+    finally { $("rSend").disabled = false; }
+  });
+  $("rConfirm").addEventListener("click", async function () {
+    resetError("");
+    var email = $("rEmail").value.trim().toLowerCase(), code = $("rCode").value.replace(/\D/g, ""), pass = $("rPass").value;
+    if (code.length !== 6) { resetError("הקוד הוא 6 ספרות."); return; }
+    if (pass.length < 6) { resetError(RESET_MSG.weak_password); return; }
+    $("rConfirm").disabled = true;
+    try {
+      var r = await resetCall({ action: "confirm", email: email, code: code, password: pass });
+      if (!r.ok) { resetError(RESET_MSG[r.error] || "משהו השתבש. נסה שוב."); return; }
+      var s = await sb.auth.signInWithPassword({ email: email, password: pass });
+      if (s.error) { openLogin(resetFrom, email); toast("הסיסמה עודכנה. התחבר עם הסיסמה החדשה"); return; }
+      hide(); await addAccount(s.data.session);
+      toast("הסיסמה עודכנה ונכנסת לחשבון");
+    } catch (e) { resetError("אין חיבור לאינטרנט. נסה שוב."); }
+    finally { $("rConfirm").disabled = false; }
+  });
+
+  // change password while signed in
+  $("changePass").addEventListener("click", async function () {
+    var pass = $("newPass").value; $("passErr").hidden = true;
+    if (pass.length < 6) { $("passErr").textContent = "הסיסמה צריכה להיות לפחות 6 תווים."; $("passErr").hidden = false; return; }
+    $("changePass").disabled = true;
+    try {
+      var r = await sb.auth.updateUser({ password: pass });
+      if (r.error) { $("passErr").textContent = "לא הצלחתי לשנות סיסמה. בדוק חיבור לאינטרנט ונסה שוב."; $("passErr").hidden = false; return; }
+      $("newPass").value = ""; hide(); toast("הסיסמה שונתה");
+    } finally { $("changePass").disabled = false; }
+  });
+
   // accounts
   function renderAccts() {
     var box = $("acctList"); box.textContent = "";
@@ -713,6 +805,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     var a = activeAcct();
     $("logoutBtn").textContent = a ? "התנתקות מ־" + a.email : "התנתקות";
     $("logoutBtn").hidden = !a; $("logoutConfirm").hidden = true;
+    $("newPassLbl").textContent = a ? "שינוי סיסמה ל־" + a.email : "שינוי סיסמה";
+    $("newPass").value = ""; $("passErr").hidden = true;
     $("logoutHint").textContent = pending.length ? "שים לב: יש " + pending.length + " שינויים שעוד לא עלו לגיבוי. התנתקות עכשיו תמחק אותם." : "הנתונים נשארים שמורים בחשבון. אפשר להתחבר שוב בכל זמן.";
   }
   $("acctBtn").addEventListener("click", function () { if (!accts.list.length) { openLogin("first"); return; } renderAccts(); show($("acctSheet")); });
