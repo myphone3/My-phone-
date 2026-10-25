@@ -1,0 +1,45 @@
+name: TV Remote APK
+
+on:
+  push:
+    branches: [tv-remote]
+    paths:
+      - "tv-remote/**"
+      - ".github/workflows/tv-remote.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tv-remote
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Build APK
+        run: gradle --no-daemon assembleRelease
+
+      - name: Publish download link
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk tv-remote.apk
+          gh release delete tv-remote-latest --cleanup-tag -y || true
+          gh release create tv-remote-latest tv-remote.apk \
+            --title "שלט לטלוויזיה (גרסה אחרונה)" \
+            --notes "בנייה ${{ github.run_number }} מתוך ${{ github.sha }}" \
+            --prerelease \
+            --target "${{ github.sha }}"

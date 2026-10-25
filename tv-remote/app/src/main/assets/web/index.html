@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0F0E26">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="שלט">
+<link rel="apple-touch-icon" href="/icon.png?s=180">
+<link rel="manifest" href="/manifest.webmanifest">
+<title>שלט לטלוויזיה</title>
+<style>
+  :root {
+    --bg: #0F0E26;
+    --card: #1C1A3D;
+    --btn: #2A2760;
+    --btn-press: #4F46E5;
+    --accent: #6366F1;
+    --text: #EEF2FF;
+    --muted: #A5B4FC;
+    --ok: #22C55E;
+    --warn: #F59E0B;
+    --bad: #EF4444;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+    touch-action: manipulation;
+    padding: max(12px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+    max-width: 480px; margin: 0 auto;
+  }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
+  h1 { font-size: 18px; margin: 0; }
+  .status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); max-width: 65%; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--warn); flex: none; }
+  .dot.ok { background: var(--ok); } .dot.bad { background: var(--bad); }
+
+  button {
+    font: inherit; color: var(--text); background: var(--btn); border: 0; border-radius: 16px;
+    min-height: 52px; font-size: 15px; cursor: pointer; transition: transform .06s, background .06s;
+  }
+  button.pressed, button:active { background: var(--btn-press); transform: scale(.96); }
+  button svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle; }
+
+  .row { display: grid; gap: 10px; margin-bottom: 12px; }
+  .row.c4 { grid-template-columns: repeat(4, 1fr); }
+  .row.c3 { grid-template-columns: repeat(3, 1fr); }
+  .power { color: #FCA5A5; }
+
+  .tabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--card); border-radius: 14px; padding: 4px; margin-bottom: 12px; }
+  .tabs button { min-height: 38px; background: transparent; border-radius: 10px; font-size: 14px; }
+  .tabs button.on { background: var(--accent); }
+
+  .pad-wrap { display: flex; justify-content: center; margin: 4px 0 16px; }
+  .dpad { position: relative; width: min(78vw, 300px); aspect-ratio: 1; border-radius: 50%; background: var(--card); }
+  .dpad button { position: absolute; background: transparent; border-radius: 50%; }
+  .dpad button.pressed { background: rgba(99,102,241,.35); }
+  .dpad .up    { top: 2%; left: 30%; width: 40%; height: 28%; }
+  .dpad .down  { bottom: 2%; left: 30%; width: 40%; height: 28%; }
+  .dpad .left  { left: 2%; top: 30%; width: 28%; height: 40%; }
+  .dpad .right { right: 2%; top: 30%; width: 28%; height: 40%; }
+  .dpad .ok { top: 31%; left: 31%; width: 38%; height: 38%; background: var(--accent); font-weight: 700; font-size: 18px; }
+  .dpad .ok.pressed { background: var(--btn-press); }
+
+  .touch {
+    width: min(86vw, 340px); aspect-ratio: 1; border-radius: 28px; background: var(--card);
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    color: var(--muted); font-size: 14px; line-height: 1.6; touch-action: none; padding: 20px;
+  }
+  .touch.flash { background: #262357; }
+
+  .vol { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px; direction: ltr; }
+  .media { direction: ltr; }
+
+  section.card { background: var(--card); border-radius: 18px; padding: 14px; margin-bottom: 12px; }
+  section.card h2 { font-size: 14px; margin: 0 0 10px; color: var(--muted); font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+  section.card h2 button { min-height: 30px; font-size: 12px; padding: 0 10px; border-radius: 10px; }
+
+  .type { display: flex; gap: 8px; }
+  .type input {
+    flex: 1; min-width: 0; font: inherit; font-size: 16px; color: var(--text); background: var(--bg);
+    border: 1px solid #3730A3; border-radius: 12px; padding: 0 12px; height: 46px; direction: ltr; text-align: left;
+    -webkit-user-select: text; user-select: text;
+  }
+  .type button { min-height: 46px; padding: 0 14px; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; min-height: 16px; }
+
+  .apps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .app { display: flex; flex-direction: column; align-items: center; gap: 4px; background: transparent; min-height: 0; padding: 6px 2px; font-size: 11px; color: var(--muted); }
+  .app img { width: 48px; height: 48px; border-radius: 12px; background: var(--btn); }
+  .app span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .empty { color: var(--muted); font-size: 13px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+  <header>
+    <h1 id="tvName">📺 הטלוויזיה</h1>
+    <div class="status"><span class="dot" id="dot"></span><span id="statusText">מתחבר…</span></div>
+  </header>
+
+  <div class="row c4">
+    <button class="power" data-key="POWER" aria-label="כיבוי"><svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 7.5a8 8 0 1 0 11.4 0"/></svg></button>
+    <button data-key="HOME" aria-label="בית"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg></button>
+    <button data-key="BACK" aria-label="חזור"><svg viewBox="0 0 24 24"><path d="M9 14l-5-5 5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button>
+    <button data-key="MENU" aria-label="תפריט"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+  </div>
+
+  <div class="tabs">
+    <button id="tabPad" class="on">חצים</button>
+    <button id="tabTouch">משטח מגע</button>
+  </div>
+
+  <div class="pad-wrap" id="padView">
+    <div class="dpad">
+      <button class="up" data-key="UP" data-repeat aria-label="למעלה"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button>
+      <button class="down" data-key="DOWN" data-repeat aria-label="למטה"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+      <button class="left" data-key="LEFT" data-repeat aria-label="שמאלה"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <button class="right" data-key="RIGHT" data-repeat aria-label="ימינה"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+      <button class="ok" data-key="OK">OK</button>
+    </div>
+  </div>
+
+  <div class="pad-wrap" id="touchView" hidden>
+    <div class="touch" id="touch">החליקו כדי לזוז<br>הקישו כדי לבחור (OK)</div>
+  </div>
+
+  <div class="vol">
+    <button data-key="VOL_DOWN" data-repeat aria-label="הנמך"><svg viewBox="0 0 24 24"><path d="M11 5L6 9H3v6h3l5 4z"/><path d="M16 12h5"/></svg></button>
+    <button data-key="MUTE" aria-label="השתק"><svg viewBox="0 0 24 24"><path d="M11 5L6 9H3v6h3l5 4z"/><path d="M16 9l5 6M21 9l-5 6"/></svg></button>
+    <button data-key="VOL_UP" data-repeat aria-label="הגבר"><svg viewBox="0 0 24 24"><path d="M11 5L6 9H3v6h3l5 4z"/><path d="M16 12h5M18.5 9.5v5"/></svg></button>
+  </div>
+
+  <div class="row c3 media">
+    <button data-key="REW" aria-label="אחורה"><svg viewBox="0 0 24 24"><path d="M11 6l-7 6 7 6zM20 6l-7 6 7 6z"/></svg></button>
+    <button data-key="PLAY_PAUSE" aria-label="נגן/השהה"><svg viewBox="0 0 24 24"><path d="M5 5l8 7-8 7z"/><path d="M16 5v14M20 5v14"/></svg></button>
+    <button data-key="FF" aria-label="קדימה"><svg viewBox="0 0 24 24"><path d="M4 6l7 6-7 6zM13 6l7 6-7 6z"/></svg></button>
+  </div>
+
+  <section class="card">
+    <h2>הקלדה בטלוויזיה</h2>
+    <div class="type">
+      <input id="text" placeholder="חיפוש באנגלית…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="send">
+      <button id="sendText">שלח</button>
+      <button data-key="DEL" data-repeat aria-label="מחק"><svg viewBox="0 0 24 24"><path d="M21 5H9l-6 7 6 7h12z"/><path d="M12 9l6 6M18 9l-6 6"/></svg></button>
+    </div>
+    <div class="hint" id="textHint">קודם בוחרים את שדה החיפוש בטלוויזיה, ואז מקלידים כאן.</div>
+  </section>
+
+  <section class="card">
+    <h2>אפליקציות <button id="reloadApps">רענון</button></h2>
+    <div class="apps" id="apps"><div class="empty">טוען…</div></div>
+  </section>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const buzz = () => { if (navigator.vibrate) navigator.vibrate(12); };
+
+  function post(path) {
+    return fetch(path, { method: 'POST', cache: 'no-store' }).catch(() => setStatus(false, 'אין קשר לטלוויזיה'));
+  }
+  function key(k, n) {
+    buzz();
+    post('/api/key?k=' + k + (n > 1 ? '&n=' + n : ''));
+  }
+
+  // כפתורים: לחיצה אחת, ולחיצה ארוכה חוזרת שוב ושוב (חצים, ווליום, מחיקה)
+  document.querySelectorAll('[data-key]').forEach((btn) => {
+    let delay = null, repeat = null;
+    const stop = () => {
+      btn.classList.remove('pressed');
+      clearTimeout(delay); clearInterval(repeat); delay = repeat = null;
+    };
+    btn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      btn.classList.add('pressed');
+      key(btn.dataset.key);
+      if (btn.hasAttribute('data-repeat')) {
+        delay = setTimeout(() => { repeat = setInterval(() => key(btn.dataset.key), 160); }, 450);
+      }
+    });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => btn.addEventListener(ev, stop));
+    btn.addEventListener('contextmenu', (e) => e.preventDefault());
+  });
+
+  // מעבר בין חצים למשטח מגע (נשמר לפעם הבאה)
+  function setMode(mode) {
+    const touch = mode === 'touch';
+    $('padView').hidden = touch; $('touchView').hidden = !touch;
+    $('tabPad').classList.toggle('on', !touch); $('tabTouch').classList.toggle('on', touch);
+    try { localStorage.setItem('mode', mode); } catch (e) {}
+  }
+  $('tabPad').onclick = () => setMode('pad');
+  $('tabTouch').onclick = () => setMode('touch');
+  try { if (localStorage.getItem('mode') === 'touch') setMode('touch'); } catch (e) {}
+
+  // משטח מגע: החלקה = חץ (החלקה ארוכה = כמה צעדים), הקשה = OK
+  const pad = $('touch');
+  let start = null;
+  pad.addEventListener('pointerdown', (e) => { start = { x: e.clientX, y: e.clientY }; pad.setPointerCapture(e.pointerId); });
+  pad.addEventListener('pointerup', (e) => {
+    if (!start) return;
+    const dx = e.clientX - start.x, dy = e.clientY - start.y;
+    const dist = Math.max(Math.abs(dx), Math.abs(dy));
+    start = null;
+    pad.classList.add('flash'); setTimeout(() => pad.classList.remove('flash'), 120);
+    if (dist < 18) return key('OK');
+    const steps = Math.min(5, Math.max(1, Math.round(dist / 70)));
+    if (Math.abs(dx) > Math.abs(dy)) key(dx > 0 ? 'RIGHT' : 'LEFT', steps);
+    else key(dy > 0 ? 'DOWN' : 'UP', steps);
+  });
+  pad.addEventListener('pointercancel', () => { start = null; });
+
+  // הקלדה
+  function sendText() {
+    const value = $('text').value;
+    if (!value) return;
+    if (/[^\x20-\x7E]/.test(value)) {
+      $('textHint').textContent = 'כרגע אפשר לשלוח רק אותיות באנגלית ומספרים.';
+      return;
+    }
+    buzz();
+    fetch('/api/text?t=' + encodeURIComponent(value), { method: 'POST' })
+      .then(() => { $('text').value = ''; $('textHint').textContent = 'נשלח ✓'; })
+      .catch(() => { $('textHint').textContent = 'לא הצלחתי לשלוח'; });
+  }
+  $('sendText').onclick = sendText;
+  $('text').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); sendText(); } });
+
+  // אפליקציות: מועדפים קודם, אחר כך כל השאר
+  const FAVORITES = ['com.teamsmart.videomanager.tv', 'com.liskovsoft.smarttubetv', 'com.google.android.youtube.tv',
+    'com.google.android.youtube', 'com.netflix.ninja', 'com.netflix.mediaclient', 'com.disney.disneyplus',
+    'com.amazon.amazonvideo.livingroom', 'com.spotify.tv.android'];
+  function loadApps() {
+    $('apps').innerHTML = '<div class="empty">טוען…</div>';
+    fetch('/api/apps', { cache: 'no-store' }).then((r) => r.json()).then((apps) => {
+      const rank = (a) => { const i = FAVORITES.findIndex((f) => a.pkg.startsWith(f)); return i < 0 ? 99 : i; };
+      apps.sort((a, b) => rank(a) - rank(b));
+      const box = $('apps');
+      box.innerHTML = '';
+      if (!apps.length) box.innerHTML = '<div class="empty">לא נמצאו אפליקציות</div>';
+      apps.forEach((a) => {
+        const b = document.createElement('button');
+        b.className = 'app';
+        const img = document.createElement('img');
+        img.loading = 'lazy'; img.alt = '';
+        img.src = '/api/icon?pkg=' + encodeURIComponent(a.pkg);
+        const label = document.createElement('span');
+        label.textContent = a.label;
+        b.append(img, label);
+        b.onclick = () => { buzz(); post('/api/launch?pkg=' + encodeURIComponent(a.pkg)); };
+        box.appendChild(b);
+      });
+    }).catch(() => { $('apps').innerHTML = '<div class="empty">לא הצלחתי לטעון</div>'; });
+  }
+  $('reloadApps').onclick = loadApps;
+
+  // מצב החיבור
+  function setStatus(ok, text, waiting) {
+    $('dot').className = 'dot' + (ok ? ' ok' : waiting ? '' : ' bad');
+    $('statusText').textContent = text;
+  }
+  function poll() {
+    fetch('/api/status', { cache: 'no-store' }).then((r) => r.json()).then((s) => {
+      if (s.name) $('tvName').textContent = '📺 ' + s.name;
+      setStatus(s.connected, s.connected ? 'מחובר' : s.status, !s.connected);
+    }).catch(() => setStatus(false, 'אין קשר לטלוויזיה'));
+  }
+  poll();
+  setInterval(poll, 4000);
+  loadApps();
+})();
+</script>
+</body>
+</html>
