@@ -12,6 +12,7 @@ const DARK = rgb(0.067, 0.094, 0.153);
 const GRAY = rgb(0.42, 0.45, 0.5);
 const LIGHT = rgb(1, 0.969, 0.929);
 const LINE = rgb(0.9, 0.91, 0.92);
+const GREEN = rgb(0.086, 0.639, 0.29);
 
 const PAGE_W = 595;
 const PAGE_H = 842;
@@ -168,8 +169,19 @@ export async function buildOrderPdf(order: Order, assets: PdfAssets) {
     newPageIfNeeded(lines.length * 14 + 12);
     lines.forEach((line, i) => right(line, colName, y - i * 14, 10));
     right(String(item.qty), colQty, y, 10);
-    right(item.gift ? '-' : formatMoney(item.unit), colUnit, y, 10);
-    left(item.gift ? 'חינם' : formatMoney(item.total), colTotal, y, 10);
+    if (item.gift) {
+      // מחיר מקורי מחוק ו"חינם"
+      if (item.original > 0) {
+        const orig = formatMoney(item.original);
+        const w = textWidth(orig, regular, 10);
+        right(orig, colUnit, y, 10, regular, GRAY);
+        page.drawLine({ start: { x: colUnit - w, y: y + 3.5 }, end: { x: colUnit, y: y + 3.5 }, thickness: 0.8, color: GRAY });
+      }
+      left('חינם', colTotal, y, 10, bold, GREEN);
+    } else {
+      right(formatMoney(item.unit), colUnit, y, 10);
+      left(formatMoney(item.total), colTotal, y, 10);
+    }
     y -= lines.length * 14 + 6;
     page.drawLine({ start: { x: MARGIN, y: y + 2 }, end: { x: PAGE_W - MARGIN, y: y + 2 }, thickness: 0.5, color: LINE });
     y -= 10;

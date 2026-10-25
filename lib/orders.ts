@@ -51,6 +51,8 @@ export function orderItems(order: Order) {
       unit,
       total: unit * qty,
       gift,
+      // מחיר מקורי של מתנה (מוצג מחוק ליד "חינם")
+      original: gift ? Number(item.original_price) || 0 : 0,
     };
   });
 }

@@ -379,7 +379,16 @@ export default function CartPage() {
                 <span>
                   {item.name} × {item.qty}
                 </span>
-                <span className="whitespace-nowrap">{item.gift ? 'חינם' : formatMoney(item.total)}</span>
+                <span className="whitespace-nowrap">
+                  {item.gift ? (
+                    <>
+                      {item.original > 0 && <span className="line-through text-gray-400 text-xs ml-1.5">{formatMoney(item.original)}</span>}
+                      <span className="text-green-600 font-bold">חינם</span>
+                    </>
+                  ) : (
+                    formatMoney(item.total)
+                  )}
+                </span>
               </div>
             ))}
             {orderTotals(placedOrder).discount > 0 && (
@@ -393,7 +402,7 @@ export default function CartPage() {
               <span>{orderTotals(placedOrder).shipping > 0 ? formatMoney(orderTotals(placedOrder).shipping) : 'חינם'}</span>
             </div>
             <div className="flex justify-between border-t pt-2 mt-1 font-black text-orange-600 text-base">
-              <span>סה״כ ששולם</span>
+              <span>סה״כ</span>
               <span>{formatMoney(orderTotals(placedOrder).total)}</span>
             </div>
           </div>
@@ -791,7 +800,10 @@ export default function CartPage() {
               {welcomeState === 'eligible' && isGiftType && giftProduct && (
                 <div className="flex justify-between items-center text-green-600 font-bold">
                   <span>🎁 מתנת הצטרפות: {giftProduct.name}</span>
-                  <span>חינם</span>
+                  <span className="whitespace-nowrap">
+                    <span className="line-through text-gray-400 font-medium ml-1.5">₪{giftProduct.sale_price || giftProduct.price}</span>
+                    חינם
+                  </span>
                 </div>
               )}
 

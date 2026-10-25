@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       .map(
         (item) => `<tr>
           <td style="padding: 6px 0; text-align: right;">${escapeHtml(item.name)} × ${item.qty}</td>
-          <td style="padding: 6px 0; text-align: left; white-space: nowrap;">${item.gift ? 'חינם' : formatMoney(item.total)}</td>
+          <td style="padding: 6px 0; text-align: left; white-space: nowrap;">${item.gift ? `${item.original > 0 ? `<span style="text-decoration: line-through; color: #9ca3af; font-size: 12px; margin-left: 6px;">${formatMoney(item.original)}</span>` : ''}<span style="color: #16a34a; font-weight: bold;">חינם</span>` : formatMoney(item.total)}</td>
         </tr>`
       )
       .join('');
