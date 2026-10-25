@@ -244,7 +244,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 .member-row:first-child { border-top: 0; }
 .member-row .who { flex: 1; min-width: 0; }
 .member-row .who b { display: block; }
-.member-row .who small { color: var(--muted); overflow-wrap: anywhere; }
+.member-row .who small { color: var(--muted); overflow-wrap: anywhere; display: block; text-align: right; }
 .member-row .m-total { text-align: left; }
 .member-row .m-total b { display: block; font-family: var(--font-display); color: var(--accent); }
 .member-row .m-total small { color: var(--muted); }
@@ -252,6 +252,28 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 .team-total { display: flex; justify-content: space-between; font-weight: 700; padding-top: 8px; border-top: 2px solid var(--line); }
 .readonly-note { background: var(--soft); border-radius: 12px; padding: 10px 12px; font-size: .9rem; }
 .pill.ok { background: #e3f6ea; color: #17803d; }
+.banner { background: var(--surface); border: 1px solid var(--line); border-inline-start: 4px solid var(--accent); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+.banner b { font-family: var(--font-display); }
+.banner .msg { white-space: pre-wrap; overflow-wrap: anywhere; }
+.banner .btns { justify-content: flex-start; }
+.goal { display: flex; flex-direction: column; gap: 6px; }
+.goal-bar { height: 10px; border-radius: 6px; background: var(--soft); overflow: hidden; }
+.goal-bar i { display: block; height: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--hero-a), var(--hero-b)); }
+.hero .goal-bar { background: rgba(255,255,255,.25); }
+.hero .goal-bar i { background: #fff; }
+.goal-row { display: flex; justify-content: space-between; gap: 8px; font-size: .88rem; }
+.chart svg { width: 100%; height: auto; display: block; }
+.chart text { font-family: var(--font-body); }
+.t-img { width: 26px; height: 26px; border-radius: 7px; object-fit: cover; vertical-align: middle; margin-inline-end: 6px; }
+.chip .t-img { width: 22px; height: 22px; margin-inline-end: 6px; margin-inline-start: -6px; }
+.pill.temp { background: #fff1d6; color: #9a5b00; }
+@media (prefers-color-scheme: dark) { .pill.temp { background: #3d2a0a; color: #ffc46b; } }
+.pill.expired { background: var(--soft); color: var(--muted); }
+.medal { font-size: 1.2rem; width: 1.6em; text-align: center; flex-shrink: 0; }
+.search { display: flex; gap: 8px; align-items: center; }
+.search input { flex: 1; }
+.img-row { display: flex; align-items: center; gap: 10px; }
+.img-row img { width: 56px; height: 56px; border-radius: 12px; object-fit: cover; }
 @media (prefers-color-scheme: dark) { .pill.ok { background: #173d26; color: #7fe0a3; } }
 .member-row .m-total .pill { display: block; margin: 3px 0 0; text-align: center; }
 </style>
@@ -312,6 +334,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 
   <!-- TAB: add -->
   <section class="tab" id="tab-add" aria-label="הוספת בונוס">
+    <div class="banner" id="msgBanner" hidden><b>📣 הודעה מהמנהל</b><div class="msg" id="msgText"></div><div class="hint" id="msgDate"></div><div class="btns"><button class="mini-btn" type="button" id="msgDismiss">הבנתי</button></div></div>
+    <div class="banner" id="remindBanner" hidden><b id="remindTitle"></b><div class="hint" id="remindText"></div><div class="btns"><button class="mini-btn" type="button" id="remindGo" hidden>מעבר לאישור</button></div></div>
+    <section class="card goal" id="goalCard" hidden>
+      <div class="goal-row"><b id="goalTitle"></b><span class="num" id="goalNums"></span></div>
+      <div class="goal-bar"><i id="goalBar"></i></div>
+      <div class="hint" id="goalHint"></div>
+    </section>
     <div class="adds" id="addKeys" role="group" aria-label="הוספה מהירה"></div>
     <section class="card" aria-labelledby="hToday">
       <div class="card-head"><h2 id="hToday">נוספו היום</h2><span class="sum num" id="sToday"></span></div>
@@ -332,7 +361,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
         <div class="total num"><span id="total">0</span><small>₪</small></div>
         <div class="total-sub num" id="totalSub"></div>
       </div>
+      <div class="goal" id="heroGoal" hidden><div class="goal-row"><span id="heroGoalText"></span><span class="num" id="heroGoalPct"></span></div><div class="goal-bar"><i id="heroGoalBar"></i></div></div>
       <div class="kpis" id="kpis"></div>
+    </section>
+    <section class="card chart" aria-labelledby="hChart">
+      <div class="card-head"><h2 id="hChart">6 חודשים אחרונים</h2></div>
+      <div id="myChart"></div>
     </section>
     <section class="card" aria-labelledby="hTier">
       <div class="card-head"><h2 id="hTier">לפי סוג בונוס</h2></div>
@@ -346,6 +380,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     <div class="readonly-note" id="lockNote" hidden>🔒 המנהל אישר את החודש הזה, אז אי אפשר לשנות בו רישומים. אם צריך תיקון, פנה למנהל.</div>
     <section class="card" aria-labelledby="hLog">
       <div class="card-head"><h2 id="hLog">כל הרישומים בחודש</h2><span class="sum num" id="sLog"></span></div>
+      <div class="field search"><input id="searchBox" type="search" placeholder="🔍 חיפוש בכל הרישומים: דגם, סוג, הערה…" aria-label="חיפוש"></div>
       <div class="log" id="monthList"></div>
     </section>
   </section>
@@ -365,10 +400,27 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       </div>
     </section>
     <section class="card">
-      <div class="card-head"><h2>העובדים</h2><button class="mini-btn" type="button" id="teamRefresh">רענון</button></div>
+      <div class="card-head"><h2>העובדים · מובילים החודש</h2><button class="mini-btn" type="button" id="teamRefresh">רענון</button></div>
       <button class="btn primary" type="button" id="approveAll" hidden>אישור החודש לכל מי שממתין</button>
       <div id="memberList"></div>
-      <div class="hint">לחיצה על עובד מציגה את כל הבונוסים שלו בחודש, ושם אפשר גם לאפס לו סיסמה.</div>
+      <div class="hint">לחיצה על עובד מציגה את כל הבונוסים שלו בחודש. שם אפשר לאשר, לקבוע יעד אישי ולאפס סיסמה. רק אתה רואה את הדירוג.</div>
+      <button class="btn xl" type="button" id="teamXl">אקסל של כל הצוות לחודש הזה</button>
+    </section>
+    <section class="card chart">
+      <div class="card-head"><h2>הצוות ב-6 חודשים אחרונים</h2></div>
+      <div id="teamChart"></div>
+    </section>
+    <section class="card">
+      <div class="card-head"><h2>📣 הודעה לצוות</h2></div>
+      <div class="hint">מופיעה לכל העובדים בראש מסך ההוספה. אפשר להשאיר ריק.</div>
+      <div class="field"><textarea id="teamMsg" rows="3" placeholder="למשל: החודש בונוס כפול על אייפון 17"></textarea></div>
+      <div class="btns"><button class="btn primary" type="button" id="teamMsgSave">פרסום ההודעה</button><button class="btn ghost" type="button" id="teamMsgClear">מחיקת ההודעה</button></div>
+    </section>
+    <section class="card">
+      <div class="card-head"><h2>🎯 יעד חודשי</h2></div>
+      <div class="hint">היעד של כל הצוות. אפשר לקבוע לעובד יעד אחר בכרטיס שלו. ריק = בלי יעד.</div>
+      <div class="field"><label class="lbl" for="teamGoal">יעד בש״ח</label><input id="teamGoal" type="number" min="0" inputmode="numeric" placeholder="למשל 1500"></div>
+      <button class="btn primary" type="button" id="teamGoalSave">שמירת היעד</button>
     </section>
     <section class="card">
       <div class="card-head"><h2>צירוף עובדים</h2></div>
@@ -682,6 +734,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     </div>
     <div class="field" id="tCustomBox" hidden><label class="lbl" for="tAmt">מחיר (₪)</label><input id="tAmt" type="number" min="0" inputmode="numeric"></div>
     <label class="hint" id="tUltraWrap" hidden><input type="checkbox" id="tUltraFlag"> לספור כבונוס אולטרה בסיכום</label>
+    <label class="toggle-row"><span><b>בונוס זמני</b><br><span class="hint">מופיע רק בין התאריכים שתבחר, למשל למבצע</span></span><input type="checkbox" id="tTemp"></label>
+    <div class="inline" id="tDates" hidden>
+      <div class="field"><label class="lbl" for="tFrom">מתאריך</label><input id="tFrom" type="date"></div>
+      <div class="field"><label class="lbl" for="tTo">עד תאריך</label><input id="tTo" type="date"></div>
+    </div>
+    <div class="field"><span class="lbl">תמונה להמחשה (לא חובה)</span>
+      <div class="img-row"><img id="tImgPrev" alt="" hidden><label class="btn ghost">בחירת תמונה<input id="tImgFile" type="file" accept="image/*" hidden></label><button class="btn ghost" type="button" id="tImgDel" hidden>הסרה</button></div>
+      <span class="hint">מופיעה ליד השם כשמוסיפים בונוס, כדי שיהיה ברור על איזה מכשיר מדובר.</span>
+    </div>
     <div class="err" id="tErr" hidden></div>
     <button class="save" type="button" id="tSave">שמירה</button>
     <button class="btn danger" type="button" id="tDelete">מחיקת הסוג</button>
@@ -717,6 +778,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     <button class="save" type="button" id="mbApprove">אישור החודש</button>
     <button class="btn ghost" type="button" id="mbUnapprove" hidden>ביטול האישור (לפתוח לעריכה)</button>
     <button class="btn ghost" type="button" id="mbBonuses">הבונוסים של העובד הזה</button>
+    <div class="field"><label class="lbl" for="mbGoal" id="mbGoalLbl">יעד אישי (ריק = היעד של הצוות)</label><div class="search"><input id="mbGoal" type="number" min="0" inputmode="numeric"><button class="mini-btn" type="button" id="mbGoalSave">שמירה</button></div></div>
     <div class="rows" id="mbCats"></div>
     <div class="log" id="mbList"></div>
     <div class="section" id="mbAdmin">
@@ -778,7 +840,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   });
 
   var accts = { list: [], active: null };
-  var state = { entries: {}, settings: Object.assign({}, DEFAULT_SETTINGS), team: null, teamReady: true, memberCfg: {}, cfgTarget: null, approved: {}, month: monthKey(new Date()), tab: "add", sub: "profile" };
+  var state = { entries: {}, settings: Object.assign({}, DEFAULT_SETTINGS), team: null, teamReady: true, memberCfg: {}, memberGoal: {}, cfgTarget: null, approved: {}, search: "", month: monthKey(new Date()), tab: "add", sub: "profile" };
   var share = { period: "this", picked: [], to: null };
   var pending = [];
   var online = false, syncing = false;
@@ -952,18 +1014,19 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     } finally { syncing = false; setStatus(); }
   }
   async function loadTeam(myAcct) {
-    var tm = await sb.from("team_members").select("role,team_id,config").eq("user_id", myAcct).maybeSingle();
+    var tm = await sb.from("team_members").select("role,team_id,config,goal").eq("user_id", myAcct).maybeSingle();
     if (tm.error) { state.teamReady = false; state.team = null; return; }
     state.teamReady = true;
     var ap = await sb.from("month_approvals").select("month").eq("user_id", myAcct);
     if (!ap.error) { state.approved = {}; (ap.data || []).forEach(function (r) { state.approved[r.month] = true; }); }
     if (!tm.data) { state.team = null; return; }
     var tr = await sb.from("teams").select("*").eq("id", tm.data.team_id).maybeSingle();
-    state.team = tr.data ? Object.assign({}, tr.data, { role: tm.data.role, myConfig: tm.data.config || null }) : null;
+    state.team = tr.data ? Object.assign({}, tr.data, { role: tm.data.role, myConfig: tm.data.config || null, myGoal: tm.data.goal }) : null;
     if (state.team && tm.data.role === "manager") {
-      var ms = await sb.from("team_members").select("user_id,config").eq("team_id", tm.data.team_id);
-      state.memberCfg = {};
-      (ms.data || []).forEach(function (r) { if (r.config) state.memberCfg[r.user_id] = r.config; });
+      var ms = await sb.from("team_members").select("user_id,config,goal").eq("team_id", tm.data.team_id);
+      state.memberCfg = {}; state.memberGoal = {};
+      (ms.data || []).forEach(function (r) { if (r.config) state.memberCfg[r.user_id] = r.config; if (r.goal != null) state.memberGoal[r.user_id] = r.goal; });
+      loadPrevWaiting();
     }
   }
   async function pull() {
@@ -1126,6 +1189,17 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     });
     return t;
   }
+  function myGoal() { if (!state.team) return null; var g = state.team.myGoal != null ? state.team.myGoal : state.team.goal; return g > 0 ? g : null; }
+  function goalFor(uidM) { if (!state.team) return null; var g = state.memberGoal[uidM] != null ? state.memberGoal[uidM] : state.team.goal; return g > 0 ? g : null; }
+  function dmy(d) { var p = d.split("-"); return (+p[2]) + "." + (+p[1]); }
+  function typeActive(t, date) { return !((t.from && date < t.from) || (t.to && date > t.to)); }
+  function tempPill(t) {
+    if (!t.from && !t.to) return null;
+    var today = todayStr();
+    if (t.to && today > t.to) return el("span", "pill expired", "הסתיים");
+    if (t.from && today < t.from) return el("span", "pill temp", "⏳ מ-" + dmy(t.from));
+    return el("span", "pill temp", "⏳ " + (t.to ? "עד " + dmy(t.to) : "זמני"));
+  }
   function countLine(t) { return t.count ? fmt(t.count) + " בונוסים" + (t.big ? " · " + t.big + " אולטרה" : "") : "אין עדיין"; }
 
   // ---------- render ----------
@@ -1139,12 +1213,22 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     $$(".nextMonth").forEach(function (x) { x.disabled = state.month >= monthKey(new Date()); });
 
     renderAddKeys();
+    renderBanners();
     var today = todayStr();
     var todays = entriesWhere(function (e) { return e.date === today; }).sort(function (a, b) { return b.ts - a.ts; });
     var tt = totals(todays);
     $("sToday").textContent = todays.length ? countLine(tt) + " · " + fmt(tt.all) + " ₪" : "";
     renderLog($("todayList"), todays, false, "עוד לא נוסף כלום היום. לחץ על אחד הכפתורים למעלה.");
     $("lockNote").hidden = !state.approved[state.month];
+    var g = myGoal(), curTot = totals(monthEntries(monthKey(new Date()))).all;
+    $("goalCard").hidden = !g;
+    if (g) {
+      var pct = Math.min(100, Math.round(curTot / g * 100));
+      $("goalTitle").textContent = "🎯 היעד של " + MONTHS[new Date().getMonth()];
+      $("goalNums").textContent = fmt(curTot) + " / " + fmt(g) + " ₪";
+      $("goalBar").style.width = pct + "%";
+      $("goalHint").textContent = curTot >= g ? "🎉 עברת את היעד! כל הכבוד" : "עוד " + fmt(g - curTot) + " ₪ ליעד";
+    }
 
     var list = monthEntries(state.month), t = totals(list);
     $("totalLabel").textContent = state.settings.name ? "מגיע ל" + state.settings.name + " בחודש הזה" : "מגיע לי בחודש הזה";
@@ -1153,6 +1237,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     if (t.count) { $("totalSub").appendChild(el("b", null, fmt(t.count))); $("totalSub").appendChild(document.createTextNode(" בונוסים" + (t.big ? " · מתוכם " + t.big + " אולטרה" : ""))); }
     else $("totalSub").textContent = "אין בונוסים בחודש הזה";
     if (state.approved[state.month]) $("totalSub").appendChild(el("span", "pill", "✓ אושר על ידי המנהל"));
+    $("heroGoal").hidden = !g;
+    if (g) {
+      $("heroGoalText").textContent = "יעד " + fmt(g) + " ₪";
+      $("heroGoalPct").textContent = Math.round(t.all / g * 100) + "%";
+      $("heroGoalBar").style.width = Math.min(100, Math.round(t.all / g * 100)) + "%";
+    }
+    var series = [];
+    for (var i = 5; i >= 0; i--) { var mk = shiftMonth(state.month, -i); series.push({ m: mk, v: totals(monthEntries(mk)).all }); }
+    drawChart($("myChart"), series);
     var kp = $("kpis"); kp.textContent = "";
     kindsIn(list).forEach(function (k) {
       var d = el("div", "kpi"); d.appendChild(el("b", "num", String(t.byKind[k] || 0))); d.appendChild(el("span", null, catPlural(k))); kp.appendChild(d);
@@ -1167,8 +1260,17 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       cmp.appendChild(el("b", diff > 0 ? "trend-up" : diff < 0 ? "trend-down" : "", (diff > 0 ? "+" : "") + fmt(diff) + " ₪"));
     }
     renderCatCards(list);
-    $("sLog").textContent = list.length ? list.length + " רישומים" : "";
-    renderLog($("monthList"), list, true, "אין רישומים בחודש הזה.");
+    var q = state.search.trim().toLowerCase();
+    if (q) {
+      var found = entriesWhere(function (e) { return (e.sub + " " + (e.note || "") + " " + catName(e.kind) + " " + catPlural(e.kind) + " " + e.amount).toLowerCase().indexOf(q) >= 0; });
+      $("hLog").textContent = "תוצאות חיפוש";
+      $("sLog").textContent = found.length + " נמצאו";
+      renderLog($("monthList"), found.slice(0, 300), true, "לא נמצא שום רישום עם „" + state.search.trim() + "”.");
+    } else {
+      $("hLog").textContent = "כל הרישומים בחודש";
+      $("sLog").textContent = list.length ? list.length + " רישומים" : "";
+      renderLog($("monthList"), list, true, "אין רישומים בחודש הזה.");
+    }
 
     renderTypes();
     if (state.tab === "settings" && state.sub === "share") renderSharePanel();
@@ -1181,6 +1283,64 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     if (isMember() && MEMBER_SUBS.indexOf(state.sub) < 0 && state.tab === "settings") setSub("profile");
     if (state.team) { $("teamNameLbl").textContent = state.team.name; $("teamCode").textContent = state.team.join_code || "------"; updateInvite(); }
   }
+  function renderBanners() {
+    var t = state.team;
+    var showMsg = !!(t && t.message && t.message.trim() && lsGet("bt.msgSeen." + t.id, "") !== String(t.message_at || t.message));
+    $("msgBanner").hidden = !showMsg;
+    if (showMsg) {
+      $("msgText").textContent = t.message;
+      $("msgDate").textContent = t.message_at ? new Date(t.message_at).toLocaleDateString("he-IL", { day: "numeric", month: "long" }) : "";
+    }
+    // end-of-month reminders
+    var now = new Date(), day = now.getDate(), last = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    var title = "", text = "", go = false;
+    if (isManager() && day <= 10 && prevWaiting > 0) {
+      title = "📋 " + prevWaiting + " עובדים ממתינים לאישור של " + monthLabel(shiftMonth(monthKey(now), -1));
+      text = "עבור על הבונוסים שלהם ואשר את החודש.";
+      go = true;
+    } else if (t && !isManager() && last - day <= 2) {
+      title = "⏰ החודש נגמר בעוד " + (last - day === 0 ? "היום" : (last - day) + " ימים");
+      text = "בדוק שכל הבונוסים של " + MONTHS[now.getMonth()] + " רשומים, לפני שהמנהל מאשר את החודש.";
+    }
+    $("remindBanner").hidden = !title;
+    $("remindTitle").textContent = title; $("remindText").textContent = text; $("remindGo").hidden = !go;
+  }
+  var prevWaiting = 0;
+  async function loadPrevWaiting() {
+    var r = await sb.rpc("team_overview", { p_month: shiftMonth(monthKey(new Date()), -1) });
+    prevWaiting = r.error ? 0 : (r.data || []).filter(function (m) { return m.cnt && !m.approved; }).length;
+    renderBanners();
+  }
+  $("msgDismiss").addEventListener("click", function () { var t = state.team; if (t) lsSet("bt.msgSeen." + t.id, String(t.message_at || t.message)); renderBanners(); });
+  $("remindGo").addEventListener("click", function () { state.month = shiftMonth(monthKey(new Date()), -1); setTab("team"); render(); });
+  function drawChart(box, series) {
+    var W = 340, H = 150, padB = 26, padT = 20, n = series.length, bw = 34, gap = (W - n * bw) / (n + 1);
+    var max = Math.max.apply(null, series.map(function (x) { return x.v; }).concat([1]));
+    var NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", series.map(function (x) { return monthLabel(x.m) + ": " + x.v + " ₪"; }).join(", "));
+    var cs = getComputedStyle(document.documentElement);
+    var line = cs.getPropertyValue("--line").trim(), muted = cs.getPropertyValue("--muted").trim(), ink = cs.getPropertyValue("--ink").trim();
+    var acc = cs.getPropertyValue("--accent").trim(), soft = cs.getPropertyValue("--soft").trim();
+    var base = document.createElementNS(NS, "line");
+    base.setAttribute("x1", 0); base.setAttribute("x2", W); base.setAttribute("y1", H - padB); base.setAttribute("y2", H - padB); base.setAttribute("stroke", line);
+    svg.appendChild(base);
+    series.forEach(function (x, i) {
+      // RTL: newest month on the left end reads last; draw oldest on the right
+      var xi = W - (gap + i * (bw + gap)) - bw, h = Math.round((H - padB - padT) * x.v / max), y = H - padB - h;
+      var r = document.createElementNS(NS, "rect");
+      r.setAttribute("x", xi); r.setAttribute("y", y); r.setAttribute("width", bw); r.setAttribute("height", Math.max(h, 2)); r.setAttribute("rx", 6);
+      r.setAttribute("fill", i === n - 1 ? acc : soft); svg.appendChild(r);
+      var v = document.createElementNS(NS, "text"); v.setAttribute("x", xi + bw / 2); v.setAttribute("y", y - 5); v.setAttribute("text-anchor", "middle");
+      v.setAttribute("font-size", "11"); v.setAttribute("font-weight", "700"); v.setAttribute("fill", ink); v.textContent = x.v ? fmt(x.v) : "";
+      svg.appendChild(v);
+      var l = document.createElementNS(NS, "text"); l.setAttribute("x", xi + bw / 2); l.setAttribute("y", H - 8); l.setAttribute("text-anchor", "middle");
+      l.setAttribute("font-size", "11"); l.setAttribute("fill", muted); l.textContent = MONTHS[+x.m.split("-")[1] - 1].slice(0, 3) + "׳";
+      svg.appendChild(l);
+    });
+    box.textContent = ""; box.appendChild(svg);
+  }
+  $("searchBox").addEventListener("input", function () { state.search = $("searchBox").value; render(); });
   function renderAddKeys() {
     var box = $("addKeys"); box.textContent = "";
     var cs = cats();
@@ -1498,8 +1658,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       if (!list.length) rows.appendChild(el("div", "empty-note", "אין סוגים בקטגוריה הזו."));
       list.forEach(function (t) {
         var row = el("div", "type-row");
-        var name = el("span", "t-name", t.name);
+        var name = el("span", "t-name");
+        if (t.img) { var im = el("img", "t-img"); im.src = t.img; im.alt = ""; name.appendChild(im); }
+        name.appendChild(document.createTextNode(t.name));
         if (t.ultra) name.appendChild(el("span", "pill", "אולטרה"));
+        var tp = tempPill(t); if (tp) name.appendChild(tp);
         row.appendChild(name);
         row.appendChild(el("span", "t-amt num", fmt(typeAmountC(E, t)) + " ₪"));
         if (editable) { var b = el("button", "mini-btn", "עריכה"); b.type = "button"; b.addEventListener("click", function () { openType(t.kind, t.id); }); row.appendChild(b); }
@@ -1530,9 +1693,20 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     $("tUltraFlag").checked = !!(t && t.ultra);
     setTypeTier(!t ? "reg" : t.amount != null ? "custom" : t.ultra ? "big" : "reg");
     $("tDelete").hidden = !t; $("tErr").hidden = true;
+    $("tTemp").checked = !!(t && (t.from || t.to)); $("tDates").hidden = !$("tTemp").checked;
+    $("tFrom").value = (t && t.from) || todayStr(); $("tTo").value = (t && t.to) || "";
+    editType.img = (t && t.img) || ""; paintTypeImg();
     show($("typeSheet"));
     if (!t) setTimeout(function () { $("tName").focus(); }, 50);
   }
+  function paintTypeImg() { $("tImgPrev").hidden = !editType.img; $("tImgDel").hidden = !editType.img; if (editType.img) $("tImgPrev").src = editType.img; }
+  $("tTemp").addEventListener("change", function () { $("tDates").hidden = !$("tTemp").checked; });
+  $("tImgDel").addEventListener("click", function () { editType.img = ""; paintTypeImg(); });
+  $("tImgFile").addEventListener("change", function () {
+    var file = $("tImgFile").files && $("tImgFile").files[0]; $("tImgFile").value = "";
+    if (!file) return;
+    shrinkImage(file, 96, function (data) { if (data) { editType.img = data; paintTypeImg(); } else toast("לא הצלחתי לפתוח את התמונה"); });
+  });
   $("tReg").addEventListener("click", function () { setTypeTier("reg"); });
   $("tBig").addEventListener("click", function () { setTypeTier("big"); });
   $("tCustom").addEventListener("click", function () { setTypeTier("custom"); $("tAmt").focus(); });
@@ -1545,9 +1719,16 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       if (!(amt >= 0)) { $("tErr").textContent = "צריך לכתוב מחיר."; $("tErr").hidden = false; return; }
       ultra = $("tUltraFlag").checked;
     }
+    var from = null, to = null;
+    if ($("tTemp").checked) {
+      from = $("tFrom").value || null; to = $("tTo").value || null;
+      if (!to) { $("tErr").textContent = "בבונוס זמני צריך לבחור עד איזה תאריך."; $("tErr").hidden = false; return; }
+      if (from && to < from) { $("tErr").textContent = "תאריך הסיום לפני תאריך ההתחלה."; $("tErr").hidden = false; return; }
+    }
+    var extra = { name: name, amount: amt, ultra: ultra, from: from, to: to, img: editType.img || null };
     var list = typesC(econf()).map(function (x) { return Object.assign({}, x); });
-    if (editType.id) list.forEach(function (x) { if (x.id === editType.id) { x.name = name; x.amount = amt; x.ultra = ultra; } });
-    else list.push({ id: "t-" + uid(), kind: editType.kind, name: name, ultra: ultra, amount: amt });
+    if (editType.id) list.forEach(function (x) { if (x.id === editType.id) Object.assign(x, extra); });
+    else list.push(Object.assign({ id: "t-" + uid(), kind: editType.kind }, extra));
     saveConfig({ types: list }); hide(); toast("נשמר: " + name);
   });
   $("tDelete").addEventListener("click", function () {
@@ -1694,13 +1875,17 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   function renderOverview() {
     var box = $("memberList"); box.textContent = "";
     var sum = 0, cnt = 0, appr = 0;
-    overview.forEach(function (m) {
+    overview.sort(function (a, b) { return b.total - a.total; });
+    overview.forEach(function (m, i) {
       sum += m.total; cnt += m.cnt; if (m.approved) appr++;
       var b = el("button", "member-row"); b.type = "button";
+      b.appendChild(el("span", "medal", m.total > 0 && i < 3 ? ["🥇", "🥈", "🥉"][i] : String(i + 1)));
       var av = el("span", "avatar"); paintAvatar(av, { name: m.name, email: m.email, avatar: m.avatar }); b.appendChild(av);
       var who = el("span", "who"); who.appendChild(el("b", null, (m.name || m.email.split("@")[0]) + (m.role === "manager" ? " (אני)" : "")));
-      who.appendChild(el("small", null, m.phone || m.email)); b.appendChild(who);
+      var ct = el("small", null, m.phone || m.email); ct.dir = "ltr"; ct.style.whiteSpace = "nowrap"; who.appendChild(ct); b.appendChild(who);
       var tot = el("span", "m-total num"); tot.appendChild(el("b", null, fmt(m.total) + " ₪")); tot.appendChild(el("small", null, m.cnt + " בונוסים" + (m.ultra ? " · " + m.ultra + " אולטרה" : "")));
+      var gm = goalFor(m.user_id);
+      if (gm) tot.appendChild(el("small", null, " · " + Math.round(m.total / gm * 100) + "% מהיעד"));
       if (m.approved) tot.appendChild(el("span", "pill ok", "✓ אושר")); else if (m.cnt) tot.appendChild(el("span", "pill", "ממתין לאישור"));
       b.appendChild(tot);
       b.addEventListener("click", function () { openMember(m); });
@@ -1709,10 +1894,61 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     if (!overview.length) box.appendChild(el("div", "empty-note", "עדיין אין עובדים בצוות."));
     $("teamTotal").textContent = fmt(sum);
     $("approveAll").hidden = !overview.some(function (m) { return !m.approved && m.cnt; });
+    if (state.team) {
+      if (document.activeElement !== $("teamMsg")) $("teamMsg").value = state.team.message || "";
+      if (document.activeElement !== $("teamGoal")) $("teamGoal").value = state.team.goal || "";
+    }
+    loadTeamChart();
     $("teamSub").textContent = overview.length + " אנשים · " + fmt(cnt) + " בונוסים · " + appr + " מתוך " + overview.length + " אושרו";
     if (state.tab === "settings" && state.sub === "types") renderTargets();
   }
   $("teamRefresh").addEventListener("click", loadOverview);
+  var teamChartKey = "";
+  async function loadTeamChart() {
+    var key = state.month + "|" + overview.length;
+    if (key === teamChartKey) return; teamChartKey = key;
+    var months = []; for (var i = 5; i >= 0; i--) months.push(shiftMonth(state.month, -i));
+    var res = await Promise.all(months.map(function (mk) { return sb.rpc("team_overview", { p_month: mk }); }));
+    drawChart($("teamChart"), months.map(function (mk, i) { return { m: mk, v: (res[i].data || []).reduce(function (a, r) { return a + r.total; }, 0) }; }));
+  }
+  function updateTeam(patch, okMsg) {
+    Object.assign(state.team, patch); saveCache(); render();
+    sb.from("teams").update(patch).eq("id", state.team.id).then(function (r) { toast(r.error ? "לא נשמר. בדוק חיבור ונסה שוב." : okMsg); });
+  }
+  $("teamMsgSave").addEventListener("click", function () {
+    var m = $("teamMsg").value.trim();
+    if (!m) { toast("כתוב הודעה, או לחץ „מחיקת ההודעה”"); return; }
+    updateTeam({ message: m, message_at: new Date().toISOString() }, "ההודעה פורסמה לכל הצוות");
+  });
+  $("teamMsgClear").addEventListener("click", function () { $("teamMsg").value = ""; updateTeam({ message: "", message_at: null }, "ההודעה נמחקה"); });
+  $("teamGoalSave").addEventListener("click", function () {
+    var g = parseInt($("teamGoal").value, 10);
+    updateTeam({ goal: g > 0 ? g : null }, g > 0 ? "היעד נשמר: " + fmt(g) + " ₪" : "היעד הוסר");
+  });
+  $("teamXl").addEventListener("click", async function () {
+    var btn = $("teamXl"); btn.disabled = true;
+    try {
+      var r = await sb.from("entries").select("user_id," + ENTRY_COLS).eq("month", state.month);
+      if (r.error) throw r.error;
+      var X = await loadXlsx();
+      var wb = X.utils.book_new(); wb.Workbook = { Views: [{ RTL: true }] };
+      var byId = {}; overview.forEach(function (m) { byId[m.user_id] = m; });
+      var nameOf = function (id) { var m = byId[id]; return m ? (m.name || m.email) : id; };
+      var rows = [["סיכום בונוסים לצוות – " + state.team.name + " – " + monthLabel(state.month)], [], ["עובד", "טלפון", "מספר בונוסים", "אולטרה", "סה״כ ₪", "יעד ₪", "אושר"]];
+      var sum = 0;
+      overview.forEach(function (m) { sum += m.total; rows.push([m.name || m.email, m.phone, m.cnt, m.ultra, m.total, goalFor(m.user_id) || "", m.approved ? "כן" : "לא"]); });
+      rows.push([]); rows.push(["סה״כ לצוות", "", "", "", sum]);
+      var ws1 = X.utils.aoa_to_sheet(rows); ws1["!cols"] = [{ wch: 18 }, { wch: 13 }, { wch: 12 }, { wch: 8 }, { wch: 10 }, { wch: 9 }, { wch: 7 }];
+      X.utils.book_append_sheet(wb, ws1, "לפי עובד");
+      var list = (r.data || []).slice().sort(function (a, b) { return nameOf(a.user_id) === nameOf(b.user_id) ? (a.date < b.date ? -1 : 1) : (nameOf(a.user_id) < nameOf(b.user_id) ? -1 : 1); });
+      var ws2 = X.utils.aoa_to_sheet([["עובד", "תאריך", "קטגוריה", "סוג", "אולטרה", "הערה", "סכום ₪"]].concat(list.map(function (e) { var p = e.date.split("-"); return [nameOf(e.user_id), p[2] + "/" + p[1] + "/" + p[0], catPlural(e.kind), e.sub, e.big ? "כן" : "", e.note || "", Number(e.amount) || 0]; })));
+      ws2["!cols"] = [{ wch: 16 }, { wch: 11 }, { wch: 12 }, { wch: 18 }, { wch: 7 }, { wch: 22 }, { wch: 9 }];
+      X.utils.book_append_sheet(wb, ws2, "כל הרישומים");
+      var buf = X.write(wb, { type: "array", bookType: "xlsx" });
+      await shareFile(new File([buf], "team-bonus-" + state.month + ".xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), "הקובץ ירד: ");
+    } catch (e) { toast("לא הצלחתי ליצור את הקובץ. בדוק חיבור ונסה שוב."); }
+    finally { btn.disabled = false; }
+  });
   $("approveAll").addEventListener("click", async function () {
     var waiting = overview.filter(function (m) { return !m.approved && m.cnt; });
     $("approveAll").disabled = true;
@@ -1766,6 +2002,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     $("mbTotal").textContent = fmt(m.total) + " ₪"; $("mbCount").textContent = m.cnt; $("mbMonth").textContent = monthLabel(state.month);
     $("mbAdmin").hidden = m.role === "manager";
     paintApproval(m);
+    $("mbGoal").value = state.memberGoal[m.user_id] != null ? state.memberGoal[m.user_id] : "";
+    $("mbGoalLbl").textContent = "יעד אישי" + (state.team.goal ? " (ריק = היעד של הצוות: " + fmt(state.team.goal) + " ₪)" : " (ריק = בלי יעד)");
     $("mbErr").hidden = true; $("mbPass").value = ""; $("mbRemoveConfirm").hidden = true; $("mbRemove").hidden = false;
     $("mbCats").textContent = ""; $("mbList").textContent = ""; $("mbList").appendChild(el("div", "empty-note", "טוען…"));
     show($("memberSheet"));
@@ -1809,6 +2047,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     await loadOverview();
     var fresh = overview.filter(function (x) { return x.user_id === m.user_id; })[0]; if (fresh) openMember(fresh);
   }
+  $("mbGoalSave").addEventListener("click", function () {
+    var m = openMemberRow, g = parseInt($("mbGoal").value, 10), val = g > 0 ? g : null;
+    if (val == null) delete state.memberGoal[m.user_id]; else state.memberGoal[m.user_id] = val;
+    if (m.user_id === (activeAcct() || {}).uid) state.team.myGoal = val;
+    saveCache(); renderOverview(); render();
+    sb.from("team_members").update({ goal: val }).eq("user_id", m.user_id).then(function (r) { toast(r.error ? "לא נשמר. בדוק חיבור." : val ? "יעד אישי: " + fmt(val) + " ₪" : "היעד האישי הוסר"); });
+  });
   $("mbApprove").addEventListener("click", function () { setApproval(true); });
   $("mbUnapprove").addEventListener("click", function () { setApproval(false); });
   $("mbBonuses").addEventListener("click", function () { var id = openMemberRow.user_id; hide(); state.cfgTarget = id; setTab("settings"); setSub("types"); });
@@ -2111,13 +2356,17 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     $("addNoteLbl").textContent = nl[0]; $("addNote").placeholder = nl[1];
     $("subOtherLbl").textContent = "מה בדיוק? (לא חובה)";
     var box = $("subChips"); box.textContent = "";
-    var list = typesOf(kind).slice();
+    var day = $("addDate").value || todayStr();
+    var list = typesOf(kind).filter(function (t) { return typeActive(t, day) || (keepSub && t.name === keepSub); });
     var withOther = cfg().allowOther || (keepSub && !list.some(function (t) { return t.name === keepSub; }));
     if (withOther) list.push({ id: "other", name: "אחר", ultra: false, amount: null });
     var matched = null;
     list.forEach(function (t) {
-      var ch = el("button", "chip", t.name); ch.type = "button"; ch.setAttribute("aria-pressed", "false");
+      var ch = el("button", "chip"); ch.type = "button"; ch.setAttribute("aria-pressed", "false");
+      if (t.img) { var im = el("img", "t-img"); im.src = t.img; im.alt = ""; ch.appendChild(im); }
+      ch.appendChild(document.createTextNode(t.name));
       if (t.id !== "other" && (t.ultra || t.amount != null)) ch.appendChild(el("span", "pill", fmt(typeAmount(t)) + "₪"));
+      if (t.to) ch.appendChild(el("span", "pill temp", "⏳"));
       ch.addEventListener("click", function () { pickType(ch, t); });
       box.appendChild(ch);
       if (keepSub && t.id !== "other" && t.name === keepSub) matched = ch;
@@ -2131,8 +2380,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       $("subOther").value = matched || keepSub === "אחר" ? "" : keepSub;
     } else {
       draft.sub = null; $("subOtherBox").hidden = true; $("subOther").value = "";
-      var real = typesOf(kind);
-      if (real.length === 1 && !cfg().allowOther) pickType(box.firstChild, real[0]);
+      var real = list.filter(function (t) { return t.id !== "other"; });
+      if (real.length === 1 && !withOther) pickType(box.firstChild, real[0]);
     }
   }
   function pickType(chip, t) {
@@ -2172,6 +2421,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     $("addDate").value = e.date; $("addDate").max = todayStr();
     show($("addSheet"));
   }
+  $("addDate").addEventListener("change", function () { if (draft.mode === "add" && draft.kind) { var keep = draft.sub; fillKind(draft.kind, null); if (keep) { var c = $$("#subChips .chip").filter(function (x) { return x.textContent.indexOf(keep) === 0; })[0]; if (c) c.click(); } updateSave(); } });
   $("bReg").addEventListener("click", function () { setBonus("reg"); });
   $("bBig").addEventListener("click", function () { setBonus("big"); });
   $("bCustom").addEventListener("click", function () { setBonus("custom"); $("customAmt").focus(); });
@@ -2213,21 +2463,26 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     $("profErr").hidden = true;
     if (!state.settings.my_phone) { $("profErr").textContent = "חסר מספר טלפון. הוסף אותו ושמור."; $("profErr").hidden = false; }
   }
+  // square-crop and shrink a picked photo to a small JPEG data URL
+  function shrinkImage(file, S, cb) {
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onload = function () {
+      var c = document.createElement("canvas"); c.width = S; c.height = S;
+      var side = Math.min(img.width, img.height);
+      c.getContext("2d").drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, S, S);
+      URL.revokeObjectURL(url); cb(c.toDataURL("image/jpeg", 0.82));
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); cb(null); };
+    img.src = url;
+  }
   $("avatarFile").addEventListener("change", function () {
     var file = $("avatarFile").files && $("avatarFile").files[0];
     $("avatarFile").value = "";
     if (!file) return;
-    var url = URL.createObjectURL(file), img = new Image();
-    img.onload = function () {
-      var S = 160, c = document.createElement("canvas"); c.width = S; c.height = S;
-      var side = Math.min(img.width, img.height);
-      c.getContext("2d").drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, S, S);
-      URL.revokeObjectURL(url);
-      state.settings.avatar = c.toDataURL("image/jpeg", 0.85);
-      persistSettings(); fillProfile(); toast("תמונת הפרופיל עודכנה");
-    };
-    img.onerror = function () { URL.revokeObjectURL(url); toast("לא הצלחתי לפתוח את התמונה"); };
-    img.src = url;
+    shrinkImage(file, 160, function (data) {
+      if (!data) { toast("לא הצלחתי לפתוח את התמונה"); return; }
+      state.settings.avatar = data; persistSettings(); fillProfile(); toast("תמונת הפרופיל עודכנה");
+    });
   });
   $("avatarRemove").addEventListener("click", function () { state.settings.avatar = ""; persistSettings(); fillProfile(); });
   $("saveProfile").addEventListener("click", function () {
