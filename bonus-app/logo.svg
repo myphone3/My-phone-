@@ -1,28 +1,37 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
     <linearGradient id="lg-bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#5B9BFF"/>
-      <stop offset="1" stop-color="#2B5BE0"/>
+      <stop offset="0" stop-color="#FFA552"/>
+      <stop offset=".55" stop-color="#F7742F"/>
+      <stop offset="1" stop-color="#E2492A"/>
     </linearGradient>
-    <linearGradient id="lg-coin" x1=".2" y1="0" x2=".8" y2="1">
-      <stop offset="0" stop-color="#FFE9A8"/>
-      <stop offset=".5" stop-color="#F7C548"/>
-      <stop offset="1" stop-color="#E09A1A"/>
+    <radialGradient id="lg-glow" cx=".85" cy=".1" r=".6">
+      <stop offset="0" stop-color="#B455B6" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#B455B6" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="lg-coin" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#FFE7D3"/>
     </linearGradient>
-    <linearGradient id="lg-edge" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#D08A10"/>
-      <stop offset="1" stop-color="#A86A00"/>
+    <linearGradient id="lg-sym" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FF8A3D"/>
+      <stop offset="1" stop-color="#D9462A"/>
     </linearGradient>
   </defs>
   <rect width="512" height="512" rx="118" fill="url(#lg-bg)"/>
-  <circle cx="256" cy="282" r="150" fill="#1C3FB0" opacity=".28"/>
-  <circle cx="256" cy="268" r="150" fill="url(#lg-edge)"/>
-  <circle cx="256" cy="254" r="150" fill="url(#lg-coin)"/>
-  <circle cx="256" cy="254" r="120" fill="none" stroke="#FFF4CF" stroke-opacity=".7" stroke-width="8"/>
-  <g fill="none" stroke="#8A5300" stroke-width="28" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M198 316V214q0-18 18-18h44q18 0 18 18v64"/>
-    <path d="M314 192v102q0 18-18 18h-44q-18 0-18-18v-64"/>
+  <rect width="512" height="512" rx="118" fill="url(#lg-glow)"/>
+  <circle cx="92" cy="404" r="16" fill="#FFFFFF" opacity=".35"/>
+  <circle cx="430" cy="430" r="10" fill="#FFFFFF" opacity=".3"/>
+  <g transform="rotate(-14 236 286)">
+    <rect x="146" y="150" width="180" height="290" rx="38" fill="#FFFFFF" fill-opacity=".14" stroke="#FFFFFF" stroke-width="20"/>
+    <rect x="206" y="404" width="60" height="12" rx="6" fill="#FFFFFF"/>
   </g>
-  <path d="M398 70l12 30 30 12-30 12-12 30-12-30-30-12 30-12z" fill="#FFFFFF"/>
-  <path d="M440 168l6 14 14 6-14 6-6 14-6-14-14-6 14-6z" fill="#FFFFFF" opacity=".85"/>
+  <circle cx="330" cy="214" r="104" fill="#7A2410" opacity=".22"/>
+  <circle cx="324" cy="200" r="104" fill="url(#lg-coin)"/>
+  <circle cx="324" cy="200" r="82" fill="none" stroke="#F7742F" stroke-opacity=".28" stroke-width="6"/>
+  <g fill="none" stroke="url(#lg-sym)" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M283 245V172q0-13 13-13h31q13 0 13 13v45"/>
+    <path d="M365 155v72q0 13-13 13h-31q-13 0-13-13v-45"/>
+  </g>
+  <path d="M440 92l9 22 22 9-22 9-9 22-9-22-22-9 22-9z" fill="#FFFFFF"/>
 </svg>

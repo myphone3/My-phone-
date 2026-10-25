@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>יומן בונוסים</title>
 <meta name="description" content="רישום מכירות מכשירים, קווים ותיקונים וסיכום בונוסים חודשי">
-<meta name="theme-color" content="#2f63e6">
+<meta name="theme-color" content="#ec6424">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="בונוסים">
@@ -18,11 +18,11 @@
 <style>
 /* Layout: phone column with a fixed bottom tab bar — Add / Month / Summary / Settings (settings has its own sub-tabs) */
 :root {
-  --bg: #f3f6fd; --surface: #ffffff; --ink: #14213d; --muted: #5d6987; --line: #dde3f1;
-  --accent: #2f63e6; --accent-ink: #ffffff; --soft: #e9effc;
-  --gold: #b07a0c; --gold-soft: #fbf1d6;
-  --hero-a: #3f7cf4; --hero-b: #2a55d4; --hero-ink: #ffffff; --hero-gold: #ffd36b;
-  --nav: #ffffff; --nav-active: #2f63e6;
+  --bg: #fbf6f2; --surface: #ffffff; --ink: #2a1d17; --muted: #7a675d; --line: #f0e2d8;
+  --accent: #ec6424; --accent-ink: #ffffff; --soft: #fdeee3;
+  --gold: #9c3fa8; --gold-soft: #f6e7f8;
+  --hero-a: #ff9a48; --hero-b: #e8512a; --hero-ink: #ffffff; --hero-gold: #ffffff;
+  --nav: #ffffff; --nav-active: #ec6424;
   --danger: #c0352b; --wa: #1fa855; --xl: #1d7a48;
   --font-display: "Rubik", "Assistant", system-ui, sans-serif;
   --font-body: "Assistant", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
@@ -30,11 +30,11 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0f1730; --surface: #18233f; --ink: #e9eefb; --muted: #a0abc8; --line: #2b3858;
-    --accent: #6f9bff; --accent-ink: #0b1430; --soft: #213058;
-    --gold: #f2c351; --gold-soft: #3b3115;
-    --hero-a: #3a6fe6; --hero-b: #2549b8; --hero-ink: #ffffff; --hero-gold: #ffd36b;
-    --nav: #141e38; --nav-active: #8fb2ff;
+    --bg: #17110e; --surface: #221915; --ink: #f7ede7; --muted: #bba79b; --line: #3a2b23;
+    --accent: #ff8a4c; --accent-ink: #1e0f07; --soft: #36241b;
+    --gold: #e3a2ee; --gold-soft: #3a2140;
+    --hero-a: #f0823a; --hero-b: #c9431f; --hero-ink: #ffffff; --hero-gold: #ffffff;
+    --nav: #1d1511; --nav-active: #ff9a5c;
     --danger: #f2827a; --wa: #3ccf7f; --xl: #4cc38a; color-scheme: dark;
   }
 }
@@ -86,7 +86,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 .seg button[aria-current="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(20, 33, 61, .12); }
 
 /* hero */
-.hero { background: linear-gradient(135deg, var(--hero-a), var(--hero-b)); color: var(--hero-ink); border-radius: 20px; padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 10px 24px -14px rgba(42, 85, 212, .7); }
+.hero { background: linear-gradient(135deg, var(--hero-a), var(--hero-b)); color: var(--hero-ink); border-radius: 20px; padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 10px 24px -14px rgba(232, 81, 42, .7); }
 .month-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .month-nav button { background: rgba(255,255,255,.18); border: 0; border-radius: 10px; width: 40px; height: 36px; font-size: 1.2rem; color: var(--hero-ink); }
 .month-nav button:disabled { opacity: .35; cursor: default; }
@@ -227,22 +227,41 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
-    <linearGradient id="lg-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5B9BFF"/><stop offset="1" stop-color="#2B5BE0"/></linearGradient>
-    <linearGradient id="lg-coin" x1=".2" y1="0" x2=".8" y2="1"><stop offset="0" stop-color="#FFE9A8"/><stop offset=".5" stop-color="#F7C548"/><stop offset="1" stop-color="#E09A1A"/></linearGradient>
-    <linearGradient id="lg-edge" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D08A10"/><stop offset="1" stop-color="#A86A00"/></linearGradient>
+    <linearGradient id="lg-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFA552"/>
+      <stop offset=".55" stop-color="#F7742F"/>
+      <stop offset="1" stop-color="#E2492A"/>
+    </linearGradient>
+    <radialGradient id="lg-glow" cx=".85" cy=".1" r=".6">
+      <stop offset="0" stop-color="#B455B6" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#B455B6" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="lg-coin" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#FFE7D3"/>
+    </linearGradient>
+    <linearGradient id="lg-sym" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FF8A3D"/>
+      <stop offset="1" stop-color="#D9462A"/>
+    </linearGradient>
   </defs>
   <symbol id="logo" viewBox="0 0 512 512">
-    <rect width="512" height="512" rx="118" fill="url(#lg-bg)"/>
-    <circle cx="256" cy="282" r="150" fill="#1C3FB0" opacity=".28"/>
-    <circle cx="256" cy="268" r="150" fill="url(#lg-edge)"/>
-    <circle cx="256" cy="254" r="150" fill="url(#lg-coin)"/>
-    <circle cx="256" cy="254" r="120" fill="none" stroke="#FFF4CF" stroke-opacity=".7" stroke-width="8"/>
-    <g fill="none" stroke="#8A5300" stroke-width="28" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M198 316V214q0-18 18-18h44q18 0 18 18v64"/>
-      <path d="M314 192v102q0 18-18 18h-44q-18 0-18-18v-64"/>
-    </g>
-    <path d="M398 70l12 30 30 12-30 12-12 30-12-30-30-12 30-12z" fill="#FFFFFF"/>
-    <path d="M440 168l6 14 14 6-14 6-6 14-6-14-14-6 14-6z" fill="#FFFFFF" opacity=".85"/>
+  <rect width="512" height="512" rx="118" fill="url(#lg-bg)"/>
+  <rect width="512" height="512" rx="118" fill="url(#lg-glow)"/>
+  <circle cx="92" cy="404" r="16" fill="#FFFFFF" opacity=".35"/>
+  <circle cx="430" cy="430" r="10" fill="#FFFFFF" opacity=".3"/>
+  <g transform="rotate(-14 236 286)">
+    <rect x="146" y="150" width="180" height="290" rx="38" fill="#FFFFFF" fill-opacity=".14" stroke="#FFFFFF" stroke-width="20"/>
+    <rect x="206" y="404" width="60" height="12" rx="6" fill="#FFFFFF"/>
+  </g>
+  <circle cx="330" cy="214" r="104" fill="#7A2410" opacity=".22"/>
+  <circle cx="324" cy="200" r="104" fill="url(#lg-coin)"/>
+  <circle cx="324" cy="200" r="82" fill="none" stroke="#F7742F" stroke-opacity=".28" stroke-width="6"/>
+  <g fill="none" stroke="url(#lg-sym)" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M283 245V172q0-13 13-13h31q13 0 13 13v45"/>
+    <path d="M365 155v72q0 13-13 13h-31q-13 0-13-13v-45"/>
+  </g>
+  <path d="M440 92l9 22 22 9-22 9-9 22-9-22-22-9 22-9z" fill="#FFFFFF"/>
   </symbol>
   <symbol id="wa-icon" viewBox="0 0 24 24">
     <path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.6 0-3.1-.4-4.4-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2z"/>
