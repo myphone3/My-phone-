@@ -35,22 +35,17 @@ export default function AdminOrdersPage() {
     setSelectedOrder((prev: any) => prev && prev.id === orderId ? { ...prev, status: newStatus } : prev);
 
     if (customerEmail) {
-      const orderNumber = getOrderNumber(orderId);
       try {
-        // שליחת מייל מותרת רק למנהל מחובר, לכן מצרפים את ההתחברות שלו
+        // שליחת מייל מותרת רק למנהל מחובר, לכן מצרפים את ההתחברות שלו. הניסוח נבנה בשרת לפי הסטטוס
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) {
           alert('הסטטוס עודכן, אך המייל ללקוח לא נשלח (צריך להתחבר מחדש)');
           return;
         }
-        const res = await fetch('/api/send-email', {
+        const res = await fetch('/api/order-status-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-          body: JSON.stringify({
-            to: customerEmail,
-            subject: `עדכון סטטוס הזמנה #${orderNumber}`,
-            message: `שלום ${customerName || 'לקוח יקר'},\n\nההזמנה שלך (#${orderNumber}) עודכנה לסטטוס: ${newStatus}.\n\nNEW PHONE`
-          })
+          body: JSON.stringify({ orderId })
         });
         if (!res.ok) alert('הסטטוס עודכן, אך שליחת המייל ללקוח נכשלה');
       } catch (err) {
