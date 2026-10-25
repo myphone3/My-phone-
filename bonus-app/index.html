@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>יומן בונוסים</title>
 <meta name="description" content="רישום מכירות מכשירים, קווים ותיקונים וסיכום בונוסים חודשי">
-<meta name="theme-color" content="#12234a">
+<meta name="theme-color" content="#2f63e6">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="בונוסים">
@@ -16,23 +16,25 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700;800&family=Assistant:wght@400;600;700&display=swap">
 <style>
-/* Layout: phone column with a fixed bottom tab bar — Add / Types / Summary / Settings */
+/* Layout: phone column with a fixed bottom tab bar — Add / Month / Summary / Settings (settings has its own sub-tabs) */
 :root {
-  --bg: #f3f4f8; --surface: #ffffff; --ink: #0f1b33; --muted: #59627a; --line: #dcdfe8;
-  --accent: #172a55; --accent-ink: #ffffff; --gold: #a87a12; --gold-soft: #f8efd6; --soft: #e8ecf6;
-  --hero: #12234a; --hero-ink: #f1f4fb; --hero-gold: #e8bf55;
-  --nav: #ffffff; --nav-active: #12234a;
-  --danger: #b3261e; --wa: #128c4a; --xl: #1d6f42;
+  --bg: #f3f6fd; --surface: #ffffff; --ink: #14213d; --muted: #5d6987; --line: #dde3f1;
+  --accent: #2f63e6; --accent-ink: #ffffff; --soft: #e9effc;
+  --gold: #b07a0c; --gold-soft: #fbf1d6;
+  --hero-a: #3f7cf4; --hero-b: #2a55d4; --hero-ink: #ffffff; --hero-gold: #ffd36b;
+  --nav: #ffffff; --nav-active: #2f63e6;
+  --danger: #c0352b; --wa: #1fa855; --xl: #1d7a48;
   --font-display: "Rubik", "Assistant", system-ui, sans-serif;
   --font-body: "Assistant", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0a1224; --surface: #121c34; --ink: #e9edf6; --muted: #9aa4bd; --line: #26314d;
-    --accent: #e2b84a; --accent-ink: #161004; --gold: #e8bf55; --gold-soft: #3a2f12; --soft: #1b2744;
-    --hero: #16285a; --hero-ink: #eef2fb; --hero-gold: #f0c860;
-    --nav: #0f1930; --nav-active: #f0c860;
+    --bg: #0f1730; --surface: #18233f; --ink: #e9eefb; --muted: #a0abc8; --line: #2b3858;
+    --accent: #6f9bff; --accent-ink: #0b1430; --soft: #213058;
+    --gold: #f2c351; --gold-soft: #3b3115;
+    --hero-a: #3a6fe6; --hero-b: #2549b8; --hero-ink: #ffffff; --hero-gold: #ffd36b;
+    --nav: #141e38; --nav-active: #8fb2ff;
     --danger: #f2827a; --wa: #3ccf7f; --xl: #4cc38a; color-scheme: dark;
   }
 }
@@ -47,24 +49,25 @@ body {
   padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
 }
 [hidden] { display: none !important; }
-.wrap { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
-.tab { display: flex; flex-direction: column; gap: 18px; }
+.wrap { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.tab, .subtab { display: flex; flex-direction: column; gap: 16px; }
 h1, h2, h3 { font-family: var(--font-display); margin: 0; text-wrap: balance; }
 h2 { font-size: 1.05rem; font-weight: 700; }
+h3 { font-size: 1rem; }
 button { font: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:focus-within { outline: 3px solid var(--gold); outline-offset: 2px; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:focus-within, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .num { font-variant-numeric: tabular-nums; }
 
 /* header */
 .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .top-start { min-width: 0; }
 .brand-row { display: flex; align-items: center; gap: 8px; }
-.brand-row svg { width: 28px; height: 28px; flex-shrink: 0; }
+.brand-row svg { width: 30px; height: 30px; flex-shrink: 0; }
 .brand { font-family: var(--font-display); font-size: 1.15rem; font-weight: 800; }
 .status { font-size: .8rem; color: var(--muted); overflow-wrap: anywhere; }
-.acct-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--soft); border: 1px solid var(--line); border-radius: 999px; padding: 4px 4px 4px 12px; font-size: .9rem; font-weight: 700; max-width: 180px; flex-shrink: 0; }
+.acct-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px 4px 4px 12px; font-size: .9rem; font-weight: 700; max-width: 180px; flex-shrink: 0; }
 .acct-btn .acct-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.avatar { flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; background: var(--hero); color: var(--hero-gold); display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: .95rem; overflow: hidden; border: 2px solid var(--hero-gold); }
+.avatar { flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--hero-a), var(--hero-b)); color: #fff; display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: .95rem; overflow: hidden; }
 .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .avatar.lg { width: 64px; height: 64px; font-size: 1.6rem; }
 
@@ -77,33 +80,41 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 .tabbar svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .tabbar button[aria-current="page"] { color: var(--nav-active); background: var(--soft); }
 
-/* hero ledger */
-.ledger { background: var(--hero); color: var(--hero-ink); border-radius: 18px; padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hero-gold) 25%, transparent); }
+/* segmented sub-tabs (settings) */
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; background: var(--soft); border-radius: 14px; padding: 4px; }
+.seg button { border: 0; background: transparent; border-radius: 10px; padding: 8px 2px; font-weight: 700; font-size: .85rem; color: var(--muted); }
+.seg button[aria-current="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(20, 33, 61, .12); }
+
+/* hero */
+.hero { background: linear-gradient(135deg, var(--hero-a), var(--hero-b)); color: var(--hero-ink); border-radius: 20px; padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 10px 24px -14px rgba(42, 85, 212, .7); }
 .month-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.month-nav button { background: color-mix(in srgb, var(--hero-ink) 12%, transparent); border: 0; border-radius: 10px; width: 40px; height: 36px; font-size: 1.2rem; color: var(--hero-ink); }
+.month-nav button { background: rgba(255,255,255,.18); border: 0; border-radius: 10px; width: 40px; height: 36px; font-size: 1.2rem; color: var(--hero-ink); }
 .month-nav button:disabled { opacity: .35; cursor: default; }
 .month-name { font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; }
-.total-label { font-size: .8rem; letter-spacing: .06em; opacity: .85; }
+.total-label { font-size: .82rem; opacity: .9; }
 .total { font-family: var(--font-display); font-weight: 800; font-size: 3rem; line-height: 1; color: var(--hero-gold); }
 .total small { font-size: 1.4rem; font-weight: 700; margin-inline-start: 4px; }
-.total-sub { font-size: .9rem; opacity: .9; margin-top: 6px; }
+.total-sub { font-size: .92rem; opacity: .95; margin-top: 6px; }
 .total-sub b { color: var(--hero-gold); }
 .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.kpi { background: color-mix(in srgb, var(--hero-ink) 10%, transparent); border-radius: 12px; padding: 8px 10px; }
+.kpi { background: rgba(255,255,255,.14); border-radius: 12px; padding: 8px 10px; }
 .kpi b { display: block; font-family: var(--font-display); font-size: 1.35rem; }
-.kpi span { font-size: .8rem; opacity: .9; }
-.mini-ledger { background: var(--hero); color: var(--hero-ink); border-radius: 16px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-.mini-ledger .lbl2 { font-size: .85rem; opacity: .85; }
-.mini-ledger b { font-family: var(--font-display); font-size: 1.6rem; color: var(--hero-gold); }
+.kpi span { font-size: .8rem; opacity: .92; }
+.mini { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.mini > div { background: linear-gradient(135deg, var(--hero-a), var(--hero-b)); color: var(--hero-ink); border-radius: 16px; padding: 12px 14px; }
+.mini .lbl2 { font-size: .82rem; opacity: .9; }
+.mini b { display: block; font-family: var(--font-display); font-size: 1.6rem; color: var(--hero-gold); line-height: 1.15; }
+.mini small { font-size: .8rem; opacity: .9; }
 
 /* add keys */
 .adds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.add { background: var(--surface); border: 1.5px solid var(--line); border-radius: 16px; padding: 20px 6px 16px; display: flex; flex-direction: column; align-items: center; gap: 6px; font-weight: 700; font-size: 1.05rem; transition: transform .08s; }
+.add { background: var(--surface); border: 1.5px solid var(--line); border-radius: 18px; padding: 20px 6px 16px; display: flex; flex-direction: column; align-items: center; gap: 6px; font-weight: 700; font-size: 1.05rem; transition: transform .08s; }
 .add:active { transform: scale(.97); }
-.add svg { width: 34px; height: 34px; stroke: var(--gold); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.add .ic { width: 48px; height: 48px; border-radius: 14px; background: var(--soft); display: grid; place-items: center; }
+.add svg { width: 28px; height: 28px; stroke: var(--accent); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .add .plus { font-size: .75rem; color: var(--muted); font-weight: 600; }
 
-/* cards & rows */
+/* cards & lists */
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .card-head .sum { color: var(--muted); font-size: .9rem; }
@@ -112,39 +123,45 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 .row:first-child { border-top: 0; }
 .row .cnt { font-weight: 700; min-width: 2ch; text-align: center; }
 .row .amt { color: var(--muted); min-width: 5ch; text-align: left; font-size: .9rem; }
-.bar { height: 4px; background: var(--soft); border-radius: 4px; margin-top: 4px; overflow: hidden; }
-.bar i { display: block; height: 100%; background: var(--gold); border-radius: 4px; }
+.bar { height: 5px; background: var(--soft); border-radius: 4px; margin-top: 4px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--hero-a), var(--hero-b)); border-radius: 4px; }
 .pill { display: inline-block; font-size: .72rem; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--gold-soft); color: var(--gold); margin-inline-start: 6px; vertical-align: 1px; }
 .empty-note { color: var(--muted); font-size: .92rem; }
 .log { display: flex; flex-direction: column; }
-.log-day { font-size: .78rem; color: var(--muted); font-weight: 700; letter-spacing: .04em; padding: 10px 0 4px; }
-.log-item { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+.log-day { font-size: .78rem; color: var(--muted); font-weight: 700; letter-spacing: .04em; padding: 10px 0 4px; display: flex; justify-content: space-between; }
+.log-item { display: grid; grid-template-columns: 1fr auto auto auto; gap: 6px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
 .log-item .what { min-width: 0; }
 .log-item .what small { display: block; color: var(--muted); font-size: .82rem; overflow-wrap: anywhere; }
-.log-item .val { font-weight: 700; }
+.log-item .val { font-weight: 700; padding-inline-end: 4px; }
 .log-item .val.big { color: var(--gold); }
-.del { background: transparent; border: 0; color: var(--muted); font-size: 1.1rem; padding: 4px 8px; border-radius: 8px; }
-.more-btn { background: transparent; border: 0; color: var(--gold); font-weight: 700; padding: 8px 0 0; align-self: flex-start; }
+.mini-btn { background: var(--soft); border: 0; border-radius: 9px; padding: 6px 10px; font-weight: 700; font-size: .82rem; }
+.mini-btn.del { background: transparent; color: var(--muted); font-size: 1.05rem; padding: 4px 8px; }
+.mini-btn:disabled { opacity: .6; cursor: default; }
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stat { background: var(--soft); border-radius: 12px; padding: 10px 12px; }
+.stat b { display: block; font-family: var(--font-display); font-size: 1.2rem; }
+.stat span { font-size: .8rem; color: var(--muted); }
+.trend-up { color: var(--wa); } .trend-down { color: var(--danger); }
 
 /* types editor */
 .type-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
 .type-row:first-child { border-top: 0; }
 .type-row .t-name { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
 .type-row .t-amt { font-weight: 700; }
-.edit-btn { background: var(--soft); border: 0; border-radius: 10px; padding: 6px 12px; font-weight: 700; font-size: .88rem; }
-.add-type { background: transparent; border: 1.5px dashed var(--line); border-radius: 12px; padding: 10px; font-weight: 700; color: var(--gold); }
+.add-type { background: transparent; border: 1.5px dashed var(--line); border-radius: 12px; padding: 10px; font-weight: 700; color: var(--accent); }
 
 /* buttons, fields */
-.share-text { width: 100%; min-height: 150px; resize: vertical; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--bg); color: var(--ink); font: inherit; font-size: .92rem; line-height: 1.5; }
+.share-text { width: 100%; min-height: 160px; resize: vertical; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--bg); color: var(--ink); font: inherit; font-size: .92rem; line-height: 1.5; }
 .btns { display: flex; flex-wrap: wrap; gap: 8px; }
-.btn { border: 0; border-radius: 12px; padding: 11px 16px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; font-size: 1rem; cursor: pointer; }
+.btn { border: 0; border-radius: 12px; padding: 11px 16px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; font-size: 1rem; cursor: pointer; }
+.btn svg { width: 20px; height: 20px; flex-shrink: 0; }
 .btn.primary { background: var(--accent); color: var(--accent-ink); }
 .btn.wa { background: var(--wa); color: #fff; }
 .btn.xl { background: var(--xl); color: #fff; }
 .btn.ghost { background: var(--soft); color: var(--ink); }
 .btn.danger { background: transparent; color: var(--danger); border: 1.5px solid var(--danger); }
-.btn.google { background: #fff; color: #1f1f1f; border: 1px solid #c9ced8; justify-content: center; font-family: var(--font-display); }
-.btn.google svg { width: 20px; height: 20px; }
+.btn.google { background: #fff; color: #1f1f1f; border: 1px solid #c9ced8; font-family: var(--font-display); }
+.btn.wide { width: 100%; }
 .hint { font-size: .82rem; color: var(--muted); }
 .err { font-size: .9rem; color: var(--danger); font-weight: 600; }
 .lbl { font-size: .82rem; color: var(--muted); font-weight: 700; letter-spacing: .03em; }
@@ -157,6 +174,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip { border: 1.5px solid var(--line); background: var(--bg); border-radius: 999px; padding: 8px 14px; font-weight: 600; }
 .chip[aria-pressed="true"] { border-color: var(--accent); background: var(--soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.chip .star { color: var(--gold); }
 .bonus-toggle { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .bonus-toggle button { border: 1.5px solid var(--line); background: var(--bg); border-radius: 12px; padding: 10px 4px; font-weight: 700; line-height: 1.25; }
 .bonus-toggle button[aria-pressed="true"] { border-color: var(--accent); background: var(--soft); }
@@ -169,13 +187,14 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 .profile-row .who { min-width: 0; }
 .profile-row .who b { display: block; font-size: 1.05rem; }
 .profile-row .who small { color: var(--muted); overflow-wrap: anywhere; }
-.share-month { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--soft); border-radius: 12px; padding: 6px; }
-.share-month button { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; width: 38px; height: 34px; }
-.share-month button:disabled { opacity: .35; }
-.share-month span { font-weight: 700; }
+.month-checks { display: flex; flex-wrap: wrap; gap: 8px; }
+.contact-row { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+.contact-row:first-child { border-top: 0; }
+.contact-row .c-name { font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
+.contact-row .c-name small { display: block; font-weight: 400; color: var(--muted); }
 
 /* sheets */
-.scrim { position: fixed; inset: 0; background: rgba(8, 14, 20, .45); z-index: 20; }
+.scrim { position: fixed; inset: 0; background: rgba(8, 14, 30, .45); z-index: 20; }
 .sheet { position: fixed; inset: auto 0 0 0; z-index: 21; background: var(--surface); border-radius: 20px 20px 0 0; max-height: 90vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
   padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px));
   padding-top: 16px; padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -10px 30px rgba(0,0,0,.18); }
@@ -191,9 +210,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 .acct-item .who { min-width: 0; flex: 1; }
 .acct-item .who b { display: block; }
 .acct-item .who small { color: var(--muted); overflow-wrap: anywhere; }
-.acct-item .tag { font-size: .75rem; font-weight: 700; color: var(--gold); flex-shrink: 0; }
+.acct-item .tag { font-size: .75rem; font-weight: 700; color: var(--accent); flex-shrink: 0; }
 .login-hero { display: flex; flex-direction: column; gap: 6px; padding-bottom: 6px; }
-.login-hero .logo { width: 64px; height: 64px; }
+.login-hero .logo { width: 72px; height: 72px; }
 .or { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: .85rem; }
 .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 
@@ -206,22 +225,35 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 </style>
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="coins" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="15" fill="#12234a"/>
-  <g stroke="#8a6410" stroke-width="1.2">
-    <ellipse cx="24" cy="47" rx="13" ry="5" fill="#b8892a"/><ellipse cx="24" cy="44" rx="13" ry="5" fill="#e8bf55"/>
-    <ellipse cx="24" cy="39" rx="13" ry="5" fill="#b8892a"/><ellipse cx="24" cy="36" rx="13" ry="5" fill="#e8bf55"/>
-    <ellipse cx="24" cy="31" rx="13" ry="5" fill="#b8892a"/><ellipse cx="24" cy="28" rx="13" ry="5" fill="#f3d27a"/>
-  </g>
-  <circle cx="42" cy="36" r="14" fill="#f0c860" stroke="#8a6410" stroke-width="1.6"/>
-  <circle cx="42" cy="36" r="10" fill="none" stroke="#a87a12" stroke-width="1.4"/>
-  <text x="42" y="41.5" text-anchor="middle" font-family="Arial, sans-serif" font-weight="700" font-size="15" fill="#6e4f0c">₪</text>
-</symbol></svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="lg-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5B9BFF"/><stop offset="1" stop-color="#2B5BE0"/></linearGradient>
+    <linearGradient id="lg-coin" x1=".2" y1="0" x2=".8" y2="1"><stop offset="0" stop-color="#FFE9A8"/><stop offset=".5" stop-color="#F7C548"/><stop offset="1" stop-color="#E09A1A"/></linearGradient>
+    <linearGradient id="lg-edge" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D08A10"/><stop offset="1" stop-color="#A86A00"/></linearGradient>
+  </defs>
+  <symbol id="logo" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="118" fill="url(#lg-bg)"/>
+    <circle cx="256" cy="282" r="150" fill="#1C3FB0" opacity=".28"/>
+    <circle cx="256" cy="268" r="150" fill="url(#lg-edge)"/>
+    <circle cx="256" cy="254" r="150" fill="url(#lg-coin)"/>
+    <circle cx="256" cy="254" r="120" fill="none" stroke="#FFF4CF" stroke-opacity=".7" stroke-width="8"/>
+    <g fill="none" stroke="#8A5300" stroke-width="28" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M198 316V214q0-18 18-18h44q18 0 18 18v64"/>
+      <path d="M314 192v102q0 18-18 18h-44q-18 0-18-18v-64"/>
+    </g>
+    <path d="M398 70l12 30 30 12-30 12-12 30-12-30-30-12 30-12z" fill="#FFFFFF"/>
+    <path d="M440 168l6 14 14 6-14 6-6 14-6-14-14-6 14-6z" fill="#FFFFFF" opacity=".85"/>
+  </symbol>
+  <symbol id="wa-icon" viewBox="0 0 24 24">
+    <path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.6 0-3.1-.4-4.4-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2z"/>
+    <path fill="currentColor" d="M16.6 14.2c-.3-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.6-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.4.1-.7.3-.2.3-.9.9-.9 2.1s.9 2.4 1 2.6c.1.2 1.8 2.7 4.3 3.8 1.6.7 2.2.7 3 .6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.6-.3z"/>
+  </symbol>
+</svg>
 
 <div class="wrap" id="main">
   <div class="top">
     <div class="top-start">
-      <div class="brand-row"><svg aria-hidden="true"><use href="#coins"/></svg><div class="brand">יומן בונוסים</div></div>
+      <div class="brand-row"><svg aria-hidden="true"><use href="#logo"/></svg><div class="brand">יומן בונוסים</div></div>
       <div class="status" id="status">טוען…</div>
     </div>
     <button class="acct-btn" id="acctBtn" type="button" aria-label="חשבונות"><span class="acct-name" id="acctName">התחברות</span><span class="avatar" id="acctAvatar" aria-hidden="true"></span></button>
@@ -229,59 +261,46 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 
   <!-- TAB: add -->
   <section class="tab" id="tab-add" aria-label="הוספת בונוס">
-    <div class="mini-ledger">
-      <div><div class="lbl2" id="miniLabel">החודש עד עכשיו</div><div class="num" id="miniCount"></div></div>
-      <b class="num"><span id="miniTotal">0</span> ₪</b>
+    <div class="mini">
+      <div><div class="lbl2">היום</div><b class="num"><span id="todayTotal">0</span> ₪</b><small class="num" id="todayCount"></small></div>
+      <div><div class="lbl2" id="monthMiniLbl">החודש</div><b class="num"><span id="monthTotal">0</span> ₪</b><small class="num" id="monthCount"></small></div>
     </div>
     <div class="adds" role="group" aria-label="הוספה מהירה">
-      <button class="add" type="button" data-add="device">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg>
-        מכשיר<span class="plus">+ מכירה</span>
-      </button>
-      <button class="add" type="button" data-add="line">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6v8H9z"/><path d="M9 12h6M12 8v8"/></svg>
-        קו<span class="plus">+ חיבור</span>
-      </button>
-      <button class="add" type="button" data-add="repair">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6.5a4 4 0 0 0-5.3 5.2L3.5 17.4l3.1 3.1 5.7-5.7a4 4 0 0 0 5.2-5.3l-2.4 2.4-2.2-.6-.6-2.2z"/></svg>
-        תיקון<span class="plus">+ תיקון</span>
-      </button>
+      <button class="add" type="button" data-add="device"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg></span>מכשיר<span class="plus">+ מכירה</span></button>
+      <button class="add" type="button" data-add="line"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6v8H9z"/><path d="M9 12h6M12 8v8"/></svg></span>קו<span class="plus">+ חיבור</span></button>
+      <button class="add" type="button" data-add="repair"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6.5a4 4 0 0 0-5.3 5.2L3.5 17.4l3.1 3.1 5.7-5.7a4 4 0 0 0 5.2-5.3l-2.4 2.4-2.2-.6-.6-2.2z"/></svg></span>תיקון<span class="plus">+ תיקון</span></button>
     </div>
-    <section class="card" aria-labelledby="hRecent">
-      <div class="card-head"><h2 id="hRecent">נרשמו לאחרונה</h2><span class="sum" id="sRecent"></span></div>
-      <div class="log" id="recent"></div>
+    <section class="card" aria-labelledby="hToday">
+      <div class="card-head"><h2 id="hToday">נוספו היום</h2><span class="sum num" id="sToday"></span></div>
+      <div class="log" id="todayList"></div>
     </section>
   </section>
 
-  <!-- TAB: types -->
-  <section class="tab" id="tab-types" aria-label="סוגי בונוסים" hidden>
-    <div class="hint">כאן קובעים אילו סוגים מופיעים כשמוסיפים בונוס, ואת הסכום של כל אחד. שינוי שם או סכום משפיע רק על רישומים חדשים.</div>
-    <section class="card"><div class="card-head"><h2>תיקונים</h2></div><div class="rows" id="types-repair"></div><button class="add-type" type="button" data-addtype="repair">+ סוג תיקון חדש</button></section>
-    <section class="card"><div class="card-head"><h2>קווים (חברות)</h2></div><div class="rows" id="types-line"></div><button class="add-type" type="button" data-addtype="line">+ חברה חדשה</button></section>
-    <section class="card"><div class="card-head"><h2>מכשירים</h2></div><div class="rows" id="types-device"></div><button class="add-type" type="button" data-addtype="device">+ סוג מכשיר חדש</button></section>
-    <section class="card">
-      <div class="card-head"><h2>סכומי ברירת מחדל</h2></div>
-      <div class="inline">
-        <div class="field"><label class="lbl" for="sReg">בונוס רגיל (₪)</label><input id="sReg" type="number" min="0" inputmode="numeric"></div>
-        <div class="field"><label class="lbl" for="sBig">בונוס אולטרה (₪)</label><input id="sBig" type="number" min="0" inputmode="numeric"></div>
+  <!-- TAB: month list -->
+  <section class="tab" id="tab-month" aria-label="הבונוסים של החודש" hidden>
+    <section class="hero">
+      <div class="month-nav">
+        <button type="button" class="prevMonth" aria-label="חודש קודם">›</button>
+        <div class="month-name monthName"></div>
+        <button type="button" class="nextMonth" aria-label="חודש הבא">‹</button>
       </div>
-      <button class="btn primary" type="button" id="saveAmounts">שמירת הסכומים</button>
-      <div class="hint">סוג שמסומן „רגיל” או „אולטרה” מקבל את הסכום מכאן. סוג עם „סכום מיוחד” שומר על הסכום שלו.</div>
+      <div class="total-sub num" id="monthListSub"></div>
     </section>
-    <button class="btn ghost" type="button" id="resetTypes">החזרת רשימת הסוגים המקורית</button>
-    <div class="btns" id="resetTypesConfirm" hidden><button class="btn danger" type="button" id="resetTypesYes">כן, להחזיר</button><button class="btn ghost" type="button" id="resetTypesNo">ביטול</button></div>
+    <section class="card" aria-label="רשימת הבונוסים">
+      <div class="log" id="monthList"></div>
+    </section>
   </section>
 
   <!-- TAB: summary -->
   <section class="tab" id="tab-summary" aria-label="סיכום" hidden>
-    <section class="ledger" aria-label="סיכום החודש">
+    <section class="hero" aria-label="סיכום החודש">
       <div class="month-nav">
         <button type="button" class="prevMonth" aria-label="חודש קודם">›</button>
         <div class="month-name monthName"></div>
         <button type="button" class="nextMonth" aria-label="חודש הבא">‹</button>
       </div>
       <div>
-        <div class="total-label" id="totalLabel">מגיע לי החודש בבונוסים</div>
+        <div class="total-label" id="totalLabel">מגיע לי בחודש הזה</div>
         <div class="total num"><span id="total">0</span><small>₪</small></div>
         <div class="total-sub num" id="totalSub"></div>
       </div>
@@ -291,8 +310,16 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
         <div class="kpi"><b class="num" id="kRepairs">0</b><span>תיקונים</span></div>
       </div>
     </section>
+    <section class="card" aria-labelledby="hTier">
+      <div class="card-head"><h2 id="hTier">לפי סוג בונוס</h2></div>
+      <div class="split">
+        <div class="stat"><b class="num" id="tierReg">0</b><span>בונוס רגיל</span></div>
+        <div class="stat"><b class="num" id="tierUltra">0</b><span>בונוס אולטרה</span></div>
+      </div>
+      <div class="hint num" id="compare"></div>
+    </section>
     <section class="card" aria-labelledby="hRepairs">
-      <div class="card-head"><h2 id="hRepairs">תיקונים לפי סוג</h2><span class="sum num" id="sRepairs"></span></div>
+      <div class="card-head"><h2 id="hRepairs">תיקונים</h2><span class="sum num" id="sRepairs"></span></div>
       <div class="rows" id="rRepairs"></div>
     </section>
     <section class="card" aria-labelledby="hLines">
@@ -300,76 +327,130 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       <div class="rows" id="rLines"></div>
     </section>
     <section class="card" aria-labelledby="hDevices">
-      <div class="card-head"><h2 id="hDevices">מכשירים שנמכרו</h2><span class="sum num" id="sDevices"></span></div>
+      <div class="card-head"><h2 id="hDevices">מכשירים</h2><span class="sum num" id="sDevices"></span></div>
       <div class="rows" id="rDevices"></div>
     </section>
-    <section class="card" aria-labelledby="hLog">
-      <div class="card-head"><h2 id="hLog">כל הרישומים בחודש</h2><span class="sum num" id="sLog"></span></div>
-      <div class="log" id="log"></div>
-      <button class="more-btn" type="button" id="moreLog" hidden>הצג הכל</button>
-    </section>
-    <button class="btn wa" type="button" id="goShare">שליחת הסיכום לבוס</button>
   </section>
 
   <!-- TAB: settings -->
   <section class="tab" id="tab-settings" aria-label="הגדרות" hidden>
-    <section class="card">
-      <div class="profile-row">
-        <span class="avatar lg" id="setAvatar" aria-hidden="true"></span>
-        <div class="who"><b id="setWho"></b><small id="setEmail"></small></div>
-      </div>
-      <div class="btns">
-        <label class="btn ghost">החלפת תמונה<input id="avatarFile" type="file" accept="image/*" hidden></label>
-        <button class="btn ghost" type="button" id="avatarRemove">הסרת תמונה</button>
-        <button class="btn ghost" type="button" id="openAccts">חשבונות וסיסמה</button>
-      </div>
-      <div class="field"><label class="lbl" for="sName">השם שלי (יופיע בסיכום)</label><input id="sName" type="text" autocomplete="name"></div>
-      <div class="field"><label class="lbl" for="sPhone">וואטסאפ של הבוס</label><input id="sPhone" type="tel" placeholder="050-1234567" inputmode="tel"></div>
-      <button class="btn primary" type="button" id="saveSettings">שמירה</button>
-    </section>
+    <div class="seg" aria-label="הגדרות">
+      <button type="button" data-sub="profile">פרופיל</button>
+      <button type="button" data-sub="types">סוגים ומחירים</button>
+      <button type="button" data-sub="share">שיתוף</button>
+      <button type="button" data-sub="backup">גיבוי</button>
+    </div>
 
-    <section class="card" id="shareCard" aria-labelledby="hShare">
-      <div class="card-head"><h2 id="hShare">שיתוף הסיכום</h2></div>
-      <div class="share-month">
-        <button type="button" class="prevMonth" aria-label="חודש קודם">›</button>
-        <span class="monthName"></span>
-        <button type="button" class="nextMonth" aria-label="חודש הבא">‹</button>
-      </div>
-      <textarea class="share-text" id="shareText" readonly aria-label="טקסט הסיכום"></textarea>
-      <div class="btns">
-        <a class="btn wa" id="waLink" href="https://wa.me/" target="_blank" rel="noopener">וואטסאפ</a>
-        <button class="btn ghost" type="button" id="nativeShare" hidden>שיתוף…</button>
-        <button class="btn ghost" type="button" id="copyBtn">העתקה</button>
-      </div>
-      <div class="hint" id="waHint"></div>
-      <div class="section">
-        <h3>קובץ אקסל</h3>
-        <div class="btns">
-          <button class="btn xl" type="button" id="xlMonth">אקסל של החודש</button>
-          <button class="btn xl" type="button" id="xlAll">אקסל של כל החודשים</button>
+    <div class="subtab" id="sub-profile">
+      <section class="card">
+        <div class="profile-row">
+          <span class="avatar lg" id="setAvatar" aria-hidden="true"></span>
+          <div class="who"><b id="setWho"></b><small id="setEmail"></small></div>
         </div>
-        <div class="hint">הקובץ נפתח בתפריט השיתוף, ואפשר לשלוח אותו בוואטסאפ או במייל, או לשמור בקבצים ובגוגל דרייב.</div>
-      </div>
-    </section>
+        <div class="btns">
+          <label class="btn ghost">החלפת תמונה<input id="avatarFile" type="file" accept="image/*" hidden></label>
+          <button class="btn ghost" type="button" id="avatarRemove">הסרת תמונה</button>
+        </div>
+        <div class="field"><label class="lbl" for="sName">השם שלי (יופיע בסיכום)</label><input id="sName" type="text" autocomplete="name"></div>
+        <button class="btn primary" type="button" id="saveName">שמירת השם</button>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2>חשבונות</h2></div>
+        <div class="hint">אפשר לשמור כמה חשבונות באותו טלפון ולעבור ביניהם, למשל של עובד שאין לו טלפון.</div>
+        <button class="btn ghost wide" type="button" id="openAccts">חשבונות, סיסמה והתנתקות</button>
+      </section>
+    </div>
 
-    <section class="card">
-      <div class="card-head"><h2>גיבוי</h2></div>
-      <div class="hint" id="backupNote">כל רישום נשמר אוטומטית בחשבון. כאן אפשר גם להעתיק עותק של הנתונים, או להדביק נתונים מגרסה קודמת.</div>
-      <div class="btns"><button class="btn ghost" type="button" id="exportBtn">העתקת גיבוי</button></div>
-      <div class="field">
-        <label class="lbl" for="importText">הדבקת גיבוי לייבוא</label>
-        <textarea id="importText" rows="3" dir="ltr" placeholder='{"entries": …}'></textarea>
-      </div>
-      <button class="btn primary" type="button" id="importBtn">ייבוא לחשבון הזה</button>
-      <div class="err" id="importErr" hidden></div>
-    </section>
+    <div class="subtab" id="sub-types" hidden>
+      <div class="hint">מה שמופיע כאן הוא מה שתראה כשתלחץ מכשיר, קו או תיקון. שינוי שם או מחיר משפיע רק על רישומים חדשים.</div>
+      <section class="card"><div class="card-head"><h2>תיקונים</h2></div><div class="rows" id="types-repair"></div><button class="add-type" type="button" data-addtype="repair">+ סוג תיקון חדש</button></section>
+      <section class="card"><div class="card-head"><h2>קווים (חברות)</h2></div><div class="rows" id="types-line"></div><button class="add-type" type="button" data-addtype="line">+ חברה חדשה</button></section>
+      <section class="card"><div class="card-head"><h2>מכשירים</h2></div><div class="rows" id="types-device"></div><button class="add-type" type="button" data-addtype="device">+ סוג מכשיר חדש</button></section>
+      <section class="card">
+        <div class="card-head"><h2>מחירי בסיס</h2></div>
+        <div class="inline">
+          <div class="field"><label class="lbl" for="sReg">בונוס רגיל (₪)</label><input id="sReg" type="number" min="0" inputmode="numeric"></div>
+          <div class="field"><label class="lbl" for="sBig">בונוס אולטרה (₪)</label><input id="sBig" type="number" min="0" inputmode="numeric"></div>
+        </div>
+        <button class="btn primary" type="button" id="saveAmounts">שמירת המחירים</button>
+        <div class="hint">סוג שמסומן „רגיל” או „אולטרה” מקבל את המחיר מכאן. סוג עם „מחיר מיוחד” שומר על המחיר שלו.</div>
+      </section>
+      <button class="btn ghost" type="button" id="resetTypes">החזרת הרשימה המקורית</button>
+      <div class="btns" id="resetTypesConfirm" hidden><button class="btn danger" type="button" id="resetTypesYes">כן, להחזיר</button><button class="btn ghost" type="button" id="resetTypesNo">ביטול</button></div>
+    </div>
+
+    <div class="subtab" id="sub-share" hidden>
+      <section class="card">
+        <div class="card-head"><h2>איזו תקופה לשתף</h2></div>
+        <div class="chips" id="periodChips">
+          <button class="chip" type="button" data-period="this">החודש</button>
+          <button class="chip" type="button" data-period="last">חודש שעבר</button>
+          <button class="chip" type="button" data-period="pick">בחירת חודשים</button>
+        </div>
+        <div class="month-checks" id="monthChecks" hidden></div>
+        <div class="hint num" id="periodNote"></div>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2>למי לשלוח</h2></div>
+        <div class="chips" id="recipChips"></div>
+        <div class="field" id="otherNumBox" hidden><label class="lbl" for="otherNum">מספר טלפון</label><input id="otherNum" type="tel" inputmode="tel" dir="ltr" placeholder="050-1234567"></div>
+        <a class="btn wa wide" id="waLink" href="https://wa.me/" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#wa-icon"/></svg><span id="waLabel">שליחה בוואטסאפ</span></a>
+        <div class="btns">
+          <button class="btn ghost" type="button" id="copyBtn">העתקת ההודעה</button>
+          <button class="btn ghost" type="button" id="nativeShare" hidden>שיתוף…</button>
+          <button class="btn xl" type="button" id="xlBtn">קובץ אקסל</button>
+        </div>
+        <div class="hint">קובץ האקסל נפתח בתפריט השיתוף: וואטסאפ, מייל, קבצים או גוגל דרייב.</div>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2>תצוגה מקדימה</h2></div>
+        <textarea class="share-text" id="shareText" readonly aria-label="טקסט ההודעה"></textarea>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2>מספרים שמורים</h2></div>
+        <div id="contactList"></div>
+        <div class="inline">
+          <div class="field"><label class="lbl" for="cName">שם</label><input id="cName" type="text" placeholder="למשל: הבוס"></div>
+          <div class="field"><label class="lbl" for="cPhone">טלפון</label><input id="cPhone" type="tel" inputmode="tel" dir="ltr" placeholder="050-1234567"></div>
+        </div>
+        <label class="hint"><input type="checkbox" id="cBoss"> זה הבוס (ייבחר אוטומטית)</label>
+        <button class="btn primary" type="button" id="cAdd">שמירת המספר</button>
+        <div class="err" id="cErr" hidden></div>
+      </section>
+    </div>
+
+    <div class="subtab" id="sub-backup" hidden>
+      <section class="card">
+        <div class="card-head"><h2>גיבוי אוטומטי</h2></div>
+        <div class="hint" id="backupNote">כל רישום נשמר אוטומטית בחשבון שלך בשרת. בטלפון חדש מתחברים לאותו חשבון והכל חוזר.</div>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2>ייצוא</h2></div>
+        <div class="btns">
+          <button class="btn ghost" type="button" id="exportFile">שמירת קובץ גיבוי</button>
+          <button class="btn ghost" type="button" id="exportBtn">העתקת גיבוי כטקסט</button>
+          <button class="btn xl" type="button" id="xlAll">אקסל של כל הנתונים</button>
+        </div>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2>ייבוא</h2></div>
+        <label class="btn ghost">בחירת קובץ גיבוי<input id="importFile" type="file" accept=".json,application/json,text/plain" hidden></label>
+        <div class="field">
+          <label class="lbl" for="importText">או הדבקת טקסט גיבוי</label>
+          <textarea id="importText" rows="3" dir="ltr" placeholder='{"entries": …}'></textarea>
+        </div>
+        <button class="btn primary" type="button" id="importBtn">ייבוא לחשבון הזה</button>
+        <div class="err" id="importErr" hidden></div>
+        <div class="hint">רישומים שכבר קיימים לא ייובאו פעמיים.</div>
+      </section>
+    </div>
   </section>
 </div>
 
 <nav class="tabbar" aria-label="ניווט">
   <div class="tabbar-inner">
     <button type="button" data-tab="add"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>הוספה</button>
-    <button type="button" data-tab="types"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/><path d="M18 16l2 2-4 4h-2v-2z"/></svg>סוגים</button>
+    <button type="button" data-tab="month"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M8 14h4M8 17h7"/></svg>החודש</button>
     <button type="button" data-tab="summary"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>סיכום</button>
     <button type="button" data-tab="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>הגדרות</button>
   </div>
@@ -377,18 +458,17 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 
 <div class="scrim" id="scrim" hidden></div>
 
-<!-- login / add account -->
 <div class="sheet full" id="loginSheet" role="dialog" aria-modal="true" aria-labelledby="loginTitle" hidden>
   <div class="sheet-inner">
     <div class="sheet-head">
       <div class="login-hero">
-        <svg class="logo" aria-hidden="true"><use href="#coins"/></svg>
+        <svg class="logo" aria-hidden="true"><use href="#logo"/></svg>
         <h3 id="loginTitle">התחברות</h3>
         <div class="hint" id="loginSub">הנתונים נשמרים בחשבון שלך. בטלפון חדש פשוט מתחברים שוב והכל חוזר.</div>
       </div>
       <button class="icon-btn" type="button" id="loginClose">סגירה</button>
     </div>
-    <button class="btn google" type="button" id="googleBtn" hidden>
+    <button class="btn google wide" type="button" id="googleBtn" hidden>
       <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
       המשך עם Google
     </button>
@@ -398,12 +478,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     <div class="err" id="loginErr" role="alert" hidden></div>
     <button class="save" type="button" id="loginBtn">התחברות</button>
     <button class="save alt" type="button" id="signupBtn">יצירת חשבון חדש</button>
-    <button class="more-btn" type="button" id="forgotBtn">שכחתי סיסמה</button>
+    <button class="btn ghost" type="button" id="forgotBtn">שכחתי סיסמה</button>
     <div class="hint">נרשמים רק פעם אחת. אחרי זה האפליקציה נכנסת לבד בכל פתיחה.</div>
   </div>
 </div>
 
-<!-- forgot password -->
 <div class="sheet full" id="resetSheet" role="dialog" aria-modal="true" aria-labelledby="resetTitle" hidden>
   <div class="sheet-inner">
     <div class="sheet-head">
@@ -425,11 +504,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   </div>
 </div>
 
-<!-- accounts -->
 <div class="sheet" id="acctSheet" role="dialog" aria-modal="true" aria-labelledby="acctTitle" hidden>
   <div class="sheet-inner">
     <div class="sheet-head"><h3 id="acctTitle">חשבונות במכשיר</h3><button class="icon-btn" type="button" data-close>סגירה</button></div>
-    <div class="hint">אפשר לשמור כאן כמה חשבונות ולעבור ביניהם, למשל של עובד שאין לו טלפון.</div>
     <div class="acct-list" id="acctList"></div>
     <button class="save" type="button" id="addAcct">+ הוספת חשבון</button>
     <div class="section">
@@ -448,10 +525,17 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   </div>
 </div>
 
-<!-- add entry -->
 <div class="sheet" id="addSheet" role="dialog" aria-modal="true" aria-labelledby="addTitle" hidden>
   <div class="sheet-inner">
     <div class="sheet-head"><h3 id="addTitle">הוספה</h3><button class="icon-btn" type="button" data-close>סגירה</button></div>
+    <div class="field" id="kindBox" hidden>
+      <span class="lbl">קטגוריה</span>
+      <div class="chips" id="kindChips">
+        <button class="chip" type="button" data-kind="device">מכשיר</button>
+        <button class="chip" type="button" data-kind="line">קו</button>
+        <button class="chip" type="button" data-kind="repair">תיקון</button>
+      </div>
+    </div>
     <div class="field">
       <span class="lbl" id="subLabel">סוג</span>
       <div class="chips" id="subChips" role="group" aria-labelledby="subLabel"></div>
@@ -473,28 +557,28 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       <input id="customAmt" type="number" min="0" inputmode="numeric" placeholder="למשל 30">
     </div>
     <div class="inline">
-      <div class="field"><label class="lbl" for="addQty">כמות</label><input id="addQty" type="number" min="1" max="50" value="1" inputmode="numeric"></div>
+      <div class="field" id="qtyBox"><label class="lbl" for="addQty">כמות</label><input id="addQty" type="number" min="1" max="50" value="1" inputmode="numeric"></div>
       <div class="field"><label class="lbl" for="addDate">תאריך</label><input id="addDate" type="date"></div>
     </div>
     <div class="field"><label class="lbl" for="addNote" id="addNoteLbl">הערה (לא חובה)</label><input id="addNote" type="text" placeholder="למשל: לקוח קבוע"></div>
     <button class="save" type="button" id="saveBtn" disabled>בחר סוג כדי לשמור</button>
+    <button class="btn danger" type="button" id="entryDelete" hidden>מחיקת הרישום</button>
   </div>
 </div>
 
-<!-- edit type -->
 <div class="sheet" id="typeSheet" role="dialog" aria-modal="true" aria-labelledby="typeTitle" hidden>
   <div class="sheet-inner">
     <div class="sheet-head"><h3 id="typeTitle">עריכת סוג</h3><button class="icon-btn" type="button" data-close>סגירה</button></div>
     <div class="field"><label class="lbl" for="tName">שם</label><input id="tName" type="text"></div>
     <div class="field">
-      <span class="lbl">בונוס</span>
+      <span class="lbl">מחיר</span>
       <div class="bonus-toggle">
         <button type="button" id="tReg" aria-pressed="true">רגיל<br><span class="num" id="tRegVal">10</span> ₪</button>
         <button type="button" id="tBig" class="gold" aria-pressed="false">אולטרה<br><span class="num" id="tBigVal">50</span> ₪</button>
-        <button type="button" id="tCustom" aria-pressed="false">סכום<br>מיוחד</button>
+        <button type="button" id="tCustom" aria-pressed="false">מחיר<br>מיוחד</button>
       </div>
     </div>
-    <div class="field" id="tCustomBox" hidden><label class="lbl" for="tAmt">סכום (₪)</label><input id="tAmt" type="number" min="0" inputmode="numeric"></div>
+    <div class="field" id="tCustomBox" hidden><label class="lbl" for="tAmt">מחיר (₪)</label><input id="tAmt" type="number" min="0" inputmode="numeric"></div>
     <label class="hint" id="tUltraWrap" hidden><input type="checkbox" id="tUltraFlag"> לספור כבונוס אולטרה בסיכום</label>
     <div class="err" id="tErr" hidden></div>
     <button class="save" type="button" id="tSave">שמירה</button>
@@ -524,7 +608,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     repair: ["איזה מכשיר? (לא חובה)", "למשל: Galaxy S24"],
     line: ["הערה (לא חובה)", "למשל: 3 קווים משפחה, ניוד מסלקום"]
   };
-  var DEFAULT_SETTINGS = { name: "", phone: "", reg: 10, big: 50, avatar: "", types: null };
+  var DEFAULT_SETTINGS = { name: "", phone: "", reg: 10, big: 50, avatar: "", types: null, contacts: null };
   var ENTRY_COLS = "id,kind,sub,big,amount,date,month,note,ts";
 
   var sb = window.supabase.createClient(SB_URL, SB_KEY, {
@@ -532,7 +616,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   });
 
   var accts = { list: [], active: null };
-  var state = { entries: {}, settings: Object.assign({}, DEFAULT_SETTINGS), month: monthKey(new Date()), showAllLog: false, tab: "add" };
+  var state = { entries: {}, settings: Object.assign({}, DEFAULT_SETTINGS), month: monthKey(new Date()), tab: "add", sub: "profile" };
+  var share = { period: "this", picked: [], to: null };
   var pending = [];
   var online = false, syncing = false;
 
@@ -550,7 +635,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
   function activeAcct() { for (var i = 0; i < accts.list.length; i++) if (accts.list[i].uid === accts.active) return accts.list[i]; return null; }
-  function acctLabel(a) { return (a.name || a.email.split("@")[0]); }
+  function acctLabel(a) { return (a.name || a.googleName || a.email.split("@")[0]); }
   function me() { var a = activeAcct(); return a ? Object.assign({}, a, { name: state.settings.name || a.name, avatar: state.settings.avatar }) : null; }
 
   // ---------- bonus types ----------
@@ -565,6 +650,18 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   function typesOf(kind) { return types().filter(function (t) { return t.kind === kind; }); }
   function typeAmount(t) { return t.amount != null ? Number(t.amount) : (t.ultra ? Number(state.settings.big) : Number(state.settings.reg)); }
   function saveTypes(list) { state.settings.types = list; persistSettings(); }
+
+  // ---------- saved numbers ----------
+  function contacts() {
+    if (Array.isArray(state.settings.contacts)) return state.settings.contacts;
+    return state.settings.phone ? [{ id: "boss", name: "הבוס", phone: state.settings.phone, boss: true }] : [];
+  }
+  function saveContacts(list) {
+    state.settings.contacts = list;
+    var boss = list.filter(function (c) { return c.boss; })[0];
+    state.settings.phone = boss ? boss.phone : "";
+    persistSettings();
+  }
 
   // ---------- local cache ----------
   function saveAccts() { lsSet("bt.accounts", accts); }
@@ -618,7 +715,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     var myAcct = accts.active;
     var r = await sb.from("entries").select(ENTRY_COLS).range(0, 49999);
     if (r.error) throw r.error;
-    var s = await sb.from("settings").select("name,phone,reg,big,avatar,types").maybeSingle();
+    var s = await sb.from("settings").select("name,phone,reg,big,avatar,types,contacts").maybeSingle();
     if (accts.active !== myAcct) return;
     var next = {};
     r.data.forEach(function (row) { var id = row.id; delete row.id; next[id] = row; });
@@ -656,7 +753,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     var a = accts.list.filter(function (x) { return x.uid === id; })[0];
     if (!a) return;
     accts.active = id; saveAccts();
-    loadCache(id); state.showAllLog = false; render(); setStatus();
+    loadCache(id); share.to = null; render(); setStatus();
     if (!a.session) { openLogin("relogin", a.email); return; }
     var r = await sb.auth.setSession(a.session);
     if (accts.active !== id) return;
@@ -723,20 +820,29 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   // ---------- tabs ----------
   function setTab(t) {
     state.tab = t; lsSet("bt.tab", t);
-    ["add", "types", "summary", "settings"].forEach(function (n) { $("tab-" + n).hidden = n !== t; });
+    ["add", "month", "summary", "settings"].forEach(function (n) { $("tab-" + n).hidden = n !== t; });
     $$(".tabbar button").forEach(function (b) { if (b.getAttribute("data-tab") === t) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
     window.scrollTo(0, 0);
-    if (t === "settings") fillSettings();
+    if (t === "settings") setSub(state.sub);
+  }
+  function setSub(s) {
+    state.sub = s; lsSet("bt.sub", s);
+    ["profile", "types", "share", "backup"].forEach(function (n) { $("sub-" + n).hidden = n !== s; });
+    $$(".seg button").forEach(function (b) { b.setAttribute("aria-current", String(b.getAttribute("data-sub") === s)); });
+    if (s === "profile") fillProfile();
+    if (s === "share") renderSharePanel();
   }
   $$(".tabbar button").forEach(function (b) { b.addEventListener("click", function () { setTab(b.getAttribute("data-tab")); }); });
+  $$(".seg button").forEach(function (b) { b.addEventListener("click", function () { setSub(b.getAttribute("data-sub")); }); });
 
-  // ---------- render ----------
-  function monthEntries(m) {
-    var out = [], month = m || state.month;
-    for (var id in state.entries) { var e = state.entries[id]; if (e && (month === "*" || e.month === month)) out.push(Object.assign({ id: id }, e)); }
+  // ---------- data helpers ----------
+  function entriesWhere(fn) {
+    var out = [];
+    for (var id in state.entries) { var e = state.entries[id]; if (e && fn(e)) out.push(Object.assign({ id: id }, e)); }
     out.sort(function (a, b) { return a.date === b.date ? b.ts - a.ts : (b.date < a.date ? -1 : 1); });
     return out;
   }
+  function monthEntries(m) { return entriesWhere(function (e) { return e.month === m; }); }
   function group(list, kind) {
     var m = {}, order = [];
     list.forEach(function (e) {
@@ -746,6 +852,61 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       m[key].count += 1; m[key].amount += Number(e.amount) || 0;
     });
     return order.map(function (k) { return m[k]; }).sort(function (a, b) { return b.count - a.count; });
+  }
+  function totals(list) {
+    var t = { all: 0, device: 0, line: 0, repair: 0, big: 0, bigAmt: 0, count: list.length };
+    list.forEach(function (e) { var a = Number(e.amount) || 0; t.all += a; t[e.kind] = (t[e.kind] || 0) + 1; if (e.big) { t.big++; t.bigAmt += a; } });
+    return t;
+  }
+  function countLine(t) { return t.count ? fmt(t.count) + " בונוסים" + (t.big ? " · " + t.big + " אולטרה" : "") : "אין עדיין"; }
+
+  // ---------- render ----------
+  function render() {
+    var m = me();
+    $("acctName").textContent = m ? acctLabel(m) : "התחברות";
+    $("acctAvatar").hidden = !m;
+    if (m) paintAvatar($("acctAvatar"), m);
+    $$(".monthName").forEach(function (x) { x.textContent = monthLabel(state.month); });
+    $$(".nextMonth").forEach(function (x) { x.disabled = state.month >= monthKey(new Date()); });
+
+    var today = todayStr(), cur = monthKey(new Date());
+    var todays = entriesWhere(function (e) { return e.date === today; }).sort(function (a, b) { return b.ts - a.ts; });
+    var tt = totals(todays), mt = totals(monthEntries(cur));
+    $("todayTotal").textContent = fmt(tt.all); $("todayCount").textContent = countLine(tt);
+    $("monthTotal").textContent = fmt(mt.all); $("monthCount").textContent = countLine(mt);
+    $("monthMiniLbl").textContent = MONTHS[new Date().getMonth()];
+    $("sToday").textContent = todays.length ? todays.length + " רישומים" : "";
+    renderLog($("todayList"), todays, false, "עוד לא נוסף כלום היום. לחץ על מכשיר, קו או תיקון.");
+
+    var list = monthEntries(state.month), t = totals(list);
+    $("monthListSub").textContent = list.length ? fmt(t.count) + " בונוסים · " + fmt(t.all) + " ₪" : "אין רישומים בחודש הזה";
+    renderLog($("monthList"), list, true, "אין רישומים בחודש הזה.");
+
+    $("totalLabel").textContent = state.settings.name ? "מגיע ל" + state.settings.name + " בחודש הזה" : "מגיע לי בחודש הזה";
+    $("total").textContent = fmt(t.all);
+    $("totalSub").textContent = "";
+    if (t.count) { $("totalSub").appendChild(el("b", null, fmt(t.count))); $("totalSub").appendChild(document.createTextNode(" בונוסים" + (t.big ? " · מתוכם " + t.big + " אולטרה" : ""))); }
+    else $("totalSub").textContent = "אין בונוסים בחודש הזה";
+    $("kDevices").textContent = t.device; $("kLines").textContent = t.line; $("kRepairs").textContent = t.repair;
+    $("tierReg").textContent = fmt(t.count - t.big) + " · " + fmt(t.all - t.bigAmt) + " ₪";
+    $("tierUltra").textContent = fmt(t.big) + " · " + fmt(t.bigAmt) + " ₪";
+    var pm = shiftMonth(state.month, -1), prev = totals(monthEntries(pm));
+    var cmp = $("compare"); cmp.textContent = "";
+    if (prev.count || t.count) {
+      var diff = t.all - prev.all;
+      cmp.appendChild(document.createTextNode("לעומת " + monthLabel(pm) + " (" + fmt(prev.all) + " ₪): "));
+      cmp.appendChild(el("b", diff > 0 ? "trend-up" : diff < 0 ? "trend-down" : "", (diff > 0 ? "+" : "") + fmt(diff) + " ₪"));
+    }
+    renderRows("rRepairs", "sRepairs", group(list, "repair"), "repair");
+    renderRows("rLines", "sLines", group(list, "line"), "line");
+    renderRows("rDevices", "sDevices", group(list, "device"), "device");
+
+    renderTypes();
+    if (state.tab === "settings" && state.sub === "share") renderSharePanel();
+    $("bRegVal").textContent = fmt(state.settings.reg); $("bBigVal").textContent = fmt(state.settings.big);
+    $("tRegVal").textContent = fmt(state.settings.reg); $("tBigVal").textContent = fmt(state.settings.big);
+    if (document.activeElement !== $("sReg")) $("sReg").value = state.settings.reg;
+    if (document.activeElement !== $("sBig")) $("sBig").value = state.settings.big;
   }
   function renderRows(boxId, sumId, rows, kind) {
     var box = $(boxId); box.textContent = "";
@@ -764,77 +925,58 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       box.appendChild(row);
     });
   }
-  function totals(list) {
-    var t = { all: 0, device: 0, line: 0, repair: 0, big: 0, count: list.length };
-    list.forEach(function (e) { t.all += Number(e.amount) || 0; t[e.kind] = (t[e.kind] || 0) + 1; if (e.big) t.big++; });
-    return t;
-  }
-  function countLine(t) { return t.count ? fmt(t.count) + " בונוסים" + (t.big ? " · מתוכם " + t.big + " אולטרה" : "") : "עוד אין בונוסים"; }
-  function render() {
-    var list = monthEntries(), t = totals(list), m = me();
-    $("acctName").textContent = m ? acctLabel(m) : "התחברות";
-    $("acctAvatar").hidden = !m;
-    if (m) paintAvatar($("acctAvatar"), m);
-    $$(".monthName").forEach(function (x) { x.textContent = monthLabel(state.month); });
-    $$(".nextMonth").forEach(function (x) { x.disabled = state.month >= monthKey(new Date()); });
-    // add tab
-    var cur = monthEntries(monthKey(new Date())), ct = totals(cur);
-    $("miniTotal").textContent = fmt(ct.all);
-    $("miniLabel").textContent = MONTHS[new Date().getMonth()] + " עד עכשיו";
-    $("miniCount").textContent = countLine(ct);
-    renderLog($("recent"), cur.slice().sort(function (a, b) { return b.ts - a.ts; }).slice(0, 8), false);
-    $("sRecent").textContent = cur.length ? "" : "";
-    // summary tab
-    $("totalLabel").textContent = state.settings.name ? "מגיע ל" + state.settings.name + " בחודש הזה" : "מגיע לי בחודש הזה";
-    $("total").textContent = fmt(t.all);
-    $("totalSub").textContent = "";
-    if (t.count) { $("totalSub").appendChild(el("b", null, fmt(t.count))); $("totalSub").appendChild(document.createTextNode(" בונוסים" + (t.big ? " · מתוכם " + t.big + " אולטרה" : ""))); }
-    else $("totalSub").textContent = "עוד אין בונוסים בחודש הזה";
-    $("kDevices").textContent = t.device; $("kLines").textContent = t.line; $("kRepairs").textContent = t.repair;
-    renderRows("rRepairs", "sRepairs", group(list, "repair"), "repair");
-    renderRows("rLines", "sLines", group(list, "line"), "line");
-    renderRows("rDevices", "sDevices", group(list, "device"), "device");
-    $("sLog").textContent = list.length ? list.length + " רישומים" : "";
-    var limit = state.showAllLog ? list.length : 15;
-    renderLog($("log"), list.slice(0, limit), true);
-    $("moreLog").hidden = list.length <= limit;
-    $("moreLog").textContent = "הצג את כל " + list.length + " הרישומים";
-    renderShare(list, t);
-    renderTypes();
-    $("bRegVal").textContent = fmt(state.settings.reg); $("bBigVal").textContent = fmt(state.settings.big);
-    $("tRegVal").textContent = fmt(state.settings.reg); $("tBigVal").textContent = fmt(state.settings.big);
-    if (document.activeElement !== $("sReg")) $("sReg").value = state.settings.reg;
-    if (document.activeElement !== $("sBig")) $("sBig").value = state.settings.big;
-  }
-  function renderLog(box, list, byDay) {
+  function renderLog(box, list, byDay, emptyMsg) {
     box.textContent = "";
-    if (!list.length) { box.appendChild(el("div", "empty-note", byDay ? "אין רישומים בחודש הזה." : "מה שתוסיף יופיע כאן. אפשר למחוק רישום שגוי עם ✕.")); return; }
-    var lastDay = "";
+    if (!list.length) { box.appendChild(el("div", "empty-note", emptyMsg)); return; }
+    var lastDay = "", dayTotals = {};
+    if (byDay) list.forEach(function (e) { dayTotals[e.date] = (dayTotals[e.date] || 0) + (Number(e.amount) || 0); });
     list.forEach(function (e) {
       if (byDay && e.date !== lastDay) {
         lastDay = e.date; var p = e.date.split("-");
         var dow = new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString("he-IL", { weekday: "long" });
-        box.appendChild(el("div", "log-day", dow + " · " + (+p[2]) + "." + (+p[1])));
+        var h = el("div", "log-day"); h.appendChild(el("span", null, dow + " · " + (+p[2]) + "." + (+p[1]))); h.appendChild(el("span", "num", fmt(dayTotals[e.date]) + " ₪"));
+        box.appendChild(h);
       }
       var it = el("div", "log-item");
       var what = el("div", "what", KIND[e.kind] + " · " + e.sub);
-      var p2 = e.date.split("-");
-      var extra = [];
-      if (!byDay) extra.push((+p2[2]) + "." + (+p2[1]));
-      if (e.note) extra.push(e.note);
-      if (extra.length) what.appendChild(el("small", null, extra.join(" · ")));
+      if (e.big) what.appendChild(el("span", "pill", "אולטרה"));
+      if (e.note) what.appendChild(el("small", null, e.note));
       it.appendChild(what);
       it.appendChild(el("span", "val num" + (e.big ? " big" : ""), fmt(e.amount) + " ₪"));
-      var d = el("button", "del", "✕"); d.type = "button"; d.setAttribute("aria-label", "מחיקת " + KIND[e.kind] + " " + e.sub);
+      var ed = el("button", "mini-btn", "עריכה"); ed.type = "button"; ed.setAttribute("aria-label", "עריכת " + KIND[e.kind] + " " + e.sub);
+      ed.addEventListener("click", function () { openEdit(e.id); });
+      it.appendChild(ed);
+      var d = el("button", "mini-btn del", "✕"); d.type = "button"; d.setAttribute("aria-label", "מחיקת " + KIND[e.kind] + " " + e.sub);
       d.addEventListener("click", function () { deleteWithUndo(e.id); });
       it.appendChild(d);
       box.appendChild(it);
     });
   }
-  function shareText(list, t) {
-    var lines = [];
-    lines.push("סיכום בונוסים – " + monthLabel(state.month) + (state.settings.name ? " – " + state.settings.name : ""));
-    lines.push("");
+
+  // ---------- share ----------
+  function shareMonths() {
+    var cur = monthKey(new Date());
+    if (share.period === "last") return [shiftMonth(cur, -1)];
+    if (share.period === "pick") return share.picked.slice().sort();
+    return [cur];
+  }
+  function availableMonths() {
+    var set = {}; set[monthKey(new Date())] = 1;
+    for (var id in state.entries) if (state.entries[id]) set[state.entries[id].month] = 1;
+    return Object.keys(set).sort().reverse();
+  }
+  function periodLabel(ms) {
+    if (!ms.length) return "לא נבחרו חודשים";
+    if (ms.length === 1) return monthLabel(ms[0]);
+    return monthLabel(ms[0]) + " – " + monthLabel(ms[ms.length - 1]) + " (" + ms.length + " חודשים)";
+  }
+  function shareText(ms) {
+    var list = entriesWhere(function (e) { return ms.indexOf(e.month) >= 0; }), t = totals(list);
+    var lines = ["סיכום בונוסים – " + periodLabel(ms) + (state.settings.name ? " – " + state.settings.name : ""), ""];
+    if (ms.length > 1) {
+      ms.forEach(function (mk) { var mt = totals(monthEntries(mk)); lines.push("🗓 " + monthLabel(mk) + ": " + mt.count + " בונוסים · " + fmt(mt.all) + " ₪"); });
+      lines.push("");
+    }
     ["device", "line", "repair"].forEach(function (k) {
       var rows = group(list, k); if (!rows.length) return;
       var amt = rows.reduce(function (s, r) { return s + r.amount; }, 0);
@@ -843,7 +985,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       rows.forEach(function (r) { lines.push("• " + r.sub + (r.big ? " (אולטרה)" : "") + ": " + r.count); });
       lines.push("");
     });
-    if (!list.length) { lines.push("אין רישומים בחודש הזה."); lines.push(""); }
+    if (!list.length) { lines.push("אין רישומים בתקופה הזו."); lines.push(""); }
     lines.push("🧾 מספר בונוסים: " + t.count + (t.big ? " (מתוכם " + t.big + " אולטרה)" : ""));
     lines.push("💰 סה״כ לתשלום: " + fmt(t.all) + " ₪");
     return lines.join("\n");
@@ -854,15 +996,165 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     if (d.charAt(0) === "0") d = "972" + d.slice(1);
     return d;
   }
-  function renderShare(list, t) {
-    var txt = shareText(list, t);
-    $("shareText").value = txt;
-    var num = waNumber(state.settings.phone);
-    $("waLink").href = "https://wa.me/" + num + "?text=" + encodeURIComponent(txt);
-    $("waHint").textContent = num ? "ההודעה תיפתח בצ׳אט עם הבוס (" + state.settings.phone + ")." : "אפשר לשמור את מספר הבוס למעלה, וההודעה תיפתח ישר אצלו.";
+  function renderSharePanel() {
+    $$("#periodChips .chip").forEach(function (c) { c.setAttribute("aria-pressed", String(c.getAttribute("data-period") === share.period)); });
+    var mc = $("monthChecks"); mc.hidden = share.period !== "pick"; mc.textContent = "";
+    if (share.period === "pick") {
+      availableMonths().forEach(function (mk) {
+        var c = el("button", "chip", monthLabel(mk)); c.type = "button";
+        c.setAttribute("aria-pressed", String(share.picked.indexOf(mk) >= 0));
+        c.addEventListener("click", function () {
+          var i = share.picked.indexOf(mk);
+          if (i >= 0) share.picked.splice(i, 1); else share.picked.push(mk);
+          renderSharePanel();
+        });
+        mc.appendChild(c);
+      });
+    }
+    var ms = shareMonths();
+    var t = totals(entriesWhere(function (e) { return ms.indexOf(e.month) >= 0; }));
+    $("periodNote").textContent = periodLabel(ms) + " · " + fmt(t.count) + " בונוסים · " + fmt(t.all) + " ₪";
+    var cs = contacts();
+    if (share.to === null) { var boss = cs.filter(function (c) { return c.boss; })[0]; share.to = boss ? boss.id : (cs[0] ? cs[0].id : "any"); }
+    var rc = $("recipChips"); rc.textContent = "";
+    cs.forEach(function (c) {
+      var b = el("button", "chip"); b.type = "button";
+      if (c.boss) b.appendChild(el("span", "star", "★ "));
+      b.appendChild(document.createTextNode(c.name));
+      b.setAttribute("aria-pressed", String(share.to === c.id));
+      b.addEventListener("click", function () { share.to = c.id; renderSharePanel(); });
+      rc.appendChild(b);
+    });
+    var o = el("button", "chip", "מספר אחר"); o.type = "button"; o.setAttribute("aria-pressed", String(share.to === "other"));
+    o.addEventListener("click", function () { share.to = "other"; renderSharePanel(); $("otherNum").focus(); });
+    rc.appendChild(o);
+    var any = el("button", "chip", "בחירה בוואטסאפ"); any.type = "button"; any.setAttribute("aria-pressed", String(share.to === "any"));
+    any.addEventListener("click", function () { share.to = "any"; renderSharePanel(); });
+    rc.appendChild(any);
+    $("otherNumBox").hidden = share.to !== "other";
+    updateWaLink();
+    $("shareText").value = shareText(ms);
+    renderContacts();
+  }
+  function currentRecipient() {
+    if (share.to === "other") return { name: "", phone: $("otherNum").value };
+    if (share.to === "any") return { name: "", phone: "" };
+    return contacts().filter(function (c) { return c.id === share.to; })[0] || { name: "", phone: "" };
+  }
+  function updateWaLink() {
+    var r = currentRecipient(), num = waNumber(r.phone);
+    $("waLink").href = "https://wa.me/" + num + "?text=" + encodeURIComponent(shareText(shareMonths()));
+    $("waLabel").textContent = r.name ? "וואטסאפ · " + r.name : num ? "וואטסאפ · " + r.phone : "שליחה בוואטסאפ";
+  }
+  $("otherNum").addEventListener("input", updateWaLink);
+  $$("#periodChips .chip").forEach(function (c) {
+    c.addEventListener("click", function () {
+      share.period = c.getAttribute("data-period");
+      if (share.period === "pick" && !share.picked.length) share.picked = [monthKey(new Date())];
+      renderSharePanel();
+    });
+  });
+  function renderContacts() {
+    var box = $("contactList"); box.textContent = "";
+    var cs = contacts();
+    if (!cs.length) { box.appendChild(el("div", "empty-note", "אין מספרים שמורים עדיין.")); return; }
+    cs.forEach(function (c) {
+      var row = el("div", "contact-row");
+      var n = el("div", "c-name", c.name);
+      if (c.boss) n.appendChild(el("span", "pill", "בוס"));
+      var ph = el("small", null, c.phone); ph.dir = "ltr"; n.appendChild(ph);
+      row.appendChild(n);
+      var b = el("button", "mini-btn", c.boss ? "הבוס ★" : "לסמן כבוס"); b.type = "button"; b.disabled = !!c.boss;
+      b.addEventListener("click", function () { saveContacts(contacts().map(function (x) { return Object.assign({}, x, { boss: x.id === c.id }); })); share.to = c.id; renderSharePanel(); });
+      row.appendChild(b);
+      var d = el("button", "mini-btn del", "✕"); d.type = "button"; d.setAttribute("aria-label", "מחיקת " + c.name);
+      d.addEventListener("click", function () {
+        var before = contacts();
+        saveContacts(before.filter(function (x) { return x.id !== c.id; })); share.to = null; renderSharePanel();
+        toast("נמחק: " + c.name, function () { saveContacts(before); renderSharePanel(); });
+      });
+      row.appendChild(d);
+      box.appendChild(row);
+    });
+  }
+  $("cAdd").addEventListener("click", function () {
+    var name = $("cName").value.trim(), phone = $("cPhone").value.trim(); $("cErr").hidden = true;
+    if (!name || waNumber(phone).length < 9) { $("cErr").textContent = "צריך שם ומספר טלפון תקין."; $("cErr").hidden = false; return; }
+    var boss = $("cBoss").checked || !contacts().length;
+    var list = contacts().map(function (x) { return Object.assign({}, x, { boss: boss ? false : x.boss }); });
+    var id = "c-" + uid();
+    list.push({ id: id, name: name, phone: phone, boss: boss });
+    saveContacts(list); share.to = id;
+    $("cName").value = ""; $("cPhone").value = ""; $("cBoss").checked = false;
+    renderSharePanel();
+    toast("נשמר: " + name);
+  });
+  function copyText(txt, okMsg, fallbackEl) {
+    var fallback = function () { if (fallbackEl) { fallbackEl.focus(); fallbackEl.select(); } toast("הטקסט מסומן – לחץ העתק"); };
+    try { navigator.clipboard.writeText(txt).then(function () { toast(okMsg); }, fallback); } catch (e) { fallback(); }
+  }
+  $("copyBtn").addEventListener("click", function () { copyText(shareText(shareMonths()), "ההודעה הועתקה", $("shareText")); });
+  if (navigator.share) {
+    $("nativeShare").hidden = false;
+    $("nativeShare").addEventListener("click", function () { navigator.share({ text: shareText(shareMonths()) }).catch(function () {}); });
   }
 
-  // ---------- types tab ----------
+  // ---------- Excel ----------
+  var xlsxLoading = null;
+  function loadXlsx() {
+    if (window.XLSX) return Promise.resolve(window.XLSX);
+    if (!xlsxLoading) xlsxLoading = new Promise(function (ok, bad) {
+      var s = document.createElement("script"); s.src = XLSX_SRC;
+      s.onload = function () { ok(window.XLSX); }; s.onerror = function () { xlsxLoading = null; bad(new Error("load")); };
+      document.head.appendChild(s);
+    });
+    return xlsxLoading;
+  }
+  function entryRows(list) {
+    return list.slice().sort(function (a, b) { return a.date === b.date ? a.ts - b.ts : (a.date < b.date ? -1 : 1); })
+      .map(function (e) { var p = e.date.split("-"); return [p[2] + "/" + p[1] + "/" + p[0], KIND_PL[e.kind], e.sub, e.big ? "כן" : "", e.note || "", Number(e.amount) || 0]; });
+  }
+  async function shareFile(file, okMsg) {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: file.name }); } catch (e) {}
+    } else {
+      var a = document.createElement("a"); a.href = URL.createObjectURL(file); a.download = file.name;
+      document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+      toast(okMsg + file.name);
+    }
+  }
+  async function exportExcel(ms, btn) {
+    btn.disabled = true;
+    try {
+      var X = await loadXlsx();
+      var wb = X.utils.book_new(); wb.Workbook = { Views: [{ RTL: true }] };
+      var who = state.settings.name || (activeAcct() || {}).email || "";
+      var list = entriesWhere(function (e) { return ms.indexOf(e.month) >= 0; }), t = totals(list);
+      var rows = [["סיכום בונוסים – " + periodLabel(ms)], [who], [], ["קטגוריה", "סוג", "אולטרה", "כמות", "סכום ₪"]];
+      ["device", "line", "repair"].forEach(function (k) { group(list, k).forEach(function (r) { rows.push([KIND_PL[k], r.sub, r.big ? "כן" : "", r.count, r.amount]); }); });
+      rows.push([]); rows.push(["מספר בונוסים", "", "", t.count]); rows.push(["מתוכם אולטרה", "", "", t.big]); rows.push(["סה״כ לתשלום", "", "", "", t.all]);
+      var ws1 = X.utils.aoa_to_sheet(rows); ws1["!cols"] = [{ wch: 16 }, { wch: 22 }, { wch: 9 }, { wch: 8 }, { wch: 10 }];
+      X.utils.book_append_sheet(wb, ws1, "סיכום");
+      if (ms.length > 1) {
+        var mrows = [["חודש", "מכשירים", "קווים", "תיקונים", "מספר בונוסים", "מתוכם אולטרה", "סה״כ ₪"]];
+        ms.forEach(function (mk) { var t2 = totals(monthEntries(mk)); mrows.push([monthLabel(mk), t2.device, t2.line, t2.repair, t2.count, t2.big, t2.all]); });
+        mrows.push([]); mrows.push(["סה״כ", t.device, t.line, t.repair, t.count, t.big, t.all]);
+        var ws3 = X.utils.aoa_to_sheet(mrows); ws3["!cols"] = [{ wch: 16 }, { wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 13 }, { wch: 13 }, { wch: 10 }];
+        X.utils.book_append_sheet(wb, ws3, "לפי חודשים");
+      }
+      var ws2 = X.utils.aoa_to_sheet([["תאריך", "קטגוריה", "סוג", "אולטרה", "הערה", "סכום ₪"]].concat(entryRows(list)));
+      ws2["!cols"] = [{ wch: 11 }, { wch: 10 }, { wch: 20 }, { wch: 8 }, { wch: 26 }, { wch: 9 }];
+      X.utils.book_append_sheet(wb, ws2, "רישומים");
+      var fname = "bonus-" + (ms.length === 1 ? ms[0] : ms[0] + "_to_" + ms[ms.length - 1]) + ".xlsx";
+      var buf = X.write(wb, { type: "array", bookType: "xlsx" });
+      await shareFile(new File([buf], fname, { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), "הקובץ ירד: ");
+    } catch (e) { toast("לא הצלחתי ליצור קובץ אקסל. בדוק חיבור לאינטרנט ונסה שוב."); }
+    finally { btn.disabled = false; }
+  }
+  $("xlBtn").addEventListener("click", function () { var ms = shareMonths(); if (!ms.length) { toast("בחר לפחות חודש אחד"); return; } exportExcel(ms, $("xlBtn")); });
+  $("xlAll").addEventListener("click", function () { exportExcel(availableMonths().slice().sort(), $("xlAll")); });
+
+  // ---------- types (settings) ----------
   function renderTypes() {
     ["device", "line", "repair"].forEach(function (k) {
       var box = $("types-" + k); box.textContent = "";
@@ -874,7 +1166,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
         if (t.ultra) name.appendChild(el("span", "pill", "אולטרה"));
         row.appendChild(name);
         row.appendChild(el("span", "t-amt num", fmt(typeAmount(t)) + " ₪"));
-        var b = el("button", "edit-btn", "עריכה"); b.type = "button";
+        var b = el("button", "mini-btn", "עריכה"); b.type = "button";
         b.addEventListener("click", function () { openType(t.kind, t.id); });
         row.appendChild(b);
         box.appendChild(row);
@@ -911,7 +1203,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     var amt = null, ultra = editType.tier === "big";
     if (editType.tier === "custom") {
       amt = parseInt($("tAmt").value, 10);
-      if (!(amt >= 0)) { $("tErr").textContent = "צריך לכתוב סכום."; $("tErr").hidden = false; return; }
+      if (!(amt >= 0)) { $("tErr").textContent = "צריך לכתוב מחיר."; $("tErr").hidden = false; return; }
       ultra = $("tUltraFlag").checked;
     }
     var list = types().map(function (x) { return Object.assign({}, x); });
@@ -931,7 +1223,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     var r = parseInt($("sReg").value, 10), b = parseInt($("sBig").value, 10);
     if (r >= 0) state.settings.reg = r;
     if (b >= 0) state.settings.big = b;
-    persistSettings(); toast("הסכומים נשמרו");
+    persistSettings(); toast("המחירים נשמרו");
   });
   $("resetTypes").addEventListener("click", function () { $("resetTypesConfirm").hidden = false; $("resetTypes").hidden = true; });
   $("resetTypesNo").addEventListener("click", function () { $("resetTypesConfirm").hidden = true; $("resetTypes").hidden = false; });
@@ -1039,14 +1331,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   });
   $("lPass").addEventListener("keydown", function (ev) { if (ev.key === "Enter") $("loginBtn").click(); });
 
-  // Google: show the button only once the provider is switched on in Supabase
+  // Google: the button shows only once the provider is switched on in Supabase
   fetch(SB_URL + "/auth/v1/settings", { headers: { apikey: SB_KEY } })
     .then(function (r) { return r.json(); })
     .then(function (s) { var on = !!(s && s.external && s.external.google); $("googleBtn").hidden = !on; $("orLine").hidden = !on; })
     .catch(function () {});
   $("googleBtn").addEventListener("click", async function () {
     busy(true);
-    lsSet("bt.oauthMode", loginMode);
     var r = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + "/", queryParams: { prompt: "select_account" } } });
     if (r.error) { busy(false); loginError("לא הצלחתי לפתוח את Google. נסה שוב."); }
   });
@@ -1056,7 +1347,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     if (!h || (h.indexOf("access_token=") < 0 && h.indexOf("error") < 0)) return false;
     var p = new URLSearchParams(h);
     history.replaceState(null, "", location.pathname);
-    lsDel("bt.oauthMode");
     if (p.get("error")) { openLogin(accts.list.length ? "add" : "first"); loginError("ההתחברות עם Google בוטלה או נכשלה."); return true; }
     var r = await sb.auth.setSession({ access_token: p.get("access_token"), refresh_token: p.get("refresh_token") });
     if (r.error || !r.data.session) { openLogin(accts.list.length ? "add" : "first"); loginError("ההתחברות עם Google נכשלה. נסה שוב."); return true; }
@@ -1167,8 +1457,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     } finally { $("changePass").disabled = false; }
   });
 
-  // ---------- add entry ----------
-  var draft = { kind: null, sub: null, bonus: "reg", typeUltra: false };
+  // ---------- add / edit entry ----------
+  var draft = { mode: "add", id: null, kind: null, sub: null, bonus: "reg", typeUltra: false };
   function setBonus(b) {
     draft.bonus = b;
     $("bReg").setAttribute("aria-pressed", String(b === "reg"));
@@ -1183,43 +1473,74 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     return Number(state.settings.reg) || 0;
   }
   function draftSub() { return draft.sub === "אחר" ? ($("subOther").value.trim() || "אחר") : draft.sub; }
-  function draftQty() { return Math.max(1, Math.min(50, parseInt($("addQty").value, 10) || 1)); }
+  function draftQty() { return draft.mode === "edit" ? 1 : Math.max(1, Math.min(50, parseInt($("addQty").value, 10) || 1)); }
   function updateSave() {
     var qty = draftQty();
     $("saveBtn").disabled = !draft.sub;
-    $("saveBtn").textContent = draft.sub ? "שמירה · " + (qty > 1 ? qty + " × " : "") + draftSub() + " · +" + fmt(bonusAmount() * qty) + " ₪" : "בחר סוג כדי לשמור";
+    if (!draft.sub) { $("saveBtn").textContent = "בחר סוג כדי לשמור"; return; }
+    $("saveBtn").textContent = (draft.mode === "edit" ? "שמירת שינויים · " : "שמירה · ") + (qty > 1 ? qty + " × " : "") + draftSub() + " · " + (draft.mode === "edit" ? "" : "+") + fmt(bonusAmount() * qty) + " ₪";
   }
-  function openAdd(kind) {
-    if (!activeAcct()) { openLogin("first"); return; }
-    draft = { kind: kind, sub: null, bonus: "reg", typeUltra: false };
-    $("addTitle").textContent = "הוספת " + KIND[kind];
+  function fillKind(kind, keepSub) {
+    draft.kind = kind;
+    $$("#kindChips .chip").forEach(function (c) { c.setAttribute("aria-pressed", String(c.getAttribute("data-kind") === kind)); });
     $("subLabel").textContent = kind === "line" ? "חברה" : kind === "repair" ? "סוג תיקון" : "סוג מכשיר";
     $("addNoteLbl").textContent = NOTE_LBL[kind][0];
     $("addNote").placeholder = NOTE_LBL[kind][1];
     $("subOtherLbl").textContent = kind === "line" ? "איזו חברה? (לא חובה)" : kind === "repair" ? "איזה תיקון? (לא חובה)" : "איזה מכשיר? (לא חובה)";
-    $("customAmt").value = "";
     var box = $("subChips"); box.textContent = "";
-    typesOf(kind).concat([{ id: "other", name: "אחר", ultra: false, amount: null }]).forEach(function (t) {
+    var list = typesOf(kind).concat([{ id: "other", name: "אחר", ultra: false, amount: null }]);
+    var matched = null;
+    list.forEach(function (t) {
       var c = el("button", "chip", t.name); c.type = "button"; c.setAttribute("aria-pressed", "false");
       if (t.id !== "other" && (t.ultra || t.amount != null)) c.appendChild(el("span", "pill", fmt(typeAmount(t)) + "₪"));
-      c.addEventListener("click", function () {
-        $$("#subChips .chip").forEach(function (x) { x.setAttribute("aria-pressed", "false"); });
-        c.setAttribute("aria-pressed", "true");
-        draft.sub = t.name; draft.typeUltra = !!t.ultra;
-        $("subOtherBox").hidden = t.id !== "other";
-        if (t.amount != null) { $("customAmt").value = t.amount; setBonus("custom"); }
-        else setBonus(t.ultra ? "big" : "reg");
-        if (t.id === "other") $("subOther").focus();
-      });
+      c.addEventListener("click", function () { pickType(c, t); });
       box.appendChild(c);
+      if (keepSub && t.id !== "other" && t.name === keepSub) matched = c;
     });
-    $("subOther").value = ""; $("subOtherBox").hidden = true;
+    if (keepSub) {
+      var chip = matched || box.lastChild;
+      chip.setAttribute("aria-pressed", "true");
+      draft.sub = matched ? keepSub : "אחר";
+      $("subOtherBox").hidden = !!matched;
+      $("subOther").value = matched || keepSub === "אחר" ? "" : keepSub;
+    } else { draft.sub = null; $("subOtherBox").hidden = true; $("subOther").value = ""; }
+  }
+  function pickType(chip, t) {
+    $$("#subChips .chip").forEach(function (x) { x.setAttribute("aria-pressed", "false"); });
+    chip.setAttribute("aria-pressed", "true");
+    draft.sub = t.name; draft.typeUltra = !!t.ultra;
+    $("subOtherBox").hidden = t.id !== "other";
+    if (t.amount != null) { $("customAmt").value = t.amount; setBonus("custom"); }
+    else setBonus(t.ultra ? "big" : "reg");
+    if (t.id === "other") $("subOther").focus();
+  }
+  function openAdd(kind) {
+    if (!activeAcct()) { openLogin("first"); return; }
+    draft = { mode: "add", id: null, kind: kind, sub: null, bonus: "reg", typeUltra: false };
+    $("addTitle").textContent = "הוספת " + KIND[kind];
+    $("kindBox").hidden = true; $("qtyBox").hidden = false; $("entryDelete").hidden = true;
+    $("customAmt").value = "";
+    fillKind(kind, null);
     $("addQty").value = 1; $("addNote").value = "";
-    var t0 = todayStr();
-    $("addDate").value = t0; $("addDate").max = t0;
+    var t0 = todayStr(); $("addDate").value = t0; $("addDate").max = t0;
     setBonus("reg");
     show($("addSheet"));
   }
+  function openEdit(id) {
+    var e = state.entries[id]; if (!e) return;
+    draft = { mode: "edit", id: id, kind: e.kind, sub: null, bonus: "reg", typeUltra: !!e.big };
+    $("addTitle").textContent = "עריכת רישום";
+    $("kindBox").hidden = false; $("qtyBox").hidden = true; $("entryDelete").hidden = false;
+    fillKind(e.kind, e.sub);
+    var amt = Number(e.amount) || 0;
+    if (e.big && amt === Number(state.settings.big)) setBonus("big");
+    else if (!e.big && amt === Number(state.settings.reg)) setBonus("reg");
+    else { $("customAmt").value = amt; setBonus("custom"); }
+    $("addNote").value = e.note || "";
+    $("addDate").value = e.date; $("addDate").max = todayStr();
+    show($("addSheet"));
+  }
+  $$("#kindChips .chip").forEach(function (c) { c.addEventListener("click", function () { fillKind(c.getAttribute("data-kind"), null); updateSave(); }); });
   $$("[data-add]").forEach(function (b) { b.addEventListener("click", function () { openAdd(b.getAttribute("data-add")); }); });
   $("bReg").addEventListener("click", function () { setBonus("reg"); });
   $("bBig").addEventListener("click", function () { setBonus("big"); });
@@ -1232,29 +1553,31 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     var sub = draftSub(), qty = draftQty(), amount = bonusAmount(), kind = draft.kind;
     var ultra = draft.bonus === "big" || (draft.bonus === "custom" && draft.typeUltra);
     var date = $("addDate").value || todayStr();
+    var note = $("addNote").value.trim();
+    if (draft.mode === "edit") {
+      var eid = draft.id, before = Object.assign({}, state.entries[eid]);
+      putEntry(eid, Object.assign({}, before, { kind: kind, sub: sub, big: ultra, amount: amount, date: date, month: date.slice(0, 7), note: note }));
+      hide(); toast("הרישום עודכן", function () { putEntry(eid, before); });
+      return;
+    }
     var ids = [];
     for (var i = 0; i < qty; i++) {
       var id = uid() + i; ids.push(id);
-      putEntry(id, { kind: kind, sub: sub, big: ultra, amount: amount, date: date, month: date.slice(0, 7), note: $("addNote").value.trim(), ts: Date.now() + i });
+      putEntry(id, { kind: kind, sub: sub, big: ultra, amount: amount, date: date, month: date.slice(0, 7), note: note, ts: Date.now() + i });
     }
     hide();
     toast("נוסף: " + (qty > 1 ? qty + " × " : "") + KIND[kind] + " · " + sub + " (+" + fmt(amount * qty) + " ₪)", function () { ids.forEach(removeEntry); });
   });
+  $("entryDelete").addEventListener("click", function () { var id = draft.id; hide(); deleteWithUndo(id); });
 
-  // ---------- settings ----------
-  var pendingAvatar = null;
-  function fillSettings() {
+  // ---------- profile ----------
+  function fillProfile() {
     var m = me(); if (!m) return;
-    $("sName").value = state.settings.name || ""; $("sPhone").value = state.settings.phone || "";
+    $("sName").value = state.settings.name || "";
     $("setWho").textContent = acctLabel(m); $("setEmail").textContent = m.email + (m.provider === "google" ? " · מחובר עם Google" : "");
-    $("backupNote").textContent = "כל רישום נשמר אוטומטית בחשבון" + (m.provider === "google" ? " שמחובר ל-Google" : "") + ". כאן אפשר גם להעתיק עותק של הנתונים, או להדביק נתונים מגרסה קודמת.";
-    pendingAvatar = null; paintSetAvatar();
-  }
-  function paintSetAvatar() {
-    var m = me(); if (!m) return;
-    var av = pendingAvatar !== null ? pendingAvatar : state.settings.avatar;
-    paintAvatar($("setAvatar"), Object.assign({}, m, { avatar: av }));
-    $("avatarRemove").hidden = !av;
+    $("backupNote").textContent = "כל רישום נשמר אוטומטית בחשבון שלך" + (m.provider === "google" ? " שמחובר ל-Google" : "") + ". בטלפון חדש מתחברים לאותו חשבון והכל חוזר.";
+    paintAvatar($("setAvatar"), m);
+    $("avatarRemove").hidden = !state.settings.avatar;
   }
   $("avatarFile").addEventListener("change", function () {
     var file = $("avatarFile").files && $("avatarFile").files[0];
@@ -1266,36 +1589,37 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       var side = Math.min(img.width, img.height);
       c.getContext("2d").drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, S, S);
       URL.revokeObjectURL(url);
-      pendingAvatar = c.toDataURL("image/jpeg", 0.85);
-      state.settings.avatar = pendingAvatar; pendingAvatar = null;
-      persistSettings(); paintSetAvatar(); toast("תמונת הפרופיל עודכנה");
+      state.settings.avatar = c.toDataURL("image/jpeg", 0.85);
+      persistSettings(); fillProfile(); toast("תמונת הפרופיל עודכנה");
     };
     img.onerror = function () { URL.revokeObjectURL(url); toast("לא הצלחתי לפתוח את התמונה"); };
     img.src = url;
   });
-  $("avatarRemove").addEventListener("click", function () { state.settings.avatar = ""; persistSettings(); paintSetAvatar(); });
-  $("saveSettings").addEventListener("click", function () {
+  $("avatarRemove").addEventListener("click", function () { state.settings.avatar = ""; persistSettings(); fillProfile(); });
+  $("saveName").addEventListener("click", function () {
     if (!activeAcct()) { openLogin("first"); return; }
     state.settings.name = $("sName").value.trim();
-    state.settings.phone = $("sPhone").value.trim();
-    persistSettings(); fillSettings(); toast("ההגדרות נשמרו");
+    persistSettings(); fillProfile(); toast("השם נשמר");
   });
-  function copyText(txt, okMsg, fallbackEl) {
-    var fallback = function () { if (fallbackEl) { fallbackEl.focus(); fallbackEl.select(); } toast("הטקסט מסומן – לחץ העתק"); };
-    try { navigator.clipboard.writeText(txt).then(function () { toast(okMsg); }, fallback); } catch (e) { fallback(); }
+
+  // ---------- backup ----------
+  function backupJson() {
+    var a = activeAcct();
+    return JSON.stringify({ app: "bonus-tracker", v: 3, account: a && a.email, exported: new Date().toISOString(), settings: state.settings, entries: state.entries });
   }
   $("exportBtn").addEventListener("click", function () {
-    var a = activeAcct();
-    var data = JSON.stringify({ app: "bonus-tracker", v: 2, account: a && a.email, settings: state.settings, entries: state.entries });
-    $("importText").value = data;
+    var data = backupJson(); $("importText").value = data;
     copyText(data, "הגיבוי הועתק. אפשר לשמור אותו בפתקים או לשלוח לעצמך", $("importText"));
   });
-  $("importBtn").addEventListener("click", function () {
+  $("exportFile").addEventListener("click", function () {
+    shareFile(new File([backupJson()], "bonus-backup-" + todayStr() + ".json", { type: "application/json" }), "הקובץ נשמר: ");
+  });
+  function importData(raw) {
     $("importErr").hidden = true;
     var data;
-    try { data = JSON.parse($("importText").value); } catch (e) { data = null; }
+    try { data = JSON.parse(raw); } catch (e) { data = null; }
     var src = data && (data.entries || data);
-    if (!src || typeof src !== "object") { $("importErr").textContent = "הטקסט לא נראה כמו גיבוי. הדבק את כל הטקסט שהועתק."; $("importErr").hidden = false; return; }
+    if (!src || typeof src !== "object") { $("importErr").textContent = "זה לא נראה כמו גיבוי. נסה שוב עם הקובץ או הטקסט המלא."; $("importErr").hidden = false; return; }
     var n = 0, list = Array.isArray(src) ? src : Object.keys(src).map(function (k) { return Object.assign({ id: k }, src[k]); });
     list.forEach(function (e) {
       if (!e || !KIND[e.kind] || !e.date || state.entries[e.id]) return;
@@ -1305,79 +1629,17 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     });
     $("importText").value = "";
     toast(n ? "יובאו " + n + " רישומים" : "לא נמצאו רישומים חדשים לייבוא");
+  }
+  $("importBtn").addEventListener("click", function () { importData($("importText").value); });
+  $("importFile").addEventListener("change", function () {
+    var f = $("importFile").files && $("importFile").files[0]; $("importFile").value = "";
+    if (!f) return;
+    f.text().then(importData, function () { toast("לא הצלחתי לקרוא את הקובץ"); });
   });
 
-  // ---------- Excel ----------
-  var xlsxLoading = null;
-  function loadXlsx() {
-    if (window.XLSX) return Promise.resolve(window.XLSX);
-    if (!xlsxLoading) xlsxLoading = new Promise(function (ok, bad) {
-      var s = document.createElement("script"); s.src = XLSX_SRC;
-      s.onload = function () { ok(window.XLSX); }; s.onerror = function () { xlsxLoading = null; bad(new Error("load")); };
-      document.head.appendChild(s);
-    });
-    return xlsxLoading;
-  }
-  function entryRows(list) {
-    return list.slice().sort(function (a, b) { return a.date === b.date ? a.ts - b.ts : (a.date < b.date ? -1 : 1); })
-      .map(function (e) { var p = e.date.split("-"); return [p[2] + "/" + p[1] + "/" + p[0], KIND_PL[e.kind], e.sub, e.big ? "כן" : "", e.note || "", Number(e.amount) || 0]; });
-  }
-  async function exportExcel(all) {
-    var btn = all ? $("xlAll") : $("xlMonth"); btn.disabled = true;
-    try {
-      var X = await loadXlsx();
-      var wb = X.utils.book_new(); wb.Workbook = { Views: [{ RTL: true }] };
-      var who = state.settings.name || (activeAcct() || {}).email || "";
-      var head = ["תאריך", "קטגוריה", "סוג", "אולטרה", "הערה", "סכום ₪"];
-      var fname;
-      if (!all) {
-        var list = monthEntries(), t = totals(list);
-        var rows = [["סיכום בונוסים – " + monthLabel(state.month)], [who], [], ["קטגוריה", "סוג", "אולטרה", "כמות", "סכום ₪"]];
-        ["device", "line", "repair"].forEach(function (k) { group(list, k).forEach(function (r) { rows.push([KIND_PL[k], r.sub, r.big ? "כן" : "", r.count, r.amount]); }); });
-        rows.push([]); rows.push(["מספר בונוסים", "", "", t.count]); rows.push(["מתוכם אולטרה", "", "", t.big]); rows.push(["סה״כ לתשלום", "", "", "", t.all]);
-        var ws1 = X.utils.aoa_to_sheet(rows); ws1["!cols"] = [{ wch: 16 }, { wch: 22 }, { wch: 9 }, { wch: 8 }, { wch: 10 }];
-        X.utils.book_append_sheet(wb, ws1, "סיכום");
-        var ws2 = X.utils.aoa_to_sheet([head].concat(entryRows(list))); ws2["!cols"] = [{ wch: 11 }, { wch: 10 }, { wch: 20 }, { wch: 8 }, { wch: 26 }, { wch: 9 }];
-        X.utils.book_append_sheet(wb, ws2, "רישומים");
-        fname = "bonus-" + state.month + ".xlsx";
-      } else {
-        var everything = monthEntries("*"), months = {};
-        everything.forEach(function (e) { (months[e.month] = months[e.month] || []).push(e); });
-        var mrows = [["סיכום בונוסים לפי חודשים"], [who], [], ["חודש", "מכשירים", "קווים", "תיקונים", "מספר בונוסים", "מתוכם אולטרה", "סה״כ ₪"]];
-        var grand = { count: 0, all: 0 };
-        Object.keys(months).sort().forEach(function (mk) { var t2 = totals(months[mk]); grand.count += t2.count; grand.all += t2.all; mrows.push([monthLabel(mk), t2.device, t2.line, t2.repair, t2.count, t2.big, t2.all]); });
-        mrows.push([]); mrows.push(["סה״כ", "", "", "", grand.count, "", grand.all]);
-        var ws3 = X.utils.aoa_to_sheet(mrows); ws3["!cols"] = [{ wch: 16 }, { wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 13 }, { wch: 13 }, { wch: 10 }];
-        X.utils.book_append_sheet(wb, ws3, "לפי חודשים");
-        var ws4 = X.utils.aoa_to_sheet([head].concat(entryRows(everything))); ws4["!cols"] = [{ wch: 11 }, { wch: 10 }, { wch: 20 }, { wch: 8 }, { wch: 26 }, { wch: 9 }];
-        X.utils.book_append_sheet(wb, ws4, "כל הרישומים");
-        fname = "bonus-all.xlsx";
-      }
-      var buf = X.write(wb, { type: "array", bookType: "xlsx" });
-      var file = new File([buf], fname, { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try { await navigator.share({ files: [file], title: fname }); } catch (e) {}
-      } else {
-        var a = document.createElement("a"); a.href = URL.createObjectURL(file); a.download = fname;
-        document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
-        toast("הקובץ ירד: " + fname);
-      }
-    } catch (e) { toast("לא הצלחתי ליצור קובץ אקסל. בדוק חיבור לאינטרנט ונסה שוב."); }
-    finally { btn.disabled = false; }
-  }
-  $("xlMonth").addEventListener("click", function () { exportExcel(false); });
-  $("xlAll").addEventListener("click", function () { exportExcel(true); });
-
-  // ---------- month nav / share ----------
-  $$(".prevMonth").forEach(function (b) { b.addEventListener("click", function () { state.month = shiftMonth(state.month, -1); state.showAllLog = false; render(); }); });
-  $$(".nextMonth").forEach(function (b) { b.addEventListener("click", function () { if (state.month < monthKey(new Date())) { state.month = shiftMonth(state.month, 1); state.showAllLog = false; render(); } }); });
-  $("moreLog").addEventListener("click", function () { state.showAllLog = true; render(); });
-  $("goShare").addEventListener("click", function () { setTab("settings"); $("shareCard").scrollIntoView({ block: "start" }); });
-  $("copyBtn").addEventListener("click", function () { copyText($("shareText").value, "הסיכום הועתק – הדבק בוואטסאפ לבוס", $("shareText")); });
-  if (navigator.share) {
-    $("nativeShare").hidden = false;
-    $("nativeShare").addEventListener("click", function () { navigator.share({ text: $("shareText").value }).catch(function () {}); });
-  }
+  // ---------- month nav ----------
+  $$(".prevMonth").forEach(function (b) { b.addEventListener("click", function () { state.month = shiftMonth(state.month, -1); render(); }); });
+  $$(".nextMonth").forEach(function (b) { b.addEventListener("click", function () { if (state.month < monthKey(new Date())) { state.month = shiftMonth(state.month, 1); render(); } }); });
 
   window.addEventListener("online", function () { online = true; var a = activeAcct(); if (a) activate(a.uid); });
   window.addEventListener("offline", function () { online = false; setStatus(); });
@@ -1387,7 +1649,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 
   // ---------- boot ----------
   accts = lsGet("bt.accounts", { list: [], active: null });
-  setTab(lsGet("bt.tab", "add"));
+  state.sub = lsGet("bt.sub", "profile");
+  if (["profile", "types", "share", "backup"].indexOf(state.sub) < 0) state.sub = "profile";
+  var savedTab = lsGet("bt.tab", "add");
+  setTab(["add", "month", "summary", "settings"].indexOf(savedTab) >= 0 ? savedTab : "add");
   handleOAuthReturn().then(function (handled) {
     if (handled) return;
     if (accts.active && activeAcct()) activate(accts.active);
