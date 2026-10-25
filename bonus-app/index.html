@@ -305,7 +305,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   <div class="top">
     <div class="top-start">
       <div class="brand-row"><svg aria-hidden="true"><use href="#logo"/></svg><div class="brand">יומן בונוסים</div></div>
-      <div class="status" id="status">טוען…</div>
+      <div class="status" id="status" hidden></div>
     </div>
     <button class="acct-btn" id="acctBtn" type="button" aria-label="חשבונות"><span class="avatar" id="acctAvatar" aria-hidden="true">?</span></button>
   </div>
@@ -459,15 +459,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       </section>
       <div class="subtab" id="teamNone" hidden>
         <section class="card">
-          <div class="card-head"><h2>אני מנהל: יצירת צוות</h2></div>
+          <div class="card-head"><h2>יצירת צוות</h2></div>
           <div class="hint">אחרי שתיצור צוות תקבל קוד לעובדים, ותוכל לראות את הבונוסים של כולם ולקבוע להם סוגים ומחירים.</div>
           <div class="field"><label class="lbl" for="newTeamName">שם הצוות או החנות</label><input id="newTeamName" type="text" placeholder="למשל: New Phone סניף מרכז"></div>
           <button class="btn primary" type="button" id="createTeam">יצירת צוות</button>
-        </section>
-        <section class="card">
-          <div class="card-head"><h2>אני עובד: הצטרפות לצוות</h2></div>
-          <div class="field"><label class="lbl" for="joinCode">קוד מהמנהל</label><input id="joinCode" type="text" dir="ltr" maxlength="6" autocapitalize="characters" placeholder="ABC123"></div>
-          <button class="btn primary" type="button" id="joinTeam">הצטרפות</button>
         </section>
         <div class="err" id="teamErr" hidden></div>
       </div>
@@ -912,11 +907,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   // ---------- sync ----------
   function setStatus() {
     var a = activeAcct();
-    if (!a) { $("status").textContent = "לא מחובר"; return; }
-    var who = a.email + (state.team ? " · " + state.team.name : "");
-    if (pending.length) $("status").textContent = who + " · " + pending.length + " שינויים ממתינים לחיבור";
-    else if (!online) $("status").textContent = who + " · לא מחובר לאינטרנט";
-    else $("status").textContent = who + " · מגובה";
+    var msg = !a ? "" : pending.length ? pending.length + " שינויים ממתינים לחיבור לאינטרנט" : !online ? "אין חיבור לאינטרנט" : "";
+    $("status").textContent = msg; $("status").hidden = !msg;
   }
   function queue(op) {
     pending = pending.filter(function (p) { return !(op.id && p.id === op.id); });
@@ -1650,7 +1642,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     $("teamNone").hidden = !state.teamReady || !!state.team;
     $("teamIn").hidden = !state.team;
     $("teamErr").hidden = true; $("leaveErr").hidden = true; $("leaveConfirm").hidden = true; $("leaveTeam").hidden = false;
-    if (pendingJoin && !$("joinCode").value) $("joinCode").value = pendingJoin;
     if (!state.team) return;
     $("teamInName").textContent = state.team.name;
     $("teamRole").textContent = isManager() ? "מנהל" : "עובד";
@@ -1680,12 +1671,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     await afterTeamChange("הצטרפת לצוות " + r.data.name);
     return true;
   }
-  $("joinTeam").addEventListener("click", async function () {
-    var code = $("joinCode").value.trim(); $("teamErr").hidden = true;
-    if (code.length < 6) { $("teamErr").textContent = "הקוד הוא 6 תווים."; $("teamErr").hidden = false; return; }
-    $("joinTeam").disabled = true;
-    try { if (await joinTeam(code)) { $("joinCode").value = ""; pendingJoin = ""; } } finally { $("joinTeam").disabled = false; }
-  });
   $("goTeamTab").addEventListener("click", function () { setTab("team"); });
   $("leaveTeam").addEventListener("click", function () { $("leaveConfirm").hidden = false; $("leaveTeam").hidden = true; });
   $("leaveNo").addEventListener("click", function () { $("leaveConfirm").hidden = true; $("leaveTeam").hidden = false; });
