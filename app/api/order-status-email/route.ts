@@ -23,8 +23,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { orderId } = await request.json();
-    if (!orderId) {
+    const body = await request.json().catch(() => null);
+    const orderId = body?.orderId;
+    if (typeof orderId !== 'string' || !orderId.trim()) {
       return NextResponse.json({ error: 'Missing order' }, { status: 400 });
     }
     const { data: order, error } = await db.from('orders').select('*').eq('id', orderId).maybeSingle();
