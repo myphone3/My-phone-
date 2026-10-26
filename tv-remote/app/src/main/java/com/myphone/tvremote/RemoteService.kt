@@ -25,8 +25,10 @@ class RemoteService : Service() {
             .setContentText(address())
             .build()
         startForeground(1, notification)
+        running = true
 
         AdbBridge.init(this)
+        KeepAliveJob.schedule(this)
         try {
             server = WebServer(this, PORT).also { it.start(5000, false) }
         } catch (e: Exception) {
@@ -37,6 +39,7 @@ class RemoteService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int) = START_STICKY
 
     override fun onDestroy() {
+        running = false
         server?.stop()
         super.onDestroy()
     }
@@ -47,7 +50,11 @@ class RemoteService : Service() {
         const val PORT = 8080
         private const val CHANNEL = "remote"
 
+        @Volatile var running = false
+            private set
+
         fun start(context: Context) {
+            if (running) return
             context.startForegroundService(Intent(context, RemoteService::class.java))
         }
 

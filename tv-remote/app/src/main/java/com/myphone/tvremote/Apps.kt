@@ -4,9 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import java.io.ByteArrayOutputStream
 
@@ -54,24 +51,18 @@ object Apps {
         return ByteArrayOutputStream().also { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }.toByteArray()
     }
 
-    /** האייקון של השלט עצמו, למסך הבית של הטלפון. */
-    fun remoteIconPng(size: Int): ByteArray {
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        val s = size.toFloat()
-        paint.color = Color.parseColor("#1E1B4B")
-        canvas.drawRect(0f, 0f, s, s, paint)
-        paint.color = Color.parseColor("#6366F1")
-        canvas.drawCircle(s / 2, s / 2, s * 0.32f, paint)
-        paint.color = Color.parseColor("#E0E7FF")
-        canvas.drawCircle(s / 2, s / 2, s * 0.12f, paint)
-        val r = s * 0.035f
-        for ((dx, dy) in listOf(0f to -1f, 0f to 1f, -1f to 0f, 1f to 0f)) {
-            val cx = s / 2 + dx * s * 0.235f
-            val cy = s / 2 + dy * s * 0.235f
-            canvas.drawRoundRect(RectF(cx - r, cy - r, cx + r, cy + r), r / 2, r / 2, paint)
+    private val YOUTUBE_APPS = listOf(
+        "com.teamsmart.videomanager.tv", "com.liskovsoft.smarttubetv.beta", "com.liskovsoft.smarttubetv",
+        "com.google.android.youtube.tv", "com.google.android.youtube",
+    )
+
+    /** איזו אפליקציית יוטיוב מותקנת (SmartTube קודם). */
+    fun youtubeApp(context: Context): String? = YOUTUBE_APPS.firstOrNull {
+        try {
+            context.packageManager.getPackageInfo(it, 0)
+            true
+        } catch (e: Exception) {
+            false
         }
-        return ByteArrayOutputStream().also { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }.toByteArray()
     }
 }

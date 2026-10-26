@@ -16,7 +16,8 @@ class WebServer(private val context: Context, port: Int) : NanoHTTPD(port) {
             when (session.uri) {
                 "/", "/index.html" -> asset("web/index.html", "text/html; charset=utf-8")
                 "/manifest.webmanifest" -> json(manifest(), "application/manifest+json; charset=utf-8")
-                "/icon.png" -> png(Apps.remoteIconPng((params["s"]?.toIntOrNull() ?: 192).coerceIn(48, 512)))
+                "/apple-touch-icon.png", "/icon-192.png", "/icon-512.png", "/logo.png" ->
+                    asset("web" + session.uri, "image/png", cache = true)
                 "/api/status" -> json(
                     JSONObject()
                         .put("connected", AdbBridge.connected)
@@ -31,9 +32,14 @@ class WebServer(private val context: Context, port: Int) : NanoHTTPD(port) {
                 }
                 "/api/text" -> {
                     val text = params["t"].orEmpty()
-                    if (text.isEmpty() || text.length > 200) return error("empty")
-                    if (text.any { it.code > 126 || it.code < 32 }) return error("only_english")
-                    AdbBridge.typeText(text)
+                    if (text.length > 300) return error("too_long")
+                    AdbBridge.typeText(text)?.let { error(it) } ?: ok()
+                }
+                "/api/submit" -> { AdbBridge.submitText(); ok() }
+                "/api/youtube" -> {
+                    val query = params["q"].orEmpty().trim()
+                    if (query.isEmpty() || query.length > 300) return error("empty")
+                    AdbBridge.youtubeSearch(query, Apps.youtubeApp(context))
                     ok()
                 }
                 "/api/apps" -> {
@@ -63,14 +69,14 @@ class WebServer(private val context: Context, port: Int) : NanoHTTPD(port) {
         .put("lang", "he")
         .put(
             "icons", JSONArray()
-                .put(JSONObject().put("src", "/icon.png?s=192").put("sizes", "192x192").put("type", "image/png"))
-                .put(JSONObject().put("src", "/icon.png?s=512").put("sizes", "512x512").put("type", "image/png"))
+                .put(JSONObject().put("src", "/icon-192.png").put("sizes", "192x192").put("type", "image/png"))
+                .put(JSONObject().put("src", "/icon-512.png").put("sizes", "512x512").put("type", "image/png"))
         )
 
-    private fun asset(path: String, mime: String): Response {
+    private fun asset(path: String, mime: String, cache: Boolean = false): Response {
         val bytes = context.assets.open(path).use { it.readBytes() }
         return newFixedLengthResponse(Response.Status.OK, mime, ByteArrayInputStream(bytes), bytes.size.toLong())
-            .also { it.addHeader("Cache-Control", "no-cache") }
+            .also { it.addHeader("Cache-Control", if (cache) "max-age=86400" else "no-cache") }
     }
 
     private fun png(bytes: ByteArray, cache: Boolean = false) =
