@@ -290,20 +290,45 @@ textarea.copy { min-height: 180px; font-family: var(--f-num); font-size: 13px; d
 .goal .txt { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); gap: 8px; }
 
 .nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 30; background: var(--surface); border-top: 1px solid var(--line);
-  display: grid; grid-template-columns: repeat(4, 1fr);
+  display: grid; grid-template-columns: repeat(3, 1fr);
   padding: 6px max(8px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
 .nav button { background: none; border: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; border-radius: 10px; color: var(--muted); font-size: 12px; font-weight: 600; position: relative; }
 .nav button svg { width: 22px; height: 22px; }
 .nav button[aria-current="page"] { color: var(--accent); background: var(--accent-soft); }
+.modes { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 4px; gap: 4px; }
+.modes button { border: 0; background: transparent; border-radius: 9px; padding: 8px 4px; font-weight: 600; font-size: 14px; color: var(--muted); display: flex; flex-direction: column; align-items: center; line-height: 1.2; }
+.modes button small { font-weight: 400; font-size: 11px; }
+.modes button[aria-pressed="true"] { background: var(--surface); color: var(--accent); box-shadow: var(--shadow); }
+.mode-note { font-size: 13px; color: var(--muted); text-align: center; margin: -4px 0 0; }
+.today-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%; }
+.today-strip div { background: var(--surface-2); border-radius: 12px; padding: 8px; display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.today-strip .label { font-size: 11px; }
+.today-strip b { font-family: var(--f-num); font-variant-numeric: tabular-nums; direction: ltr; font-size: 17px; font-weight: 600; white-space: nowrap; }
+.btn.brk { background: var(--punch-soft); border-color: transparent; color: var(--punch); }
+.hbars { display: flex; flex-direction: column; gap: 8px; }
+.hbar { display: grid; grid-template-columns: 62px 1fr auto; gap: 8px; align-items: center; font-size: 13px; background: none; border: 0; padding: 0; text-align: right; width: 100%; }
+.hbar .tr { height: 14px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.hbar .tr i { display: block; height: 100%; background: var(--accent); opacity: .55; border-radius: 999px; }
+.hbar.cur .tr i { opacity: 1; }
+.hbar.cur span:first-child { font-weight: 700; }
+.hbar .v { font-family: var(--f-num); direction: ltr; white-space: nowrap; }
+.delta { font-size: 13px; font-weight: 700; }
+.delta.up { color: var(--accent); }
+.delta.down { color: var(--punch); }
+.plan-big { font-family: var(--f-num); direction: ltr; font-size: 30px; font-weight: 600; line-height: 1.1; }
+.hist { display: flex; flex-direction: column; }
+.hist button { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; border: 0; border-bottom: 1px solid var(--line); background: none; text-align: right; width: 100%; }
+.hist button:last-child { border-bottom: 0; }
+.share-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+@media (max-width: 400px) { .share-grid { grid-template-columns: 1fr; } }
 .nav .live { width: 7px; height: 7px; border-radius: 50%; background: var(--punch); position: absolute; top: 6px; margin-inline-start: 18px; }
 </style>
 </head>
 <body>
 <div class="app" id="app"><div class="loading">טוען…</div></div>
 <nav class="nav" id="nav" aria-label="ניווט" hidden>
-  <button data-tab="clock" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg>שעון</button>
+  <button data-tab="clock" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg>נוכחות</button>
   <button data-tab="month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>החודש</button>
-  <button data-tab="report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6M9 13h8M9 17h8"/></svg>דוח לבוס</button>
   <button data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>הגדרות</button>
 </nav>
 <div id="modal-root"></div>
@@ -363,10 +388,12 @@ const DEFAULT_SETTINGS = {
   travelOn: false, travelPerDay: 0, periodStart: 1,
   vacPct: 100, sickPct: 100, onboarded: false,
   countdownOn: true, askPlan: false, entryMode: "clock", alertBefore: true, goalAmount: 0,
+  dailyGoalHours: 0, workDays: [0, 1, 2, 3, 4], jobPct: 100, breaksOn: true, autoBreakOn: false, autoBreakMin: 30,
+  bossPhone: "", bossEmail: "",
   jobs: [], netOn: true, creditPoints: 2.25, pensionPct: 6,
   pushOn: false, remindOn: false, remindTime: "08:00", remindDays: [0, 1, 2, 3, 4]
 };
-const freshState = () => ({ v: 3, updatedAt: 0, settings: { ...DEFAULT_SETTINGS }, shifts: [], active: null, adjustments: [], sample: false });
+const freshState = () => ({ v: 4, updatedAt: 0, settings: { ...DEFAULT_SETTINGS }, shifts: [], active: null, adjustments: [], sample: false });
 function normalize(s) {
   s = JSON.parse(JSON.stringify(s || {}));
   const n = freshState();
@@ -376,13 +403,17 @@ function normalize(s) {
   if (out.active && !Array.isArray(out.active.breaks)) out.active = { ...out.active, breaks: [] };
   if (s.settings && s.settings.travelPerDay > 0 && s.settings.travelOn === undefined) out.settings.travelOn = true;
   // v3: a plain clock-in only counts worked time; the countdown is opt-in
-  if (!(s.v >= 3)) { out.v = 3; out.settings.entryMode = "clock"; }
+  if (!(s.v >= 3)) out.settings.entryMode = "clock";
+  // v4: three modes on the attendance tab — free clock, countdown timer, daily goal
+  if (!["clock", "timer", "goal"].includes(out.settings.entryMode)) out.settings.entryMode = out.settings.entryMode === "ask" ? "timer" : "clock";
+  if (!Array.isArray(out.settings.workDays)) out.settings.workDays = [...DEFAULT_SETTINGS.workDays];
+  out.v = 4;
   return out;
 }
 let state = freshState();
 let session = null, account = null; // account = {phone, full_name, email}
 const ui = { tab: "clock", period: null, authMode: "login", authMsg: "", job: "all", reports: {} };
-try { const t = localStorage.getItem("attendance:tab"); if (t) ui.tab = t; } catch (e) {}
+try { const t = localStorage.getItem("attendance:tab"); if (["clock", "month", "settings"].includes(t)) ui.tab = t; } catch (e) {}
 const cacheKey = () => session ? "attendance:data:" + session.user.id : null;
 const saveCache = () => { try { if (cacheKey()) localStorage.setItem(cacheKey(), JSON.stringify(state)); } catch (e) {} };
 
@@ -684,6 +715,35 @@ function netEstimate(gross) {
   const bl = low * 0.0427 + high * 0.1217;
   return { gross, tax, bl, pension, net: gross - tax - bl - pension };
 }
+// goal planner: how many hours a day reach the monthly goal, and what the job percentage would earn
+const FULL_TIME_WEEK = 42; // hours a week of a full-time job in Israel
+function planInfo(key) {
+  const st = state.settings, today = todayDS();
+  const goal = Math.max(0, +st.goalAmount || 0);
+  const wd = Array.isArray(st.workDays) && st.workDays.length ? st.workDays : DEFAULT_SETTINGS.workDays;
+  const [a, b] = periodRange(key);
+  const workDates = datesBetween(a, b).filter(ds => wd.includes(weekday(ds)));
+  const P = calcPeriod(key, "all"), t = P.t;
+  const travel = st.travelOn ? (+st.travelPerDay || 0) : 0;
+  const rate = t.wMin > 0 ? t.workPay / (t.wMin / 60) : jobOf("main").rate;
+  const todayPay = (P.days.filter(d => d.ds === today).reduce((x, d) => x + d.pay, 0)) + (P.days.some(d => d.ds === today && d.wMin > 0) ? travel : 0);
+  const current = a <= today && today <= b, past = b < today;
+  // days still ahead, today included: the daily target covers today too
+  const left = past ? [] : workDates.filter(ds => ds >= today);
+  const earnedBefore = current ? t.total - todayPay : t.total;
+  const leftMoney = Math.max(0, goal - earnedBefore);
+  const perDay = left.length ? leftMoney / left.length : 0;
+  const needMin = rate > 0 && left.length ? Math.max(0, (perDay - travel) / rate * 60) : 0;
+  const pct = Math.min(100, Math.max(1, +st.jobPct || 100));
+  const pctDayMin = FULL_TIME_WEEK * pct / 100 / wd.length * 60;
+  const pctMonth = workDates.length * (rate * pctDayMin / 60 + travel);
+  // forecast: the pace so far, carried over the work days that are still ahead
+  const workedToday = P.days.some(d => d.ds === today && d.wMin > 0) || !!state.active;
+  const ahead = past ? 0 : workDates.filter(ds => ds > today || (ds === today && !workedToday)).length;
+  const avgDay = t.daysWorked ? (t.total - t.adjSum) / t.daysWorked : rate * pctDayMin / 60 + travel;
+  const forecast = t.total + avgDay * ahead;
+  return { goal, wd, workDates, rate, travel, left, leftMoney, perDay, needMin, pct, pctDayMin, pctMonth, forecast, ahead, current, past, earned: t.total, avgDay };
+}
 const fixedBreakMin = a => (a.breaks || []).reduce((s, b) => s + (+b.min || 0), 0);
 function activeBreakMs(a, now = Date.now()) { return fixedBreakMin(a) * 60000 + (a.breakMs || 0) + (a.breakStart ? now - a.breakStart : 0); }
 function activeWorkedMs(now = Date.now()) {
@@ -720,22 +780,50 @@ function showCopy(title, text) {
 }
 
 // ---------- clock actions ----------
-// entryMode: "clock" = just count worked time, "ask" = ask for a countdown each time, "timer" = countdown of the usual shift length
-function clockIn(withTimer) {
-  const st = state.settings, mode = st.entryMode || "clock";
-  if (withTimer || mode === "ask") { planModal(true, true); return; }
-  const plan = mode === "timer" ? Math.round((+st.shiftHours || 8) * 60) : null;
-  if (multiJob()) { planModal(true, false, plan); return; }
-  startShift(plan);
+// three ways to count: "clock" = free stopwatch, "timer" = countdown for this shift, "goal" = countdown to today's hours target
+const MODES = { clock: ["שעון חופשי", "סופר כמה עבדת"], timer: ["טיימר", "לאחור לסוף משמרת"], goal: ["יעד יומי", "עד יעד השעות"] };
+const entryMode = () => MODES[state.settings.entryMode] ? state.settings.entryMode : "clock";
+const activeMode = a => a.mode || (a.planMin ? "timer" : "clock");
+const timerMin = () => Math.round((+state.settings.shiftHours || 8) * 60);
+function todayDoneMin() { return state.shifts.filter(s => s.date === todayDS() && !isLeave(s)).reduce((t, s) => t + shiftMin(s), 0); }
+// today's target: set by hand, or derived from the monthly income goal, or the usual shift length
+function dailyGoalMin() {
+  const h = +state.settings.dailyGoalHours;
+  if (h > 0) return Math.round(h * 60);
+  const pl = planInfo(periodKeyOf(todayDS()));
+  if (pl.goal > 0 && pl.needMin > 0) return Math.round(pl.needMin);
+  return timerMin();
 }
-function startShift(planMin, jobId) {
-  state.active = { start: Date.now(), breaks: [], breakMs: 0, breakStart: null, planMin: planMin || null, jobId: jobId || ui.lastJob || "main" };
-  ui.endAlert = null;
+const goalSource = () => +state.settings.dailyGoalHours > 0 ? "שהגדרת" : (planInfo(periodKeyOf(todayDS())).goal > 0 ? "לפי היעד החודשי" : "לפי אורך המשמרת");
+function goalPlanMin() { const left = dailyGoalMin() - todayDoneMin(); return left > 0 ? left : null; }
+function clockIn() {
+  const mode = entryMode();
+  let plan = null;
+  if (mode === "timer") plan = ui.timerPick || timerMin();
+  if (mode === "goal") { plan = goalPlanMin(); if (!plan) toast("כבר הגעת ליעד היומי. השעון יספור שעות נוספות"); }
+  if (multiJob()) { planModal(true, false, plan, mode); return; }
+  startShift(plan, null, mode);
+}
+function startShift(planMin, jobId, mode) {
+  const st = state.settings;
+  const breaks = st.autoBreakOn && +st.autoBreakMin > 0 ? [{ id: uid(), min: Math.round(+st.autoBreakMin), auto: true }] : [];
+  state.active = { start: Date.now(), breaks, breakMs: 0, breakStart: null, planMin: planMin || null, mode: mode || entryMode(), jobId: jobId || ui.lastJob || "main" };
+  ui.endAlert = null; ui.timerPick = null;
   commit("כניסה נרשמה · " + localHM(new Date()));
   if (planMin) askNotify();
 }
+// switching the counting mode, also in the middle of a shift
+function setMode(mode) {
+  state.settings = { ...state.settings, entryMode: mode };
+  const a = state.active;
+  if (!a) { commit(); return; }
+  if (mode === "timer") { state.active = { ...a, mode }; planModal(false); return; }
+  const planMin = mode === "goal" ? (goalPlanMin() || 1) : null;
+  state.active = { ...a, mode, planMin }; ui.endAlert = null;
+  commit(mode === "goal" ? `יעד היום: ${fmtHM(dailyGoalMin())} ש׳` : "שעון חופשי");
+}
 // planned shift length: how many hours the worker means to work today, counted down on the clock
-function planModal(starting, withPlan, presetPlan) {
+function planModal(starting, withPlan, presetPlan, presetMode) {
   const st = state.settings, a = state.active;
   const def = Math.round((+st.shiftHours || 8) * 60);
   const cur = starting ? def : (a.planMin || def);
@@ -753,7 +841,6 @@ function planModal(starting, withPlan, presetPlan) {
       <div class="fld"><label for="p-end">או: לסיים בשעה</label><input type="time" id="p-end"></div>
     </div>
     <div class="calc-preview" id="p-prev"></div>
-    ${starting ? `<label class="switch" for="p-ask"><span>לשאול אותי על טיימר בכל כניסה</span><input type="checkbox" id="p-ask" ${st.entryMode === "ask" ? "checked" : ""}></label>` : ""}
     </div></div>
     <div class="modal-actions"><button class="btn primary" id="p-go">${starting ? (showPlan ? "כניסה עם טיימר" : "כניסה") : "שמירה"}</button>${starting ? "" : `<button class="btn" data-dismiss>ביטול</button>`}</div>
     ${showPlan ? `<button class="btn ghost" id="p-off">${starting ? "כניסה בלי טיימר (רק שעון שסופר כמה עבדתי)" : "כיבוי הטיימר"}</button>` : ""}`, m => {
@@ -781,15 +868,28 @@ function planModal(starting, withPlan, presetPlan) {
       if (showPlan && (!(mins > 0) || mins > 1440)) { toast("בחרו כמה שעות"); return; }
       unlockAudio();
       if (starting) {
-        if (!showPlan) { closeModal(); startShift(presetPlan || null, pickJob); return; }
-        const ask = $("#p-ask", m).checked;
-        if (ask !== (st.entryMode === "ask")) state.settings = { ...state.settings, entryMode: ask ? "ask" : (st.entryMode === "ask" ? "clock" : st.entryMode) };
-        closeModal(); startShift(mins, pickJob);
-      } else { state.active = { ...state.active, planMin: mins }; ui.endAlert = null; closeModal(); commit(`המשמרת עודכנה ל-${fmtHM(mins)} שעות`); askNotify(); }
+        if (!showPlan) { closeModal(); startShift(presetPlan || null, pickJob, presetMode); return; }
+        closeModal(); startShift(mins, pickJob, "timer");
+      } else { state.active = { ...state.active, planMin: mins, mode: "timer" }; ui.endAlert = null; closeModal(); commit(`הטיימר עודכן ל-${fmtHM(mins)} שעות`); askNotify(); }
     };
     const off = $("#p-off", m); if (off) off.onclick = () => {
-      if (starting) { closeModal(); startShift(null, pickJob); }
-      else { state.active = { ...state.active, planMin: null }; ui.endAlert = null; closeModal(); commit("הטיימר כובה"); }
+      if (starting) { closeModal(); startShift(null, pickJob, "clock"); }
+      else { state.active = { ...state.active, planMin: null, mode: "clock" }; state.settings = { ...state.settings, entryMode: "clock" }; ui.endAlert = null; closeModal(); commit("הטיימר כובה"); }
+    };
+  });
+}
+function timerPickModal() {
+  const cur = ui.timerPick || timerMin();
+  openModal(`<h3>כמה שעות לטיימר?</h3>
+    <p class="muted small" style="margin:0">לכניסה הבאה בלבד. את ברירת המחדל משנים בהגדרות (אורך משמרת).</p>
+    <div class="bgrid">${[4, 5, 6, 7, 8, 9, 10, 12].map(h => `<button type="button" data-h="${h}" aria-pressed="${h * 60 === cur}">${h} ש׳</button>`).join("")}</div>
+    <div class="fld"><label for="tp-h">או מספר שעות</label><input type="number" id="tp-h" min="0.25" max="24" step="0.25" inputmode="decimal" value="${Math.round(cur / 60 * 100) / 100}"></div>
+    <div class="modal-actions"><button class="btn primary" id="tp-ok">שמירה</button><button class="btn" data-dismiss>ביטול</button></div>`, m => {
+    m.querySelectorAll("[data-h]").forEach(b => b.onclick = () => { $("#tp-h", m).value = b.dataset.h; m.querySelectorAll("[data-h]").forEach(x => x.setAttribute("aria-pressed", x === b)); });
+    $("#tp-ok", m).onclick = () => {
+      const mins = Math.round((+$("#tp-h", m).value || 0) * 60);
+      if (!(mins > 0) || mins > 1440) { toast("בחרו כמה שעות"); return; }
+      ui.timerPick = mins; closeModal(); render();
     };
   });
 }
@@ -836,17 +936,19 @@ function checkAlerts(remainingMs) {
   if (remainingMs <= 0 && !alerted.has(key + ":end")) {
     alerted.add(key + ":end");
     ui.endAlert = key;
-    if (remainingMs > -3 * 60000) notify("המשמרת הסתיימה", `עבדת ${fmtHM(a.planMin)} שעות כמו שתכננת. לא לשכוח להחתים יציאה.`);
+    if (remainingMs > -3 * 60000) {
+      if (activeMode(a) === "goal") notify("הגעת ליעד היומי", `השלמת ${fmtHM(dailyGoalMin())} שעות היום. לא לשכוח להחתים יציאה.`);
+      else notify("המשמרת הסתיימה", `עבדת ${fmtHM(a.planMin)} שעות כמו שתכננת. לא לשכוח להחתים יציאה.`);
+    }
     if (ui.tab === "clock" && !$("#modal-root").firstChild) render();
   }
 }
 function breakModal() {
   const a = state.active;
-  openModal(`<h3>הוספת הפסקה</h3>
-    <p class="muted small" style="margin:0">בחרו כמה זמן הייתה ההפסקה. אפשר להוסיף כמה הפסקות במשמרת.</p>
+  openModal(`<h3>הוספת הפסקה ידנית</h3>
+    <p class="muted small" style="margin:0">שכחתם ללחוץ ״הפסקה״? בחרו כמה זמן היא נמשכה, והזמן יורד מהמשמרת.</p>
     <div class="bgrid">${[5, 10, 15, 20, 30, 45, 60, 90].map(n => `<button data-min="${n}">${n} דק׳</button>`).join("")}</div>
     <div class="grid2" style="align-items:end"><div class="fld"><label for="b-custom">זמן אחר (דקות)</label><input type="number" id="b-custom" min="1" max="600" step="1" inputmode="numeric"></div><button class="btn" id="b-add">הוספה</button></div>
-    ${a.breakStart ? "" : `<button class="btn ghost block" id="b-timer">⏱ להתחיל הפסקה עכשיו עם טיימר</button>`}
     <div class="modal-actions"><button class="btn" data-dismiss>סגירה</button></div>`, m => {
     const add = n => {
       n = Math.round(+n);
@@ -856,9 +958,9 @@ function breakModal() {
     };
     m.querySelectorAll("[data-min]").forEach(b => b.onclick = () => add(b.dataset.min));
     $("#b-add", m).onclick = () => add($("#b-custom", m).value);
-    const t = $("#b-timer", m); if (t) t.onclick = () => { state.active = { ...state.active, breakStart: Date.now() }; closeModal(); commit("הפסקה התחילה"); };
   });
 }
+function startTimedBreak() { state.active = { ...state.active, breakStart: Date.now() }; commit("ההפסקה התחילה. השעון עצר"); }
 function endTimedBreak() {
   const a = { ...state.active };
   const ms = Date.now() - a.breakStart;
@@ -1040,7 +1142,7 @@ function sentList(P) {
 async function sendApproval() {
   const P = calcPeriod(ui.period);
   if (!P.days.length) { toast("אין משמרות בחודש הזה"); return; }
-  const btn = $('[data-act="sendApproval"]'); if (btn) btn.disabled = true;
+  const btn = $("#sh-approve"); if (btn) btn.disabled = true;
   const { data, error } = await sb.from("attendance_reports").insert({ user_id: session.user.id, period: P.key, job_id: P.filter, snapshot: reportSnapshot(P) }).select("token").single();
   if (btn) btn.disabled = false;
   if (error || !data) { toast("לא הצלחנו ליצור קישור. בדקו חיבור לאינטרנט"); return; }
@@ -1140,68 +1242,78 @@ function setupCard() {
     </div>
     <button class="btn primary" data-act="finishSetup">סיימתי</button></section>`;
 }
+function modeBar(cur) {
+  return `<div class="modes" role="group" aria-label="סוג ספירה">${Object.entries(MODES).map(([k, [t, sub]]) => `<button type="button" data-mode="${k}" aria-pressed="${k === cur}">${t}<small>${sub}</small></button>`).join("")}</div>`;
+}
 function viewClock() {
   const st = state.settings, a = state.active, now = new Date();
-  const curKey = periodKeyOf(todayDS());
-  const P = calcPeriod(curKey, "all");
   const todayList = state.shifts.filter(s => s.date === todayDS()).sort((x, y) => (x.start || "").localeCompare(y.start || ""));
   const todayCalc = allJobs().map(j => calcDay(todayDS(), todayList.filter(x => jobOf(x.jobId).id === j.id), j))
     .reduce((acc, d) => ({ wMin: acc.wMin + d.wMin, vacMin: acc.vacMin + d.vacMin, sickMin: acc.sickMin + d.sickMin, pay: acc.pay + d.pay }), { wMin: 0, vacMin: 0, sickMin: 0, pay: 0 });
+  const dateLine = `<div class="now">יום ${DAYS[now.getDay()]}, ${fmtDateLong(todayDS())} · <b id="now-time">${localHM(now)}</b></div>`;
+  const goalMin = dailyGoalMin(), doneMin = todayDoneMin();
   let clock;
   if (!a) {
+    const mode = entryMode();
+    const note = mode === "timer" ? `טיימר של <b class="num">${fmtHM(ui.timerPick || timerMin())}</b> ש׳ · <button class="link" data-act="pickTimer">שינוי</button>`
+      : mode === "goal" ? `יעד היום: <b class="num">${fmtHM(goalMin)}</b> ש׳ (${goalSource()})${doneMin ? ` · נשאר <b class="num">${fmtHM(Math.max(0, goalMin - doneMin))}</b>` : ""} · <button class="link" data-tab-go="settings">שינוי</button>`
+      : "השעון יספור כמה זמן עבדת, בלי הגבלה";
     clock = `<section class="card clock">
-      <div class="now">יום ${DAYS[now.getDay()]}, ${fmtDateLong(todayDS())} · <b id="now-time">${localHM(now)}</b></div>
-      <button class="punch" data-act="clockIn" aria-label="כניסה למשמרת"><span>כניסה</span><small>${st.entryMode === "timer" ? `עם טיימר של ${fmtHM(Math.round((+st.shiftHours || 8) * 60))} ש׳` : "השעון יספור כמה עבדת"}</small></button>
-      ${st.entryMode === "clock" ? `<button class="entry-alt" data-act="clockInTimer">⏱ כניסה עם טיימר להיום</button>` : ""}
+      ${dateLine}
+      ${modeBar(mode)}
+      <p class="mode-note">${note}</p>
+      <button class="punch" data-act="clockIn" aria-label="כניסה למשמרת"><span>כניסה</span><small>${MODES[mode][0]}</small></button>
+      <div class="today-strip"><div><span class="label">עבדת היום</span><b>${fmtHM(todayCalc.wMin + todayCalc.vacMin + todayCalc.sickMin)}</b></div><div><span class="label">הרווחת היום</span><b>${money(todayCalc.pay)}</b></div><div><span class="label">יעד היום</span><b>${fmtHM(goalMin)}</b></div></div>
       <button class="link" data-act="addShift">שכחתי להחתים? הוספת משמרת ידנית</button>
     </section>`;
   } else {
-    const sd = new Date(a.start);
+    const sd = new Date(a.start), mode = activeMode(a);
     const sameDay = localDS(sd) === todayDS();
-    const chips = (a.breaks || []).map(b => `<button class="bchip" data-rmbreak="${esc(b.id)}" aria-label="הסרת הפסקה של ${b.min} דקות">${b.min} דק׳<span class="x">×</span></button>`);
+    const chips = (a.breaks || []).map(b => `<button class="bchip" data-rmbreak="${esc(b.id)}" aria-label="הסרת הפסקה של ${b.min} דקות">${b.min} דק׳${b.auto ? " (קבועה)" : ""}<span class="x">×</span></button>`);
     const timed = Math.round((a.breakMs || 0) / 60000);
-    if (timed > 0) chips.push(`<button class="bchip" data-rmbreak="timed">${timed} דק׳ (טיימר)<span class="x">×</span></button>`);
+    if (timed > 0) chips.push(`<button class="bchip" data-rmbreak="timed">${timed} דק׳<span class="x">×</span></button>`);
     const plan = a.planMin;
     const long = activeWorkedMs() > 13 * 3600000;
-    clock = `${ui.endAlert ? `<section class="alert-card" role="alert"><h3>המשמרת הסתיימה</h3><span>עבדת את ${fmtHM(plan || 0)} השעות שתכננת. השעון ממשיך לספור עד שתלחצו יציאה.</span>
-        <div class="btn-row"><button class="btn solid" data-act="clockOut">יציאה עכשיו</button><button class="btn" data-act="dismissAlert">ממשיך לעבוד</button><button class="btn" data-act="extend30">עוד חצי שעה לטיימר</button></div></section>` : ""}
-      ${long ? `<div class="banner"><span>המשמרת פתוחה כבר יותר מ-13 שעות. שכחת להחתים יציאה?</span><button class="btn sm" data-act="fixOut">רישום שעת יציאה</button></div>` : ""}
-      <section class="card clock">
-      <span class="status ${a.breakStart ? "break" : ""}"><span class="dot"></span>${a.breakStart ? "בהפסקה" : "במשמרת"}${multiJob() ? ` · ${esc(jobOf(a.jobId).name)}` : ""} · מאז <span class="num">${localHM(sd)}</span>${sameDay ? "" : ` (${fmtDate(localDS(sd))})`}</span>
-      ${plan ? `<div class="dial-wrap" id="dial-wrap">
+    const isGoal = mode === "goal";
+    const dial = plan ? `<div class="dial-wrap" id="dial-wrap">
         <svg class="dial" viewBox="0 0 220 220" aria-hidden="true">
           <circle class="d-track" cx="110" cy="110" r="96"></circle>
           <circle class="d-arc" id="d-arc" cx="110" cy="110" r="96" pathLength="100" stroke-dasharray="100 100" transform="rotate(-90 110 110)"></circle>
           ${Array.from({ length: Math.min(24, Math.floor(plan / 60)) }, (_, h) => { const ang = (h + 1) * 60 / plan * 360; return ang < 359.5 ? `<line class="d-tick" x1="110" y1="20" x2="110" y2="30" transform="rotate(${ang.toFixed(2)} 110 110)"></line>` : ""; }).join("")}
           <g id="d-hand"><line class="d-hand" x1="110" y1="6" x2="110" y2="40"></line><circle class="d-hub" cx="110" cy="14" r="8"></circle></g>
         </svg>
-        <div class="dial-center"><span class="tl" id="cd-label">נשאר</span><span class="tv" id="countdown">00:00:00</span><span class="ts">סיום ב-<span class="num" id="cd-end">--:--</span></span></div>
+        <div class="dial-center"><span class="tl" id="cd-label">${isGoal ? "נשאר ליעד" : "נשאר"}</span><span class="tv" id="countdown">00:00:00</span><span class="ts">${isGoal ? "מגיעים ליעד ב-" : "סיום ב-"}<span class="num" id="cd-end">--:--</span></span></div>
       </div>
-      <div class="worked-line"><span>עובד כבר <b id="elapsed">00:00:00</b></span><span>מתוך <b>${fmtHM(plan)}</b> ש׳</span></div>` : `<div class="timers one">
-        <div class="tblock"><span class="tl">עובד כבר</span><span class="tv" id="elapsed">00:00:00</span></div>
-      </div>`}
+      <div class="worked-line"><span>במשמרת <b id="elapsed">00:00:00</b></span>${isGoal ? `<span>היום <b id="today-total">--:--</b> מתוך <b>${fmtHM(goalMin)}</b></span>` : `<span>מתוך <b>${fmtHM(plan)}</b> ש׳</span>`}</div>`
+      : `<div class="timers one"><div class="tblock"><span class="tl">במשמרת</span><span class="tv" id="elapsed">00:00:00</span></div></div>
+      ${doneMin ? `<div class="worked-line"><span>סה״כ היום <b id="today-total">--:--</b></span></div>` : ""}`;
+    const breakBtn = st.breaksOn ? (a.breakStart
+      ? `<button class="btn primary" data-act="endBreak">סיום הפסקה <span class="num" id="break-run"></span></button>`
+      : `<button class="btn brk" data-act="startBreak">☕ הפסקה</button>`) : "";
+    clock = `${ui.endAlert ? `<section class="alert-card" role="alert"><h3>${isGoal ? "הגעת ליעד היומי" : "המשמרת הסתיימה"}</h3><span>${isGoal ? `השלמת ${fmtHM(goalMin)} שעות היום.` : `עבדת את ${fmtHM(plan || 0)} השעות שתכננת.`} השעון ממשיך לספור עד שתלחצו יציאה.</span>
+        <div class="btn-row"><button class="btn solid" data-act="clockOut">יציאה עכשיו</button><button class="btn" data-act="dismissAlert">ממשיך לעבוד</button>${isGoal ? "" : `<button class="btn" data-act="extend30">עוד חצי שעה לטיימר</button>`}</div></section>` : ""}
+      ${long ? `<div class="banner"><span>המשמרת פתוחה כבר יותר מ-13 שעות. שכחת להחתים יציאה?</span><button class="btn sm" data-act="fixOut">רישום שעת יציאה</button></div>` : ""}
+      <section class="card clock">
+      ${dateLine}
+      ${modeBar(mode)}
+      <span class="status ${a.breakStart ? "break" : ""}"><span class="dot"></span>${a.breakStart ? "בהפסקה · השעון עצר" : "במשמרת"}${multiJob() ? ` · ${esc(jobOf(a.jobId).name)}` : ""} · מאז <span class="num">${localHM(sd)}</span>${sameDay ? "" : ` (${fmtDate(localDS(sd))})`}</span>
+      ${dial}
       <div class="earn" id="earn-live"></div>
       ${chips.length ? `<div class="breaks"><span class="muted">הפסקות:</span>${chips.join("")}</div>` : ""}
-      ${a.breakStart ? `<div class="btn-row"><button class="btn primary" data-act="endBreak">סיום הפסקה <span class="num" id="break-run"></span></button></div>` : ""}
       <div class="btn-row">
-        <button class="btn" data-act="addBreak">+ הוספת הפסקה</button>
+        ${breakBtn}
         <button class="btn out" data-act="clockOut">יציאה</button>
       </div>
       <div class="btn-row" style="justify-content:center">
-        <button class="link" data-act="editPlan">${plan ? `שינוי זמן המשמרת · <span class="num">${fmtHM(plan)}</span> ש׳` : "הפעלת טיימר לסוף המשמרת"}</button>
+        ${st.breaksOn ? `<button class="link" data-act="addBreak">+ הפסקה ידנית</button>` : ""}
+        ${mode === "timer" ? `<button class="link" data-act="editPlan">שינוי הטיימר · <span class="num">${fmtHM(plan || 0)}</span> ש׳</button>` : ""}
         <button class="link" data-act="editActive">תיקון שעת כניסה</button>
       </div>
     </section>`;
   }
   const todayRows = todayList.length ? `<div class="days"><div class="day">${todayList.map(shiftRow).join("")}</div></div>` : `<p class="muted small" style="margin:0">עוד לא נרשמו משמרות היום.</p>`;
   return `${header()}${setupCard()}${sampleBanner()}${clock}
-    <section class="card"><div class="card-head"><h3>היום</h3><span class="num muted small">${fmtHM(todayCalc.wMin + todayCalc.vacMin + todayCalc.sickMin)} ש׳ · ${money(todayCalc.pay)}</span></div>${todayRows}</section>
-    <section class="card"><div class="card-head"><h3>${esc(periodLabel(curKey))} עד עכשיו</h3><button class="link" data-tab-go="month">לפירוט</button></div>
-      <div class="stats">
-        <div class="stat"><div class="label">שעות</div><div class="v">${fmtHM(P.t.allMin)}</div></div>
-        <div class="stat"><div class="label">ימי עבודה</div><div class="v">${P.t.daysWorked}</div></div>
-        <div class="stat hero"><div class="label">צבירה (ברוטו)</div><div class="v">${money(P.t.total)}</div></div>
-      </div>${goalBar(P.t)}</section>
+    <section class="card"><div class="card-head"><h3>המשמרות של היום</h3><span class="num muted small">${fmtHM(todayCalc.wMin + todayCalc.vacMin + todayCalc.sickMin)} ש׳ · ${money(todayCalc.pay)}</span></div>${todayRows}</section>
     ${installCard()}`;
 }
 function goalBar(t) {
@@ -1272,6 +1384,46 @@ function chart(P) {
   return `<div class="chart-wrap"><div class="chart" dir="ltr">${tline}${bars}</div><div class="xlab" dir="ltr">${labels}</div></div>
     <div class="legend"><span><i style="background:var(--accent)"></i>שעות רגילות</span><span><i style="background:var(--punch)"></i>שעות נוספות</span>${state.settings.weekendOn ? `<span><i style="background:var(--surface-2);border:1px solid var(--line)"></i>שבת</span>` : ""}</div>`;
 }
+const shortMonth = key => { const [y, m] = key.split("-").map(Number); return `${MONTHS[m - 1].slice(0, 3)}׳ ${String(y).slice(2)}`; };
+function deltaTag(cur, prev) {
+  if (!(prev > 0)) return "";
+  const pct = Math.round((cur - prev) / prev * 100);
+  return `<span class="delta ${pct >= 0 ? "up" : "down"}">${pct >= 0 ? "▲" : "▼"} ${Math.abs(pct)}%</span>`;
+}
+function compareCard(P) {
+  const keys = Array.from({ length: 6 }, (_, i) => movePeriod(P.key, i - 5));
+  const rows = keys.map(k => ({ k, t: k === P.key ? P.t : calcPeriod(k, P.filter).t }));
+  const max = Math.max(1, ...rows.map(r => r.t.total));
+  const prev = rows[4].t;
+  const known = rows.filter(r => r.t.total > 0 && r.k !== P.key);
+  const avg = known.length ? known.reduce((x, r) => x + r.t.total, 0) / known.length : 0;
+  return `<section class="card"><div class="card-head"><h3>השוואה בין חודשים</h3>${deltaTag(P.t.total, prev.total)}</div>
+    <div class="hbars">${rows.map(r => `<button class="hbar${r.k === P.key ? " cur" : ""}" data-period="${r.k}"><span>${shortMonth(r.k)}</span><span class="tr"><i style="width:${(r.t.total / max * 100).toFixed(1)}%"></i></span><span class="v">${money(r.t.total)} · ${fmtHM(r.t.allMin)}</span></button>`).join("")}</div>
+    <div class="kv" style="margin-top:8px">
+      <div class="r"><span class="k">החודש הקודם</span><span class="v">${money(prev.total)} · ${fmtHM(prev.allMin)} ש׳</span></div>
+      ${known.length > 1 ? `<div class="r"><span class="k">ממוצע חודשי (${known.length} חודשים)</span><span class="v">${money(avg)}</span></div>` : ""}
+    </div></section>`;
+}
+function planCard(P) {
+  const st = state.settings, pl = planInfo(P.key);
+  const days = pl.wd.map(i => DAYS[i]).join(" ");
+  let goalPart;
+  if (!(pl.goal > 0)) goalPart = `<p class="muted small" style="margin:0">רוצים להגיע לסכום מסוים? הגדירו יעד ונחשב כמה שעות צריך לעבוד כל יום.</p>`;
+  else if (pl.past) goalPart = `<div class="calc-preview"><span>יעד ${money(pl.goal)}</span><b class="num">${pl.earned >= pl.goal ? "הושג ✓" : `חסרו ${money(pl.goal - pl.earned)}`}</b></div>`;
+  else if (pl.leftMoney <= 0) goalPart = `<div class="ok-msg">הגעת ליעד של <b class="num">${money(pl.goal)}</b> החודש! 🎉</div>`;
+  else if (!pl.left.length) goalPart = `<p class="muted small" style="margin:0">לא נשארו ימי עבודה בחודש לפי הימים שבחרתם.</p>`;
+  else if (!(pl.rate > 0)) goalPart = `<p class="muted small" style="margin:0">הגדירו תעריף לשעה בהגדרות כדי לחשב.</p>`;
+  else goalPart = `<div class="label">כדי להגיע ל-<b class="num">${money(pl.goal)}</b> צריך לעבוד</div>
+      <div class="plan-big">${fmtHM(pl.needMin)} <span style="font-size:15px">ש׳ ביום</span></div>
+      <div class="muted small">ב-${pl.left.length} ימי העבודה שנשארו (עובדים ב: ${days}) · חסר <span class="num">${money(pl.leftMoney)}</span> · <span class="num">${money(pl.perDay)}</span> ליום${pl.needMin > 12 * 60 ? `<br><b style="color:var(--punch)">זה יותר מ-12 שעות ביום. כדאי להוסיף ימי עבודה או להוריד את היעד.</b>` : ""}</div>`;
+  return `<section class="card"><div class="card-head"><h3>יעד ותחזית</h3><button class="link" data-act="editPlanSettings">עריכה</button></div>
+    ${+st.goalAmount > 0 ? goalBar(P.t) : ""}
+    <div class="form" style="gap:8px;margin-top:${+st.goalAmount > 0 ? 12 : 0}px">${goalPart}</div>
+    <div class="kv" style="margin-top:10px">
+      ${pl.past ? "" : `<div class="r"><span class="k">תחזית לסוף החודש<br><span class="muted small">לפי הקצב עד עכשיו · ${pl.ahead} ימי עבודה קדימה</span></span><span class="v">≈ ${money(pl.forecast)}</span></div>`}
+      ${pl.rate > 0 ? `<div class="r"><span class="k">במשרה של ${pl.pct}%<br><span class="muted small">${fmtHM(pl.pctDayMin)} ש׳ ביום · ${pl.wd.length} ימים בשבוע</span></span><span class="v">${money(pl.pctMonth)}</span></div>` : ""}
+    </div></section>`;
+}
 function viewMonth() {
   const P = calcPeriod(ui.period), t = P.t;
   const dayCards = P.days.slice().reverse().map(d => {
@@ -1286,11 +1438,13 @@ function viewMonth() {
       <div class="stat"><div class="label">ימי עבודה</div><div class="v">${t.daysWorked}</div></div>
       <div class="stat hero"><div class="label">לתשלום (ברוטו)</div><div class="v">${money(t.total)}</div></div>
     </div>
-    ${+state.settings.goalAmount > 0 ? `<section class="card" style="padding-block:4px 14px">${goalBar(t)}</section>` : ""}
+    <button class="btn primary block" data-act="share">שליחת הדוח לבוס · Excel · מייל</button>
+    ${planCard(P)}
+    ${compareCard(P)}
     <section class="card"><div class="card-head"><h3>שעות לפי יום</h3><span class="muted small">נוספות: <span class="num">${fmtHM(t.otMin)}</span></span></div>${chart(P)}</section>
     <section class="card"><div class="card-head"><h3>חישוב השכר</h3><button class="btn sm" data-act="addAdj">+ תוספת / ניכוי</button></div>${breakdown(P)}</section>
-    <section class="card"><div class="card-head"><h3>משמרות</h3><button class="btn sm primary" data-act="addShift">+ משמרת</button></div>
-      ${P.days.length ? `<div class="days">${dayCards}</div>` : `<div class="empty"><b>אין משמרות בתקופה הזו</b><span>לחצו "כניסה" במסך השעון, או הוסיפו משמרת ידנית.</span>${state.shifts.length === 0 ? `<button class="btn sm" data-act="loadSample">הצגת חודש לדוגמה</button>` : ""}</div>`}
+    <section class="card"><div class="card-head"><h3>פירוט לפי ימים</h3><button class="btn sm primary" data-act="addShift">+ משמרת</button></div>
+      ${P.days.length ? `<div class="days">${dayCards}</div>` : `<div class="empty"><b>אין משמרות בתקופה הזו</b><span>לחצו "כניסה" בלשונית נוכחות, או הוסיפו משמרת ידנית.</span>${state.shifts.length === 0 ? `<button class="btn sm" data-act="loadSample">הצגת חודש לדוגמה</button>` : ""}</div>`}
     </section>`;
 }
 function reportTable(P) {
@@ -1332,90 +1486,85 @@ function rulesNote() {
   const st = state.settings;
   return `${st.otEnabled ? `שעות נוספות מחושבות לפי יום: מעל ${+st.otThreshold} ש׳ — ${+st.ot1Span} השעות הראשונות 125%, ומעבר להן 150%.` : "ללא חישוב שעות נוספות."}${st.weekendOn ? ` עבודה בשבת/חג: ${+st.weekendRate}%.` : ""} הסכומים ברוטו, לפני ניכויי מס וביטוח לאומי.`;
 }
-function viewReport() {
-  const P = calcPeriod(ui.period), st = state.settings;
-  const [a, b] = P.range;
-  return `${header()}${sampleBanner()}${periodNav()}
-    <section class="card"><h3>אישור הבוס</h3>
-      <p class="muted small" style="margin:0 0 10px">הבוס מקבל קישור, רואה את כל השעות ומאשר בלחיצה. כשהוא מאשר, תקבלו התראה.</p>
-      <button class="btn primary block" data-act="sendApproval">שליחת הדוח לאישור הבוס</button>
-      <div class="sent-list" id="sent-list">${sentList(P)}</div>
-    </section>
-    <section class="card"><h3>שליחה כקובץ</h3>
-      <div class="export">
-        <button class="btn" data-act="shareSummary">שליחת סיכום<small>וואטסאפ, מייל או SMS</small></button>
-        <button class="btn" data-act="dlCsv">קובץ Excel<small>כל המשמרות בטבלה</small></button>
-        <button class="btn" data-act="printReport">הדפסה / PDF<small>דוח מעוצב עם חתימות</small></button>
-        <button class="btn" data-act="dlHtml">קובץ דוח<small>לשליחה כקובץ מצורף</small></button>
-      </div>
-    </section>
-    <article class="sheet">
-      <div class="sheet-h"><div><h2>דוח שעות עבודה</h2><div class="muted small">${esc(periodLabel(P.key))} · <span class="num">${fmtDate(a)} – ${fmtDate(b)}</span></div></div>
-        <div class="meta"><span>עובד/ת:</span><b>${esc(st.name || "—")}</b>${account && account.phone ? `<span>טלפון:</span><b class="num">${esc(account.phone)}</b>` : ""}<span>מעסיק:</span><b>${esc(reportEmployer(P) || "—")}</b><span>תעריף:</span><b class="num">${esc(reportRate(P))}</b></div></div>
-      <div class="tbl-wrap">${reportTable(P)}</div>
-      <div class="kv" style="margin-top:14px">${summaryRows(P).map(([k, v], i, arr) => `<div class="r${i === arr.length - 1 ? " total" : ""}"><span class="k">${esc(k.trim())}</span><span class="v">${esc(v)}</span></div>`).join("")}</div>
-      <p class="muted small">${rulesNote()}</p>
-      <div class="sign"><div>חתימת העובד/ת</div><div>אישור המעסיק</div></div>
-    </article>`;
+function historyCard() {
+  const keys = [...new Set([...state.shifts.map(x => periodKeyOf(x.date)), ...state.adjustments.map(x => x.period)])].sort().reverse();
+  if (!keys.length) return `<section class="card"><h3>היסטוריה</h3><p class="muted small" style="margin:0">עוד אין משמרות. כאן יופיעו כל החודשים וכמה הרווחת בכל אחד.</p></section>`;
+  const rows = keys.map(k => ({ k, t: calcPeriod(k, "all").t }));
+  const sum = rows.reduce((x, r) => ({ total: x.total + r.t.total, min: x.min + r.t.allMin, days: x.days + r.t.daysWorked }), { total: 0, min: 0, days: 0 });
+  return `<section class="card" id="history"><div class="card-head"><h3>היסטוריה</h3><span class="muted small">${keys.length} חודשים</span></div>
+    <div class="stats" style="margin-bottom:10px">
+      <div class="stat"><div class="label">סה״כ שעות</div><div class="v">${fmtHM(sum.min)}</div></div>
+      <div class="stat"><div class="label">ימי עבודה</div><div class="v">${sum.days}</div></div>
+      <div class="stat hero"><div class="label">הרווחת מאז ההתחלה</div><div class="v">${money(sum.total)}</div></div>
+    </div>
+    <div class="hist">${rows.map((r, i) => `<button data-period="${r.k}"><span>${esc(periodLabel(r.k))} <span class="muted small num">${fmtHM(r.t.allMin)} ש׳ · ${r.t.daysWorked} ימים</span></span><span class="num">${money(r.t.total)} ${i + 1 < rows.length ? deltaTag(r.t.total, rows[i + 1].t.total) : ""}</span></button>`).join("")}</div></section>`;
 }
 function viewSettings() {
   const st = state.settings;
   const num = (id, label, val, attrs, hint) => `<div class="fld"><label for="${id}">${label}</label><input type="number" id="${id}" data-set="${id.slice(2)}" value="${esc(val)}" ${attrs}>${hint ? `<span class="hint">${hint}</span>` : ""}</div>`;
   const sw = (id, label, val, hint) => `<label class="switch" for="${id}"><span><b style="font-weight:600">${label}</b>${hint ? `<br><span class="hint muted small">${hint}</span>` : ""}</span><input type="checkbox" id="${id}" data-set="${id.slice(2)}" ${val ? "checked" : ""}></label>`;
+  const pl = planInfo(periodKeyOf(todayDS()));
   return `${header()}
-    <section class="card form"><h3>החשבון שלי</h3>
-      <div class="kv">
-        <div class="r"><span class="k">אימייל</span><span class="v">${esc(session.user.email || "")}</span></div>
-      </div>
-      <div class="fld"><label for="acc-phone">טלפון</label><input type="tel" id="acc-phone" inputmode="tel" value="${esc(account ? account.phone : "")}"></div>
-      <p class="muted small" style="margin:0">כל הנתונים מגובים בחשבון. בטלפון חדש, או אחרי שמחקתם את האפליקציה, התחברו עם המייל והסיסמה והכול חוזר.</p>
-      <button class="btn" data-act="logout">התנתקות</button>
+    <section class="card form"><h3>הפרופיל שלי</h3>
+      <div class="fld"><label for="s-name">שם מלא</label><input type="text" id="s-name" data-set="name" maxlength="50" value="${esc(st.name)}" placeholder="השם שלך"></div>
+      <div class="fld"><label for="acc-phone">מספר טלפון</label><input type="tel" id="acc-phone" inputmode="tel" value="${esc(account ? account.phone : "")}"></div>
+      <div class="kv"><div class="r"><span class="k">אימייל להתחברות</span><span class="v">${esc(session.user.email || "")}</span></div></div>
+      <div class="btn-row"><button class="btn" data-act="changePass">שינוי סיסמה</button><button class="btn" data-act="logout">התנתקות</button></div>
+      <p class="muted small" style="margin:0">כל הנתונים מגובים בחשבון. בטלפון חדש מתחברים עם המייל והסיסמה והכול חוזר.</p>
     </section>
-    <section class="card form"><h3>המשמרת שלי</h3>
-      <div class="grid2">
-        <div class="fld"><label for="s-name">שם העובד/ת</label><input type="text" id="s-name" data-set="name" maxlength="50" value="${esc(st.name)}" placeholder="השם שלך"></div>
-        ${num("s-shiftHours", "כמה שעות המשמרת שלי", st.shiftHours, 'min="1" max="24" step="0.5" inputmode="decimal"', "ברירת המחדל לטיימר")}
-      </div>
-      <div class="fld"><label>מקומות עבודה ותעריף לשעה</label>
+    <section class="card form"><h3>שכר ומשמרת</h3>
+      <div class="fld"><label>מקום עבודה ותעריף לשעה (${esc(st.currency)})</label>
         <div class="joblist">
           <div class="jobrow"><input type="text" id="s-employer" data-set="employer" maxlength="50" value="${esc(st.employer)}" placeholder="שם העסק" aria-label="מקום עבודה ראשי"><input type="number" id="s-rate" data-set="rate" value="${esc(st.rate)}" min="0" step="0.5" inputmode="decimal" aria-label="תעריף לשעה"><span></span></div>
           ${(st.jobs || []).map(j => `<div class="jobrow"><input type="text" data-job="${esc(j.id)}" data-jobkey="name" maxlength="50" value="${esc(j.name)}" placeholder="שם העסק" aria-label="מקום עבודה"><input type="number" data-job="${esc(j.id)}" data-jobkey="rate" value="${esc(j.rate)}" min="0" step="0.5" inputmode="decimal" aria-label="תעריף לשעה"><button class="x" data-deljob="${esc(j.id)}" aria-label="מחיקת מקום העבודה">×</button></div>`).join("")}
         </div>
         <button class="btn sm" data-act="addJob" style="align-self:flex-start">+ עוד מקום עבודה</button>
-        <span class="hint">עובדים בכמה מקומות? כל אחד עם תעריף ודוח משלו.</span>
       </div>
       <div class="grid2">
+        ${num("s-shiftHours", "אורך משמרת (שעות)", st.shiftHours, 'min="1" max="24" step="0.5" inputmode="decimal"', "ברירת המחדל לטיימר")}
         <div class="fld"><label for="s-currency">מטבע</label><select id="s-currency" data-set="currency">${["₪", "$", "€", "£"].map(c => `<option ${c === st.currency ? "selected" : ""}>${c}</option>`).join("")}</select></div>
-        ${num("s-periodStart", "יום תחילת חודש השכר", st.periodStart, 'min="1" max="28" step="1" inputmode="numeric"', "1 = חודש רגיל")}
       </div>
-      ${sw("s-travelOn", "דמי נסיעות", st.travelOn, "סכום קבוע לכל יום שעבדתם")}
-      ${st.travelOn ? num("s-travelPerDay", "סכום נסיעות ליום", st.travelPerDay, 'min="0" step="0.5" inputmode="decimal"') : ""}
+      ${num("s-periodStart", "יום תחילת חודש השכר", st.periodStart, 'min="1" max="28" step="1" inputmode="numeric"', "1 = חודש רגיל")}
     </section>
-    <section class="card form"><h3>טיימר משמרת</h3>
-      <div class="fld"><label>מה קורה כשלוחצים ״כניסה״</label>
-        <div class="seg" style="grid-template-columns:repeat(3,1fr)">${[["clock", "רק שעון"], ["ask", "לשאול על טיימר"], ["timer", `טיימר ${+st.shiftHours} ש׳`]].map(([k, v]) => `<button type="button" data-entry="${k}" aria-pressed="${(st.entryMode || "clock") === k}">${v}</button>`).join("")}</div>
-        <span class="hint">״רק שעון״ סופר כמה עבדת. טיימר סופר אחורה עד סוף המשמרת וממשיך לספור אחרי שהזמן נגמר, עד שיוצאים. תמיד אפשר להפעיל או לכבות טיימר באמצע משמרת.</span></div>
-      ${sw("s-alertBefore", "התראה 10 דקות לפני סוף הטיימר", st.alertBefore)}
-      <button class="btn sm" data-act="testAlert" style="align-self:flex-start">בדיקת התראה וצליל</button>
+    <section class="card form"><h3>הפסקות</h3>
+      ${sw("s-breaksOn", "כפתור הפסקה במשמרת", st.breaksOn, "לוחצים ״הפסקה״ כשיוצאים להפסקה, והשעון עוצר עד שחוזרים")}
+      ${sw("s-autoBreakOn", "הפסקה קבועה בכל משמרת", st.autoBreakOn, "יורדת אוטומטית מכל משמרת. אפשר להסיר אותה במשמרת מסוימת")}
+      ${st.autoBreakOn ? num("s-autoBreakMin", "אורך ההפסקה הקבועה (דקות)", st.autoBreakMin, 'min="1" max="180" step="5" inputmode="numeric"') : ""}
     </section>
-    <section class="card form"><h3>התראות לטלפון</h3>
-      ${sw("s-pushOn", "התראות גם כשהאפליקציה סגורה", st.pushOn, "סוף משמרת, משמרת שנשכחה פתוחה, ואישור מהבוס")}
+    <section class="card form"><h3>נסיעות</h3>
+      ${sw("s-travelOn", "לחשב דמי נסיעות", st.travelOn, "סכום קבוע לכל יום שעבדתם, נוסף לשכר")}
+      ${st.travelOn ? num("s-travelPerDay", `סכום נסיעות ליום (${esc(st.currency)})`, st.travelPerDay, 'min="0" step="0.5" inputmode="decimal"') : ""}
+    </section>
+    <section class="card form" id="goal-card"><h3>יעד והיקף משרה</h3>
+      ${num("s-goalAmount", `יעד הכנסה לחודש (${esc(st.currency)})`, st.goalAmount, 'min="0" step="100" inputmode="decimal"', "0 = בלי יעד")}
+      <div class="fld"><label>באילו ימים אני עובד/ת</label><div class="days-pick">${DAYS.map((d, i) => `<button type="button" data-wday="${i}" aria-pressed="${(st.workDays || []).includes(i)}">${d}</button>`).join("")}</div>
+        <span class="hint">${(st.workDays || []).length} ימים בשבוע. לפי זה מחשבים כמה לעבוד כל יום</span></div>
+      <div class="grid2">
+        ${num("s-jobPct", "אחוז משרה", st.jobPct, 'min="1" max="100" step="5" inputmode="numeric"', `100% = ${FULL_TIME_WEEK} ש׳ בשבוע`)}
+        ${num("s-dailyGoalHours", "יעד שעות ליום", st.dailyGoalHours, 'min="0" max="24" step="0.25" inputmode="decimal"', "0 = לחשב לבד")}
+      </div>
+      <div class="calc-preview"><span>יעד היום כרגע</span><b class="num">${fmtHM(dailyGoalMin())} ש׳</b></div>
+      ${pl.goal > 0 && pl.needMin > 0 ? `<p class="muted small" style="margin:0">כדי להגיע ל-${money(pl.goal)} החודש: <b class="num">${fmtHM(pl.needMin)}</b> ש׳ ביום ב-${pl.left.length} הימים שנשארו.</p>` : ""}
+      ${pl.rate > 0 ? `<p class="muted small" style="margin:0">משרה של ${pl.pct}% = <b class="num">${fmtHM(pl.pctDayMin)}</b> ש׳ ביום ≈ <b class="num">${money(pl.pctMonth)}</b> בחודש.</p>` : ""}
+    </section>
+    <section class="card form"><h3>התראות</h3>
+      ${sw("s-pushOn", "התראות גם כשהאפליקציה סגורה", st.pushOn, "סוף טיימר, הגעה ליעד, משמרת שנשכחה פתוחה ואישור מהבוס")}
       ${isIOS() && !isStandalone() ? `<p class="muted small" style="margin:0">באייפון ההתראות עובדות רק אחרי התקנה למסך הבית.</p>` : ""}
+      ${sw("s-alertBefore", "התראה 10 דקות לפני הסוף", st.alertBefore)}
       ${sw("s-remindOn", "תזכורת להחתים כניסה", st.remindOn, "אם עוד לא נכנסתם עד השעה הזו")}
       ${st.remindOn ? `<div class="grid2"><div class="fld"><label for="s-remindTime">שעת התזכורת</label><input type="time" id="s-remindTime" data-set="remindTime" value="${esc(st.remindTime || "08:00")}"></div><span></span></div>
         <div class="fld"><label>בימים</label><div class="days-pick">${DAYS.map((d, i) => `<button type="button" data-rday="${i}" aria-pressed="${(st.remindDays || []).includes(i)}">${d}</button>`).join("")}</div></div>` : ""}
-      ${st.pushOn || st.remindOn ? `<button class="btn sm" data-act="testPush" style="align-self:flex-start">שליחת התראת בדיקה</button>` : ""}
+      <div class="btn-row"><button class="btn sm" data-act="testAlert">בדיקת צליל</button>${st.pushOn || st.remindOn ? `<button class="btn sm" data-act="testPush">שליחת התראת בדיקה</button>` : ""}</div>
     </section>
-    <section class="card form"><h3>הערכת נטו</h3>
-      ${sw("s-netOn", "להציג כמה ייכנס לבנק בערך", st.netOn, "מס הכנסה, ביטוח לאומי ופנסיה")}
-      ${st.netOn ? `<div class="grid2">
-        ${num("s-creditPoints", "נקודות זיכוי", st.creditPoints, 'min="0" max="20" step="0.25" inputmode="decimal"', "גבר: 2.25 · אישה: 2.75 · ועוד לפי ילדים ותואר")}
-        ${num("s-pensionPct", "ניכוי פנסיה (%)", st.pensionPct, 'min="0" max="10" step="0.5" inputmode="decimal"', "בדרך כלל 6%")}
-      </div>` : ""}
+    <section class="card form"><h3>שיתוף ודוחות</h3>
+      <div class="grid2">
+        <div class="fld"><label for="s-bossPhone">טלפון הבוס</label><input type="tel" id="s-bossPhone" data-set="bossPhone" inputmode="tel" value="${esc(st.bossPhone)}" placeholder="050-0000000"></div>
+        <div class="fld"><label for="s-bossEmail">מייל הבוס</label><input type="email" id="s-bossEmail" data-set="bossEmail" inputmode="email" value="${esc(st.bossEmail)}"></div>
+      </div>
+      <button class="btn primary" data-act="share">שליחת דוח ${esc(periodLabel(periodKeyOf(todayDS())))}</button>
+      <span class="hint">לאישור הבוס, בוואטסאפ, במייל, או כקובץ Excel. לחודש אחר: בלשונית ״החודש״.</span>
     </section>
-    <section class="card form"><h3>יעד חודשי</h3>
-      ${num("s-goalAmount", `כמה אני רוצה להרוויח בחודש (${esc(st.currency)})`, st.goalAmount, 'min="0" step="100" inputmode="decimal"', "0 = בלי יעד. מוצג פס התקדמות במסך השעון והחודש")}
-    </section>
+    ${historyCard()}
     <section class="card form"><h3>שעות נוספות ושבת</h3>
       ${sw("s-otEnabled", "חישוב שעות נוספות", st.otEnabled, "לפי חוק שעות עבודה: 125% ואחר כך 150%")}
       ${st.otEnabled ? `<div class="grid2">
@@ -1429,12 +1578,62 @@ function viewSettings() {
         ${num("s-sickPct", "תשלום על מחלה (%)", st.sickPct, 'min="0" max="200" step="5" inputmode="numeric"', "חוק: יום 1 — 0%, ימים 2–3 — 50%, מיום 4 — 100%")}
       </div>
     </section>
+    <section class="card form"><h3>הערכת נטו</h3>
+      ${sw("s-netOn", "להציג כמה ייכנס לבנק בערך", st.netOn, "מס הכנסה, ביטוח לאומי ופנסיה")}
+      ${st.netOn ? `<div class="grid2">
+        ${num("s-creditPoints", "נקודות זיכוי", st.creditPoints, 'min="0" max="20" step="0.25" inputmode="decimal"', "גבר: 2.25 · אישה: 2.75 · ועוד לפי ילדים ותואר")}
+        ${num("s-pensionPct", "ניכוי פנסיה (%)", st.pensionPct, 'min="0" max="10" step="0.5" inputmode="decimal"', "בדרך כלל 6%")}
+      </div>` : ""}
+    </section>
     <section class="card form"><h3>נתונים</h3>
       <div class="btn-row"><button class="btn" data-act="backup">הורדת גיבוי לקובץ</button><button class="btn" data-act="restore">שחזור מקובץ</button></div>
       <input type="file" id="restore-file" accept=".json,application/json" hidden>
       <div class="btn-row">${state.shifts.length === 0 ? `<button class="btn ghost" data-act="loadSample">הצגת נתוני דוגמה</button>` : ""}<button class="btn danger" data-act="wipe">מחיקת כל המשמרות</button></div>
     </section>
     ${installCard(true)}`;
+}
+// one place to send a month: boss approval link, WhatsApp, email, Excel, print
+const waNumber = p => { let n = normPhone(p).replace(/^\+/, ""); if (n.startsWith("0")) n = "972" + n.slice(1); return n; };
+function shareModal(key) {
+  const P = calcPeriod(key), st = state.settings;
+  const fname = `דוח שעות ${st.name ? st.name + " " : ""}${periodLabel(P.key)}`;
+  openModal(`<h3>שליחת דוח ${esc(periodLabel(P.key))}</h3>
+    <div class="calc-preview"><span>${fmtHM(P.t.allMin)} ש׳ · ${P.t.daysWorked} ימים</span><b class="num">${money(P.t.total)}</b></div>
+    <section class="form" style="gap:8px"><b>לאישור הבוס</b>
+      <span class="muted small">הבוס מקבל קישור, רואה את כל השעות ומאשר בלחיצה. כשהוא מאשר, תקבלו התראה.</span>
+      <button class="btn primary" id="sh-approve">יצירת קישור לאישור ושליחה</button>
+      <div class="sent-list" id="sent-list">${sentList(P)}</div></section>
+    <section class="form" style="gap:8px"><b>שליחת סיכום</b>
+      <div class="grid2" style="align-items:end"><div class="fld"><label for="sh-phone">וואטסאפ למספר</label><input type="tel" id="sh-phone" inputmode="tel" value="${esc(st.bossPhone)}" placeholder="050-0000000"></div><button class="btn" id="sh-wa">שליחה בוואטסאפ</button></div>
+      <div class="grid2" style="align-items:end"><div class="fld"><label for="sh-mail">מייל</label><input type="email" id="sh-mail" inputmode="email" value="${esc(st.bossEmail)}"></div><button class="btn" id="sh-email">שליחה במייל</button></div>
+      <button class="btn ghost" id="sh-any">שיתוף לאפליקציה אחרת</button></section>
+    <section class="form" style="gap:8px"><b>קבצים</b>
+      <div class="share-grid">
+        <button class="btn" id="sh-csv">קובץ Excel</button>
+        <button class="btn" id="sh-print">הדפסה / PDF</button>
+        <button class="btn" id="sh-html">קובץ דוח מעוצב</button>
+      </div>
+      <span class="hint">באנדרואיד ובאייפון הקובץ נפתח בתפריט השיתוף, ומשם אפשר לצרף אותו למייל או לוואטסאפ.</span></section>
+    <div class="modal-actions"><button class="btn" data-dismiss>סגירה</button></div>`, m => {
+    const remember = (k, v) => { if (v && v !== state.settings[k]) { state.settings = { ...state.settings, [k]: v }; commit("", true); } };
+    $("#sh-approve", m).onclick = () => { ui.period = P.key; sendApproval(); };
+    $("#sh-wa", m).onclick = () => {
+      const ph = $("#sh-phone", m).value.trim();
+      if (!validPhone(ph)) { toast("מספר הטלפון לא תקין"); return; }
+      remember("bossPhone", ph);
+      window.open(`https://wa.me/${waNumber(ph)}?text=${encodeURIComponent(summaryText(P))}`, "_blank");
+    };
+    $("#sh-email", m).onclick = () => {
+      const em = $("#sh-mail", m).value.trim();
+      if (!validEmail(em)) { toast("כתובת המייל לא תקינה"); return; }
+      remember("bossEmail", em);
+      location.href = `mailto:${encodeURIComponent(em)}?subject=${encodeURIComponent(fname)}&body=${encodeURIComponent(summaryText(P))}`;
+    };
+    $("#sh-any", m).onclick = () => shareText(summaryText(P), "סיכום שעות");
+    $("#sh-csv", m).onclick = () => shareOrDownload(fname + ".csv", csvFor(P), "text/csv");
+    $("#sh-print", m).onclick = () => printReport(P);
+    $("#sh-html", m).onclick = () => shareOrDownload(fname + ".html", htmlReportFor(P, false), "text/html");
+  });
 }
 
 // ---------- install (PWA) ----------
@@ -1459,7 +1658,7 @@ function render() {
   if (ui.needPhone) { nav.hidden = true; app.innerHTML = viewNeedPhone(); return; }
   nav.hidden = false;
   if (!ui.period) ui.period = periodKeyOf(todayDS());
-  const v = { clock: viewClock, month: viewMonth, report: viewReport, settings: viewSettings }[ui.tab] || viewClock;
+  const v = { clock: viewClock, month: viewMonth, settings: viewSettings }[ui.tab] || viewClock;
   app.innerHTML = v();
   document.querySelectorAll("#nav button").forEach(b => {
     b.setAttribute("aria-current", b.dataset.tab === ui.tab ? "page" : "false");
@@ -1479,6 +1678,7 @@ function tick() {
   const ms = activeWorkedMs(); const s = Math.floor(ms / 1000);
   const hms = sec => `${pad(Math.floor(sec / 3600))}:${pad(Math.floor(sec / 60) % 60)}:${pad(sec % 60)}`;
   const el = $("#elapsed"); if (el) el.textContent = hms(s);
+  const tt = $("#today-total"); if (tt) tt.textContent = fmtHM(todayDoneMin() + (localDS(new Date(a.start)) === todayDS() ? ms / 60000 : 0));
   if (a.planMin) {
     const rem = a.planMin * 60000 - ms;
     checkAlerts(rem);
@@ -1498,7 +1698,8 @@ function tick() {
         arc.classList.add("over"); hand.style.transform = `rotate(${(over * 360).toFixed(2)}deg)`;
       }
     }
-    if (lb) lb.textContent = rem < 0 ? "מעבר לתכנון" : "נשאר";
+    const g = activeMode(a) === "goal";
+    if (lb) lb.textContent = rem < 0 ? (g ? "מעבר ליעד" : "מעבר לתכנון") : (g ? "נשאר ליעד" : "נשאר");
     if (ce) ce.textContent = localHM(new Date(Date.now() + rem));
   }
   const e = $("#earn-live"); const rate = jobOf(a.jobId).rate;
@@ -1643,7 +1844,14 @@ document.addEventListener("click", e => {
       commit("נמחק");
     }, true); return;
   }
-  const en = e.target.closest("[data-entry]"); if (en) { state.settings = { ...state.settings, entryMode: en.dataset.entry }; commit("נשמר"); return; }
+  const md = e.target.closest("[data-mode]"); if (md) { setMode(md.dataset.mode); return; }
+  const pr = e.target.closest("[data-period]"); if (pr) { ui.period = pr.dataset.period; goTab("month", true); return; }
+  const wd = e.target.closest("[data-wday]"); if (wd) {
+    const d = +wd.dataset.wday, cur = new Set(state.settings.workDays || []);
+    cur.has(d) ? cur.delete(d) : cur.add(d);
+    if (!cur.size) { toast("צריך לבחור לפחות יום אחד"); return; }
+    state.settings = { ...state.settings, workDays: [...cur].sort() }; commit(); return;
+  }
   const rd = e.target.closest("[data-rday]"); if (rd) {
     const d = +rd.dataset.rday, cur = new Set(state.settings.remindDays || []);
     cur.has(d) ? cur.delete(d) : cur.add(d);
@@ -1652,14 +1860,15 @@ document.addEventListener("click", e => {
   const ed = e.target.closest("[data-edit]"); if (ed) { const s = state.shifts.find(x => x.id === ed.dataset.edit); if (s) shiftForm(s); return; }
   const adj = e.target.closest("[data-adj]"); if (adj) { const x = state.adjustments.find(y => y.id === adj.dataset.adj); if (x) adjForm(x.period, x); return; }
   const act = e.target.closest("[data-act]"); if (!act || act.closest("#modal-root")) return;
-  const P = () => calcPeriod(ui.period);
-  const st = state.settings; const fname = k => `דוח שעות ${st.name ? st.name + " " : ""}${periodLabel(k)}`;
   switch (act.dataset.act) {
     case "clockIn": clockIn(); break;
-    case "clockInTimer": clockIn(true); break;
+    case "startBreak": startTimedBreak(); break;
+    case "pickTimer": timerPickModal(); break;
+    case "share": shareModal(ui.tab === "month" ? ui.period : periodKeyOf(todayDS())); break;
+    case "changePass": newPasswordModal(); break;
+    case "editPlanSettings": goTab("settings"); setTimeout(() => { const g = $("#goal-card"); if (g) g.scrollIntoView({ behavior: "smooth", block: "start" }); }, 30); break;
     case "clockOut": clockOut(); break;
     case "addBreak": breakModal(); break;
-    case "sendApproval": sendApproval(); break;
     case "addJob": state.settings = { ...state.settings, jobs: [...(state.settings.jobs || []), { id: "j" + uid().slice(0, 6), name: "", rate: +state.settings.rate || 0 }] }; commit(); setTimeout(() => { const ins = document.querySelectorAll('[data-jobkey="name"]'); if (ins.length) ins[ins.length - 1].focus(); }, 50); break;
     case "testPush": enablePush(false).then(ok => { if (ok) { unlockAudio(); notify("בדיקת התראה", "ככה ייראו ההתראות מהשעון"); } }); break;
     case "editPlan": planModal(false); break;
@@ -1673,10 +1882,6 @@ document.addEventListener("click", e => {
     case "addAdj": adjForm(ui.period); break;
     case "prevP": ui.period = movePeriod(ui.period, -1); render(); break;
     case "nextP": ui.period = movePeriod(ui.period, 1); render(); break;
-    case "shareSummary": shareText(summaryText(P()), "סיכום שעות"); break;
-    case "dlCsv": shareOrDownload(fname(ui.period) + ".csv", csvFor(P()), "text/csv"); break;
-    case "dlHtml": shareOrDownload(fname(ui.period) + ".html", htmlReportFor(P(), false), "text/html"); break;
-    case "printReport": printReport(P()); break;
     case "backup": downloadFile(`גיבוי שעון נוכחות ${todayDS()}.json`, JSON.stringify(state, null, 1), "application/json"); break;
     case "restore": $("#restore-file").click(); break;
     case "loadSample": loadSample(); break;
@@ -1688,9 +1893,9 @@ document.addEventListener("click", e => {
     case "wipe": confirmBox("למחוק את כל המשמרות?", "כל המשמרות והתוספות יימחקו לצמיתות, גם מהגיבוי בענן. ההגדרות והחשבון יישארו.", "מחיקה לצמיתות", () => { state.shifts = []; state.adjustments = []; state.active = null; state.sample = false; commit("כל המשמרות נמחקו"); }, true); break;
   }
 });
-function goTab(t) {
+function goTab(t, keepPeriod) {
   ui.tab = t; try { localStorage.setItem("attendance:tab", t); } catch (e) {}
-  if (t === "clock") ui.period = periodKeyOf(todayDS());
+  if (!keepPeriod) ui.period = periodKeyOf(todayDS());
   render(); window.scrollTo(0, 0);
 }
 document.addEventListener("change", async e => {
