@@ -54,4 +54,6 @@ android {
 dependencies {
     implementation("org.nanohttpd:nanohttpd:2.3.1")
     implementation("dev.mobile:dadb:1.2.10")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.google.zxing:core:3.5.3")
 }

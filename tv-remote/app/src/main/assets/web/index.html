@@ -3,185 +3,268 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#0F0E26">
+<meta name="theme-color" content="#FFF4F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#170F24" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="שלט">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="icon" type="image/png" href="/icon-192.png">
-<link rel="manifest" href="/manifest.webmanifest">
-<title>שלט לטלוויזיה</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>שלט מהטלפון</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
   :root {
-    --bg: #0F0E26;
-    --card: #1C1A3D;
-    --btn: #2A2760;
-    --btn-press: #4F46E5;
-    --accent: #6366F1;
-    --accent-2: #8B5CF6;
-    --text: #EEF2FF;
-    --muted: #A5B4FC;
-    --ok: #22C55E;
-    --warn: #F59E0B;
-    --bad: #EF4444;
-    --tabbar: 64px;
+    --bg: #FFF4F7;
+    --bg-2: #F3EEFF;
+    --blob-1: #FFD1DC;
+    --blob-2: #DCD0FF;
+    --blob-3: #C9F4EA;
+    --surface: rgba(255, 255, 255, .72);
+    --surface-strong: rgba(255, 255, 255, .92);
+    --border: rgba(255, 255, 255, .95);
+    --shadow: 0 12px 32px rgba(120, 80, 180, .13);
+    --shadow-sm: 0 4px 14px rgba(120, 80, 180, .10);
+    --text: #2E1F47;
+    --muted: #8C7AA8;
+    --icon: #5B4387;
+    --accent-a: #FF8FA3;
+    --accent-b: #A78BFA;
+    --accent: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+    --press: rgba(167, 139, 250, .18);
+    --ok: #34D399;
+    --warn: #FBBF24;
+    --bad: #FB7185;
+    --tabbar: 68px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #170F24;
+      --bg-2: #1E1432;
+      --blob-1: #5B2340;
+      --blob-2: #34236B;
+      --blob-3: #134E4A;
+      --surface: rgba(255, 255, 255, .07);
+      --surface-strong: rgba(255, 255, 255, .11);
+      --border: rgba(255, 255, 255, .10);
+      --shadow: 0 12px 32px rgba(0, 0, 0, .35);
+      --shadow-sm: 0 4px 14px rgba(0, 0, 0, .3);
+      --text: #F7F0FF;
+      --muted: #B9A7D6;
+      --icon: #E9DDFF;
+      --press: rgba(167, 139, 250, .28);
+    }
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  html { background: var(--bg); }
   body {
-    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
-    touch-action: manipulation;
-    padding: max(12px, env(safe-area-inset-top)) 16px calc(var(--tabbar) + 20px + env(safe-area-inset-bottom));
-    max-width: 480px; margin: 0 auto;
+    margin: 0 auto; max-width: 480px; min-height: 100vh; color: var(--text); background: transparent;
+    font-family: -apple-system, "SF Pro Display", "Segoe UI", Roboto, Arial, sans-serif;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation;
+    padding: max(14px, env(safe-area-inset-top)) 16px calc(var(--tabbar) + 34px + env(safe-area-inset-bottom));
   }
-  header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
-  .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
-  .brand img { width: 34px; height: 34px; border-radius: 9px; flex: none; }
-  h1 { font-size: 17px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); flex: none; }
-  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--warn); flex: none; }
-  .dot.ok { background: var(--ok); } .dot.bad { background: var(--bad); }
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: -1;
+    background:
+      radial-gradient(60vmax 60vmax at 100% 0%, var(--blob-1), transparent 60%),
+      radial-gradient(55vmax 55vmax at 0% 100%, var(--blob-2), transparent 60%),
+      radial-gradient(40vmax 40vmax at 0% 30%, var(--blob-3), transparent 60%),
+      linear-gradient(160deg, var(--bg), var(--bg-2));
+  }
 
-  .offline { background: #3B1D2E; color: #FECACA; border-radius: 14px; padding: 10px 12px; font-size: 13px; line-height: 1.5; margin-bottom: 12px; }
+  .glass {
+    background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow);
+    backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  }
+
+  header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 18px; }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .brand img { width: 42px; height: 42px; border-radius: 12px; box-shadow: var(--shadow-sm); flex: none; }
+  .brand small { display: block; color: var(--muted); font-size: 12px; margin-top: 1px; }
+  h1 { font-size: 18px; margin: 0; font-weight: 700; letter-spacing: -.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chip { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); padding: 7px 11px; border-radius: 999px; flex: none; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 3px rgba(251, 191, 36, .2); }
+  .dot.ok { background: var(--ok); box-shadow: 0 0 0 3px rgba(52, 211, 153, .22); }
+  .dot.bad { background: var(--bad); box-shadow: 0 0 0 3px rgba(251, 113, 133, .22); }
+
+  .banner { border-radius: 20px; padding: 12px 14px; font-size: 13px; line-height: 1.55; margin-bottom: 14px; color: var(--text); }
+  .banner b { color: var(--bad); }
 
   button {
-    font: inherit; color: var(--text); background: var(--btn); border: 0; border-radius: 16px;
-    min-height: 52px; font-size: 15px; cursor: pointer; transition: transform .06s, background .06s;
+    font: inherit; color: var(--icon); border: 1px solid var(--border); border-radius: 20px; min-height: 56px; font-size: 15px;
+    background: var(--surface); box-shadow: var(--shadow-sm); cursor: pointer;
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    transition: transform .08s ease, background .12s ease;
   }
-  button.pressed, button:active { background: var(--btn-press); transform: scale(.96); }
-  button svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle; }
+  button.pressed, button:active { transform: scale(.95); background: var(--press); }
+  button svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle; }
 
-  .row { display: grid; gap: 10px; margin-bottom: 12px; }
-  .row.c4 { grid-template-columns: repeat(4, 1fr); }
-  .row.c3 { grid-template-columns: repeat(3, 1fr); }
+  .grid { display: grid; gap: 12px; margin-bottom: 14px; }
+  .g4 { grid-template-columns: repeat(4, 1fr); }
+  .g3 { grid-template-columns: repeat(3, 1fr); }
   .ltr { direction: ltr; }
-  .power { color: #FCA5A5; }
-  .power.armed { background: var(--bad); color: #fff; font-size: 12px; }
+  .power { color: var(--bad); }
+  .power.armed { background: var(--bad); color: #fff; font-size: 13px; font-weight: 600; }
 
-  .seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--card); border-radius: 14px; padding: 4px; margin-bottom: 12px; }
-  .seg button { min-height: 38px; background: transparent; border-radius: 10px; font-size: 14px; }
-  .seg button.on { background: var(--accent); }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; border-radius: 18px; padding: 5px; margin-bottom: 14px; position: relative; }
+  .seg button { min-height: 40px; border: 0; background: transparent; box-shadow: none; border-radius: 14px; font-size: 14px; color: var(--muted); backdrop-filter: none; -webkit-backdrop-filter: none; position: relative; z-index: 1; }
+  .seg button.on { color: #fff; font-weight: 600; }
+  .seg .thumb { position: absolute; top: 5px; bottom: 5px; width: calc(50% - 5px); right: 5px; border-radius: 14px; background: var(--accent); box-shadow: 0 6px 16px rgba(167, 139, 250, .35); transition: transform .25s cubic-bezier(.3, .7, .3, 1); }
+  .seg.second .thumb { transform: translateX(-100%); }
 
-  .pad-wrap { display: flex; justify-content: center; margin: 4px 0 16px; }
-  .dpad { position: relative; width: min(76vw, 290px); aspect-ratio: 1; border-radius: 50%; background: var(--card); }
-  .dpad button { position: absolute; background: transparent; border-radius: 50%; }
-  .dpad button.pressed { background: rgba(99,102,241,.35); }
-  .dpad .up    { top: 2%; left: 30%; width: 40%; height: 28%; }
-  .dpad .down  { bottom: 2%; left: 30%; width: 40%; height: 28%; }
-  .dpad .left  { left: 2%; top: 30%; width: 28%; height: 40%; }
-  .dpad .right { right: 2%; top: 30%; width: 28%; height: 40%; }
-  .dpad .ok { top: 31%; left: 31%; width: 38%; height: 38%; background: linear-gradient(135deg, var(--accent-2), var(--accent)); font-weight: 700; font-size: 18px; }
-  .dpad .ok.pressed { background: var(--btn-press); }
+  .stage { display: flex; justify-content: center; margin: 6px 0 20px; }
+  .dpad { position: relative; width: min(74vw, 280px); aspect-ratio: 1; border-radius: 50%; }
+  .dpad::after { content: ""; position: absolute; inset: 18%; border-radius: 50%; border: 1.5px dashed rgba(167, 139, 250, .35); pointer-events: none; }
+  .dpad button { position: absolute; border: 0; background: transparent; box-shadow: none; border-radius: 50%; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .dpad button.pressed { background: var(--press); }
+  .dpad button svg { width: 30px; height: 30px; stroke-width: 2.2; }
+  .dpad .up    { top: 3%; left: 31%; width: 38%; height: 27%; }
+  .dpad .down  { bottom: 3%; left: 31%; width: 38%; height: 27%; }
+  .dpad .left  { left: 3%; top: 31%; width: 27%; height: 38%; }
+  .dpad .right { right: 3%; top: 31%; width: 27%; height: 38%; }
+  .dpad .ok {
+    top: 32%; left: 32%; width: 36%; height: 36%; z-index: 1;
+    background: var(--accent); color: #fff; font-weight: 700; font-size: 19px; letter-spacing: .5px;
+    box-shadow: 0 10px 26px rgba(167, 139, 250, .45), inset 0 1px 0 rgba(255, 255, 255, .45);
+  }
+  .dpad .ok.pressed { transform: scale(.93); background: var(--accent); filter: brightness(.95); }
 
   .touch {
-    width: min(86vw, 340px); aspect-ratio: 1; border-radius: 28px; background: var(--card);
-    display: flex; align-items: center; justify-content: center; text-align: center;
-    color: var(--muted); font-size: 14px; line-height: 1.6; touch-action: none; padding: 20px;
+    width: 100%; aspect-ratio: 1.1; border-radius: 30px; display: flex; flex-direction: column; gap: 6px; align-items: center; justify-content: center;
+    color: var(--muted); font-size: 14px; touch-action: none; position: relative; overflow: hidden;
   }
-  .touch.flash { background: #262357; }
+  .touch svg { width: 34px; height: 34px; fill: none; stroke: var(--accent-b); stroke-width: 1.6; opacity: .8; }
+  .ripple { position: absolute; width: 70px; height: 70px; margin: -35px 0 0 -35px; border-radius: 50%; background: radial-gradient(circle, rgba(167, 139, 250, .45), transparent 70%); animation: rip .45s ease-out forwards; pointer-events: none; }
+  @keyframes rip { from { transform: scale(.4); opacity: 1; } to { transform: scale(2.2); opacity: 0; } }
 
-  section.card { background: var(--card); border-radius: 18px; padding: 14px; margin-bottom: 12px; }
-  section.card h2 { font-size: 14px; margin: 0 0 10px; color: var(--muted); font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
-  section.card h2 button { min-height: 30px; font-size: 12px; padding: 0 10px; border-radius: 10px; }
-  .note { font-size: 12px; color: var(--muted); line-height: 1.6; margin: 8px 0 0; }
+  .vol { display: grid; grid-template-columns: 1fr 1.25fr 1fr; gap: 12px; margin-bottom: 14px; direction: ltr; }
+
+  .card { border-radius: 26px; padding: 16px; margin-bottom: 14px; }
+  .card h2 { font-size: 13px; margin: 0 0 12px; color: var(--muted); font-weight: 600; letter-spacing: .2px; display: flex; justify-content: space-between; align-items: center; }
+  .card h2 button { min-height: 30px; font-size: 12px; padding: 0 12px; border-radius: 999px; }
+  .note { font-size: 12.5px; color: var(--muted); line-height: 1.65; margin: 10px 2px 0; }
 
   input.field {
-    width: 100%; font: inherit; font-size: 17px; color: var(--text); background: var(--bg);
-    border: 1px solid #3730A3; border-radius: 14px; padding: 0 14px; height: 52px;
-    -webkit-user-select: text; user-select: text; outline: none;
+    width: 100%; font: inherit; font-size: 17px; color: var(--text); background: var(--surface-strong);
+    border: 1.5px solid transparent; border-radius: 18px; padding: 0 16px; height: 56px; outline: none;
+    -webkit-user-select: text; user-select: text; box-shadow: var(--shadow-sm);
   }
-  input.field:focus { border-color: var(--accent); }
-  .search-box { display: flex; gap: 8px; }
-  .search-box input { flex: 1; min-width: 0; }
-  .mic { width: 52px; flex: none; background: linear-gradient(135deg, var(--accent-2), var(--accent)); }
-  .mic.listening { background: var(--bad); }
-  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-  .primary { background: linear-gradient(135deg, var(--accent-2), var(--accent)); font-weight: 600; }
-  .yt { background: #DC2626; font-weight: 600; }
-  .yt.pressed, .yt:active { background: #B91C1C; }
+  input.field::placeholder { color: var(--muted); }
+  input.field:focus { border-color: var(--accent-b); }
+  .search-row { display: flex; gap: 10px; }
+  .search-row input { flex: 1; min-width: 0; }
+  .mic { width: 56px; flex: none; border: 0; background: var(--accent); color: #fff; box-shadow: 0 8px 20px rgba(167, 139, 250, .4); }
+  .mic.listening { animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 10px rgba(255, 143, 163, .25); } }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .actions button { font-weight: 600; font-size: 15px; }
+  .btn-accent { background: var(--accent); color: #fff; border: 0; box-shadow: 0 8px 20px rgba(167, 139, 250, .35); }
+  .btn-yt { background: linear-gradient(135deg, #FF6B81, #FF8E72); color: #fff; border: 0; box-shadow: 0 8px 20px rgba(255, 107, 129, .32); }
+  .btn-accent.pressed, .btn-accent:active, .btn-yt:active { background-blend-mode: multiply; filter: brightness(.95); }
+  .edit { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .edit button { min-height: 48px; font-size: 14px; }
 
-  .apps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px 6px; }
-  .app { position: relative; display: flex; flex-direction: column; align-items: center; gap: 5px; background: transparent; min-height: 0; padding: 6px 2px; font-size: 11px; color: var(--muted); }
-  .app img { width: 52px; height: 52px; border-radius: 14px; background: var(--btn); object-fit: cover; }
+  .apps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 6px; }
+  .app { position: relative; display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 0; border: 0; background: transparent; box-shadow: none; min-height: 0; font-size: 11.5px; color: var(--text); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .app.pressed, .app:active { background: transparent; }
+  .app .ico { width: 58px; height: 58px; border-radius: 17px; background: var(--surface-strong); box-shadow: var(--shadow-sm); overflow: hidden; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--accent-b); font-size: 20px; }
+  .app .ico img { width: 100%; height: 100%; object-fit: cover; }
   .app span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .app .star { position: absolute; top: 2px; left: 8px; font-size: 13px; }
-  .empty { color: var(--muted); font-size: 13px; grid-column: 1 / -1; }
+  .app .star { position: absolute; top: -5px; left: 6px; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 11px; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm); }
+  .empty { color: var(--muted); font-size: 13px; grid-column: 1 / -1; text-align: center; padding: 8px 0; }
+
+  .welcome { text-align: center; padding: 30px 18px; border-radius: 30px; margin-top: 30px; }
+  .welcome img { width: 92px; height: 92px; border-radius: 24px; box-shadow: var(--shadow); }
+  .welcome h2 { font-size: 22px; margin: 18px 0 8px; }
+  .welcome p { color: var(--muted); line-height: 1.7; font-size: 14.5px; margin: 0; }
 
   nav.tabbar {
-    position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
-    display: grid; grid-template-columns: repeat(3, 1fr);
-    background: rgba(20, 18, 48, .96); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    border-top: 1px solid #2A2760;
-    padding-bottom: env(safe-area-inset-bottom);
+    position: fixed; z-index: 10; left: 50%; transform: translateX(-50%);
+    bottom: calc(12px + env(safe-area-inset-bottom)); width: min(calc(100% - 32px), 420px);
+    display: grid; grid-template-columns: repeat(3, 1fr); padding: 6px; border-radius: 26px;
   }
   nav.tabbar button {
-    background: transparent; border-radius: 0; min-height: var(--tabbar);
+    min-height: calc(var(--tabbar) - 12px); border: 0; background: transparent; box-shadow: none; border-radius: 20px;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
-    font-size: 11px; color: #8B8FC7;
+    font-size: 11px; color: var(--muted); backdrop-filter: none; -webkit-backdrop-filter: none;
   }
-  nav.tabbar button.on { color: #fff; }
-  nav.tabbar button.on svg { stroke: var(--accent-2); }
-  nav.tabbar button:active { transform: none; background: transparent; }
+  nav.tabbar button svg { width: 23px; height: 23px; }
+  nav.tabbar button.on { color: #fff; background: var(--accent); box-shadow: 0 8px 18px rgba(167, 139, 250, .38); font-weight: 600; }
+  nav.tabbar button:active { transform: scale(.96); }
 
   .toast {
-    position: fixed; left: 50%; bottom: calc(var(--tabbar) + 16px + env(safe-area-inset-bottom)); transform: translateX(-50%);
-    background: #312E81; color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 13px;
-    opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 20; max-width: 90vw; text-align: center;
+    position: fixed; left: 50%; transform: translate(-50%, 10px); bottom: calc(var(--tabbar) + 26px + env(safe-area-inset-bottom));
+    padding: 11px 18px; border-radius: 999px; font-size: 13.5px; color: var(--text);
+    opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 20; max-width: 90vw; text-align: center;
   }
-  .toast.show { opacity: 1; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
   [hidden] { display: none !important; }
 </style>
 </head>
 <body>
   <header>
-    <div class="brand"><img src="/logo.png" alt=""><h1 id="tvName">שלט לטלוויזיה</h1></div>
-    <div class="status"><span class="dot" id="dot"></span><span id="statusText">מתחבר…</span></div>
+    <div class="brand">
+      <img src="logo.png" alt="">
+      <div><h1 id="tvName">שלט מהטלפון</h1><small id="modeText"></small></div>
+    </div>
+    <div class="chip glass"><span class="dot" id="dot"></span><span id="statusText">מתחבר…</span></div>
   </header>
-  <div class="offline" id="offline" hidden>אין קשר לטלוויזיה. בדקו שהיא דולקת, שהטלפון על אותו WiFi, ושאפליקציית "שלט מהטלפון" פתוחה בה.</div>
 
+  <div class="banner glass" id="offline" hidden><b>אין קשר לטלוויזיה.</b> בדקו שהיא דולקת ומחוברת לאינטרנט. אם היא בדיוק נדלקה, חכו חצי דקה.</div>
+
+  <!-- מסך פתיחה: עדיין לא סרקו קוד -->
+  <section class="welcome glass" id="welcome" hidden>
+    <img src="logo.png" alt="">
+    <h2>ברוכים הבאים 👋</h2>
+    <p>פתחו בטלוויזיה את האפליקציה <b>"שלט מהטלפון"</b><br>וסרקו את קוד ה-QR עם המצלמה של הטלפון.</p>
+  </section>
+
+  <div id="app">
   <!-- ===== שלט ===== -->
   <main id="view-remote">
-    <div class="row c4">
-      <button class="power" id="power" aria-label="כיבוי"><svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 7.5a8 8 0 1 0 11.4 0"/></svg></button>
-      <button data-key="HOME" aria-label="בית"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg></button>
-      <button data-key="BACK" aria-label="חזור"><svg viewBox="0 0 24 24"><path d="M9 14l-5-5 5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button>
-      <button data-key="MENU" aria-label="תפריט"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+    <div class="grid g4">
+      <button class="power" id="power" aria-label="כיבוי"><svg viewBox="0 0 24 24"><path d="M12 3.5v8"/><path d="M6.6 7.4a7.5 7.5 0 1 0 10.8 0"/></svg></button>
+      <button data-key="HOME" aria-label="בית"><svg viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5"/><path d="M6 9.5V20h12V9.5"/></svg></button>
+      <button data-key="BACK" aria-label="חזור"><svg viewBox="0 0 24 24"><path d="M9 14l-5-5 5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+      <button data-key="MENU" aria-label="תפריט"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg></button>
     </div>
 
-    <div class="seg">
+    <div class="seg glass" id="seg">
+      <span class="thumb"></span>
       <button id="modePad" class="on">חצים</button>
       <button id="modeTouch">משטח מגע</button>
     </div>
 
-    <div class="pad-wrap" id="padView">
-      <div class="dpad">
-        <button class="up" data-key="UP" data-repeat aria-label="למעלה"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button>
-        <button class="down" data-key="DOWN" data-repeat aria-label="למטה"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
-        <button class="left" data-key="LEFT" data-repeat aria-label="שמאלה"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
-        <button class="right" data-key="RIGHT" data-repeat aria-label="ימינה"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+    <div class="stage" id="padView">
+      <div class="dpad glass">
+        <button class="up" data-key="UP" data-repeat aria-label="למעלה"><svg viewBox="0 0 24 24"><path d="M7 14l5-5 5 5"/></svg></button>
+        <button class="down" data-key="DOWN" data-repeat aria-label="למטה"><svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></svg></button>
+        <button class="left" data-key="LEFT" data-repeat aria-label="שמאלה"><svg viewBox="0 0 24 24"><path d="M14 7l-5 5 5 5"/></svg></button>
+        <button class="right" data-key="RIGHT" data-repeat aria-label="ימינה"><svg viewBox="0 0 24 24"><path d="M10 7l5 5-5 5"/></svg></button>
         <button class="ok" data-key="OK">OK</button>
       </div>
     </div>
 
-    <div class="pad-wrap" id="touchView" hidden>
-      <div class="touch" id="touch">החליקו כדי לזוז<br>הקישו כדי לבחור (OK)</div>
+    <div class="stage" id="touchView" hidden>
+      <div class="touch glass" id="touch">
+        <svg viewBox="0 0 24 24"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V11"/><path d="M12 10.5V9a1.5 1.5 0 0 1 3 0v2"/><path d="M15 10.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-.5a6 6 0 0 1-4.6-2.2L4.5 16a1.6 1.6 0 0 1 2.4-2.1L9 15.5"/></svg>
+        <div>החליקו כדי לזוז · הקישו לבחירה</div>
+      </div>
     </div>
 
-    <div class="row c3 ltr">
-      <button data-key="VOL_DOWN" data-repeat aria-label="הנמך"><svg viewBox="0 0 24 24"><path d="M11 5L6 9H3v6h3l5 4z"/><path d="M16 12h5"/></svg></button>
-      <button data-key="MUTE" aria-label="השתק"><svg viewBox="0 0 24 24"><path d="M11 5L6 9H3v6h3l5 4z"/><path d="M16 9l5 6M21 9l-5 6"/></svg></button>
-      <button data-key="VOL_UP" data-repeat aria-label="הגבר"><svg viewBox="0 0 24 24"><path d="M11 5L6 9H3v6h3l5 4z"/><path d="M16 12h5M18.5 9.5v5"/></svg></button>
+    <div class="vol">
+      <button data-key="VOL_DOWN" data-repeat aria-label="הנמך"><svg viewBox="0 0 24 24"><path d="M11 5L6.5 9H3.5v6h3L11 19z"/><path d="M15.5 12h5"/></svg></button>
+      <button data-key="MUTE" aria-label="השתק"><svg viewBox="0 0 24 24"><path d="M11 5L6.5 9H3.5v6h3L11 19z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg></button>
+      <button data-key="VOL_UP" data-repeat aria-label="הגבר"><svg viewBox="0 0 24 24"><path d="M11 5L6.5 9H3.5v6h3L11 19z"/><path d="M15.5 12h5M18 9.5v5"/></svg></button>
     </div>
 
-    <div class="row c3 ltr">
-      <button data-key="REW" aria-label="אחורה"><svg viewBox="0 0 24 24"><path d="M11 6l-7 6 7 6zM20 6l-7 6 7 6z"/></svg></button>
-      <button data-key="PLAY_PAUSE" aria-label="נגן/השהה"><svg viewBox="0 0 24 24"><path d="M5 5l8 7-8 7z"/><path d="M16 5v14M20 5v14"/></svg></button>
-      <button data-key="FF" aria-label="קדימה"><svg viewBox="0 0 24 24"><path d="M4 6l7 6-7 6zM13 6l7 6-7 6z"/></svg></button>
+    <div class="grid g3 ltr">
+      <button data-key="REW" aria-label="אחורה"><svg viewBox="0 0 24 24"><path d="M11 7l-6 5 6 5zM19 7l-6 5 6 5z"/></svg></button>
+      <button data-key="PLAY_PAUSE" aria-label="נגן/השהה"><svg viewBox="0 0 24 24"><path d="M6 6l7 6-7 6z"/><path d="M16.5 6v12M20 6v12"/></svg></button>
+      <button data-key="FF" aria-label="קדימה"><svg viewBox="0 0 24 24"><path d="M5 7l6 5-6 5zM13 7l6 5-6 5z"/></svg></button>
     </div>
 
-    <section class="card" id="quickCard" hidden>
+    <section class="card glass" id="quickCard" hidden>
       <h2>קיצורים</h2>
       <div class="apps" id="quickApps"></div>
     </section>
@@ -189,24 +272,24 @@
 
   <!-- ===== חיפוש ===== -->
   <main id="view-search" hidden>
-    <section class="card">
-      <h2>חיפוש (עברית ואנגלית)</h2>
-      <div class="search-box">
-        <input class="field" id="query" dir="auto" placeholder="מה לחפש?" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
-        <button class="mic" id="mic" aria-label="חיפוש קולי"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+    <section class="card glass">
+      <h2>מה מחפשים היום?</h2>
+      <div class="search-row">
+        <input class="field" id="query" dir="auto" placeholder="עברית או אנגלית…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+        <button class="mic" id="mic" aria-label="חיפוש קולי"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button>
       </div>
       <div class="actions">
-        <button class="yt" id="ytSearch">חפש ביוטיוב ▶</button>
-        <button class="primary" id="typeOnTv">כתוב בטלוויזיה ⌨</button>
+        <button class="btn-yt" id="ytSearch">חפש ביוטיוב</button>
+        <button class="btn-accent" id="typeOnTv">כתוב בטלוויזיה</button>
       </div>
-      <p class="note" id="searchHint">
-        <b>חפש ביוטיוב:</b> פותח ישר את תוצאות החיפוש.<br>
-        <b>כתוב בטלוויזיה:</b> קודם בוחרים שדה חיפוש בטלוויזיה (בכל אפליקציה), ואז הטקסט נכתב בו.
+      <p class="note">
+        <b>חפש ביוטיוב</b> פותח ישר את תוצאות החיפוש.<br>
+        <b>כתוב בטלוויזיה</b> כותב בשדה שבחרתם בטלוויזיה, בכל אפליקציה.
       </p>
     </section>
-    <section class="card">
+    <section class="card glass">
       <h2>עריכה</h2>
-      <div class="row c3" style="margin:0">
+      <div class="edit">
         <button data-key="DEL" data-repeat>מחק תו</button>
         <button id="clearTv">נקה שדה</button>
         <button id="submitTv">חיפוש ↵</button>
@@ -216,30 +299,34 @@
 
   <!-- ===== אפליקציות ===== -->
   <main id="view-apps" hidden>
-    <input class="field" id="appFilter" dir="auto" placeholder="חיפוש אפליקציה…" autocomplete="off" style="margin-bottom:12px">
-    <section class="card" id="favCard">
+    <input class="field" id="appFilter" dir="auto" placeholder="חיפוש אפליקציה…" autocomplete="off" style="margin-bottom:14px">
+    <section class="card glass" id="favCard">
       <h2>מועדפים</h2>
       <div class="apps" id="favApps"></div>
     </section>
-    <section class="card">
+    <section class="card glass">
       <h2>כל האפליקציות <button id="reloadApps">רענון</button></h2>
       <div class="apps" id="allApps"><div class="empty">טוען…</div></div>
     </section>
-    <p class="note" style="text-align:center">לחיצה ארוכה על אפליקציה מוסיפה או מסירה אותה מהמועדפים ⭐</p>
+    <p class="note" style="text-align:center">לחיצה ארוכה על אפליקציה מוסיפה או מסירה מהמועדפים</p>
   </main>
+  </div>
 
-  <nav class="tabbar">
-    <button data-tab="remote" class="on"><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="3"/><circle cx="12" cy="9" r="2.5"/><path d="M10 15h4M10 18h4"/></svg>שלט</button>
-    <button data-tab="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>חיפוש</button>
-    <button data-tab="apps"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>אפליקציות</button>
+  <nav class="tabbar glass" id="tabbar">
+    <button data-tab="remote" class="on"><svg viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="4"/><circle cx="12" cy="9" r="2.4"/><path d="M10 15h4M10 18h4"/></svg>שלט</button>
+    <button data-tab="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>חיפוש</button>
+    <button data-tab="apps"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2.2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2.2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2.2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2.2"/></svg>אפליקציות</button>
   </nav>
 
-  <div class="toast" id="toast"></div>
+  <div class="toast glass" id="toast"></div>
 
 <script>
 (() => {
+  const SUPABASE_URL = 'https://iiaxizrezhczgutqijbe.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpYXhpenJlemhjemd1dHFpamJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2MjgyMTMsImV4cCI6MjEwMzIwNDIxM30.vG58ldzdzTSU_bAU1pO8LHwB_jm-eOoy4EMbZWQrH18';
+
   const $ = (id) => document.getElementById(id);
-  const buzz = () => { if (navigator.vibrate) navigator.vibrate(12); };
+  const buzz = () => { if (navigator.vibrate) navigator.vibrate(10); };
   const store = {
     get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
@@ -252,14 +339,91 @@
     clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
   }
 
-  function post(path) {
-    return fetch(path, { method: 'POST', cache: 'no-store' })
-      .then((r) => r.json().catch(() => ({})).then((body) => ({ ok: r.ok, body })))
-      .catch(() => { setOnline(false); return { ok: false, body: { error: 'offline' } }; });
+  // ===== חיבור לטלוויזיה =====
+  // דף שנפתח מהטלוויזיה עצמה (http://192.168...) מדבר איתה ישירות ברשת הביתית.
+  // דף שנפתח מהקישור / QR מדבר איתה דרך האינטרנט, ולכן עובד מכל רשת.
+  const params = new URLSearchParams(location.search);
+  const tvId = params.get('tv') || store.get('tv', null);
+  if (params.get('tv')) store.set('tv', params.get('tv'));
+  const local = location.protocol === 'http:' && !params.get('tv');
+
+  function makeLocal() {
+    return {
+      mode: 'רשת ביתית',
+      call(cmd, args = {}) {
+        const q = new URLSearchParams(args).toString();
+        return fetch('api/' + cmd + (q ? '?' + q : ''), { method: 'POST', cache: 'no-store' })
+          .then((r) => r.json().catch(() => ({})).then((body) => ({ ok: r.ok, body })));
+      },
+      icon(pkg) { return Promise.resolve('api/icon?pkg=' + encodeURIComponent(pkg)); },
+    };
+  }
+
+  function makeCloud(id) {
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: { persistSession: false }, realtime: { params: { eventsPerSecond: 30 } },
+    });
+    const pending = new Map();
+    let ready = false;
+    const queue = [];
+    const channel = client.channel('tv-' + id, { config: { broadcast: { self: false } } });
+    channel.on('broadcast', { event: 'reply' }, ({ payload }) => {
+      const done = pending.get(payload.id);
+      if (done) { pending.delete(payload.id); done({ ok: payload.ok, body: payload.body }); }
+    });
+    channel.subscribe((status) => {
+      ready = status === 'SUBSCRIBED';
+      if (ready) { while (queue.length) queue.shift()(); poll(); }
+    });
+    const iconCache = store.get('icons', {});
+    return {
+      mode: 'דרך האינטרנט',
+      call(cmd, args = {}, timeout = 6000) {
+        return new Promise((resolve) => {
+          const id = Math.random().toString(36).slice(2) + Date.now().toString(36);
+          const send = () => {
+            pending.set(id, resolve);
+            channel.send({ type: 'broadcast', event: 'cmd', payload: { id, cmd, args } });
+            setTimeout(() => { if (pending.delete(id)) resolve({ ok: false, body: { error: 'offline' } }); }, timeout);
+          };
+          ready ? send() : queue.push(send);
+        });
+      },
+      icon(pkg) {
+        if (iconCache[pkg]) return Promise.resolve(iconCache[pkg]);
+        return this.call('icon', { pkg }, 8000).then((r) => {
+          if (!r.ok) return null;
+          const url = 'data:image/png;base64,' + r.body.png;
+          iconCache[pkg] = url;
+          store.set('icons', iconCache);
+          return url;
+        });
+      },
+    };
+  }
+
+  if (!local && !tvId) {
+    $('welcome').hidden = false; $('app').hidden = true; $('tabbar').hidden = true;
+    $('statusText').textContent = 'לא מחובר';
+    return;
+  }
+  const tv = local ? makeLocal() : makeCloud(tvId);
+  $('modeText').textContent = tv.mode;
+  if (local) {
+    const link = document.createElement('link');
+    link.rel = 'manifest'; link.href = 'manifest.webmanifest';
+    document.head.appendChild(link);
+  }
+
+  function call(cmd, args) {
+    return tv.call(cmd, args).then((r) => {
+      if (!r.ok && r.body && r.body.error === 'offline') setOnline(false);
+      return r;
+    }).catch(() => { setOnline(false); return { ok: false, body: { error: 'offline' } }; });
   }
   function key(k, n) {
     buzz();
-    post('/api/key?k=' + k + (n > 1 ? '&n=' + n : ''));
+    call('key', n > 1 ? { k, n } : { k });
   }
 
   // ===== לשוניות =====
@@ -269,10 +433,10 @@
     store.set('tab', name);
     window.scrollTo(0, 0);
   }
-  document.querySelectorAll('nav.tabbar button').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+  document.querySelectorAll('nav.tabbar button').forEach((b) => b.addEventListener('click', () => { buzz(); showTab(b.dataset.tab); }));
   showTab(store.get('tab', 'remote'));
 
-  // ===== כפתורים: לחיצה, ולחיצה ארוכה חוזרת (חצים, ווליום, מחיקה) =====
+  // ===== כפתורים: לחיצה, ולחיצה ארוכה חוזרת =====
   document.querySelectorAll('[data-key]').forEach((btn) => {
     let delay = null, repeat = null;
     const stop = () => {
@@ -284,33 +448,34 @@
       btn.classList.add('pressed');
       key(btn.dataset.key);
       if (btn.hasAttribute('data-repeat')) {
-        delay = setTimeout(() => { repeat = setInterval(() => key(btn.dataset.key), 160); }, 450);
+        delay = setTimeout(() => { repeat = setInterval(() => key(btn.dataset.key), 170); }, 450);
       }
     });
     ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => btn.addEventListener(ev, stop));
     btn.addEventListener('contextmenu', (e) => e.preventDefault());
   });
 
-  // כיבוי: צריך ללחוץ פעמיים, כדי שלא יכבו בטעות (מהטלפון אי אפשר להדליק בחזרה)
+  // כיבוי: שתי לחיצות, כי מהטלפון אי אפשר להדליק בחזרה
+  const powerBtn = $('power');
+  const powerIcon = powerBtn.innerHTML;
   let powerTimer = null;
-  $('power').addEventListener('click', () => {
-    const p = $('power');
-    if (p.classList.contains('armed')) {
-      clearTimeout(powerTimer); p.classList.remove('armed'); p.innerHTML = powerIcon;
+  powerBtn.addEventListener('click', () => {
+    if (powerBtn.classList.contains('armed')) {
+      clearTimeout(powerTimer); powerBtn.classList.remove('armed'); powerBtn.innerHTML = powerIcon;
       key('POWER');
       return;
     }
     buzz();
-    p.classList.add('armed'); p.textContent = 'לכבות?';
-    powerTimer = setTimeout(() => { p.classList.remove('armed'); p.innerHTML = powerIcon; }, 3000);
+    powerBtn.classList.add('armed'); powerBtn.textContent = 'לכבות?';
+    powerTimer = setTimeout(() => { powerBtn.classList.remove('armed'); powerBtn.innerHTML = powerIcon; }, 3000);
   });
-  const powerIcon = $('power').innerHTML;
 
   // ===== חצים / משטח מגע =====
   function setMode(mode) {
     const touch = mode === 'touch';
     $('padView').hidden = touch; $('touchView').hidden = !touch;
     $('modePad').classList.toggle('on', !touch); $('modeTouch').classList.toggle('on', touch);
+    $('seg').classList.toggle('second', touch);
     store.set('mode', mode);
   }
   $('modePad').onclick = () => setMode('pad');
@@ -319,13 +484,19 @@
 
   const pad = $('touch');
   let start = null;
+  function ripple(x, y) {
+    const r = document.createElement('span');
+    const box = pad.getBoundingClientRect();
+    r.className = 'ripple'; r.style.left = (x - box.left) + 'px'; r.style.top = (y - box.top) + 'px';
+    pad.appendChild(r); setTimeout(() => r.remove(), 500);
+  }
   pad.addEventListener('pointerdown', (e) => { start = { x: e.clientX, y: e.clientY }; pad.setPointerCapture(e.pointerId); });
   pad.addEventListener('pointerup', (e) => {
     if (!start) return;
     const dx = e.clientX - start.x, dy = e.clientY - start.y;
     const dist = Math.max(Math.abs(dx), Math.abs(dy));
     start = null;
-    pad.classList.add('flash'); setTimeout(() => pad.classList.remove('flash'), 120);
+    ripple(e.clientX, e.clientY);
     if (dist < 18) return key('OK');
     const steps = Math.min(5, Math.max(1, Math.round(dist / 70)));
     if (Math.abs(dx) > Math.abs(dy)) key(dx > 0 ? 'RIGHT' : 'LEFT', steps);
@@ -339,15 +510,15 @@
     const q = query.value.trim();
     if (!q) { query.focus(); return toast('כתבו קודם מה לחפש'); }
     buzz();
-    post('/api/youtube?q=' + encodeURIComponent(q)).then((r) => toast(r.ok ? 'פותח ביוטיוב…' : 'לא הצלחתי לפתוח את יוטיוב'));
+    call('youtube', { q }).then((r) => toast(r.ok ? 'פותח ביוטיוב…' : 'לא הצלחתי לפתוח את יוטיוב'));
   }
   function typeOnTv(text, thenSubmit) {
     buzz();
-    return post('/api/text?t=' + encodeURIComponent(text)).then((r) => {
+    return call('text', { t: text }).then((r) => {
       if (r.ok) {
-        if (thenSubmit) post('/api/submit');
+        if (thenSubmit) call('submit');
         toast(text ? 'נכתב בטלוויזיה ✓' : 'השדה נוקה');
-      } else if (r.body.error === 'no_field') {
+      } else if (r.body && r.body.error === 'no_field') {
         toast('בחרו קודם שדה חיפוש בטלוויזיה, ואז נסו שוב');
       } else {
         toast('לא הצלחתי לכתוב');
@@ -361,10 +532,10 @@
     typeOnTv(q, true);
   };
   $('clearTv').onclick = () => typeOnTv('', false);
-  $('submitTv').onclick = () => { buzz(); post('/api/submit'); };
+  $('submitTv').onclick = () => { buzz(); call('submit'); };
   query.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); query.blur(); youtube(); } });
 
-  // חיפוש קולי: בדפדפן שמאפשר (HTTPS) - זיהוי דיבור מובנה. אחרת - המיקרופון של המקלדת בטלפון.
+  // חיפוש קולי: בקישור המאובטח (https) - זיהוי דיבור מובנה בעברית. אחרת - המיקרופון של המקלדת.
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   $('mic').onclick = () => {
     buzz();
@@ -372,6 +543,7 @@
       const rec = new Recognition();
       rec.lang = 'he-IL'; rec.interimResults = false; rec.maxAlternatives = 1;
       $('mic').classList.add('listening');
+      toast('מקשיב… דברו עכשיו');
       rec.onresult = (e) => { query.value = e.results[0][0].transcript; youtube(); };
       rec.onend = () => $('mic').classList.remove('listening');
       rec.onerror = () => { $('mic').classList.remove('listening'); toast('לא שמעתי, נסו שוב'); };
@@ -396,7 +568,7 @@
   function toggleFav(app) {
     if (!favs) favs = apps.filter((a) => isFav(a.pkg)).map((a) => a.pkg);
     if (favs.includes(app.pkg)) { favs = favs.filter((p) => p !== app.pkg); toast(app.label + ' הוסר מהמועדפים'); }
-    else { favs.push(app.pkg); toast(app.label + ' נוסף למועדפים ⭐'); }
+    else { favs.push(app.pkg); toast(app.label + ' נוסף למועדפים'); }
     store.set('favs', favs);
     renderApps();
   }
@@ -404,15 +576,21 @@
   function appButton(app) {
     const b = document.createElement('button');
     b.className = 'app';
-    const img = document.createElement('img');
-    img.loading = 'lazy'; img.alt = '';
-    img.src = '/api/icon?pkg=' + encodeURIComponent(app.pkg);
+    const ico = document.createElement('div');
+    ico.className = 'ico';
+    ico.textContent = app.label.trim().charAt(0);
+    tv.icon(app.pkg).then((src) => {
+      if (!src) return;
+      const img = document.createElement('img');
+      img.alt = ''; img.src = src;
+      img.onload = () => { ico.textContent = ''; ico.appendChild(img); };
+    });
     const label = document.createElement('span');
     label.textContent = app.label;
-    b.append(img, label);
+    b.append(ico, label);
     if (isFav(app.pkg)) {
       const star = document.createElement('span');
-      star.className = 'star'; star.textContent = '⭐';
+      star.className = 'star'; star.textContent = '★';
       b.appendChild(star);
     }
     let longPress = null, fired = false;
@@ -422,14 +600,19 @@
     b.addEventListener('click', () => {
       if (fired) return;
       buzz();
-      post('/api/launch?pkg=' + encodeURIComponent(app.pkg)).then((r) => toast(r.ok ? 'פותח את ' + app.label + '…' : 'לא הצלחתי לפתוח'));
+      call('launch', { pkg: app.pkg }).then((r) => toast(r.ok ? 'פותח את ' + app.label + '…' : 'לא הצלחתי לפתוח'));
     });
     return b;
   }
 
   function fill(box, list, emptyText) {
     box.innerHTML = '';
-    if (!list.length) { box.innerHTML = '<div class="empty"></div>'; box.firstChild.textContent = emptyText; return; }
+    if (!list.length) {
+      const e = document.createElement('div');
+      e.className = 'empty'; e.textContent = emptyText;
+      box.appendChild(e);
+      return;
+    }
     list.forEach((a) => box.appendChild(appButton(a)));
   }
 
@@ -446,30 +629,41 @@
 
   function loadApps() {
     $('allApps').innerHTML = '<div class="empty">טוען…</div>';
-    fetch('/api/apps', { cache: 'no-store' }).then((r) => r.json()).then((list) => {
-      apps = list;
+    call('apps').then((r) => {
+      if (!r.ok) { $('allApps').innerHTML = '<div class="empty">לא הצלחתי לטעון</div>'; return; }
+      apps = r.body;
+      store.set('apps', apps);
       renderApps();
-    }).catch(() => { $('allApps').innerHTML = '<div class="empty">לא הצלחתי לטעון</div>'; });
+    });
   }
   $('reloadApps').onclick = loadApps;
   $('appFilter').addEventListener('input', renderApps);
+  apps = store.get('apps', []);
+  if (apps.length) renderApps();
 
   // ===== מצב החיבור =====
-  function setOnline(online) { $('offline').hidden = online; if (!online) setStatus(false, 'מנותק'); }
-  function setStatus(ok, text, waiting) {
-    $('dot').className = 'dot' + (ok ? ' ok' : waiting ? '' : ' bad');
+  function setOnline(online) {
+    $('offline').hidden = online;
+    if (!online) setStatus('bad', 'מנותק');
+  }
+  function setStatus(kind, text) {
+    $('dot').className = 'dot' + (kind === 'ok' ? ' ok' : kind === 'bad' ? ' bad' : '');
     $('statusText').textContent = text;
   }
+  let loadedOnce = false;
   function poll() {
-    fetch('/api/status', { cache: 'no-store' }).then((r) => r.json()).then((s) => {
+    call('status').then((r) => {
+      if (!r.ok) return;
       setOnline(true);
+      const s = r.body;
       if (s.name) $('tvName').textContent = s.name;
-      setStatus(s.connected, s.connected ? 'מחובר' : 'ממתין…', !s.connected);
-      if (!apps.length) loadApps();
-    }).catch(() => setOnline(false));
+      setStatus(s.connected ? 'ok' : 'wait', s.connected ? 'מחובר' : 'ממתין…');
+      if (!loadedOnce) { loadedOnce = true; loadApps(); }
+    });
   }
+  window.poll = poll;
   poll();
-  setInterval(poll, 4000);
+  setInterval(() => { if (!document.hidden) poll(); }, 8000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
 })();
 </script>

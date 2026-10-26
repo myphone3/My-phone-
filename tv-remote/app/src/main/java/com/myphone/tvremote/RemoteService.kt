@@ -29,6 +29,7 @@ class RemoteService : Service() {
 
         AdbBridge.init(this)
         KeepAliveJob.schedule(this)
+        CloudRelay.start(this)
         try {
             server = WebServer(this, PORT).also { it.start(5000, false) }
         } catch (e: Exception) {

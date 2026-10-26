@@ -1,104 +1,140 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0F0E26">
+    android:background="@drawable/bg_screen"
+    android:gravity="center"
+    android:layoutDirection="rtl"
+    android:orientation="horizontal"
+    android:padding="48dp">
 
+    <!-- צד ימין: לוגו, מצב וכפתורים -->
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:gravity="center_horizontal"
-        android:layoutDirection="rtl"
-        android:orientation="vertical"
-        android:padding="40dp">
+        android:layout_weight="1"
+        android:orientation="vertical">
 
-        <ImageView
-            android:layout_width="88dp"
-            android:layout_height="88dp"
-            android:layout_marginBottom="12dp"
-            android:contentDescription="@null"
-            android:src="@drawable/ic_launcher" />
-
-        <TextView
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/app_name"
-            android:textColor="#FFFFFF"
-            android:textSize="34sp"
-            android:textStyle="bold" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="פתחו בטלפון (אייפון או אנדרואיד) את הכתובת:"
-            android:textColor="#C7D2FE"
-            android:textSize="20sp" />
+            <ImageView
+                android:layout_width="84dp"
+                android:layout_height="84dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_launcher" />
 
-        <TextView
-            android:id="@+id/address"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:background="#1E1B4B"
-            android:paddingHorizontal="28dp"
-            android:paddingVertical="12dp"
-            android:textColor="#FFFFFF"
-            android:textDirection="ltr"
-            android:textSize="38sp"
-            android:textStyle="bold" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="18dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/app_name"
+                    android:textColor="#2E1F47"
+                    android:textSize="36sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="הטלוויזיה בכף היד"
+                    android:textColor="#9A6FB8"
+                    android:textSize="18sp" />
+            </LinearLayout>
+        </LinearLayout>
 
         <TextView
             android:id="@+id/status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:gravity="center"
-            android:textColor="#FDE68A"
-            android:textSize="20sp" />
+            android:layout_marginTop="28dp"
+            android:background="@drawable/pill"
+            android:paddingHorizontal="18dp"
+            android:paddingVertical="8dp"
+            android:textColor="#4A3470"
+            android:textSize="17sp" />
 
-        <LinearLayout
+        <TextView
+            android:id="@+id/cloud"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/btn_dev"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_margin="6dp"
-                android:text="אפשרויות למפתחים" />
-
-            <Button
-                android:id="@+id/btn_about"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_margin="6dp"
-                android:text="אודות (Build)" />
-
-            <Button
-                android:id="@+id/btn_settings"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_margin="6dp"
-                android:text="הגדרות אנדרואיד" />
-
-            <Button
-                android:id="@+id/btn_retry"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_margin="6dp"
-                android:text="התחבר מחדש" />
-        </LinearLayout>
+            android:layout_marginTop="10dp"
+            android:background="@drawable/pill"
+            android:paddingHorizontal="18dp"
+            android:paddingVertical="8dp"
+            android:textColor="#4A3470"
+            android:textSize="17sp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
-            android:gravity="center"
-            android:text="הפעלה ראשונה: היכנסו ל&quot;אודות&quot;, לחצו 7 פעמים על Build, ואז ב&quot;אפשרויות למפתחים&quot; הדליקו ניפוי באגים (USB / ADB / רשת).\nכשתופיע שאלה &quot;לאשר ניפוי באגים?&quot; סמנו &quot;אפשר תמיד&quot; ולחצו אישור."
-            android:textColor="#A5B4FC"
-            android:textSize="17sp" />
+            android:layout_marginTop="22dp"
+            android:text="באותו WiFi אפשר גם לפתוח בדפדפן:"
+            android:textColor="#8C7AA8"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/address"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#4A3470"
+            android:textDirection="ltr"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="26dp"
+            android:orientation="horizontal">
+
+            <Button android:id="@+id/btn_retry" style="@style/TvButton" android:text="התחבר מחדש" />
+            <Button android:id="@+id/btn_dev" style="@style/TvButton" android:text="אפשרויות למפתחים" />
+            <Button android:id="@+id/btn_about" style="@style/TvButton" android:text="אודות" />
+            <Button android:id="@+id/btn_settings" style="@style/TvButton" android:text="הגדרות" />
+        </LinearLayout>
     </LinearLayout>
-</ScrollView>
+
+    <!-- צד שמאל: קוד QR -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="40dp"
+        android:background="@drawable/card"
+        android:elevation="6dp"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="26dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="סרקו עם המצלמה בטלפון"
+            android:textColor="#2E1F47"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/qr"
+            android:layout_width="260dp"
+            android:layout_height="260dp"
+            android:layout_marginTop="14dp"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center"
+            android:text="עובד מכל רשת ומכל טלפון\nאייפון וגלקסי"
+            android:textColor="#8C7AA8"
+            android:textSize="15sp" />
+    </LinearLayout>
+</LinearLayout>

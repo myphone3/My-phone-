@@ -35,10 +35,10 @@ object Apps {
         return true
     }
 
-    fun iconPng(context: Context, pkg: String): ByteArray? {
+    fun iconPng(context: Context, pkg: String, size: Int = 128): ByteArray? {
         if (!PACKAGE.matches(pkg)) return null
         return try {
-            toPng(context.packageManager.getApplicationIcon(pkg), 128)
+            toPng(context.packageManager.getApplicationIcon(pkg), size)
         } catch (e: Exception) {
             null
         }

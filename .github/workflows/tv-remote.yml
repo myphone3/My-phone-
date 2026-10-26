@@ -43,3 +43,14 @@ jobs:
             --notes "בנייה ${{ github.run_number }} מתוך ${{ github.sha }}" \
             --prerelease \
             --target "${{ github.sha }}"
+
+      - name: Prepare remote web page (gh-pages branch)
+        run: |
+          rm -rf /tmp/site && cp -r app/src/main/assets/web /tmp/site && touch /tmp/site/.nojekyll
+          cd /tmp/site
+          git init -q -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Remote page from ${{ github.sha }}"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" gh-pages
