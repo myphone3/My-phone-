@@ -419,7 +419,10 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": 
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 const MONTHS = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
 const DAYS = ["א׳","ב׳","ג׳","ד׳","ה׳","ו׳","ש׳"];
-const TYPES = { work: "עבודה", holiday: "שבת / חג", vacation: "חופשה", sick: "מחלה" };
+const TYPES = { work: "עבודה", vacation: "חופשה", sick: "מחלה" };
+// the app is built for workers who keep Shabbat: no work is recorded on Saturday and there are no Saturday rates
+const isShabbat = ds => weekday(ds) === 6;
+const WEEK = DAYS.slice(0, 6);
 
 const localDS = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const localHM = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -448,7 +451,7 @@ const validEmail = e => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(e || "").tri
 const DEFAULT_SETTINGS = {
   name: "", employer: "", rate: 0, currency: "₪", shiftHours: 8,
   otEnabled: true, otThreshold: 8.6, ot1Span: 2,
-  weekendOn: true, weekendRate: 150,
+  weekendOn: false, weekendRate: 150,
   travelOn: false, travelPerDay: 0, periodStart: 1,
   vacPct: 100, sickPct: 100, onboarded: false,
   countdownOn: true, askPlan: false, entryMode: "clock", alertBefore: true, goalAmount: 0,
@@ -471,6 +474,12 @@ function normalize(s) {
   // v4: three modes on the attendance tab — free clock, countdown timer, daily goal
   if (!["clock", "timer", "goal"].includes(out.settings.entryMode)) out.settings.entryMode = out.settings.entryMode === "ask" ? "timer" : "clock";
   if (!Array.isArray(out.settings.workDays)) out.settings.workDays = [...DEFAULT_SETTINGS.workDays];
+  // no Shabbat: drop Saturday from every day list and the old "Shabbat / holiday" shift type
+  out.settings.weekendOn = false;
+  out.settings.workDays = out.settings.workDays.filter(d => d !== 6);
+  if (!out.settings.workDays.length) out.settings.workDays = [...DEFAULT_SETTINGS.workDays];
+  if (Array.isArray(out.settings.remindDays)) out.settings.remindDays = out.settings.remindDays.filter(d => d !== 6);
+  out.shifts = out.shifts.map(x => x.type === "holiday" ? { ...x, type: "work" } : x);
   out.v = 4;
   return out;
 }
@@ -702,7 +711,7 @@ function shiftMin(s) {
   if (b <= a) b += 1440;
   return Math.max(0, b - a - (+s.breakMin || 0));
 }
-const isWeekendDate = ds => state.settings.weekendOn && weekday(ds) === 6;
+const isWeekendDate = () => false;
 // workplaces: the main one lives in settings.employer/rate, extra ones in settings.jobs
 function allJobs() {
   const st = state.settings;
@@ -716,7 +725,7 @@ function calcDay(ds, list, job) {
   const st = state.settings, rate = (job || jobOf("main")).rate;
   const work = list.filter(s => !isLeave(s));
   const wMin = work.reduce((a, s) => a + shiftMin(s), 0);
-  const special = isWeekendDate(ds) || (st.weekendOn && work.some(s => s.type === "holiday"));
+  const special = isWeekendDate(ds);
   let reg = wMin, o1 = 0, o2 = 0;
   if (st.otEnabled) {
     const T = Math.max(0, +st.otThreshold || 0) * 60, span = Math.max(0, +st.ot1Span || 0) * 60;
@@ -844,7 +853,7 @@ function advise(goal, days, maxH) {
   let extra = null;
   if (need > maxMin) {
     const set = [...days];
-    for (const d of [5, 0, 1, 2, 3, 4, 6]) {
+    for (const d of [5, 0, 1, 2, 3, 4]) {
       if (set.includes(d)) continue;
       set.push(d);
       const n = minutesFor(left, datesFor(set), rate, travel);
@@ -874,7 +883,7 @@ function quickPlanModal() {
     } else {
       h += me(money(A.goal));
       h += bot("באילו ימים בשבוע אפשר לעבוד?");
-      if (A.step === 1) input = `<div class="days-pick" id="ad-days">${DAYS.map((d, i) => `<button type="button" data-d="${i}" aria-pressed="${A.days.includes(i)}">${d}</button>`).join("")}</div><button class="btn primary block" id="ad-next">המשך</button>`;
+      if (A.step === 1) input = `<div class="days-pick" id="ad-days">${WEEK.map((d, i) => `<button type="button" data-d="${i}" aria-pressed="${A.days.includes(i)}">${d}</button>`).join("")}</div><button class="btn primary block" id="ad-next">המשך</button>`;
       else {
         h += me(daysTxt(A.days));
         h += bot("ומקסימום כמה שעות ביום מתאים לך לעבוד?");
@@ -910,7 +919,7 @@ function aiContext() {
   return {
     today: `${todayDS()} (יום ${DAYS[weekday(todayDS())]})`, currency: st.currency,
     pay: { hourlyRate: jobOf("main").rate, extraJobs: (st.jobs || []).map(j => ({ name: j.name, rate: j.rate })), shiftHours: +st.shiftHours,
-      overtime: st.otEnabled ? { afterHoursPerDay: +st.otThreshold, hoursAt125: +st.ot1Span } : "off", saturdayRatePct: st.weekendOn ? +st.weekendRate : "off",
+      overtime: st.otEnabled ? { afterHoursPerDay: +st.otThreshold, hoursAt125: +st.ot1Span } : "off", worksOnShabbat: false,
       travelPerDay: st.travelOn ? +st.travelPerDay : 0, jobPct: pl.pct, workDays: days.map(i => DAYS[i]) },
     thisPeriod: { label: periodLabel(key), range: periodRange(key), earnedGross: Math.round(P.t.total), hours: fmtHM(P.t.allMin), daysWorked: P.t.daysWorked,
       overtimeHours: fmtHM(P.t.otMin), netEstimate: st.netOn && P.t.total > 0 ? Math.round(netEstimate(P.t.total).net) : null,
@@ -925,7 +934,7 @@ const aiText = t => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\n/g,
 function advisorModal() {
   const C = ui.chat = ui.chat || [];
   const st = state.settings;
-  const chips = [+st.goalAmount > 0 ? `כמה שעות ביום צריך כדי להגיע ל-${money(+st.goalAmount)}?` : "כמה אני צריך לעבוד כדי להרוויח 6,000 ₪?", "מה אם אעבוד רק 3 ימים בשבוע?", "איך אפשר להרוויח יותר החודש?", "כדאי לי לעבוד בשבת?"];
+  const chips = [+st.goalAmount > 0 ? `כמה שעות ביום צריך כדי להגיע ל-${money(+st.goalAmount)}?` : "כמה אני צריך לעבוד כדי להרוויח 6,000 ₪?", "מה אם אעבוד רק 3 ימים בשבוע?", "איך אפשר להרוויח יותר החודש?", "איך כדאי לחלק את השעות בשבוע?"];
   let busy = false;
   const draw = m => {
     const bub = x => `<div class="bub ${x.role === "model" ? "bot" : "me"}">${x.role === "model" ? aiText(x.text) : esc(x.text)}</div>`;
@@ -1028,6 +1037,7 @@ function dailyGoalMin() {
 const goalSource = () => +state.settings.dailyGoalHours > 0 ? "שהגדרת" : (planInfo(periodKeyOf(todayDS())).goal > 0 ? "לפי היעד החודשי" : "לפי אורך המשמרת");
 function goalPlanMin() { const left = dailyGoalMin() - todayDoneMin(); return left > 0 ? left : null; }
 function clockIn() {
+  if (isShabbat(todayDS())) { toast("שבת היום. לא רושמים עבודה בשבת"); return; }
   const mode = entryMode();
   let plan = null;
   if (mode === "timer") plan = ui.timerPick || timerMin();
@@ -1258,7 +1268,7 @@ function shiftForm(existing, presetDate) {
   const lastWork = state.shifts.filter(x => !isLeave(x)).sort((x, y) => (x.date + x.start).localeCompare(y.date + y.start)).pop();
   openModal(`<h3>${existing ? "עריכת משמרת" : "הוספת משמרת ידנית"}</h3>
     <div class="form">
-      <div class="fld"><label>סוג</label><div class="seg" id="f-type">${Object.entries(TYPES).map(([k, v]) => `<button type="button" data-v="${k}" aria-pressed="${s.type === k}">${v}</button>`).join("")}</div></div>
+      <div class="fld"><label>סוג</label><div class="seg" id="f-type" style="grid-template-columns:repeat(3,1fr)">${Object.entries(TYPES).map(([k, v]) => `<button type="button" data-v="${k}" aria-pressed="${s.type === k}">${v}</button>`).join("")}</div></div>
       ${multiJob() ? `<div class="fld"><label for="f-job">מקום עבודה</label><select id="f-job">${allJobs().map(j => `<option value="${esc(j.id)}" ${jobOf(s.jobId).id === j.id ? "selected" : ""}>${esc(j.name)}</option>`).join("")}</select></div>` : ""}
       <div class="fld"><label for="f-date">תאריך</label><input type="date" id="f-date" value="${esc(s.date)}"></div>
       <div id="f-times" class="form">
@@ -1297,6 +1307,7 @@ function shiftForm(existing, presetDate) {
     $("#f-save", m).onclick = () => {
       const r = read();
       if (!r.date) { toast("בחרו תאריך"); return; }
+      if (isShabbat(r.date)) { toast("זה יום שבת. לא רושמים משמרות בשבת"); return; }
       if (!isLeave(r)) {
         if (!r.start || !r.end) { toast("מלאו שעת כניסה ויציאה"); return; }
         if (shiftMin(r) <= 0) { toast("ההפסקה ארוכה מהמשמרת"); return; }
@@ -1484,7 +1495,10 @@ function viewClock() {
   const dateLine = `<div class="now">יום ${DAYS[now.getDay()]}, ${fmtDateLong(todayDS())} · <b id="now-time">${localHM(now)}</b></div>`;
   const goalMin = dailyGoalMin(), doneMin = todayDoneMin();
   let clock;
-  if (!a) {
+  if (!a && isShabbat(todayDS())) {
+    clock = `<section class="card clock">${dateLine}<div style="font-size:44px;line-height:1">🕯️🕯️</div><h2 style="font-size:28px">שבת שלום</h2>
+      <p class="muted" style="margin:0">בשבת לא רושמים עבודה. נתראה במוצאי שבת.</p></section>`;
+  } else if (!a) {
     const mode = entryMode();
     const note = mode === "timer" ? `טיימר של <b class="num">${fmtHM(ui.timerPick || timerMin())}</b> ש׳ · <button class="link" data-act="pickTimer">שינוי</button>`
       : mode === "goal" ? `יעד היום: <b class="num">${fmtHM(goalMin)}</b> ש׳ (${goalSource()})${doneMin ? ` · נשאר <b class="num">${fmtHM(Math.max(0, goalMin - doneMin))}</b>` : ""} · <button class="link" data-act="editPlanSettings">שינוי</button>`
@@ -1606,7 +1620,46 @@ function chart(P) {
   const labels = dates.map((ds, i) => { const d = parseDS(ds)[2]; return `<span>${(i % 3 === 0 || d === 1) ? d : ""}</span>`; }).join("");
   const tline = T && T < maxMin ? `<div class="tline" style="bottom:${T / maxMin * 100}%"><span>${+state.settings.otThreshold}ש׳</span></div>` : "";
   return `<div class="chart-wrap"><div class="chart" dir="ltr">${tline}${bars}</div><div class="xlab" dir="ltr">${labels}</div></div>
-    <div class="legend"><span><i style="background:var(--accent)"></i>שעות רגילות</span><span><i style="background:var(--punch)"></i>שעות נוספות</span>${state.settings.weekendOn ? `<span><i style="background:var(--surface-2);border:1px solid var(--line)"></i>שבת</span>` : ""}</div>`;
+    <div class="legend"><span><i style="background:var(--accent)"></i>שעות רגילות</span><span><i style="background:var(--punch)"></i>שעות נוספות</span></div>`;
+}
+function reportTable(P) {
+  const keys = [...new Set(P.days.flatMap(d => Object.keys(d.buckets).map(Number)))].sort((a, b) => a - b);
+  if (!keys.length) keys.push(100);
+  const rows = [];
+  P.days.forEach(d => d.list.forEach((s, i) => {
+    const first = i === 0;
+    rows.push(`<tr class="${d.special ? "we" : ""}">
+      <td>${first ? `${fmtDate(d.ds)} ${DAYS[weekday(d.ds)]}` : ""}</td>
+      <td>${TYPES[s.type]}</td>
+      <td class="n">${isLeave(s) ? "—" : esc(s.start)}</td><td class="n">${isLeave(s) ? "—" : esc(s.end)}</td>
+      <td class="n">${isLeave(s) ? "—" : (+s.breakMin || 0)}</td>
+      <td class="n">${fmtHM(shiftMin(s))}</td>
+      ${keys.map(k => `<td class="n">${first && d.buckets[k] ? fmtHM(d.buckets[k]) : ""}</td>`).join("")}
+      <td class="n">${first ? money(d.pay) : ""}</td>
+      <td>${esc(s.note || "")}</td></tr>`);
+  }));
+  const t = P.t;
+  return `<table class="rep"><thead><tr><th>תאריך</th><th>סוג</th><th>כניסה</th><th>יציאה</th><th>הפסקה (דק׳)</th><th>שעות</th>${keys.map(k => `<th>${k}%</th>`).join("")}<th>סכום</th><th>הערה</th></tr></thead>
+    <tbody>${rows.join("") || `<tr><td colspan="${8 + keys.length}" style="text-align:center;color:#888">אין משמרות בתקופה</td></tr>`}</tbody>
+    <tfoot><tr><td colspan="5">סה״כ</td><td class="n">${fmtHM(t.allMin)}</td>${keys.map(k => `<td class="n">${t.buckets[k] ? fmtHM(t.buckets[k]) : ""}</td>`).join("")}<td class="n">${money(t.workPay + t.vacPay + t.sickPay)}</td><td></td></tr></tfoot></table>`;
+}
+function summaryRows(P) {
+  const t = P.t, rows = [];
+  rows.push(["ימי עבודה", String(t.daysWorked)]);
+  rows.push(["סה״כ שעות עבודה", `${fmtHM(t.wMin)} (${fmtDec(t.wMin)})`]);
+  Object.keys(t.buckets).map(Number).sort((a, b) => a - b).forEach(k => rows.push([`  שעות ${k}%`, `${fmtHM(t.buckets[k])} = ${money(t.bucketPay[k])}`]));
+  if (t.vacMin) rows.push(["חופשה", `${fmtHM(t.vacMin)} = ${money(t.vacPay)}`]);
+  if (t.sickMin) rows.push(["מחלה", `${fmtHM(t.sickMin)} = ${money(t.sickPay)}`]);
+  if (t.travel) rows.push(["נסיעות", money(t.travel)]);
+  t.adj.forEach(x => rows.push([x.label, money(+x.amount)]));
+  rows.push(["סה״כ לתשלום (ברוטו)", money(t.total)]);
+  return rows;
+}
+function reportEmployer(P) { return P.job ? P.job.name : (multiJob() ? "כל העבודות" : jobOf("main").name); }
+function reportRate(P) { return P.t.rates.length === 1 ? `${money(P.t.rates[0])} לשעה` : (P.job ? `${money(P.job.rate)} לשעה` : allJobs().map(j => `${j.name}: ${money(j.rate)}`).join(" · ")); }
+function rulesNote() {
+  const st = state.settings;
+  return `${st.otEnabled ? `שעות נוספות מחושבות לפי יום: מעל ${+st.otThreshold} ש׳ — ${+st.ot1Span} השעות הראשונות 125%, ומעבר להן 150%.` : "ללא חישוב שעות נוספות."} הסכומים ברוטו, לפני ניכויי מס וביטוח לאומי.`;
 }
 const shortMonth = key => { const [y, m] = key.split("-").map(Number); return `${MONTHS[m - 1].slice(0, 3)}׳ ${String(y).slice(2)}`; };
 function deltaTag(cur, prev) {
@@ -1729,7 +1782,7 @@ function viewSettings() {
     ${acc("goal", "🎯", "יעד והיקף משרה", pl.goal > 0 ? `יעד ${money(pl.goal)} · ${pl.wd.length} ימים בשבוע · ${pl.pct}%` : `${pl.wd.length} ימים בשבוע · ${pl.pct}% משרה · בלי יעד`, `
       <button class="btn primary" data-act="advisor">🧭 תכנון עם יועץ המשכורת</button>
       ${num("s-goalAmount", `יעד הכנסה לחודש (${esc(st.currency)})`, st.goalAmount, 'min="0" step="100" inputmode="decimal"', "0 = בלי יעד")}
-      <div class="fld"><label>באילו ימים אני עובד/ת</label><div class="days-pick">${DAYS.map((d, i) => `<button type="button" data-wday="${i}" aria-pressed="${(st.workDays || []).includes(i)}">${d}</button>`).join("")}</div>
+      <div class="fld"><label>באילו ימים אני עובד/ת</label><div class="days-pick">${WEEK.map((d, i) => `<button type="button" data-wday="${i}" aria-pressed="${(st.workDays || []).includes(i)}">${d}</button>`).join("")}</div>
         <span class="hint">${(st.workDays || []).length} ימים בשבוע. לפי זה מחשבים כמה לעבוד כל יום</span></div>
       <div class="grid2">
         ${num("s-jobPct", "אחוז משרה", st.jobPct, 'min="1" max="100" step="5" inputmode="numeric"', `100% = ${FULL_TIME_WEEK} ש׳ בשבוע`)}
@@ -1745,14 +1798,12 @@ function viewSettings() {
     ${acc("travel", "🚌", "נסיעות", st.travelOn ? `${money(+st.travelPerDay || 0)} לכל יום עבודה` : "לא מחושבות", `
       ${sw("s-travelOn", "לחשב דמי נסיעות", st.travelOn, "סכום קבוע לכל יום שעבדתם, נוסף לשכר")}
       ${st.travelOn ? num("s-travelPerDay", `סכום נסיעות ליום (${esc(st.currency)})`, st.travelPerDay, 'min="0" step="0.5" inputmode="decimal"') : ""}`)}
-    ${acc("ot", "⏱", "שעות נוספות ושבת", [st.otEnabled ? `נוספות אחרי ${+st.otThreshold} ש׳` : "בלי שעות נוספות", st.weekendOn && `שבת ${+st.weekendRate}%`].filter(Boolean).join(" · "), `
+    ${acc("ot", "⏱", "שעות נוספות, חופשה ומחלה", st.otEnabled ? `נוספות אחרי ${+st.otThreshold} ש׳ · 125% / 150%` : "בלי שעות נוספות", `
       ${sw("s-otEnabled", "חישוב שעות נוספות", st.otEnabled, "לפי חוק שעות עבודה: 125% ואחר כך 150%")}
       ${st.otEnabled ? `<div class="grid2">
         ${num("s-otThreshold", "שעות נוספות אחרי (ש׳ ביום)", st.otThreshold, 'min="1" max="24" step="0.1" inputmode="decimal"', "נפוץ: 8.6 בשבוע של 5 ימים")}
         ${num("s-ot1Span", "כמה שעות ב-125%", st.ot1Span, 'min="0" max="12" step="0.5" inputmode="decimal"', "לפי החוק: 2")}
       </div>` : ""}
-      ${sw("s-weekendOn", "תוספת לשבת וחג", st.weekendOn, "שבת מחושבת אוטומטית. חג: סמנו את המשמרת כ״שבת / חג״.")}
-      ${st.weekendOn ? num("s-weekendRate", "אחוז תשלום בשבת/חג", st.weekendRate, 'min="100" max="300" step="5" inputmode="numeric"', "בדרך כלל 150%") : ""}
       <div class="grid2">
         ${num("s-vacPct", "תשלום על חופשה (%)", st.vacPct, 'min="0" max="200" step="5" inputmode="numeric"')}
         ${num("s-sickPct", "תשלום על מחלה (%)", st.sickPct, 'min="0" max="200" step="5" inputmode="numeric"', "חוק: יום 1 — 0%, ימים 2–3 — 50%, מיום 4 — 100%")}
@@ -1780,7 +1831,7 @@ function viewSettings() {
       ${sw("s-alertBefore", "התראה 10 דקות לפני הסוף", st.alertBefore)}
       ${sw("s-remindOn", "תזכורת להחתים כניסה", st.remindOn, "אם עוד לא נכנסתם עד השעה הזו")}
       ${st.remindOn ? `<div class="grid2"><div class="fld"><label for="s-remindTime">שעת התזכורת</label><input type="time" id="s-remindTime" data-set="remindTime" value="${esc(st.remindTime || "08:00")}"></div><span></span></div>
-        <div class="fld"><label>בימים</label><div class="days-pick">${DAYS.map((d, i) => `<button type="button" data-rday="${i}" aria-pressed="${(st.remindDays || []).includes(i)}">${d}</button>`).join("")}</div></div>` : ""}
+        <div class="fld"><label>בימים</label><div class="days-pick">${WEEK.map((d, i) => `<button type="button" data-rday="${i}" aria-pressed="${(st.remindDays || []).includes(i)}">${d}</button>`).join("")}</div></div>` : ""}
       <div class="btn-row"><button class="btn sm" data-act="testAlert">בדיקת צליל</button>${st.pushOn || st.remindOn ? `<button class="btn sm" data-act="testPush">שליחת התראת בדיקה</button>` : ""}</div>`)}
     </div>
     <div class="acc-title">כללי</div>
@@ -2001,7 +2052,7 @@ function loadSample() {
     if (ds === end) return;
     const wd = weekday(ds);
     if (wd === 5) return;
-    if (wd === 6) { if (i % 14 === 6) out.push({ id: uid(), date: ds, start: "09:00", end: "14:00", breakMin: 0, type: "work", note: "דוגמה · משמרת שבת" }); return; }
+    if (wd === 6) return;
     if (i === 9) { out.push({ id: uid(), date: ds, type: "vacation", hours: +state.settings.shiftHours || 8, start: "", end: "", breakMin: 0, note: "דוגמה" }); return; }
     out.push({ id: uid(), date: ds, start: starts[i % 6], end: ends[i % 6], breakMin: [15, 30, 45][i % 3], type: "work", note: "דוגמה" });
   });
