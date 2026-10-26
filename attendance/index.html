@@ -235,6 +235,39 @@ textarea.copy { min-height: 180px; font-family: var(--f-num); font-size: 13px; d
 .alert-card h3 { font-size: 20px; }
 .alert-card .btn { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.35); color: #fff; }
 .alert-card .btn.solid { background: #fff; color: var(--punch); border-color: #fff; }
+.timers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+.timers.one { grid-template-columns: 1fr; }
+.tblock { background: var(--surface-2); border: 1px solid var(--line); border-radius: 14px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+.tblock .tl { font-size: 13px; color: var(--muted); font-weight: 600; }
+.tblock .tv { font-family: var(--f-num); font-variant-numeric: tabular-nums; direction: ltr; font-weight: 600; font-size: clamp(28px, 8.5vw, 42px); line-height: 1.1; letter-spacing: -.02em; }
+.timers.one .tblock { background: transparent; border: 0; padding: 0; }
+.timers.one .tv { font-size: clamp(44px, 14vw, 64px); }
+.tblock.cd { background: var(--accent-soft); border-color: transparent; }
+.tblock.cd .tl { color: var(--accent); }
+.tblock.cd.over { background: var(--punch-soft); }
+.tblock.cd.over .tl, .tblock.cd.over .tv { color: var(--punch); }
+.tblock .ts { font-size: 12px; color: var(--muted); }
+.jobchips { display: flex; gap: 6px; flex-wrap: wrap; }
+.jobchips button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 14px; font-weight: 600; font-size: 14px; min-height: 38px; }
+.jobchips button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.jtag { display: inline-block; font-size: 11px; padding: 0 7px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); color: var(--muted); font-weight: 600; margin-inline-start: 6px; }
+.net { margin-top: 12px; background: var(--surface-2); border-radius: 12px; padding: 10px 12px; }
+.net summary { cursor: pointer; display: flex; justify-content: space-between; gap: 10px; font-weight: 600; list-style: none; }
+.net summary::-webkit-details-marker { display: none; }
+.net summary .v { font-family: var(--f-num); direction: ltr; }
+.net .kv .r { padding: 6px 0; font-size: 14px; }
+.status-chip { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; }
+.status-chip.pending { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+.status-chip.approved { background: var(--accent-soft); color: var(--accent); }
+.status-chip.rejected { background: var(--punch-soft); color: var(--punch); }
+.sent-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.sent { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 8px; font-size: 14px; }
+.days-pick { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.days-pick button { border: 1px solid var(--line); background: var(--surface-2); border-radius: 10px; padding: 8px 0; font-weight: 600; }
+.days-pick button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.joblist { display: flex; flex-direction: column; gap: 10px; }
+.jobrow { display: grid; grid-template-columns: 1fr 110px 40px; gap: 8px; align-items: end; }
+.jobrow .x { height: 46px; border: 1px solid var(--line); background: var(--surface-2); border-radius: 10px; color: var(--danger); font-size: 18px; }
 .goal { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
 .goal .track { height: 8px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); overflow: hidden; }
 .goal .fill { height: 100%; background: var(--accent); }
@@ -268,6 +301,10 @@ textarea.copy { min-height: 180px; font-family: var(--f-num); font-size: 13px; d
 const SUPABASE_URL = "https://iiaxizrezhczgutqijbe.supabase.co";
 const SUPABASE_KEY = "sb_publishable_GlpxeLkaiEs9zbILs_oeUg_HU5xMKfu";
 if (!window.supabase) { document.getElementById("app").innerHTML = '<div class="loading">אין חיבור לאינטרנט. התחברו לרשת ורעננו את הדף.</div>'; return; }
+const VAPID_PUBLIC_KEY = "BDkAqMwSEPvFdiv8bnFRWcfBaYC50lFX6A5k0IZcBVRrxH2dLrq59L20N0sfDhdW-iT6TFku_6wnlaNfoHRIGr8";
+// the boss opens /?r=<token> without an account and sees only that report
+const bossToken = (() => { try { const r = new URLSearchParams(location.search).get("r"); return /^[0-9a-f-]{36}$/i.test(r || "") ? r : null; } catch (e) { return null; } })();
+let bossData = null;
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: "attendance-auth" } });
 
 // ---------- helpers ----------
@@ -309,7 +346,9 @@ const DEFAULT_SETTINGS = {
   weekendOn: true, weekendRate: 150,
   travelOn: false, travelPerDay: 0, periodStart: 1,
   vacPct: 100, sickPct: 100, onboarded: false,
-  countdownOn: true, askPlan: true, alertBefore: true, goalAmount: 0
+  countdownOn: true, askPlan: true, alertBefore: true, goalAmount: 0,
+  jobs: [], netOn: true, creditPoints: 2.25, pensionPct: 6,
+  pushOn: false, remindOn: false, remindTime: "08:00", remindDays: [0, 1, 2, 3, 4]
 };
 const freshState = () => ({ v: 2, updatedAt: 0, settings: { ...DEFAULT_SETTINGS }, shifts: [], active: null, adjustments: [], sample: false });
 function normalize(s) {
@@ -324,7 +363,7 @@ function normalize(s) {
 }
 let state = freshState();
 let session = null, account = null; // account = {phone, full_name, email}
-const ui = { tab: "clock", period: null, authMode: "login", authMsg: "" };
+const ui = { tab: "clock", period: null, authMode: "login", authMsg: "", job: "all", reports: {} };
 try { const t = localStorage.getItem("attendance:tab"); if (t) ui.tab = t; } catch (e) {}
 const cacheKey = () => session ? "attendance:data:" + session.user.id : null;
 const saveCache = () => { try { if (cacheKey()) localStorage.setItem(cacheKey(), JSON.stringify(state)); } catch (e) {} };
@@ -397,6 +436,7 @@ async function startSession(s) {
     } else { ui.needPhone = true; }
   }
   render();
+  if ((state.settings.pushOn || state.settings.remindOn) && pushSupported() && Notification.permission === "granted") enablePush(true);
 }
 function endSession() {
   try { if (cacheKey()) localStorage.removeItem(cacheKey()); } catch (e) {}
@@ -406,10 +446,12 @@ function endSession() {
 sb.auth.onAuthStateChange((event, s) => {
   if (event === "PASSWORD_RECOVERY") { setTimeout(newPasswordModal, 50); }
   if (event === "SIGNED_OUT") { endSession(); return; }
+  if (bossToken) return;
   if (s && (!session || session.user.id !== s.user.id)) { startSession(s); return; }
   if (s) session = s;
 });
-sb.auth.getSession().then(({ data }) => { if (data.session) { if (!session) startSession(data.session); } else render(); });
+if (bossToken) { renderBoss(); loadBoss(); }
+else sb.auth.getSession().then(({ data }) => { if (data.session) { if (!session) startSession(data.session); } else render(); });
 
 function viewAuth() {
   const m = ui.authMode;
@@ -455,7 +497,7 @@ function heAuthError(err) {
   const m = (err && err.message || "").toLowerCase();
   if (m.includes("invalid login")) return "המייל או הסיסמה לא נכונים";
   if (m.includes("email not confirmed")) return "צריך לאשר את המייל קודם. חפשו את מייל האימות בתיבה שלכם.";
-  if (m.includes("already registered") || m.includes("already been registered")) return "המייל הזה כבר רשום. נסו להתחבר.";
+  if (m.includes("already registered") || m.includes("already been registered")) return "המייל הזה כבר רשום. נסו להתחבר, או לחצו ״שכחתי סיסמה״.";
   if (m.includes("password")) return "הסיסמה צריכה להיות לפחות 6 תווים";
   if (m.includes("rate limit") || m.includes("too many")) return "יותר מדי ניסיונות. חכו כמה דקות ונסו שוב.";
   if (m.includes("fetch") || m.includes("network")) return "אין חיבור לאינטרנט";
@@ -480,7 +522,7 @@ document.addEventListener("submit", async e => {
       const { data, error } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: name, phone: normPhone(phone) }, emailRedirectTo: location.origin + "/" } });
       btn.disabled = false;
       if (error) return authErr(heAuthError(error));
-      if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) return authErr("המייל הזה כבר רשום. נסו להתחבר.");
+      if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) return authErr("המייל הזה כבר רשום. נסו להתחבר, או לחצו ״שכחתי סיסמה״.");
       if (!data.session) { ui.authMode = "sent"; render(); }
     } else {
       const { error } = await sb.auth.signInWithPassword({ email, password: pass });
@@ -548,8 +590,17 @@ function shiftMin(s) {
   return Math.max(0, b - a - (+s.breakMin || 0));
 }
 const isWeekendDate = ds => state.settings.weekendOn && weekday(ds) === 6;
-function calcDay(ds, list) {
-  const st = state.settings, rate = +st.rate || 0;
+// workplaces: the main one lives in settings.employer/rate, extra ones in settings.jobs
+function allJobs() {
+  const st = state.settings;
+  const extra = Array.isArray(st.jobs) ? st.jobs : [];
+  return [{ id: "main", name: st.employer || (extra.length ? "עבודה ראשית" : ""), rate: +st.rate || 0 }, ...extra.map(j => ({ id: j.id, name: j.name || "עבודה נוספת", rate: +j.rate || 0 }))];
+}
+const multiJob = () => allJobs().length > 1;
+const jobOf = id => allJobs().find(j => j.id === (id || "main")) || allJobs()[0];
+const jobFilter = () => (multiJob() && ui.job !== "all" && allJobs().some(j => j.id === ui.job)) ? ui.job : "all";
+function calcDay(ds, list, job) {
+  const st = state.settings, rate = (job || jobOf("main")).rate;
   const work = list.filter(s => !isLeave(s));
   const wMin = work.reduce((a, s) => a + shiftMin(s), 0);
   const special = isWeekendDate(ds) || (st.weekendOn && work.some(s => s.type === "holiday"));
@@ -562,33 +613,58 @@ function calcDay(ds, list) {
   const mults = [base, base + .25, base + .5];
   const buckets = {};
   [reg, o1, o2].forEach((mn, i) => { if (mn > 0) { const k = Math.round(mults[i] * 100); buckets[k] = (buckets[k] || 0) + mn; } });
+  const bucketPay = {};
+  [reg, o1, o2].forEach((mn, i) => { if (mn > 0) { const k = Math.round(mults[i] * 100); bucketPay[k] = (bucketPay[k] || 0) + rate * mn / 60 * mults[i]; } });
   const workPay = [reg, o1, o2].reduce((a, mn, i) => a + rate * mn / 60 * mults[i], 0);
   let vacMin = 0, sickMin = 0;
   list.forEach(s => { if (s.type === "vacation") vacMin += shiftMin(s); if (s.type === "sick") sickMin += shiftMin(s); });
   const vacPay = rate * vacMin / 60 * (+st.vacPct || 0) / 100;
   const sickPay = rate * sickMin / 60 * (+st.sickPct || 0) / 100;
-  return { ds, list, wMin, reg, ot: o1 + o2, buckets, special, workPay, vacMin, sickMin, vacPay, sickPay, pay: workPay + vacPay + sickPay };
+  return { ds, list, job: job || jobOf("main"), wMin, reg, ot: o1 + o2, buckets, bucketPay, special, workPay, vacMin, sickMin, vacPay, sickPay, pay: workPay + vacPay + sickPay };
 }
-function calcPeriod(key) {
+// overtime is counted per day and per workplace, each at its own rate
+function calcPeriod(key, filter = jobFilter()) {
   const [a, b] = periodRange(key);
   const by = {};
-  state.shifts.forEach(s => { if (s.date >= a && s.date <= b) (by[s.date] = by[s.date] || []).push(s); });
-  const days = Object.keys(by).sort().map(ds => {
-    by[ds].sort((x, y) => (x.start || "").localeCompare(y.start || ""));
-    return calcDay(ds, by[ds]);
+  state.shifts.forEach(s => {
+    if (s.date < a || s.date > b) return;
+    const jid = jobOf(s.jobId).id;
+    if (filter !== "all" && jid !== filter) return;
+    const k = s.date + "|" + jid; (by[k] = by[k] || []).push(s);
   });
-  const t = { wMin: 0, buckets: {}, workPay: 0, vacMin: 0, sickMin: 0, vacPay: 0, sickPay: 0, daysWorked: 0, otMin: 0 };
+  const days = Object.keys(by).sort().map(k => {
+    by[k].sort((x, y) => (x.start || "").localeCompare(y.start || ""));
+    const [ds, jid] = k.split("|");
+    return calcDay(ds, by[k], jobOf(jid));
+  });
+  const t = { wMin: 0, buckets: {}, bucketPay: {}, workPay: 0, vacMin: 0, sickMin: 0, vacPay: 0, sickPay: 0, daysWorked: 0, otMin: 0 };
+  const workedDates = new Set();
   days.forEach(d => {
     t.wMin += d.wMin; t.workPay += d.workPay; t.vacMin += d.vacMin; t.sickMin += d.sickMin;
-    t.vacPay += d.vacPay; t.sickPay += d.sickPay; t.otMin += d.ot; if (d.wMin > 0) t.daysWorked++;
-    for (const k in d.buckets) t.buckets[k] = (t.buckets[k] || 0) + d.buckets[k];
+    t.vacPay += d.vacPay; t.sickPay += d.sickPay; t.otMin += d.ot; if (d.wMin > 0) workedDates.add(d.ds);
+    for (const k in d.buckets) { t.buckets[k] = (t.buckets[k] || 0) + d.buckets[k]; t.bucketPay[k] = (t.bucketPay[k] || 0) + d.bucketPay[k]; }
   });
+  t.daysWorked = workedDates.size;
   t.travel = state.settings.travelOn ? t.daysWorked * (+state.settings.travelPerDay || 0) : 0;
-  t.adj = state.adjustments.filter(x => x.period === key);
+  t.adj = state.adjustments.filter(x => x.period === key && (filter === "all" || (x.jobId || "main") === filter));
   t.adjSum = t.adj.reduce((a, x) => a + (+x.amount || 0), 0);
   t.total = t.workPay + t.vacPay + t.sickPay + t.travel + t.adjSum;
   t.allMin = t.wMin + t.vacMin + t.sickMin;
-  return { key, range: [a, b], days, t };
+  t.rates = [...new Set(days.map(d => d.job.rate))];
+  return { key, range: [a, b], days, t, filter, job: filter === "all" ? null : jobOf(filter) };
+}
+// net pay estimate: Israeli income tax brackets and credit point value (frozen 2025–2027), National Insurance + health
+const TAX_BRACKETS = [[7010, .10], [10060, .14], [16150, .20], [22440, .31], [46690, .35], [60130, .47], [Infinity, .50]];
+function netEstimate(gross) {
+  const st = state.settings;
+  const pension = Math.max(0, gross * (+st.pensionPct || 0) / 100);
+  let tax = 0, prev = 0;
+  for (const [top, r] of TAX_BRACKETS) { if (gross > prev) tax += (Math.min(gross, top) - prev) * r; prev = top; }
+  const credits = (+st.creditPoints || 0) * 242 + 0.35 * Math.min(pension, gross * 0.07);
+  tax = Math.max(0, tax - credits);
+  const low = Math.min(gross, 7522), high = Math.max(0, Math.min(gross, 50695) - 7522);
+  const bl = low * 0.0427 + high * 0.1217;
+  return { gross, tax, bl, pension, net: gross - tax - bl - pension };
 }
 const fixedBreakMin = a => (a.breaks || []).reduce((s, b) => s + (+b.min || 0), 0);
 function activeBreakMs(a, now = Date.now()) { return fixedBreakMin(a) * 60000 + (a.breakMs || 0) + (a.breakStart ? now - a.breakStart : 0); }
@@ -628,11 +704,11 @@ function showCopy(title, text) {
 // ---------- clock actions ----------
 function clockIn() {
   const st = state.settings;
-  if (st.countdownOn && st.askPlan) { planModal(true); return; }
+  if ((st.countdownOn && st.askPlan) || multiJob()) { planModal(true); return; }
   startShift(st.countdownOn ? Math.round((+st.shiftHours || 8) * 60) : null);
 }
-function startShift(planMin) {
-  state.active = { start: Date.now(), breaks: [], breakMs: 0, breakStart: null, planMin: planMin || null };
+function startShift(planMin, jobId) {
+  state.active = { start: Date.now(), breaks: [], breakMs: 0, breakStart: null, planMin: planMin || null, jobId: jobId || ui.lastJob || "main" };
   ui.endAlert = null;
   commit("כניסה נרשמה · " + localHM(new Date()));
   if (planMin) askNotify();
@@ -642,17 +718,25 @@ function planModal(starting) {
   const st = state.settings, a = state.active;
   const def = Math.round((+st.shiftHours || 8) * 60);
   const cur = starting ? def : (a.planMin || def);
-  openModal(`<h3>${starting ? "כמה שעות תעבוד היום?" : "זמן המשמרת"}</h3>
-    <p class="muted small" style="margin:0">השעון יספור לאחור עד סוף המשמרת ויתריע כשהזמן נגמר. אפשר לשנות או לכבות בכל רגע.</p>
+  const showPlan = !starting || st.countdownOn;
+  const lastJob = (state.shifts.filter(x => !isLeave(x)).sort((x, y) => (x.date + x.start).localeCompare(y.date + y.start)).pop() || {}).jobId || "main";
+  let pickJob = jobOf(lastJob).id;
+  openModal(`<h3>${starting ? (showPlan ? "כמה שעות תעבוד היום?" : "כניסה למשמרת") : "זמן המשמרת"}</h3>
+    ${starting && multiJob() ? `<div class="fld"><label>איפה עובדים היום?</label><div class="jobchips" id="p-job">${allJobs().map(j => `<button type="button" data-j="${esc(j.id)}" aria-pressed="${j.id === pickJob}">${esc(j.name)}</button>`).join("")}</div></div>` : ""}
+    <div id="p-plan" ${showPlan ? "" : "hidden"}>
+    <div class="form">
+    <p class="muted small" style="margin:0">השעון יספור לאחור עד סוף המשמרת ויתריע כשהזמן נגמר. כשהזמן נגמר הוא ממשיך לספור עד שתצאו. אפשר לשנות או לכבות בכל רגע.</p>
     <div class="bgrid" id="p-grid">${[4, 5, 6, 7, 8, 9, 10, 12].map(h => `<button type="button" data-h="${h}" aria-pressed="${h * 60 === cur}">${h} ש׳</button>`).join("")}</div>
     <div class="grid2">
       <div class="fld"><label for="p-hours">מספר שעות</label><input type="number" id="p-hours" min="0.25" max="24" step="0.25" inputmode="decimal" value="${Math.round(cur / 60 * 100) / 100}"></div>
       <div class="fld"><label for="p-end">או: לסיים בשעה</label><input type="time" id="p-end"></div>
     </div>
     <div class="calc-preview" id="p-prev"></div>
-    ${starting ? `<label class="switch" for="p-ask"><span>לשאול אותי בכל כניסה</span><input type="checkbox" id="p-ask" checked></label>` : ""}
-    <div class="modal-actions"><button class="btn primary" id="p-go">${starting ? "התחלת משמרת" : "שמירה"}</button>${starting ? "" : `<button class="btn" data-dismiss>ביטול</button>`}</div>
-    <button class="btn ghost" id="p-off">${starting ? "כניסה בלי טיימר" : "כיבוי הטיימר"}</button>`, m => {
+    ${starting ? `<label class="switch" for="p-ask"><span>לשאול אותי בכל כניסה</span><input type="checkbox" id="p-ask" ${st.askPlan ? "checked" : ""}></label>` : ""}
+    </div></div>
+    <div class="modal-actions"><button class="btn primary" id="p-go">${starting ? (showPlan ? "כניסה עם טיימר" : "כניסה") : "שמירה"}</button>${starting ? "" : `<button class="btn" data-dismiss>ביטול</button>`}</div>
+    ${showPlan ? `<button class="btn ghost" id="p-off">${starting ? "כניסה בלי טיימר (רק שעון שסופר כמה עבדתי)" : "כיבוי הטיימר"}</button>` : ""}`, m => {
+    m.querySelectorAll("#p-job button").forEach(b => b.onclick = () => { pickJob = b.dataset.j; m.querySelectorAll("#p-job button").forEach(x => x.setAttribute("aria-pressed", x === b)); });
     const startTs = starting ? Date.now() : a.start;
     const brk = () => starting ? 0 : activeBreakMs(a);
     const hoursEl = $("#p-hours", m), endEl = $("#p-end", m);
@@ -673,15 +757,16 @@ function planModal(starting) {
     prev();
     $("#p-go", m).onclick = () => {
       const mins = Math.round((+hoursEl.value || 0) * 60);
-      if (!(mins > 0) || mins > 1440) { toast("בחרו כמה שעות"); return; }
+      if (showPlan && (!(mins > 0) || mins > 1440)) { toast("בחרו כמה שעות"); return; }
       unlockAudio();
       if (starting) {
-        if (!$("#p-ask", m).checked) state.settings = { ...state.settings, askPlan: false };
-        closeModal(); startShift(mins);
+        if (!showPlan) { closeModal(); startShift(null, pickJob); return; }
+        state.settings = { ...state.settings, askPlan: $("#p-ask", m).checked };
+        closeModal(); startShift(mins, pickJob);
       } else { state.active = { ...state.active, planMin: mins }; ui.endAlert = null; closeModal(); commit(`המשמרת עודכנה ל-${fmtHM(mins)} שעות`); askNotify(); }
     };
-    $("#p-off", m).onclick = () => {
-      if (starting) { closeModal(); startShift(null); }
+    const off = $("#p-off", m); if (off) off.onclick = () => {
+      if (starting) { closeModal(); startShift(null, pickJob); }
       else { state.active = { ...state.active, planMin: null }; ui.endAlert = null; closeModal(); commit("הטיימר כובה"); }
     };
   });
@@ -771,7 +856,7 @@ function clockOut(at) {
   state.active = null; ui.endAlert = null;
   if (worked < 60000) { commit("המשמרת הייתה קצרה מדקה ולא נשמרה"); return; }
   const sd = new Date(a.start), ed = new Date(now);
-  const shift = { id: uid(), date: localDS(sd), start: localHM(sd), end: localHM(ed), breakMin: Math.round(brkMs / 60000), type: "work", note: "" };
+  const shift = { id: uid(), date: localDS(sd), start: localHM(sd), end: localHM(ed), breakMin: Math.round(brkMs / 60000), type: "work", note: "", jobId: jobOf(a.jobId).id };
   if (shift.start === shift.end) shift.end = localHM(new Date(now + 60000));
   state.shifts = [...state.shifts, shift];
   commit(`יציאה נרשמה · ${fmtHM(shiftMin(shift))} שעות`);
@@ -819,6 +904,7 @@ function shiftForm(existing, presetDate) {
   openModal(`<h3>${existing ? "עריכת משמרת" : "הוספת משמרת ידנית"}</h3>
     <div class="form">
       <div class="fld"><label>סוג</label><div class="seg" id="f-type">${Object.entries(TYPES).map(([k, v]) => `<button type="button" data-v="${k}" aria-pressed="${s.type === k}">${v}</button>`).join("")}</div></div>
+      ${multiJob() ? `<div class="fld"><label for="f-job">מקום עבודה</label><select id="f-job">${allJobs().map(j => `<option value="${esc(j.id)}" ${jobOf(s.jobId).id === j.id ? "selected" : ""}>${esc(j.name)}</option>`).join("")}</select></div>` : ""}
       <div class="fld"><label for="f-date">תאריך</label><input type="date" id="f-date" value="${esc(s.date)}"></div>
       <div id="f-times" class="form">
         <div class="grid2">
@@ -837,7 +923,7 @@ function shiftForm(existing, presetDate) {
     <div class="modal-actions"><button class="btn primary" id="f-save">${existing ? "שמירת שינויים" : "הוספה"}</button><button class="btn" data-dismiss>ביטול</button></div>
     ${existing ? `<button class="btn danger" id="f-del">מחיקת המשמרת</button>` : ""}`, m => {
     let type = s.type;
-    const read = () => ({ ...s, type, date: $("#f-date", m).value, start: $("#f-start", m).value, end: $("#f-end", m).value,
+    const read = () => ({ ...s, type, jobId: $("#f-job", m) ? $("#f-job", m).value : (s.jobId || (jobFilter() !== "all" ? jobFilter() : "main")), date: $("#f-date", m).value, start: $("#f-start", m).value, end: $("#f-end", m).value,
       breakMin: Math.max(0, Math.round(+$("#f-break", m).value || 0)), hours: Math.max(0, +$("#f-hours", m).value || 0), note: $("#f-note", m).value.trim() });
     const sync = () => {
       const leave = type === "vacation" || type === "sick";
@@ -896,6 +982,122 @@ function adjForm(key, existing) {
   });
 }
 
+// ---------- boss approval ----------
+function reportSnapshot(P) {
+  const st = state.settings;
+  const rows = [];
+  P.days.forEach(d => d.list.forEach((s, i) => rows.push({
+    date: fmtDate(d.ds), day: DAYS[weekday(d.ds)], first: i === 0, type: TYPES[s.type], we: d.special,
+    start: isLeave(s) ? "" : s.start, end: isLeave(s) ? "" : s.end, brk: isLeave(s) ? "" : (+s.breakMin || 0),
+    hours: fmtHM(shiftMin(s)), pay: i === 0 ? money(d.pay) : "", note: s.note || "", job: multiJob() && P.filter === "all" ? d.job.name : ""
+  })));
+  return { v: 1, worker: st.name || "", phone: account ? account.phone : "", employer: reportEmployer(P), rate: reportRate(P),
+    periodLabel: periodLabel(P.key), range: `${fmtDate(P.range[0])} – ${fmtDate(P.range[1])}`,
+    rows, summary: summaryRows(P).map(([k, v]) => [k.trim(), v]), total: money(P.t.total), hours: fmtHM(P.t.allMin), rules: rulesNote() };
+}
+async function loadReports(key) {
+  if (!session) return;
+  const { data, error } = await sb.from("attendance_reports").select("token, job_id, status, approver_name, boss_note, responded_at, created_at").eq("period", key).order("created_at", { ascending: false });
+  if (error) return;
+  ui.reports[key] = data || [];
+  const el = $("#sent-list"); if (el && ui.period === key) el.innerHTML = sentList(calcPeriod(key));
+}
+const reportLink = token => `${location.origin}/?r=${token}`;
+function sentList(P) {
+  const list = ui.reports[P.key];
+  if (!list) { loadReports(P.key); return ""; }
+  const mine = list.filter(r => (r.job_id || "all") === P.filter);
+  if (!mine.length) return "";
+  return mine.map(r => {
+    const st = { pending: ["pending", "ממתין לאישור"], approved: ["approved", "אושר ✓"], rejected: ["rejected", "יש הערה"] }[r.status] || ["pending", r.status];
+    const when = new Date(r.responded_at || r.created_at);
+    return `<div class="sent"><span><span class="status-chip ${st[0]}">${st[1]}</span> ${r.approver_name ? esc(r.approver_name) + " · " : ""}<span class="muted small num">${fmtDate(localDS(when))} ${localHM(when)}</span>${r.boss_note ? `<br><span class="small">״${esc(r.boss_note)}״</span>` : ""}</span>
+      <button class="btn sm" data-sharelink="${esc(r.token)}">שליחת הקישור שוב</button></div>`;
+  }).join("");
+}
+async function sendApproval() {
+  const P = calcPeriod(ui.period);
+  if (!P.days.length) { toast("אין משמרות בחודש הזה"); return; }
+  const btn = $('[data-act="sendApproval"]'); if (btn) btn.disabled = true;
+  const { data, error } = await sb.from("attendance_reports").insert({ user_id: session.user.id, period: P.key, job_id: P.filter, snapshot: reportSnapshot(P) }).select("token").single();
+  if (btn) btn.disabled = false;
+  if (error || !data) { toast("לא הצלחנו ליצור קישור. בדקו חיבור לאינטרנט"); return; }
+  delete ui.reports[P.key];
+  shareApprovalLink(data.token, P);
+  render();
+}
+function shareApprovalLink(token, P) {
+  P = P || calcPeriod(ui.period);
+  const text = `שלום, זה דוח השעות שלי ל${periodLabel(P.key)}: ${P.t.allMin ? fmtHM(P.t.allMin) + " שעות, " : ""}${money(P.t.total)}.\nאפשר לראות את הפירוט ולאשר כאן:\n${reportLink(token)}`;
+  shareText(text, "דוח שעות לאישור");
+}
+
+async function loadBoss() {
+  const { data, error } = await sb.rpc("attendance_get_report", { p_token: bossToken });
+  bossData = error ? { error: true } : (data || { missing: true });
+  renderBoss();
+}
+function renderBoss() {
+  $("#nav").hidden = true;
+  const app = $("#app");
+  if (!bossData) { app.innerHTML = `<div class="loading">טוען את הדוח…</div>`; return; }
+  if (bossData.error) { app.innerHTML = `<div class="loading">אין חיבור לאינטרנט. רעננו את הדף.</div>`; return; }
+  if (bossData.missing) { app.innerHTML = `<div class="loading">הדוח לא נמצא. אולי העובד מחק אותו.</div>`; return; }
+  const r = bossData.snapshot || {}, rows = Array.isArray(r.rows) ? r.rows : [];
+  const hasJob = rows.some(x => x.job);
+  const status = bossData.status;
+  const respond = status === "pending" ? `<section class="card form"><h3>אישור השעות</h3>
+      <div class="fld"><label for="bs-name">השם שלך</label><input type="text" id="bs-name" maxlength="60" autocomplete="name"></div>
+      <div class="fld"><label for="bs-note">הערה לעובד (לא חובה)</label><textarea id="bs-note" maxlength="500" rows="2"></textarea></div>
+      <div class="err-msg" id="bs-err"></div>
+      <div class="btn-row"><button class="btn primary" data-boss="approve">אישור השעות</button><button class="btn" data-boss="reject">שליחת הערה בלי לאשר</button></div></section>`
+    : `<section class="card"><span class="status-chip ${esc(status)}">${status === "approved" ? "הדוח אושר ✓" : "נשלחה הערה"}</span>
+      <p style="margin:8px 0 0">${esc(bossData.approver_name || "")}${bossData.responded_at ? ` · <span class="num">${fmtDate(localDS(new Date(bossData.responded_at)))} ${localHM(new Date(bossData.responded_at))}</span>` : ""}</p>${bossData.boss_note ? `<p class="muted" style="margin:4px 0 0">״${esc(bossData.boss_note)}״</p>` : ""}</section>`;
+  app.innerHTML = `<header class="top"><div class="brand"><h1>דוח שעות לאישור</h1><span class="who">${esc(r.worker || "")}</span></div></header>
+    <article class="sheet">
+      <div class="sheet-h"><div><h2>${esc(r.periodLabel || "")}</h2><div class="muted small num">${esc(r.range || "")}</div></div>
+        <div class="meta"><span>עובד/ת:</span><b>${esc(r.worker || "—")}</b>${r.phone ? `<span>טלפון:</span><b class="num">${esc(r.phone)}</b>` : ""}<span>מעסיק:</span><b>${esc(r.employer || "—")}</b><span>תעריף:</span><b>${esc(r.rate || "")}</b></div></div>
+      <div class="tbl-wrap"><table class="rep"><thead><tr><th>תאריך</th>${hasJob ? "<th>עבודה</th>" : ""}<th>סוג</th><th>כניסה</th><th>יציאה</th><th>הפסקה (דק׳)</th><th>שעות</th><th>סכום</th><th>הערה</th></tr></thead><tbody>
+      ${rows.map(x => `<tr class="${x.we ? "we" : ""}"><td>${x.first ? esc(x.date + " " + x.day) : ""}</td>${hasJob ? `<td>${esc(x.job)}</td>` : ""}<td>${esc(x.type)}</td><td class="n">${esc(x.start || "—")}</td><td class="n">${esc(x.end || "—")}</td><td class="n">${esc(x.brk === "" ? "—" : x.brk)}</td><td class="n">${esc(x.hours)}</td><td class="n">${esc(x.pay)}</td><td>${esc(x.note)}</td></tr>`).join("")}
+      </tbody></table></div>
+      <div class="kv" style="margin-top:14px">${(Array.isArray(r.summary) ? r.summary : []).map(([k, v], i, arr) => `<div class="r${i === arr.length - 1 ? " total" : ""}"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`).join("")}</div>
+      <p class="muted small">${esc(r.rules || "")}</p>
+    </article>${respond}
+    <p class="muted small" style="text-align:center">נשלח מאפליקציית שעון נוכחות</p>`;
+}
+async function bossRespond(approve) {
+  const name = ($("#bs-name") || {}).value?.trim() || "", note = ($("#bs-note") || {}).value?.trim() || "";
+  if (!name) { $("#bs-err").textContent = "כתבו את השם שלכם"; return; }
+  if (!approve && !note) { $("#bs-err").textContent = "כתבו מה צריך לתקן"; return; }
+  document.querySelectorAll("[data-boss]").forEach(b => b.disabled = true);
+  const { data, error } = await sb.rpc("attendance_respond_report", { p_token: bossToken, p_approve: approve, p_name: name, p_note: note });
+  if (error) { $("#bs-err").textContent = "לא נשמר. בדקו חיבור ונסו שוב"; document.querySelectorAll("[data-boss]").forEach(b => b.disabled = false); return; }
+  bossData = data; renderBoss(); toast(approve ? "הדוח אושר. העובד יקבל הודעה" : "ההערה נשלחה לעובד");
+}
+
+// ---------- background notifications (Web Push) ----------
+const pushSupported = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+function b64ToBytes(b64) { const pad = "=".repeat((4 - b64.length % 4) % 4); const raw = atob((b64 + pad).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from(raw, c => c.charCodeAt(0)); }
+async function enablePush(silent) {
+  if (!pushSupported()) { if (!silent) toast(isIOS() ? "באייפון: קודם מתקינים למסך הבית, ואז מפעילים התראות" : "הדפדפן הזה לא תומך בהתראות"); return false; }
+  const perm = Notification.permission === "default" && !silent ? await Notification.requestPermission() : Notification.permission;
+  if (perm !== "granted") { if (!silent) toast("ההתראות חסומות. אפשרו אותן בהגדרות הדפדפן"); return false; }
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(VAPID_PUBLIC_KEY) });
+    const j = sub.toJSON();
+    const { error } = await sb.from("attendance_push_subs").upsert({ endpoint: j.endpoint, user_id: session.user.id, p256dh: j.keys.p256dh, auth: j.keys.auth }, { onConflict: "endpoint" });
+    if (error) throw error;
+    return true;
+  } catch (e) { if (!silent) toast("לא הצלחנו להפעיל התראות. נסו שוב"); return false; }
+}
+async function disablePush() {
+  try {
+    const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription();
+    if (sub) { await sb.from("attendance_push_subs").delete().eq("endpoint", sub.endpoint); await sub.unsubscribe(); }
+  } catch (e) {}
+}
+
 // ---------- views ----------
 function header() {
   const st = state.settings;
@@ -919,9 +1121,10 @@ function setupCard() {
 function viewClock() {
   const st = state.settings, a = state.active, now = new Date();
   const curKey = periodKeyOf(todayDS());
-  const P = calcPeriod(curKey);
+  const P = calcPeriod(curKey, "all");
   const todayList = state.shifts.filter(s => s.date === todayDS()).sort((x, y) => (x.start || "").localeCompare(y.start || ""));
-  const todayCalc = calcDay(todayDS(), todayList);
+  const todayCalc = allJobs().map(j => calcDay(todayDS(), todayList.filter(x => jobOf(x.jobId).id === j.id), j))
+    .reduce((acc, d) => ({ wMin: acc.wMin + d.wMin, vacMin: acc.vacMin + d.vacMin, sickMin: acc.sickMin + d.sickMin, pay: acc.pay + d.pay }), { wMin: 0, vacMin: 0, sickMin: 0, pay: 0 });
   let clock;
   if (!a) {
     clock = `<section class="card clock">
@@ -937,14 +1140,15 @@ function viewClock() {
     if (timed > 0) chips.push(`<button class="bchip" data-rmbreak="timed">${timed} דק׳ (טיימר)<span class="x">×</span></button>`);
     const plan = a.planMin;
     const long = activeWorkedMs() > 13 * 3600000;
-    clock = `${ui.endAlert ? `<section class="alert-card" role="alert"><h3>המשמרת הסתיימה</h3><span>עבדת את ${fmtHM(plan || 0)} השעות שתכננת. סיימת? אפשר להחתים יציאה, או להאריך.</span>
-        <div class="btn-row"><button class="btn solid" data-act="clockOut">יציאה עכשיו</button><button class="btn" data-act="extend30">עוד חצי שעה</button><button class="btn" data-act="dismissAlert">המשך בלי טיימר</button></div></section>` : ""}
+    clock = `${ui.endAlert ? `<section class="alert-card" role="alert"><h3>המשמרת הסתיימה</h3><span>עבדת את ${fmtHM(plan || 0)} השעות שתכננת. השעון ממשיך לספור עד שתלחצו יציאה.</span>
+        <div class="btn-row"><button class="btn solid" data-act="clockOut">יציאה עכשיו</button><button class="btn" data-act="dismissAlert">ממשיך לעבוד</button><button class="btn" data-act="extend30">עוד חצי שעה לטיימר</button></div></section>` : ""}
       ${long ? `<div class="banner"><span>המשמרת פתוחה כבר יותר מ-13 שעות. שכחת להחתים יציאה?</span><button class="btn sm" data-act="fixOut">רישום שעת יציאה</button></div>` : ""}
       <section class="card clock">
-      <span class="status ${a.breakStart ? "break" : ""}"><span class="dot"></span>${a.breakStart ? "בהפסקה" : "במשמרת"} · מאז <span class="num">${localHM(sd)}</span>${sameDay ? "" : ` (${fmtDate(localDS(sd))})`}</span>
-      ${plan ? `<div class="cd-label" id="cd-label">נשאר עד סוף המשמרת</div>` : ""}
-      <div class="elapsed mono" id="${plan ? "countdown" : "elapsed"}">00:00:00</div>
-      ${plan ? `<div class="worked-line"><span>עבדת <b id="elapsed">0:00:00</b></span><span>סיום משוער <b id="cd-end">--:--</b></span></div>` : ""}
+      <span class="status ${a.breakStart ? "break" : ""}"><span class="dot"></span>${a.breakStart ? "בהפסקה" : "במשמרת"}${multiJob() ? ` · ${esc(jobOf(a.jobId).name)}` : ""} · מאז <span class="num">${localHM(sd)}</span>${sameDay ? "" : ` (${fmtDate(localDS(sd))})`}</span>
+      <div class="timers ${plan ? "" : "one"}">
+        <div class="tblock"><span class="tl">עובד כבר</span><span class="tv" id="elapsed">00:00:00</span>${plan ? `<span class="ts">מתוך <span class="num">${fmtHM(plan)}</span> ש׳</span>` : ""}</div>
+        ${plan ? `<div class="tblock cd" id="cd-block"><span class="tl" id="cd-label">נשאר</span><span class="tv" id="countdown">00:00:00</span><span class="ts">סיום ב-<span class="num" id="cd-end">--:--</span></span></div>` : ""}
+      </div>
       <div class="earn" id="earn-live"></div>
       ${plan ? `<div class="progress" id="prog"></div>` : ""}
       ${chips.length ? `<div class="breaks"><span class="muted">הפסקות:</span>${chips.join("")}</div>` : ""}
@@ -973,7 +1177,7 @@ function viewClock() {
 function goalBar(t) {
   const goal = +state.settings.goalAmount || 0; if (!(goal > 0)) return "";
   const pct = Math.max(0, Math.min(100, t.total / goal * 100));
-  const rate = +state.settings.rate || 0, left = Math.max(0, goal - t.total);
+  const rate = t.wMin > 0 ? t.workPay / (t.wMin / 60) : jobOf("main").rate, left = Math.max(0, goal - t.total);
   return `<div class="goal"><div class="txt"><span>יעד החודש: <b class="num">${money(goal)}</b></span><span class="num">${Math.round(pct)}%</span></div>
     <div class="track"><div class="fill" style="width:${pct}%"></div></div>
     <div class="txt"><span>${left > 0 ? `חסר <b class="num">${money(left)}</b>${rate ? ` · בערך ${fmtHM(left / rate * 60)} שעות עבודה` : ""}` : "הגעת ליעד! 🎉"}</span></div></div>`;
@@ -986,24 +1190,39 @@ function shiftRow(s) {
   if (!isLeave(s) && +s.breakMin) bits.push(`הפסקה ${s.breakMin} דק׳`);
   if (!isLeave(s) && toMin(s.end) <= toMin(s.start)) bits.push("עד למחרת");
   if (s.note) bits.push(s.note);
-  return `<button class="shift" data-edit="${esc(s.id)}">${label}<span class="meta">${esc(bits.join(" · "))}</span><span class="h num">${fmtHM(mn)}</span></button>`;
+  return `<button class="shift" data-edit="${esc(s.id)}">${label}<span class="meta">${multiJob() && ui.tab === "clock" ? `<span class="jtag">${esc(jobOf(s.jobId).name)}</span> ` : ""}${esc(bits.join(" · "))}</span><span class="h num">${fmtHM(mn)}</span></button>`;
+}
+function jobFilterBar() {
+  if (!multiJob()) return "";
+  const f = jobFilter();
+  return `<div class="jobchips" role="group" aria-label="סינון לפי מקום עבודה"><button data-jobf="all" aria-pressed="${f === "all"}">כל העבודות</button>${allJobs().map(j => `<button data-jobf="${esc(j.id)}" aria-pressed="${f === j.id}">${esc(j.name)}</button>`).join("")}</div>`;
 }
 function periodNav() {
   const sub = periodSub(ui.period);
-  return `<div class="pnav"><button data-act="prevP" aria-label="החודש הקודם">→</button><h2>${esc(periodLabel(ui.period))}${sub ? `<span class="sub num">${sub}</span>` : ""}</h2><button data-act="nextP" aria-label="החודש הבא">←</button></div>`;
+  return `${jobFilterBar()}<div class="pnav"><button data-act="prevP" aria-label="החודש הקודם">→</button><h2>${esc(periodLabel(ui.period))}${sub ? `<span class="sub num">${sub}</span>` : ""}</h2><button data-act="nextP" aria-label="החודש הבא">←</button></div>`;
 }
 function breakdown(P) {
-  const t = P.t, rate = +state.settings.rate || 0, rows = [];
+  const t = P.t, rate = t.rates.length === 1 ? t.rates[0] : null, rows = [];
   Object.keys(t.buckets).map(Number).sort((a, b) => a - b).forEach(k => {
     const mn = t.buckets[k];
-    rows.push([`שעות ${k}%`, `${fmtHM(mn)} ש׳ × ${money(rate * k / 100)}`, money(rate * mn / 60 * k / 100)]);
+    rows.push([`שעות ${k}%`, rate != null ? `${fmtHM(mn)} ש׳ × ${money(rate * k / 100)}` : `${fmtHM(mn)} ש׳`, money(t.bucketPay[k])]);
   });
   if (t.vacMin) rows.push([`חופשה${+state.settings.vacPct !== 100 ? ` (${state.settings.vacPct}%)` : ""}`, `${fmtHM(t.vacMin)} ש׳`, money(t.vacPay)]);
   if (t.sickMin) rows.push([`מחלה${+state.settings.sickPct !== 100 ? ` (${state.settings.sickPct}%)` : ""}`, `${fmtHM(t.sickMin)} ש׳`, money(t.sickPay)]);
   if (t.travel) rows.push(["נסיעות", `${t.daysWorked} ימים × ${money(+state.settings.travelPerDay)}`, money(t.travel)]);
   t.adj.forEach(x => rows.push([`<button class="link" style="padding:0" data-adj="${esc(x.id)}">${esc(x.label)}</button>`, "", money(+x.amount)]));
   return `<div class="kv">${rows.map(([k, d, v]) => `<div class="r"><span class="k">${k}${d ? `<br><span class="muted small num">${d}</span>` : ""}</span><span class="v">${v}</span></div>`).join("")}
-    <div class="r total"><span class="k">סה״כ לתשלום (ברוטו)</span><span class="v">${money(t.total)}</span></div></div>`;
+    <div class="r total"><span class="k">סה״כ לתשלום (ברוטו)</span><span class="v">${money(t.total)}</span></div></div>${netBlock(t.total)}`;
+}
+function netBlock(gross) {
+  if (!state.settings.netOn || !(gross > 0)) return "";
+  const n = netEstimate(gross);
+  return `<details class="net"><summary><span>הערכת נטו לבנק</span><span class="v">≈ ${money(n.net)}</span></summary>
+    <div class="kv" style="margin-top:6px">
+      <div class="r"><span class="k">מס הכנסה <span class="muted small">(${+state.settings.creditPoints} נקודות זיכוי)</span></span><span class="v">-${money(n.tax)}</span></div>
+      <div class="r"><span class="k">ביטוח לאומי ובריאות</span><span class="v">-${money(n.bl)}</span></div>
+      ${n.pension ? `<div class="r"><span class="k">פנסיה (${+state.settings.pensionPct}%)</span><span class="v">-${money(n.pension)}</span></div>` : ""}
+    </div><p class="muted small" style="margin:6px 0 0">הערכה בלבד, לפי מדרגות המס הנוכחיות. התלוש בפועל יכול להיות שונה. משנים נקודות זיכוי ופנסיה בהגדרות.</p></details>`;
 }
 function chart(P) {
   const dates = datesBetween(P.range[0], P.range[1]);
@@ -1027,7 +1246,7 @@ function viewMonth() {
   const P = calcPeriod(ui.period), t = P.t;
   const dayCards = P.days.slice().reverse().map(d => {
     const chips = Object.keys(d.buckets).map(Number).filter(k => k !== 100).sort((a, b) => a - b).map(k => `<span class="chip">${k}%</span>`).join("");
-    return `<div class="day"><div class="day-h"><span class="d">${fmtDateLong(d.ds)}<small>יום ${DAYS[weekday(d.ds)]}</small> <span class="chips">${chips}</span></span>
+    return `<div class="day"><div class="day-h"><span class="d">${fmtDateLong(d.ds)}<small>יום ${DAYS[weekday(d.ds)]}</small>${multiJob() && P.filter === "all" ? `<span class="jtag">${esc(d.job.name)}</span>` : ""} <span class="chips">${chips}</span></span>
       <span class="t"><span class="num">${fmtHM(d.wMin + d.vacMin + d.sickMin)}</span> ש׳<br><span class="num muted">${money(d.pay)}</span></span></div>
       ${d.list.map(shiftRow).join("")}</div>`;
   }).join("");
@@ -1066,10 +1285,10 @@ function reportTable(P) {
     <tfoot><tr><td colspan="5">סה״כ</td><td class="n">${fmtHM(t.allMin)}</td>${keys.map(k => `<td class="n">${t.buckets[k] ? fmtHM(t.buckets[k]) : ""}</td>`).join("")}<td class="n">${money(t.workPay + t.vacPay + t.sickPay)}</td><td></td></tr></tfoot></table>`;
 }
 function summaryRows(P) {
-  const t = P.t, st = state.settings, rate = +st.rate || 0, rows = [];
+  const t = P.t, rows = [];
   rows.push(["ימי עבודה", String(t.daysWorked)]);
   rows.push(["סה״כ שעות עבודה", `${fmtHM(t.wMin)} (${fmtDec(t.wMin)})`]);
-  Object.keys(t.buckets).map(Number).sort((a, b) => a - b).forEach(k => rows.push([`  שעות ${k}%`, `${fmtHM(t.buckets[k])} = ${money(rate * t.buckets[k] / 60 * k / 100)}`]));
+  Object.keys(t.buckets).map(Number).sort((a, b) => a - b).forEach(k => rows.push([`  שעות ${k}%`, `${fmtHM(t.buckets[k])} = ${money(t.bucketPay[k])}`]));
   if (t.vacMin) rows.push(["חופשה", `${fmtHM(t.vacMin)} = ${money(t.vacPay)}`]);
   if (t.sickMin) rows.push(["מחלה", `${fmtHM(t.sickMin)} = ${money(t.sickPay)}`]);
   if (t.travel) rows.push(["נסיעות", money(t.travel)]);
@@ -1077,6 +1296,8 @@ function summaryRows(P) {
   rows.push(["סה״כ לתשלום (ברוטו)", money(t.total)]);
   return rows;
 }
+function reportEmployer(P) { return P.job ? P.job.name : (multiJob() ? "כל העבודות" : jobOf("main").name); }
+function reportRate(P) { return P.t.rates.length === 1 ? `${money(P.t.rates[0])} לשעה` : (P.job ? `${money(P.job.rate)} לשעה` : allJobs().map(j => `${j.name}: ${money(j.rate)}`).join(" · ")); }
 function rulesNote() {
   const st = state.settings;
   return `${st.otEnabled ? `שעות נוספות מחושבות לפי יום: מעל ${+st.otThreshold} ש׳ — ${+st.ot1Span} השעות הראשונות 125%, ומעבר להן 150%.` : "ללא חישוב שעות נוספות."}${st.weekendOn ? ` עבודה בשבת/חג: ${+st.weekendRate}%.` : ""} הסכומים ברוטו, לפני ניכויי מס וביטוח לאומי.`;
@@ -1085,9 +1306,14 @@ function viewReport() {
   const P = calcPeriod(ui.period), st = state.settings;
   const [a, b] = P.range;
   return `${header()}${sampleBanner()}${periodNav()}
-    <section class="card"><h3>שליחה לבוס</h3>
+    <section class="card"><h3>אישור הבוס</h3>
+      <p class="muted small" style="margin:0 0 10px">הבוס מקבל קישור, רואה את כל השעות ומאשר בלחיצה. כשהוא מאשר, תקבלו התראה.</p>
+      <button class="btn primary block" data-act="sendApproval">שליחת הדוח לאישור הבוס</button>
+      <div class="sent-list" id="sent-list">${sentList(P)}</div>
+    </section>
+    <section class="card"><h3>שליחה כקובץ</h3>
       <div class="export">
-        <button class="btn primary" data-act="shareSummary">שליחת סיכום<small>וואטסאפ, מייל או SMS</small></button>
+        <button class="btn" data-act="shareSummary">שליחת סיכום<small>וואטסאפ, מייל או SMS</small></button>
         <button class="btn" data-act="dlCsv">קובץ Excel<small>כל המשמרות בטבלה</small></button>
         <button class="btn" data-act="printReport">הדפסה / PDF<small>דוח מעוצב עם חתימות</small></button>
         <button class="btn" data-act="dlHtml">קובץ דוח<small>לשליחה כקובץ מצורף</small></button>
@@ -1095,7 +1321,7 @@ function viewReport() {
     </section>
     <article class="sheet">
       <div class="sheet-h"><div><h2>דוח שעות עבודה</h2><div class="muted small">${esc(periodLabel(P.key))} · <span class="num">${fmtDate(a)} – ${fmtDate(b)}</span></div></div>
-        <div class="meta"><span>עובד/ת:</span><b>${esc(st.name || "—")}</b>${account && account.phone ? `<span>טלפון:</span><b class="num">${esc(account.phone)}</b>` : ""}<span>מעסיק:</span><b>${esc(st.employer || "—")}</b><span>תעריף:</span><b class="num">${money(+st.rate || 0)} לשעה</b></div></div>
+        <div class="meta"><span>עובד/ת:</span><b>${esc(st.name || "—")}</b>${account && account.phone ? `<span>טלפון:</span><b class="num">${esc(account.phone)}</b>` : ""}<span>מעסיק:</span><b>${esc(reportEmployer(P) || "—")}</b><span>תעריף:</span><b class="num">${esc(reportRate(P))}</b></div></div>
       <div class="tbl-wrap">${reportTable(P)}</div>
       <div class="kv" style="margin-top:14px">${summaryRows(P).map(([k, v], i, arr) => `<div class="r${i === arr.length - 1 ? " total" : ""}"><span class="k">${esc(k.trim())}</span><span class="v">${esc(v)}</span></div>`).join("")}</div>
       <p class="muted small">${rulesNote()}</p>
@@ -1118,11 +1344,15 @@ function viewSettings() {
     <section class="card form"><h3>המשמרת שלי</h3>
       <div class="grid2">
         <div class="fld"><label for="s-name">שם העובד/ת</label><input type="text" id="s-name" data-set="name" maxlength="50" value="${esc(st.name)}" placeholder="השם שלך"></div>
-        <div class="fld"><label for="s-employer">מקום העבודה</label><input type="text" id="s-employer" data-set="employer" maxlength="50" value="${esc(st.employer)}" placeholder="שם העסק"></div>
-      </div>
-      <div class="grid2">
-        ${num("s-rate", "תעריף לשעה", st.rate, 'min="0" step="0.5" inputmode="decimal"')}
         ${num("s-shiftHours", "כמה שעות המשמרת שלי", st.shiftHours, 'min="1" max="24" step="0.5" inputmode="decimal"', "ברירת המחדל לטיימר")}
+      </div>
+      <div class="fld"><label>מקומות עבודה ותעריף לשעה</label>
+        <div class="joblist">
+          <div class="jobrow"><input type="text" id="s-employer" data-set="employer" maxlength="50" value="${esc(st.employer)}" placeholder="שם העסק" aria-label="מקום עבודה ראשי"><input type="number" id="s-rate" data-set="rate" value="${esc(st.rate)}" min="0" step="0.5" inputmode="decimal" aria-label="תעריף לשעה"><span></span></div>
+          ${(st.jobs || []).map(j => `<div class="jobrow"><input type="text" data-job="${esc(j.id)}" data-jobkey="name" maxlength="50" value="${esc(j.name)}" placeholder="שם העסק" aria-label="מקום עבודה"><input type="number" data-job="${esc(j.id)}" data-jobkey="rate" value="${esc(j.rate)}" min="0" step="0.5" inputmode="decimal" aria-label="תעריף לשעה"><button class="x" data-deljob="${esc(j.id)}" aria-label="מחיקת מקום העבודה">×</button></div>`).join("")}
+        </div>
+        <button class="btn sm" data-act="addJob" style="align-self:flex-start">+ עוד מקום עבודה</button>
+        <span class="hint">עובדים בכמה מקומות? כל אחד עם תעריף ודוח משלו.</span>
       </div>
       <div class="grid2">
         <div class="fld"><label for="s-currency">מטבע</label><select id="s-currency" data-set="currency">${["₪", "$", "€", "£"].map(c => `<option ${c === st.currency ? "selected" : ""}>${c}</option>`).join("")}</select></div>
@@ -1136,6 +1366,21 @@ function viewSettings() {
       ${st.countdownOn ? sw("s-askPlan", "לשאול כמה שעות בכל כניסה", st.askPlan, `אם כבוי — כל משמרת מתחילה עם ${+st.shiftHours} שעות`) : ""}
       ${st.countdownOn ? sw("s-alertBefore", "התראה 10 דקות לפני הסוף", st.alertBefore) : ""}
       ${st.countdownOn ? `<button class="btn sm" data-act="testAlert">בדיקת התראה וצליל</button><p class="muted small" style="margin:0">ההתראה מגיעה כשהאפליקציה פתוחה או ברקע. אם הטלפון סגר אותה לגמרי, תראו את המצב כשתפתחו שוב.</p>` : ""}
+    </section>
+    <section class="card form"><h3>התראות לטלפון</h3>
+      ${sw("s-pushOn", "התראות גם כשהאפליקציה סגורה", st.pushOn, "סוף משמרת, משמרת שנשכחה פתוחה, ואישור מהבוס")}
+      ${isIOS() && !isStandalone() ? `<p class="muted small" style="margin:0">באייפון ההתראות עובדות רק אחרי התקנה למסך הבית.</p>` : ""}
+      ${sw("s-remindOn", "תזכורת להחתים כניסה", st.remindOn, "אם עוד לא נכנסתם עד השעה הזו")}
+      ${st.remindOn ? `<div class="grid2"><div class="fld"><label for="s-remindTime">שעת התזכורת</label><input type="time" id="s-remindTime" data-set="remindTime" value="${esc(st.remindTime || "08:00")}"></div><span></span></div>
+        <div class="fld"><label>בימים</label><div class="days-pick">${DAYS.map((d, i) => `<button type="button" data-rday="${i}" aria-pressed="${(st.remindDays || []).includes(i)}">${d}</button>`).join("")}</div></div>` : ""}
+      ${st.pushOn || st.remindOn ? `<button class="btn sm" data-act="testPush" style="align-self:flex-start">שליחת התראת בדיקה</button>` : ""}
+    </section>
+    <section class="card form"><h3>הערכת נטו</h3>
+      ${sw("s-netOn", "להציג כמה ייכנס לבנק בערך", st.netOn, "מס הכנסה, ביטוח לאומי ופנסיה")}
+      ${st.netOn ? `<div class="grid2">
+        ${num("s-creditPoints", "נקודות זיכוי", st.creditPoints, 'min="0" max="20" step="0.25" inputmode="decimal"', "גבר: 2.25 · אישה: 2.75 · ועוד לפי ילדים ותואר")}
+        ${num("s-pensionPct", "ניכוי פנסיה (%)", st.pensionPct, 'min="0" max="10" step="0.5" inputmode="decimal"', "בדרך כלל 6%")}
+      </div>` : ""}
     </section>
     <section class="card form"><h3>יעד חודשי</h3>
       ${num("s-goalAmount", `כמה אני רוצה להרוויח בחודש (${esc(st.currency)})`, st.goalAmount, 'min="0" step="100" inputmode="decimal"', "0 = בלי יעד. מוצג פס התקדמות במסך השעון והחודש")}
@@ -1177,6 +1422,7 @@ function installCard(always) {
 if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
 
 function render() {
+  if (bossToken) { renderBoss(); return; }
   const app = $("#app"), nav = $("#nav");
   if (!session) { nav.hidden = true; app.innerHTML = viewAuth(); return; }
   if (ui.needPhone) { nav.hidden = true; app.innerHTML = viewNeedPhone(); return; }
@@ -1201,16 +1447,17 @@ function tick() {
   const a = state.active;
   const ms = activeWorkedMs(); const s = Math.floor(ms / 1000);
   const hms = sec => `${pad(Math.floor(sec / 3600))}:${pad(Math.floor(sec / 60) % 60)}:${pad(sec % 60)}`;
-  const el = $("#elapsed"); if (el) el.textContent = a.planMin ? `${Math.floor(s / 3600)}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}` : hms(s);
+  const el = $("#elapsed"); if (el) el.textContent = hms(s);
   if (a.planMin) {
     const rem = a.planMin * 60000 - ms;
     checkAlerts(rem);
     const cd = $("#countdown"), lb = $("#cd-label"), ce = $("#cd-end");
-    if (cd) { cd.textContent = (rem < 0 ? "+" : "") + hms(Math.floor(Math.abs(rem) / 1000)); cd.classList.toggle("over", rem < 0); }
-    if (lb) { lb.textContent = rem < 0 ? "עברת את זמן המשמרת ב-" : "נשאר עד סוף המשמרת"; lb.classList.toggle("over", rem < 0); }
+    if (cd) cd.textContent = (rem < 0 ? "+" : "") + hms(Math.floor(Math.abs(rem) / 1000));
+    const cb = $("#cd-block"); if (cb) cb.classList.toggle("over", rem < 0);
+    if (lb) lb.textContent = rem < 0 ? "מעבר לתכנון" : "נשאר";
     if (ce) ce.textContent = localHM(new Date(Date.now() + rem));
   }
-  const e = $("#earn-live"); const rate = +state.settings.rate || 0;
+  const e = $("#earn-live"); const rate = jobOf(a.jobId).rate;
   if (e) e.innerHTML = rate ? `הרווחתם עד עכשיו בערך <b class="num">${money(rate * ms / 3600000)}</b>` : `<span class="small">הגדירו תעריף כדי לראות כמה הרווחתם</span>`;
   const p = $("#prog"); const goal = (a.planMin || 0) * 60000;
   if (p && goal) {
@@ -1241,12 +1488,12 @@ async function shareOrDownload(filename, data, mime) {
   downloadFile(filename, data, mime); toast("הקובץ ירד למכשיר");
 }
 function csvFor(P) {
-  const st = state.settings, rate = +st.rate || 0;
+  const st = state.settings;
   const q = v => { const s = String(v ?? ""); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
   const keys = [...new Set(P.days.flatMap(d => Object.keys(d.buckets).map(Number)))].sort((a, b) => a - b);
   const lines = [];
   lines.push(["דוח שעות", periodLabel(P.key)].map(q).join(","));
-  lines.push(["עובד/ת", st.name, "טלפון", account ? account.phone : "", "מעסיק", st.employer, "תעריף לשעה", rate].map(q).join(","));
+  lines.push(["עובד/ת", st.name, "טלפון", account ? account.phone : "", "מעסיק", reportEmployer(P), "תעריף", reportRate(P)].map(q).join(","));
   lines.push("");
   lines.push(["תאריך", "יום", "סוג", "כניסה", "יציאה", "הפסקה (דק')", "שעות", "שעות (עשרוני)", ...keys.map(k => `${k}%`), "סכום יומי", "הערה"].map(q).join(","));
   P.days.forEach(d => d.list.forEach((s, i) => {
@@ -1272,7 +1519,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:0}.sum{max-widt
 .note{color:#666;font-size:12px;margin-top:14px}.sign{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:48px;color:#555}.sign div{border-top:1px solid #111;padding-top:6px}
 @media print{body{margin:10mm}}</style></head><body>
 <div class="head"><div><h1>דוח שעות עבודה</h1><div>${esc(periodLabel(P.key))} · ${fmtDate(a)} – ${fmtDate(b)}</div></div>
-<div class="meta"><span>עובד/ת:</span><b>${esc(st.name || "—")}</b>${account && account.phone ? `<span>טלפון:</span><b>${esc(account.phone)}</b>` : ""}<span>מעסיק:</span><b>${esc(st.employer || "—")}</b><span>תעריף:</span><b>${money(+st.rate || 0)} לשעה</b></div></div>
+<div class="meta"><span>עובד/ת:</span><b>${esc(st.name || "—")}</b>${account && account.phone ? `<span>טלפון:</span><b>${esc(account.phone)}</b>` : ""}<span>מעסיק:</span><b>${esc(reportEmployer(P) || "—")}</b><span>תעריף:</span><b>${esc(reportRate(P))}</b></div></div>
 <div class="wrap">${reportTable(P)}</div>
 <div class="sum">${summaryRows(P).map(([k, v]) => `<div><span>${esc(k.trim())}</span><span>${esc(v)}</span></div>`).join("")}</div>
 <p class="note">${rulesNote()} הופק ב-${fmtDate(todayDS())}.</p>
@@ -1281,9 +1528,10 @@ ${autoPrint ? "<script>window.onload=function(){setTimeout(function(){window.pri
 }
 function summaryText(P) {
   const st = state.settings; const [a, b] = P.range;
-  const lines = [`דוח שעות – ${st.name || "עובד/ת"}`, `${st.employer ? st.employer + " · " : ""}${periodLabel(P.key)} (${fmtDate(a)}–${fmtDate(b)})`, ""];
+  const emp = reportEmployer(P);
+  const lines = [`דוח שעות – ${st.name || "עובד/ת"}`, `${emp ? emp + " · " : ""}${periodLabel(P.key)} (${fmtDate(a)}–${fmtDate(b)})`, ""];
   summaryRows(P).forEach(([k, v], i, arr) => lines.push(`${i === arr.length - 1 ? "*" : ""}${k}: ${v}${i === arr.length - 1 ? "*" : ""}`));
-  lines.push("", `תעריף: ${money(+st.rate || 0)} לשעה`);
+  lines.push("", `תעריף: ${reportRate(P)}`);
   return lines.join("\n");
 }
 async function shareText(text, title) {
@@ -1338,6 +1586,24 @@ document.addEventListener("click", e => {
   if (nav && nav.closest("#nav")) { goTab(nav.dataset.tab); return; }
   const go = e.target.closest("[data-tab-go]"); if (go) { goTab(go.dataset.tabGo); return; }
   const rb = e.target.closest("[data-rmbreak]"); if (rb) { removeBreak(rb.dataset.rmbreak); return; }
+  const bo = e.target.closest("[data-boss]"); if (bo) { bossRespond(bo.dataset.boss === "approve"); return; }
+  const jf = e.target.closest("[data-jobf]"); if (jf) { ui.job = jf.dataset.jobf; render(); return; }
+  const sl = e.target.closest("[data-sharelink]"); if (sl) { shareApprovalLink(sl.dataset.sharelink); return; }
+  const dj = e.target.closest("[data-deljob]"); if (dj) {
+    const j = (state.settings.jobs || []).find(x => x.id === dj.dataset.deljob);
+    const used = state.shifts.some(x => x.jobId === dj.dataset.deljob);
+    confirmBox("למחוק את מקום העבודה?", used ? `יש משמרות ב״${j ? j.name : ""}״. הן יעברו למקום העבודה הראשי.` : "אפשר להוסיף אותו שוב בכל זמן.", "מחיקה", () => {
+      state.shifts = state.shifts.map(x => x.jobId === dj.dataset.deljob ? { ...x, jobId: "main" } : x);
+      state.settings = { ...state.settings, jobs: (state.settings.jobs || []).filter(x => x.id !== dj.dataset.deljob) };
+      if (ui.job === dj.dataset.deljob) ui.job = "all";
+      commit("נמחק");
+    }, true); return;
+  }
+  const rd = e.target.closest("[data-rday]"); if (rd) {
+    const d = +rd.dataset.rday, cur = new Set(state.settings.remindDays || []);
+    cur.has(d) ? cur.delete(d) : cur.add(d);
+    state.settings = { ...state.settings, remindDays: [...cur].sort() }; commit(); return;
+  }
   const ed = e.target.closest("[data-edit]"); if (ed) { const s = state.shifts.find(x => x.id === ed.dataset.edit); if (s) shiftForm(s); return; }
   const adj = e.target.closest("[data-adj]"); if (adj) { const x = state.adjustments.find(y => y.id === adj.dataset.adj); if (x) adjForm(x.period, x); return; }
   const act = e.target.closest("[data-act]"); if (!act || act.closest("#modal-root")) return;
@@ -1347,9 +1613,12 @@ document.addEventListener("click", e => {
     case "clockIn": clockIn(); break;
     case "clockOut": clockOut(); break;
     case "addBreak": breakModal(); break;
+    case "sendApproval": sendApproval(); break;
+    case "addJob": state.settings = { ...state.settings, jobs: [...(state.settings.jobs || []), { id: "j" + uid().slice(0, 6), name: "", rate: +state.settings.rate || 0 }] }; commit(); setTimeout(() => { const ins = document.querySelectorAll('[data-jobkey="name"]'); if (ins.length) ins[ins.length - 1].focus(); }, 50); break;
+    case "testPush": enablePush(false).then(ok => { if (ok) { unlockAudio(); notify("בדיקת התראה", "ככה ייראו ההתראות מהשעון"); } }); break;
     case "editPlan": planModal(false); break;
     case "extend30": extendPlan(30); break;
-    case "dismissAlert": state.active = { ...state.active, planMin: null }; ui.endAlert = null; commit("הטיימר כובה"); break;
+    case "dismissAlert": ui.endAlert = null; render(); break;
     case "fixOut": fixClockOut(); break;
     case "testAlert": askNotify(); unlockAudio(); setTimeout(() => notify("בדיקת התראה", "ככה תיראה ההתראה בסוף המשמרת"), 400); break;
     case "endBreak": endTimedBreak(); break;
@@ -1397,6 +1666,16 @@ document.addEventListener("change", async e => {
     const { error } = await sb.from("attendance_accounts").update({ phone: normPhone(p) }).eq("user_id", session.user.id);
     if (error) { toast("לא נשמר. בדקו חיבור לאינטרנט"); return; }
     account = { ...account, phone: normPhone(p) }; toast("הטלפון עודכן"); return;
+  }
+  if (el.dataset && el.dataset.job) {
+    const id = el.dataset.job, k = el.dataset.jobkey;
+    const v = k === "rate" ? Math.max(0, +el.value || 0) : el.value.trim();
+    state.settings = { ...state.settings, jobs: (state.settings.jobs || []).map(j => j.id === id ? { ...j, [k]: v } : j) };
+    commit("נשמר", true); return;
+  }
+  if (el.id === "s-pushOn" || el.id === "s-remindOn") {
+    if (el.checked) { const ok = await enablePush(false); if (!ok) { el.checked = false; return; } }
+    else if (!(el.id === "s-pushOn" ? state.settings.remindOn : state.settings.pushOn)) await disablePush();
   }
   const key = el.dataset && el.dataset.set; if (!key) return;
   let v = el.type === "checkbox" ? el.checked : el.value;
