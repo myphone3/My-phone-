@@ -850,7 +850,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 <div class="sheet" id="typeSheet" role="dialog" aria-modal="true" aria-labelledby="typeTitle" hidden>
   <div class="sheet-inner">
     <div class="sheet-head"><h3 id="typeTitle">עריכת סוג</h3><button class="icon-btn" type="button" data-close>סגירה</button></div>
-    <div class="field"><label class="lbl" for="tName">שם</label><input id="tName" type="text"></div>
+    <div class="field"><label class="lbl" for="tName">שם</label><input id="tName" type="text" placeholder="למשל: החלפת מסך, אייפון 16, פרטנר"></div>
+    <div class="field"><span class="lbl" id="tKindLbl">קטגוריה</span><div class="chips" id="tKinds" role="group" aria-labelledby="tKindLbl"></div></div>
     <div class="field">
       <span class="lbl">מחיר</span>
       <div class="bonus-toggle">
@@ -1029,8 +1030,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   var DEFAULT_SUBS = {
     device: [["אייפון"], ["סמסונג"], ["שיאומי"], ["כשר"]],
     line: [["פלאפון"], ["סלקום"], ["פרטנר"], ["הוט מובייל"], ["גולן טלקום"], ["019 מובייל"], ["רמי לוי"]],
-    repair: [["מסך"], ["סוללה"], ["שקע טעינה"], ["זכוכית אחורית"], ["מצלמה", 1], ["סמארטפון יקר", 1], ["לוח אם", 1], ["תוכנה"], ["פיג"],
-      ["חסימת מצלמה"], ["הסרת מצלמה"], ["התקנת סינון"], ["הכשרת מכשיר"], ["מקלדת וכפתורים"], ["רמקול"], ["מיקרופון"], ["נזקי מים"], ["העברת אנשי קשר"], ["הדבקת מגן מסך"], ["פתיחת נעילה"]]
+    repair: [["מסך"], ["סוללה"], ["שקע טעינה"], ["זכוכית אחורית"], ["מצלמה", 1], ["סמארטפון יקר", 1], ["לוח אם", 1], ["תוכנה"], ["פיג"]]
   };
   // built-in pictures for common phones and carriers (shown when the manager has not uploaded one)
   var BUILTIN_IMG = [
@@ -1996,8 +1996,17 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     $("tTemp").checked = !!(t && (t.from || t.to)); $("tDates").hidden = !$("tTemp").checked;
     $("tFrom").value = (t && t.from) || todayStr(); $("tTo").value = (t && t.to) || "";
     editType.img = (t && t.img) || ""; paintTypeImg();
+    paintTypeKinds();
     show($("typeSheet"));
     if (!t) setTimeout(function () { $("tName").focus(); }, 50);
+  }
+  function paintTypeKinds() {
+    var box = $("tKinds"); box.textContent = "";
+    catsC(econf()).forEach(function (c) {
+      var b = el("button", "chip", c.name); b.type = "button"; b.setAttribute("aria-pressed", String(c.id === editType.kind));
+      b.addEventListener("click", function () { editType.kind = c.id; if (!editType.id) $("typeTitle").textContent = "סוג חדש ב" + catPlural(c.id); paintTypeKinds(); });
+      box.appendChild(b);
+    });
   }
   function paintTypeImg() { $("tImgPrev").hidden = !editType.img; $("tImgDel").hidden = !editType.img; if (editType.img) $("tImgPrev").src = editType.img; }
   $("tTemp").addEventListener("change", function () { $("tDates").hidden = !$("tTemp").checked; });
@@ -2027,8 +2036,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     }
     var extra = { name: name, amount: amt, ultra: ultra, from: from, to: to, img: editType.img || null };
     var list = typesC(econf()).map(function (x) { return Object.assign({}, x); });
+    extra.kind = editType.kind;
     if (editType.id) list.forEach(function (x) { if (x.id === editType.id) Object.assign(x, extra); });
-    else list.push(Object.assign({ id: "t-" + uid(), kind: editType.kind }, extra));
+    else list.push(Object.assign({ id: "t-" + uid() }, extra));
     saveConfig({ types: list }); hide(); toast("נשמר: " + name);
   });
   $("tDelete").addEventListener("click", function () {
