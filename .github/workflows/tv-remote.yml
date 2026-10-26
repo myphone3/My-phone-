@@ -47,6 +47,8 @@ jobs:
       - name: Prepare remote web page (gh-pages branch)
         run: |
           rm -rf /tmp/site && cp -r app/src/main/assets/web /tmp/site && touch /tmp/site/.nojekyll
+          # הענף הזה הוא רק דף השלט ל-GitHub Pages - Vercel (של החנות) לא צריך לבנות אותו
+          echo '{"git":{"deploymentEnabled":false}}' > /tmp/site/vercel.json
           cd /tmp/site
           git init -q -b gh-pages
           git config user.name "github-actions[bot]"
