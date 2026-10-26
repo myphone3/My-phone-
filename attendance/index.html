@@ -930,7 +930,7 @@ function aiContext() {
     recentMonths: [1, 2, 3].map(i => { const k = movePeriod(key, -i), t = calcPeriod(k, "all").t; return { month: periodLabel(k), gross: Math.round(t.total), hours: fmtHM(t.allMin), days: t.daysWorked }; })
   };
 }
-const aiText = t => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\n/g, "<br>");
+const aiText = t => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<i>$2</i>").replace(/\n/g, "<br>");
 function advisorModal() {
   const C = ui.chat = ui.chat || [];
   const st = state.settings;

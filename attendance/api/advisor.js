@@ -35,23 +35,30 @@ module.exports = async (req, res) => {
   if (!msgs.length || msgs[msgs.length - 1].role !== "user") return res.status(400).json({ error: "messages" });
   const context = JSON.stringify(body.context || {}).slice(0, 12000);
 
-  const model = process.env.GEMINI_MODEL || "gemini-flash-latest";
-  try {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: `${SYSTEM}\n\nWorker data (JSON):\n${context}` }] },
-        contents: msgs,
-        generationConfig: { temperature: 0.5, maxOutputTokens: 900 }
-      })
-    });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) return res.status(r.status === 429 ? 429 : 502).json({ error: r.status === 429 ? "quota" : "model", detail: data.error && data.error.message ? String(data.error.message).slice(0, 200) : "" });
-    const text = ((data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || []).map(p => p.text || "").join("").trim();
-    if (!text) return res.status(502).json({ error: "empty" });
-    res.status(200).json({ text });
-  } catch (e) {
-    res.status(502).json({ error: "network" });
+  // the light model answers fast on the free tier; the bigger one is the fallback when it is busy
+  const models = [...new Set([process.env.GEMINI_MODEL || "gemini-flash-lite-latest", "gemini-flash-latest"])];
+  const payload = JSON.stringify({
+    systemInstruction: { parts: [{ text: `${SYSTEM}\n\nWorker data (JSON):\n${context}` }] },
+    contents: msgs,
+    generationConfig: { temperature: 0.5, maxOutputTokens: 2048 }
+  });
+  let last = { status: 502, error: "model", detail: "" };
+  for (const model of models) {
+    try {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+        method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": key }, body: payload,
+        signal: AbortSignal.timeout(20000)
+      });
+      const data = await r.json().catch(() => ({}));
+      if (r.ok) {
+        const text = ((data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || []).map(p => p.text || "").join("").trim();
+        if (text) return res.status(200).json({ text });
+        last = { status: 502, error: "empty", detail: "" };
+        continue;
+      }
+      last = { status: r.status === 429 ? 429 : 502, error: r.status === 429 ? "quota" : "model", detail: data.error && data.error.message ? String(data.error.message).slice(0, 200) : "" };
+      if (![429, 500, 503, 404].includes(r.status)) break;
+    } catch (e) { last = { status: 502, error: e && e.name === "TimeoutError" ? "busy" : "network", detail: "" }; }
   }
+  res.status(last.status).json({ error: last.error, detail: last.detail });
 };
