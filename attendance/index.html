@@ -225,6 +225,20 @@ input[type="time"], input[type="date"], input[type="number"], input[type="dateti
 textarea.copy { min-height: 180px; font-family: var(--f-num); font-size: 13px; direction: rtl; }
 .bgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .bgrid button { border: 1px solid var(--line); background: var(--surface-2); border-radius: 12px; padding: 12px 4px; font-weight: 600; font-family: var(--f-num); }
+.bgrid button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.cd-label { font-size: 14px; color: var(--muted); font-weight: 600; }
+.cd-label.over { color: var(--punch); }
+.elapsed.over { color: var(--punch); }
+.worked-line { font-size: 14px; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+.worked-line b { color: var(--ink); font-family: var(--f-num); font-weight: 600; }
+.alert-card { background: var(--punch); color: #fff; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--shadow); }
+.alert-card h3 { font-size: 20px; }
+.alert-card .btn { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.35); color: #fff; }
+.alert-card .btn.solid { background: #fff; color: var(--punch); border-color: #fff; }
+.goal { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.goal .track { height: 8px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); overflow: hidden; }
+.goal .fill { height: 100%; background: var(--accent); }
+.goal .txt { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); gap: 8px; }
 
 .nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 30; background: var(--surface); border-top: 1px solid var(--line);
   display: grid; grid-template-columns: repeat(4, 1fr);
@@ -294,7 +308,8 @@ const DEFAULT_SETTINGS = {
   otEnabled: true, otThreshold: 8.6, ot1Span: 2,
   weekendOn: true, weekendRate: 150,
   travelOn: false, travelPerDay: 0, periodStart: 1,
-  vacPct: 100, sickPct: 100, onboarded: false
+  vacPct: 100, sickPct: 100, onboarded: false,
+  countdownOn: true, askPlan: true, alertBefore: true, goalAmount: 0
 };
 const freshState = () => ({ v: 2, updatedAt: 0, settings: { ...DEFAULT_SETTINGS }, shifts: [], active: null, adjustments: [], sample: false });
 function normalize(s) {
@@ -612,8 +627,111 @@ function showCopy(title, text) {
 
 // ---------- clock actions ----------
 function clockIn() {
-  state.active = { start: Date.now(), breaks: [], breakMs: 0, breakStart: null };
+  const st = state.settings;
+  if (st.countdownOn && st.askPlan) { planModal(true); return; }
+  startShift(st.countdownOn ? Math.round((+st.shiftHours || 8) * 60) : null);
+}
+function startShift(planMin) {
+  state.active = { start: Date.now(), breaks: [], breakMs: 0, breakStart: null, planMin: planMin || null };
+  ui.endAlert = null;
   commit("כניסה נרשמה · " + localHM(new Date()));
+  if (planMin) askNotify();
+}
+// planned shift length: how many hours the worker means to work today, counted down on the clock
+function planModal(starting) {
+  const st = state.settings, a = state.active;
+  const def = Math.round((+st.shiftHours || 8) * 60);
+  const cur = starting ? def : (a.planMin || def);
+  openModal(`<h3>${starting ? "כמה שעות תעבוד היום?" : "זמן המשמרת"}</h3>
+    <p class="muted small" style="margin:0">השעון יספור לאחור עד סוף המשמרת ויתריע כשהזמן נגמר. אפשר לשנות או לכבות בכל רגע.</p>
+    <div class="bgrid" id="p-grid">${[4, 5, 6, 7, 8, 9, 10, 12].map(h => `<button type="button" data-h="${h}" aria-pressed="${h * 60 === cur}">${h} ש׳</button>`).join("")}</div>
+    <div class="grid2">
+      <div class="fld"><label for="p-hours">מספר שעות</label><input type="number" id="p-hours" min="0.25" max="24" step="0.25" inputmode="decimal" value="${Math.round(cur / 60 * 100) / 100}"></div>
+      <div class="fld"><label for="p-end">או: לסיים בשעה</label><input type="time" id="p-end"></div>
+    </div>
+    <div class="calc-preview" id="p-prev"></div>
+    ${starting ? `<label class="switch" for="p-ask"><span>לשאול אותי בכל כניסה</span><input type="checkbox" id="p-ask" checked></label>` : ""}
+    <div class="modal-actions"><button class="btn primary" id="p-go">${starting ? "התחלת משמרת" : "שמירה"}</button>${starting ? "" : `<button class="btn" data-dismiss>ביטול</button>`}</div>
+    <button class="btn ghost" id="p-off">${starting ? "כניסה בלי טיימר" : "כיבוי הטיימר"}</button>`, m => {
+    const startTs = starting ? Date.now() : a.start;
+    const brk = () => starting ? 0 : activeBreakMs(a);
+    const hoursEl = $("#p-hours", m), endEl = $("#p-end", m);
+    const prev = () => {
+      const mins = Math.round((+hoursEl.value || 0) * 60);
+      m.querySelectorAll("#p-grid button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.h * 60 === mins));
+      $("#p-prev", m).innerHTML = mins > 0 ? `<span>סיום משוער</span><b class="num">${localHM(new Date(startTs + mins * 60000 + brk()))}</b>` : `<span>בחרו כמה שעות</span>`;
+    };
+    m.querySelectorAll("#p-grid button").forEach(b => b.onclick = () => { hoursEl.value = b.dataset.h; endEl.value = ""; prev(); });
+    hoursEl.addEventListener("input", () => { endEl.value = ""; prev(); });
+    endEl.addEventListener("input", () => {
+      if (!endEl.value) return;
+      const d = new Date(startTs); const [h, mm] = endEl.value.split(":").map(Number);
+      const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, mm).getTime();
+      let diff = end - startTs - brk(); if (diff <= 0) diff += 86400000;
+      hoursEl.value = Math.round(diff / 3600000 * 100) / 100; prev();
+    });
+    prev();
+    $("#p-go", m).onclick = () => {
+      const mins = Math.round((+hoursEl.value || 0) * 60);
+      if (!(mins > 0) || mins > 1440) { toast("בחרו כמה שעות"); return; }
+      unlockAudio();
+      if (starting) {
+        if (!$("#p-ask", m).checked) state.settings = { ...state.settings, askPlan: false };
+        closeModal(); startShift(mins);
+      } else { state.active = { ...state.active, planMin: mins }; ui.endAlert = null; closeModal(); commit(`המשמרת עודכנה ל-${fmtHM(mins)} שעות`); askNotify(); }
+    };
+    $("#p-off", m).onclick = () => {
+      if (starting) { closeModal(); startShift(null); }
+      else { state.active = { ...state.active, planMin: null }; ui.endAlert = null; closeModal(); commit("הטיימר כובה"); }
+    };
+  });
+}
+function extendPlan(min) {
+  const a = state.active; if (!a || !a.planMin) return;
+  state.active = { ...a, planMin: a.planMin + min }; ui.endAlert = null;
+  commit(`הוספנו ${min} דק׳ למשמרת`);
+}
+
+// ---------- end-of-shift alerts ----------
+let actx = null;
+function unlockAudio() { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === "suspended") actx.resume(); } catch (e) {} }
+function beep() {
+  try {
+    if (!actx) return;
+    [0, .35, .7].forEach(t => {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.frequency.value = 880; o.connect(g); g.connect(actx.destination);
+      g.gain.setValueAtTime(.0001, actx.currentTime + t); g.gain.exponentialRampToValueAtTime(.3, actx.currentTime + t + .02);
+      g.gain.exponentialRampToValueAtTime(.0001, actx.currentTime + t + .25);
+      o.start(actx.currentTime + t); o.stop(actx.currentTime + t + .3);
+    });
+  } catch (e) {}
+}
+function askNotify() { try { if ("Notification" in window && Notification.permission === "default") Notification.requestPermission(); } catch (e) {} }
+async function notify(title, body) {
+  beep(); try { navigator.vibrate && navigator.vibrate([300, 150, 300, 150, 300]); } catch (e) {}
+  try {
+    if ("Notification" in window && Notification.permission === "granted") {
+      const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration();
+      if (reg) reg.showNotification(title, { body, icon: "/icon-192.png", badge: "/icon-192.png", tag: "shift-end", renotify: true, vibrate: [300, 150, 300] });
+      else new Notification(title, { body, icon: "/icon-192.png" });
+    }
+  } catch (e) {}
+}
+const alerted = new Set();
+function checkAlerts(remainingMs) {
+  const a = state.active; if (!a || !a.planMin) return;
+  const key = `${a.start}:${a.planMin}`;
+  if (state.settings.alertBefore && remainingMs > 0 && remainingMs <= 10 * 60000 && !alerted.has(key + ":pre")) {
+    alerted.add(key + ":pre");
+    if (remainingMs > 8 * 60000) notify("עוד 10 דקות מסיימים", "המשמרת מסתיימת ב-" + localHM(new Date(Date.now() + remainingMs)));
+  }
+  if (remainingMs <= 0 && !alerted.has(key + ":end")) {
+    alerted.add(key + ":end");
+    ui.endAlert = key;
+    if (remainingMs > -3 * 60000) notify("המשמרת הסתיימה", `עבדת ${fmtHM(a.planMin)} שעות כמו שתכננת. לא לשכוח להחתים יציאה.`);
+    if (ui.tab === "clock" && !$("#modal-root").firstChild) render();
+  }
 }
 function breakModal() {
   const a = state.active;
@@ -645,18 +763,35 @@ function removeBreak(id) {
   else state.active = { ...state.active, breaks: (state.active.breaks || []).filter(b => b.id !== id) };
   commit("ההפסקה הוסרה");
 }
-function clockOut() {
+function clockOut(at) {
   const a = state.active; if (!a) return;
-  const now = Date.now();
-  const brkMs = activeBreakMs(a, now);
+  const now = at || Date.now();
+  const brkMs = Math.min(activeBreakMs(a, now), Math.max(0, now - a.start));
   const worked = activeWorkedMs(now);
-  state.active = null;
+  state.active = null; ui.endAlert = null;
   if (worked < 60000) { commit("המשמרת הייתה קצרה מדקה ולא נשמרה"); return; }
   const sd = new Date(a.start), ed = new Date(now);
   const shift = { id: uid(), date: localDS(sd), start: localHM(sd), end: localHM(ed), breakMin: Math.round(brkMs / 60000), type: "work", note: "" };
   if (shift.start === shift.end) shift.end = localHM(new Date(now + 60000));
   state.shifts = [...state.shifts, shift];
   commit(`יציאה נרשמה · ${fmtHM(shiftMin(shift))} שעות`);
+}
+function fixClockOut() {
+  const a = state.active;
+  const guess = new Date(a.start + ((a.planMin || Math.round((+state.settings.shiftHours || 8) * 60)) * 60000) + activeBreakMs(a));
+  openModal(`<h3>מתי יצאת?</h3>
+    <p class="muted small" style="margin:0">המשמרת נשארה פתוחה. רשמו את שעת היציאה האמיתית והיא תישמר נכון.</p>
+    <div class="fld"><label for="fx-end">שעת יציאה</label><input type="datetime-local" id="fx-end" value="${localDS(guess)}T${localHM(guess)}"></div>
+    <div class="modal-actions"><button class="btn primary" id="fx-save">רישום יציאה</button><button class="btn" data-dismiss>ביטול</button></div>`, m => {
+    $("#fx-save", m).onclick = () => {
+      const t = new Date($("#fx-end", m).value).getTime();
+      if (!isFinite(t) || t <= a.start || t > Date.now()) { toast("שעת יציאה לא תקינה"); return; }
+      const fixed = { ...state.active };
+      if (fixed.breakStart && fixed.breakStart > t) fixed.breakStart = null;
+      if (fixed.breakStart) { fixed.breakMs = (fixed.breakMs || 0) + (t - fixed.breakStart); fixed.breakStart = null; }
+      state.active = fixed; closeModal(); clockOut(t);
+    };
+  });
 }
 function editActive() {
   const a = state.active; const d = new Date(a.start);
@@ -680,6 +815,7 @@ function shiftForm(existing, presetDate) {
   const st = state.settings, sh = +st.shiftHours || 8;
   const s = existing ? { ...existing } : { id: uid(), date: presetDate || todayDS(), start: "08:00", end: minToHM(480 + sh * 60), breakMin: 0, type: "work", hours: sh, note: "" };
   if (s.hours == null) s.hours = sh;
+  const lastWork = state.shifts.filter(x => !isLeave(x)).sort((x, y) => (x.date + x.start).localeCompare(y.date + y.start)).pop();
   openModal(`<h3>${existing ? "עריכת משמרת" : "הוספת משמרת ידנית"}</h3>
     <div class="form">
       <div class="fld"><label>סוג</label><div class="seg" id="f-type">${Object.entries(TYPES).map(([k, v]) => `<button type="button" data-v="${k}" aria-pressed="${s.type === k}">${v}</button>`).join("")}</div></div>
@@ -689,6 +825,7 @@ function shiftForm(existing, presetDate) {
           <div class="fld"><label for="f-start">כניסה</label><input type="time" id="f-start" value="${esc(s.start || "")}"></div>
           <div class="fld"><label for="f-end">יציאה</label><input type="time" id="f-end" value="${esc(s.end || "")}"></div>
         </div>
+        ${existing || !lastWork ? "" : `<button type="button" class="btn sm" id="f-same">כמו המשמרת הקודמת <span class="num">${esc(lastWork.start)}–${esc(lastWork.end)}</span>${+lastWork.breakMin ? ` · הפסקה ${lastWork.breakMin} דק׳` : ""}</button>`}
         ${existing ? "" : `<div class="quick" id="f-len"><span class="muted small" style="align-self:center">משמרת של:</span>${[4, 6, 8, 9, 10, 12].map(h => `<button type="button" data-h="${h}">${h} ש׳</button>`).join("")}</div>`}
         <div class="fld"><label for="f-break">הפסקות (סה״כ דקות)</label><input type="number" id="f-break" min="0" step="1" inputmode="numeric" value="${+s.breakMin || 0}">
           <div class="quick" id="f-bq">${[5, 10, 15, 30].map(n => `<button type="button" data-b="${n}">+${n}</button>`).join("")}<button type="button" data-b="0">איפוס</button></div></div>
@@ -712,6 +849,7 @@ function shiftForm(existing, presetDate) {
     };
     m.querySelectorAll("#f-type button").forEach(b => b.onclick = () => { type = b.dataset.v; sync(); });
     m.querySelectorAll("#f-len button").forEach(b => b.onclick = () => { $("#f-end", m).value = minToHM(toMin($("#f-start", m).value || "08:00") + (+b.dataset.h) * 60 + (+$("#f-break", m).value || 0)); sync(); });
+    const same = $("#f-same", m); if (same) same.onclick = () => { $("#f-start", m).value = lastWork.start; $("#f-end", m).value = lastWork.end; $("#f-break", m).value = +lastWork.breakMin || 0; if (lastWork.note && !lastWork.note.includes("דוגמה")) $("#f-note", m).value = lastWork.note; sync(); };
     m.querySelectorAll("#f-bq button").forEach(b => b.onclick = () => { const i = $("#f-break", m); i.value = +b.dataset.b === 0 ? 0 : (+i.value || 0) + (+b.dataset.b); sync(); });
     m.querySelectorAll("input").forEach(i => i.addEventListener("input", sync));
     sync();
@@ -797,18 +935,28 @@ function viewClock() {
     const chips = (a.breaks || []).map(b => `<button class="bchip" data-rmbreak="${esc(b.id)}" aria-label="הסרת הפסקה של ${b.min} דקות">${b.min} דק׳<span class="x">×</span></button>`);
     const timed = Math.round((a.breakMs || 0) / 60000);
     if (timed > 0) chips.push(`<button class="bchip" data-rmbreak="timed">${timed} דק׳ (טיימר)<span class="x">×</span></button>`);
-    clock = `<section class="card clock">
+    const plan = a.planMin;
+    const long = activeWorkedMs() > 13 * 3600000;
+    clock = `${ui.endAlert ? `<section class="alert-card" role="alert"><h3>המשמרת הסתיימה</h3><span>עבדת את ${fmtHM(plan || 0)} השעות שתכננת. סיימת? אפשר להחתים יציאה, או להאריך.</span>
+        <div class="btn-row"><button class="btn solid" data-act="clockOut">יציאה עכשיו</button><button class="btn" data-act="extend30">עוד חצי שעה</button><button class="btn" data-act="dismissAlert">המשך בלי טיימר</button></div></section>` : ""}
+      ${long ? `<div class="banner"><span>המשמרת פתוחה כבר יותר מ-13 שעות. שכחת להחתים יציאה?</span><button class="btn sm" data-act="fixOut">רישום שעת יציאה</button></div>` : ""}
+      <section class="card clock">
       <span class="status ${a.breakStart ? "break" : ""}"><span class="dot"></span>${a.breakStart ? "בהפסקה" : "במשמרת"} · מאז <span class="num">${localHM(sd)}</span>${sameDay ? "" : ` (${fmtDate(localDS(sd))})`}</span>
-      <div class="elapsed mono" id="elapsed">00:00:00</div>
+      ${plan ? `<div class="cd-label" id="cd-label">נשאר עד סוף המשמרת</div>` : ""}
+      <div class="elapsed mono" id="${plan ? "countdown" : "elapsed"}">00:00:00</div>
+      ${plan ? `<div class="worked-line"><span>עבדת <b id="elapsed">0:00:00</b></span><span>סיום משוער <b id="cd-end">--:--</b></span></div>` : ""}
       <div class="earn" id="earn-live"></div>
-      <div class="progress" id="prog"></div>
+      ${plan ? `<div class="progress" id="prog"></div>` : ""}
       ${chips.length ? `<div class="breaks"><span class="muted">הפסקות:</span>${chips.join("")}</div>` : ""}
       ${a.breakStart ? `<div class="btn-row"><button class="btn primary" data-act="endBreak">סיום הפסקה <span class="num" id="break-run"></span></button></div>` : ""}
       <div class="btn-row">
         <button class="btn" data-act="addBreak">+ הוספת הפסקה</button>
         <button class="btn out" data-act="clockOut">יציאה</button>
       </div>
-      <button class="link" data-act="editActive">תיקון שעת כניסה</button>
+      <div class="btn-row" style="justify-content:center">
+        <button class="link" data-act="editPlan">${plan ? `שינוי זמן המשמרת · <span class="num">${fmtHM(plan)}</span> ש׳` : "הפעלת טיימר לסוף המשמרת"}</button>
+        <button class="link" data-act="editActive">תיקון שעת כניסה</button>
+      </div>
     </section>`;
   }
   const todayRows = todayList.length ? `<div class="days"><div class="day">${todayList.map(shiftRow).join("")}</div></div>` : `<p class="muted small" style="margin:0">עוד לא נרשמו משמרות היום.</p>`;
@@ -819,8 +967,16 @@ function viewClock() {
         <div class="stat"><div class="label">שעות</div><div class="v">${fmtHM(P.t.allMin)}</div></div>
         <div class="stat"><div class="label">ימי עבודה</div><div class="v">${P.t.daysWorked}</div></div>
         <div class="stat hero"><div class="label">צבירה (ברוטו)</div><div class="v">${money(P.t.total)}</div></div>
-      </div></section>
+      </div>${goalBar(P.t)}</section>
     ${installCard()}`;
+}
+function goalBar(t) {
+  const goal = +state.settings.goalAmount || 0; if (!(goal > 0)) return "";
+  const pct = Math.max(0, Math.min(100, t.total / goal * 100));
+  const rate = +state.settings.rate || 0, left = Math.max(0, goal - t.total);
+  return `<div class="goal"><div class="txt"><span>יעד החודש: <b class="num">${money(goal)}</b></span><span class="num">${Math.round(pct)}%</span></div>
+    <div class="track"><div class="fill" style="width:${pct}%"></div></div>
+    <div class="txt"><span>${left > 0 ? `חסר <b class="num">${money(left)}</b>${rate ? ` · בערך ${fmtHM(left / rate * 60)} שעות עבודה` : ""}` : "הגעת ליעד! 🎉"}</span></div></div>`;
 }
 function shiftRow(s) {
   const mn = shiftMin(s);
@@ -881,6 +1037,7 @@ function viewMonth() {
       <div class="stat"><div class="label">ימי עבודה</div><div class="v">${t.daysWorked}</div></div>
       <div class="stat hero"><div class="label">לתשלום (ברוטו)</div><div class="v">${money(t.total)}</div></div>
     </div>
+    ${+state.settings.goalAmount > 0 ? `<section class="card" style="padding-block:4px 14px">${goalBar(t)}</section>` : ""}
     <section class="card"><div class="card-head"><h3>שעות לפי יום</h3><span class="muted small">נוספות: <span class="num">${fmtHM(t.otMin)}</span></span></div>${chart(P)}</section>
     <section class="card"><div class="card-head"><h3>חישוב השכר</h3><button class="btn sm" data-act="addAdj">+ תוספת / ניכוי</button></div>${breakdown(P)}</section>
     <section class="card"><div class="card-head"><h3>משמרות</h3><button class="btn sm primary" data-act="addShift">+ משמרת</button></div>
@@ -965,7 +1122,7 @@ function viewSettings() {
       </div>
       <div class="grid2">
         ${num("s-rate", "תעריף לשעה", st.rate, 'min="0" step="0.5" inputmode="decimal"')}
-        ${num("s-shiftHours", "כמה שעות המשמרת שלי", st.shiftHours, 'min="1" max="24" step="0.5" inputmode="decimal"', "מוצג בשעון כמה נשאר לסיום")}
+        ${num("s-shiftHours", "כמה שעות המשמרת שלי", st.shiftHours, 'min="1" max="24" step="0.5" inputmode="decimal"', "ברירת המחדל לטיימר")}
       </div>
       <div class="grid2">
         <div class="fld"><label for="s-currency">מטבע</label><select id="s-currency" data-set="currency">${["₪", "$", "€", "£"].map(c => `<option ${c === st.currency ? "selected" : ""}>${c}</option>`).join("")}</select></div>
@@ -973,6 +1130,15 @@ function viewSettings() {
       </div>
       ${sw("s-travelOn", "דמי נסיעות", st.travelOn, "סכום קבוע לכל יום שעבדתם")}
       ${st.travelOn ? num("s-travelPerDay", "סכום נסיעות ליום", st.travelPerDay, 'min="0" step="0.5" inputmode="decimal"') : ""}
+    </section>
+    <section class="card form"><h3>טיימר משמרת</h3>
+      ${sw("s-countdownOn", "ספירה לאחור עד סוף המשמרת", st.countdownOn, "השעון מראה כמה נשאר ומתריע כשהמשמרת נגמרת")}
+      ${st.countdownOn ? sw("s-askPlan", "לשאול כמה שעות בכל כניסה", st.askPlan, `אם כבוי — כל משמרת מתחילה עם ${+st.shiftHours} שעות`) : ""}
+      ${st.countdownOn ? sw("s-alertBefore", "התראה 10 דקות לפני הסוף", st.alertBefore) : ""}
+      ${st.countdownOn ? `<button class="btn sm" data-act="testAlert">בדיקת התראה וצליל</button><p class="muted small" style="margin:0">ההתראה מגיעה כשהאפליקציה פתוחה או ברקע. אם הטלפון סגר אותה לגמרי, תראו את המצב כשתפתחו שוב.</p>` : ""}
+    </section>
+    <section class="card form"><h3>יעד חודשי</h3>
+      ${num("s-goalAmount", `כמה אני רוצה להרוויח בחודש (${esc(st.currency)})`, st.goalAmount, 'min="0" step="100" inputmode="decimal"', "0 = בלי יעד. מוצג פס התקדמות במסך השעון והחודש")}
     </section>
     <section class="card form"><h3>שעות נוספות ושבת</h3>
       ${sw("s-otEnabled", "חישוב שעות נוספות", st.otEnabled, "לפי חוק שעות עבודה: 125% ואחר כך 150%")}
@@ -1031,20 +1197,30 @@ function render() {
 // ---------- live tick ----------
 function tick() {
   const n = $("#now-time"); if (n) n.textContent = localHM(new Date());
-  const el = $("#elapsed"); if (!el || !state.active) return;
+  if (!state.active) return;
+  const a = state.active;
   const ms = activeWorkedMs(); const s = Math.floor(ms / 1000);
-  el.textContent = `${pad(Math.floor(s / 3600))}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}`;
+  const hms = sec => `${pad(Math.floor(sec / 3600))}:${pad(Math.floor(sec / 60) % 60)}:${pad(sec % 60)}`;
+  const el = $("#elapsed"); if (el) el.textContent = a.planMin ? `${Math.floor(s / 3600)}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}` : hms(s);
+  if (a.planMin) {
+    const rem = a.planMin * 60000 - ms;
+    checkAlerts(rem);
+    const cd = $("#countdown"), lb = $("#cd-label"), ce = $("#cd-end");
+    if (cd) { cd.textContent = (rem < 0 ? "+" : "") + hms(Math.floor(Math.abs(rem) / 1000)); cd.classList.toggle("over", rem < 0); }
+    if (lb) { lb.textContent = rem < 0 ? "עברת את זמן המשמרת ב-" : "נשאר עד סוף המשמרת"; lb.classList.toggle("over", rem < 0); }
+    if (ce) ce.textContent = localHM(new Date(Date.now() + rem));
+  }
   const e = $("#earn-live"); const rate = +state.settings.rate || 0;
   if (e) e.innerHTML = rate ? `הרווחתם עד עכשיו בערך <b class="num">${money(rate * ms / 3600000)}</b>` : `<span class="small">הגדירו תעריף כדי לראות כמה הרווחתם</span>`;
-  const p = $("#prog"); const goal = (+state.settings.shiftHours || 0) * 3600000;
+  const p = $("#prog"); const goal = (a.planMin || 0) * 60000;
   if (p && goal) {
     const pct = Math.min(100, ms / goal * 100), overMs = Math.max(0, ms - goal);
     const overPct = overMs ? Math.min(40, overMs / goal * 100) : 0;
     const left = Math.max(0, goal - ms) / 60000;
     p.innerHTML = `<div class="track"><div class="fill" style="width:${pct * (100 - overPct) / 100}%"></div>${overPct ? `<div class="over" style="width:${overPct}%"></div>` : ""}</div>
-      <div class="txt"><span>משמרת של ${+state.settings.shiftHours} ש׳</span><span>${overMs ? `<b style="color:var(--punch)">עברת ב-<span class="num">${fmtHM(overMs / 60000)}</span></b>` : `נשארו <span class="num">${fmtHM(left)}</span>`}</span></div>`;
+      <div class="txt"><span>משמרת של ${fmtHM(a.planMin)} ש׳</span><span>${overMs ? `<b style="color:var(--punch)">עברת ב-<span class="num">${fmtHM(overMs / 60000)}</span></b>` : `נשארו <span class="num">${fmtHM(left)}</span>`}</span></div>`;
   }
-  const br = $("#break-run"); if (br && state.active.breakStart) { const bs = Math.floor((Date.now() - state.active.breakStart) / 1000); br.textContent = `${pad(Math.floor(bs / 60))}:${pad(bs % 60)}`; }
+  const br = $("#break-run"); if (br && a.breakStart) { const bs = Math.floor((Date.now() - state.active.breakStart) / 1000); br.textContent = `${pad(Math.floor(bs / 60))}:${pad(bs % 60)}`; }
 }
 setInterval(tick, 1000);
 
@@ -1150,6 +1326,7 @@ function clearSample() {
 
 // ---------- events ----------
 document.addEventListener("click", e => {
+  unlockAudio();
   const au = e.target.closest("[data-auth]");
   if (au) {
     const t = au.dataset.auth; ui.authMsg = "";
@@ -1170,6 +1347,11 @@ document.addEventListener("click", e => {
     case "clockIn": clockIn(); break;
     case "clockOut": clockOut(); break;
     case "addBreak": breakModal(); break;
+    case "editPlan": planModal(false); break;
+    case "extend30": extendPlan(30); break;
+    case "dismissAlert": state.active = { ...state.active, planMin: null }; ui.endAlert = null; commit("הטיימר כובה"); break;
+    case "fixOut": fixClockOut(); break;
+    case "testAlert": askNotify(); unlockAudio(); setTimeout(() => notify("בדיקת התראה", "ככה תיראה ההתראה בסוף המשמרת"), 400); break;
     case "endBreak": endTimedBreak(); break;
     case "editActive": editActive(); break;
     case "addShift": shiftForm(null, ui.tab === "month" && periodKeyOf(todayDS()) !== ui.period ? periodRange(ui.period)[0] : null); break;
