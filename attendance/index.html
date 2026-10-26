@@ -374,6 +374,13 @@ details.fold[open] > summary { margin-bottom: 10px; }
 .acc .acc-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 12px; }
 .acc-group { display: flex; flex-direction: column; gap: 8px; }
 .acc-title { font-size: 12px; color: var(--muted); font-weight: 600; margin: 6px 4px -2px; }
+.chat { display: flex; flex-direction: column; gap: 8px; }
+.bub { max-width: 88%; padding: 10px 13px; border-radius: 16px; font-size: 14px; line-height: 1.55; }
+.bub.bot { background: var(--surface-2); border: 1px solid var(--line); align-self: flex-start; border-start-start-radius: 4px; }
+.bub.me { background: var(--accent); color: var(--accent-ink); align-self: flex-end; border-start-end-radius: 4px; font-weight: 600; }
+.bub .kv .r { padding: 5px 0; font-size: 13px; }
+.advisor-card { display: flex; align-items: center; gap: 12px; width: 100%; text-align: right; border: 1px solid var(--line); }
+.advisor-card .ic { width: 44px; height: 44px; border-radius: 12px; background: var(--accent-soft); display: grid; place-items: center; font-size: 22px; flex: none; }
 .nav .live { width: 7px; height: 7px; border-radius: 50%; background: var(--punch); position: absolute; top: 6px; margin-inline-start: 18px; }
 </style>
 </head>
@@ -786,7 +793,7 @@ function planInfo(key) {
   const earnedBefore = current ? t.total - todayPay : t.total;
   const leftMoney = Math.max(0, goal - earnedBefore);
   const perDay = left.length ? leftMoney / left.length : 0;
-  const needMin = rate > 0 && left.length ? Math.max(0, (perDay - travel) / rate * 60) : 0;
+  const needMin = left.length ? Math.min(1440, minutesFor(leftMoney, left, jobOf("main").rate, travel) || 0) : 0;
   const pct = Math.min(100, Math.max(1, +st.jobPct || 100));
   const pctDayMin = FULL_TIME_WEEK * pct / 100 / wd.length * 60;
   const pctMonth = workDates.length * (rate * pctDayMin / 60 + travel);
@@ -796,6 +803,115 @@ function planInfo(key) {
   const avgDay = t.daysWorked ? (t.total - t.adjSum) / t.daysWorked : rate * pctDayMin / 60 + travel;
   const forecast = t.total + avgDay * ahead;
   return { goal, wd, workDates, rate, travel, left, leftMoney, perDay, needMin, pct, pctDayMin, pctMonth, forecast, ahead, current, past, earned: t.total, avgDay };
+}
+// pay for a day of `min` worked minutes on date ds, with the same overtime and Saturday rules as calcDay
+function dayPayFor(min, ds, rate) {
+  const st = state.settings, special = isWeekendDate(ds);
+  let reg = min, o1 = 0, o2 = 0;
+  if (st.otEnabled) {
+    const T = Math.max(0, +st.otThreshold || 0) * 60, span = Math.max(0, +st.ot1Span || 0) * 60;
+    reg = Math.min(min, T); o1 = Math.min(Math.max(min - T, 0), span); o2 = Math.max(min - T - span, 0);
+  }
+  const base = special ? (+st.weekendRate || 150) / 100 : 1;
+  return rate / 60 * (reg * base + o1 * (base + .25) + o2 * (base + .5));
+}
+// the same number of minutes every day that brings `target` money over `dates` (Infinity if a full day is not enough)
+function minutesFor(target, dates, rate, travel) {
+  if (!dates.length || !(rate > 0)) return null;
+  const total = m => dates.reduce((x, ds) => x + dayPayFor(m, ds, rate) + travel, 0);
+  if (total(0) >= target) return 0;
+  if (total(1440) < target) return Infinity;
+  let lo = 0, hi = 1440;
+  for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2; if (total(mid) >= target) hi = mid; else lo = mid; }
+  return Math.ceil(hi);
+}
+// the advisor: a short conversation that ends with a personal plan for the rest of the month
+function advise(goal, days, maxH) {
+  const key = periodKeyOf(todayDS()), today = todayDS(), [, b] = periodRange(key);
+  const pl = planInfo(key), rate = jobOf("main").rate, travel = pl.travel;
+  const earnedBefore = pl.earned - (pl.current ? (calcPeriod(key, "all").days.filter(d => d.ds === today).reduce((x, d) => x + d.pay, 0)) : 0);
+  const datesFor = set => datesBetween(today, b).filter(ds => set.includes(weekday(ds)));
+  const dates = datesFor(days);
+  const left = Math.max(0, goal - earnedBefore);
+  const need = minutesFor(left, dates, rate, travel);
+  const maxMin = maxH * 60;
+  const maxEarn = earnedBefore + dates.reduce((x, ds) => x + dayPayFor(maxMin, ds, rate) + travel, 0);
+  // which extra weekday would make it fit in the max hours
+  let extra = null;
+  if (need > maxMin) {
+    const set = [...days];
+    for (const d of [5, 0, 1, 2, 3, 4, 6]) {
+      if (set.includes(d)) continue;
+      set.push(d);
+      const n = minutesFor(left, datesFor(set), rate, travel);
+      if (n <= maxMin) { extra = { added: set.filter(x => !days.includes(x)), need: n }; break; }
+    }
+  }
+  const scen = [3, 4, 5, 6].map(n => { const set = [0, 1, 2, 3, 4, 5].slice(0, n); return { n, need: minutesFor(left, datesFor(set), rate, travel), days: datesFor(set).length }; });
+  const pctDay = FULL_TIME_WEEK * pl.pct / 100 / Math.max(1, days.length) * 60;
+  const pctEarn = earnedBefore + dates.reduce((x, ds) => x + dayPayFor(pctDay, ds, rate) + travel, 0);
+  const schedule = dates.slice(0, 7).map(ds => ({ ds, min: need, pay: dayPayFor(need, ds, rate) + travel }));
+  return { key, rate, travel, earnedBefore, left, need, dates, maxMin, maxEarn, extra, scen, pct: pl.pct, pctDay, pctEarn, schedule };
+}
+function advisorModal() {
+  const st = state.settings, key = periodKeyOf(todayDS());
+  const last = calcPeriod(movePeriod(key, -1), "all").t.total;
+  const A = ui.adv = ui.adv || { step: 0, goal: +st.goalAmount || 0, days: [...(st.workDays || DEFAULT_SETTINGS.workDays)], maxH: 9 };
+  const bot = h => `<div class="bub bot">${h}</div>`, me = h => `<div class="bub me">${h}</div>`;
+  const daysTxt = d => d.map(i => DAYS[i]).join(" ");
+  const draw = m => {
+    let h = bot(`היי! אני היועץ של שעון הנוכחות 🧭<br>אעזור לך לתכנן כמה לעבוד כדי להגיע למשכורת שרוצים. זו רק המלצה, את התוכנית אפשר לשנות מתי שרוצים.`);
+    h += bot(`כמה תרצו להרוויח ב${esc(periodLabel(key))}? (ברוטו)`);
+    let input = "";
+    if (A.step === 0) {
+      const sug = [...new Set([+st.goalAmount, Math.round(last / 100) * 100, Math.round(last * 1.1 / 100) * 100, 5000, 8000].filter(v => v > 0))].slice(0, 4);
+      input = `<div class="quick">${sug.map(v => `<button type="button" data-g="${v}">${money(v)}</button>`).join("")}</div>
+        <div class="grid2" style="align-items:end"><div class="fld"><label for="ad-goal">סכום (${esc(st.currency)})</label><input type="number" id="ad-goal" min="1" step="100" inputmode="decimal" value="${A.goal || ""}"></div><button class="btn primary" id="ad-next">המשך</button></div>`;
+    } else {
+      h += me(money(A.goal));
+      h += bot("באילו ימים בשבוע אפשר לעבוד?");
+      if (A.step === 1) input = `<div class="days-pick" id="ad-days">${DAYS.map((d, i) => `<button type="button" data-d="${i}" aria-pressed="${A.days.includes(i)}">${d}</button>`).join("")}</div><button class="btn primary block" id="ad-next">המשך</button>`;
+      else {
+        h += me(daysTxt(A.days));
+        h += bot("ומקסימום כמה שעות ביום מתאים לך לעבוד?");
+        if (A.step === 2) input = `<div class="bgrid">${[5, 6, 7, 8, 9, 10, 11, 12].map(n => `<button type="button" data-mh="${n}" aria-pressed="${n === A.maxH}">${n} ש׳</button>`).join("")}</div>`;
+        else { h += me(`עד ${A.maxH} שעות`); h += planBubbles(advise(A.goal, A.days, A.maxH), A, bot); input = `<button class="btn primary block" id="ad-save">שמירת התוכנית והפעלת יעד יומי</button><button class="btn ghost block" id="ad-redo">שינוי התשובות</button>`; }
+      }
+    }
+    m.innerHTML = `<div class="card-head" style="margin:0"><h3>🧭 יועץ משכורת</h3><button class="link" data-dismiss>סגירה</button></div><div class="chat" id="ad-chat">${h}</div><div class="form" style="gap:8px">${input}</div>`;
+    const chat = $("#ad-chat", m); chat.lastElementChild && chat.lastElementChild.scrollIntoView({ block: "nearest" });
+    const next = () => { A.step++; draw(m); };
+    m.querySelectorAll("[data-g]").forEach(b => b.onclick = () => { A.goal = +b.dataset.g; next(); });
+    m.querySelectorAll("[data-d]").forEach(b => b.onclick = () => { const d = +b.dataset.d; A.days = A.days.includes(d) ? A.days.filter(x => x !== d) : [...A.days, d].sort(); b.setAttribute("aria-pressed", A.days.includes(d)); });
+    m.querySelectorAll("[data-mh]").forEach(b => b.onclick = () => { A.maxH = +b.dataset.mh; next(); });
+    const nx = $("#ad-next", m); if (nx) nx.onclick = () => {
+      if (A.step === 0) { const v = +$("#ad-goal", m).value; if (!(v > 0)) { toast("כתבו סכום"); return; } A.goal = Math.round(v); }
+      if (A.step === 1 && !A.days.length) { toast("בחרו לפחות יום אחד"); return; }
+      next();
+    };
+    const rd = $("#ad-redo", m); if (rd) rd.onclick = () => { A.step = 0; draw(m); };
+    const sv = $("#ad-save", m); if (sv) sv.onclick = () => {
+      state.settings = { ...state.settings, goalAmount: A.goal, workDays: [...A.days], dailyGoalHours: 0, ...(state.active ? {} : { entryMode: "goal" }) };
+      ui.adv = null; closeModal(); commit("התוכנית נשמרה. בלשונית נוכחות תראו כמה נשאר כל יום");
+    };
+  };
+  openModal("", m => draw(m));
+}
+function planBubbles(r, A, bot) {
+  const H = m => `<b class="num">${fmtHM(m)}</b> ש׳`;
+  if (!(r.rate > 0)) return bot(`כדי לחשב צריך קודם להגדיר כמה מקבלים לשעה. אפשר בהגדרות ← שכר ומשמרת.`);
+  if (r.left <= 0) return bot(`כבר הגעת ל-${money(A.goal)} החודש! 🎉 כל שעה מעכשיו היא בונוס.`);
+  if (!r.dates.length) return bot(`לא נשארו החודש ימים מהימים שבחרת. נסו להוסיף ימים, או לתכנן לחודש הבא.`);
+  let out = bot(`הנה התוכנית שלך:<br>כדי להגיע ל-<b class="num">${money(A.goal)}</b> צריך לעבוד ${H(r.need)} ביום, ב-<b>${r.dates.length}</b> ימי העבודה שנשארו החודש (כולל היום).<br><span class="muted">${r.earnedBefore > 0 ? `כבר צברת ${money(r.earnedBefore)}, ו` : ""}חסר עוד ${money(r.left)}.</span>`);
+  if (r.need > r.maxMin) {
+    out += bot(`זה יותר מ-${A.maxH} השעות שמתאים לך. ${r.extra ? `אם תוסיפו את יום ${r.extra.added.map(d => DAYS[d]).join(" ו")} לעבודה, יספיקו ${H(r.extra.need)} ביום.` : "גם עם יותר ימים זה לא נכנס בגבול."}<br>ב-${A.maxH} שעות ביום בימים שבחרת תגיעו לבערך <b class="num">${money(r.maxEarn)}</b>.`);
+  } else {
+    out += bot(`זה נכנס בגבול של ${A.maxH} השעות שלך 👍${state.settings.otEnabled && r.need > (+state.settings.otThreshold || 0) * 60 ? `<br>שימו לב: אחרי ${+state.settings.otThreshold} שעות ביום השעות משולמות 125% ויותר, וזה כבר כלול בחישוב.` : ""}`);
+  }
+  out += bot(`ככה זה נראה בחלוקה אחרת:<div class="kv" style="margin-top:6px">${r.scen.map(x => `<div class="r"><span class="k">${x.n} ימים בשבוע <span class="muted small">(${x.days} ימים)</span></span><span class="v">${x.need === Infinity ? "לא אפשרי" : `${fmtHM(x.need)} ש׳${x.need <= r.maxMin ? " ✓" : ""}`}</span></div>`).join("")}</div>`);
+  out += bot(`הימים הקרובים לפי התוכנית:<div class="kv" style="margin-top:6px">${r.schedule.map(x => `<div class="r"><span class="k">${x.ds === todayDS() ? "היום" : `יום ${DAYS[weekday(x.ds)]}`} · ${fmtDate(x.ds)}</span><span class="v">${fmtHM(x.min)} · ${money(x.pay)}</span></div>`).join("")}</div>`);
+  out += bot(`ולהשוואה: במשרה של ${r.pct}% (${H(r.pctDay)} ביום בימים שבחרת) תסיימו את החודש בערך עם <b class="num">${money(r.pctEarn)}</b>.`);
+  return out;
 }
 const fixedBreakMin = a => (a.breaks || []).reduce((s, b) => s + (+b.min || 0), 0);
 function activeBreakMs(a, now = Date.now()) { return fixedBreakMin(a) * 60000 + (a.breakMs || 0) + (a.breakStart ? now - a.breakStart : 0); }
@@ -1366,6 +1482,7 @@ function viewClock() {
   }
   const todayRows = todayList.length ? `<div class="days"><div class="day">${todayList.map(shiftRow).join("")}</div></div>` : `<p class="muted small" style="margin:0">עוד לא נרשמו משמרות היום.</p>`;
   return `${header()}${setupCard()}${sampleBanner()}${clock}
+    ${a ? "" : `<button class="card advisor-card" data-act="advisor"><span class="ic">🧭</span><span style="flex:1"><b>יועץ משכורת</b><br><span class="muted small">${+st.goalAmount > 0 ? `יעד ${money(+st.goalAmount)} · נבדוק יחד כמה לעבוד כל יום` : "רוצים להגיע לסכום מסוים? נחשב יחד כמה לעבוד כל יום"}</span></span><span class="muted" style="font-size:22px">‹</span></button>`}
     <section class="card"><div class="card-head"><h3>המשמרות של היום</h3><span class="num muted small">${fmtHM(todayCalc.wMin + todayCalc.vacMin + todayCalc.sickMin)} ש׳ · ${money(todayCalc.pay)}</span></div>${todayRows}</section>
     ${installCard()}`;
 }
@@ -1478,7 +1595,7 @@ function heroPanel(P) {
     </div>
     ${goal}
     ${rows.length ? `<div class="hero-rows">${rows.join("")}</div>` : ""}
-    <div class="hb"><button class="btn" data-act="share">שליחת הדוח</button><button class="btn ghost" data-act="editPlanSettings">${pl.goal > 0 ? "עריכת יעד" : "הגדרת יעד"}</button></div>
+    <div class="hb"><button class="btn" data-act="share">שליחת הדוח</button><button class="btn ghost" data-act="advisor">🧭 יועץ משכורת</button></div>
   </section>`;
 }
 function viewMonth() {
@@ -1548,6 +1665,7 @@ function viewSettings() {
       </div>
       ${num("s-periodStart", "יום תחילת חודש השכר", st.periodStart, 'min="1" max="28" step="1" inputmode="numeric"', "1 = חודש רגיל")}`)}
     ${acc("goal", "🎯", "יעד והיקף משרה", pl.goal > 0 ? `יעד ${money(pl.goal)} · ${pl.wd.length} ימים בשבוע · ${pl.pct}%` : `${pl.wd.length} ימים בשבוע · ${pl.pct}% משרה · בלי יעד`, `
+      <button class="btn primary" data-act="advisor">🧭 תכנון עם יועץ המשכורת</button>
       ${num("s-goalAmount", `יעד הכנסה לחודש (${esc(st.currency)})`, st.goalAmount, 'min="0" step="100" inputmode="decimal"', "0 = בלי יעד")}
       <div class="fld"><label>באילו ימים אני עובד/ת</label><div class="days-pick">${DAYS.map((d, i) => `<button type="button" data-wday="${i}" aria-pressed="${(st.workDays || []).includes(i)}">${d}</button>`).join("")}</div>
         <span class="hint">${(st.workDays || []).length} ימים בשבוע. לפי זה מחשבים כמה לעבוד כל יום</span></div>
@@ -1886,6 +2004,7 @@ document.addEventListener("click", e => {
     case "pickTimer": timerPickModal(); break;
     case "share": shareModal(ui.tab === "month" ? ui.period : periodKeyOf(todayDS())); break;
     case "changePass": newPasswordModal(); break;
+    case "advisor": advisorModal(); break;
     case "editPlanSettings": ui.openSec = "goal"; goTab("settings"); setTimeout(() => { const g = $('[data-sec="goal"]'); if (g) g.scrollIntoView({ behavior: "smooth", block: "start" }); }, 30); break;
     case "clockOut": clockOut(); break;
     case "addBreak": breakModal(); break;
