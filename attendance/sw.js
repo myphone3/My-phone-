@@ -1,5 +1,5 @@
 // Offline shell: the app's own files come from the network first and fall back to the cache.
-const CACHE = "attendance-v8";
+const CACHE = "attendance-v9";
 const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icon-192.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => {

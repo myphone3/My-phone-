@@ -379,6 +379,10 @@ details.fold[open] > summary { margin-bottom: 10px; }
 .bub.bot { background: var(--surface-2); border: 1px solid var(--line); align-self: flex-start; border-start-start-radius: 4px; }
 .bub.me { background: var(--accent); color: var(--accent-ink); align-self: flex-end; border-start-end-radius: 4px; font-weight: 600; }
 .bub .kv .r { padding: 5px 0; font-size: 13px; }
+.bub.typing { color: var(--muted); font-style: italic; }
+.chat-input { display: flex; gap: 8px; align-items: flex-end; }
+.chat-input textarea { flex: 1; min-height: 46px; max-height: 120px; resize: none; }
+.chat-input .btn { flex: none; }
 .advisor-card { display: flex; align-items: center; gap: 12px; width: 100%; text-align: right; border: 1px solid var(--line); }
 .advisor-card .ic { width: 44px; height: 44px; border-radius: 12px; background: var(--accent-soft); display: grid; place-items: center; font-size: 22px; flex: none; }
 .nav .live { width: 7px; height: 7px; border-radius: 50%; background: var(--punch); position: absolute; top: 6px; margin-inline-start: 18px; }
@@ -853,7 +857,7 @@ function advise(goal, days, maxH) {
   const schedule = dates.slice(0, 7).map(ds => ({ ds, min: need, pay: dayPayFor(need, ds, rate) + travel }));
   return { key, rate, travel, earnedBefore, left, need, dates, maxMin, maxEarn, extra, scen, pct: pl.pct, pctDay, pctEarn, schedule };
 }
-function advisorModal() {
+function quickPlanModal() {
   const st = state.settings, key = periodKeyOf(todayDS());
   const last = calcPeriod(movePeriod(key, -1), "all").t.total;
   const A = ui.adv = ui.adv || { step: 0, goal: +st.goalAmount || 0, days: [...(st.workDays || DEFAULT_SETTINGS.workDays)], maxH: 9 };
@@ -894,6 +898,64 @@ function advisorModal() {
       state.settings = { ...state.settings, goalAmount: A.goal, workDays: [...A.days], dailyGoalHours: 0, ...(state.active ? {} : { entryMode: "goal" }) };
       ui.adv = null; closeModal(); commit("התוכנית נשמרה. בלשונית נוכחות תראו כמה נשאר כל יום");
     };
+  };
+  openModal("", m => draw(m));
+}
+// AI advisor (Gemini, through /api/advisor): free chat with the worker's numbers as context
+function aiContext() {
+  const st = state.settings, key = periodKeyOf(todayDS()), P = calcPeriod(key, "all"), pl = planInfo(key);
+  const goal = +st.goalAmount || 0, days = st.workDays || DEFAULT_SETTINGS.workDays;
+  const r = advise(goal || Math.round(Math.max(P.t.total, calcPeriod(movePeriod(key, -1), "all").t.total) * 1.1 / 100) * 100, days, 12);
+  const hm = m => m === Infinity ? "impossible" : m == null ? null : fmtHM(m);
+  return {
+    today: `${todayDS()} (יום ${DAYS[weekday(todayDS())]})`, currency: st.currency,
+    pay: { hourlyRate: jobOf("main").rate, extraJobs: (st.jobs || []).map(j => ({ name: j.name, rate: j.rate })), shiftHours: +st.shiftHours,
+      overtime: st.otEnabled ? { afterHoursPerDay: +st.otThreshold, hoursAt125: +st.ot1Span } : "off", saturdayRatePct: st.weekendOn ? +st.weekendRate : "off",
+      travelPerDay: st.travelOn ? +st.travelPerDay : 0, jobPct: pl.pct, workDays: days.map(i => DAYS[i]) },
+    thisPeriod: { label: periodLabel(key), range: periodRange(key), earnedGross: Math.round(P.t.total), hours: fmtHM(P.t.allMin), daysWorked: P.t.daysWorked,
+      overtimeHours: fmtHM(P.t.otMin), netEstimate: st.netOn && P.t.total > 0 ? Math.round(netEstimate(P.t.total).net) : null,
+      workDaysLeftInclToday: pl.left.length, forecastAtCurrentPace: Math.round(pl.forecast), shiftRunningNow: !!state.active },
+    goal: goal ? { amount: goal, stillMissing: Math.round(r.left), hoursPerDayNeeded: hm(r.need), onDays: r.dates.length } : "not set",
+    planFor: { amount: goal || "example (+10% on best recent month)", missing: Math.round(r.left), hoursPerDayByDaysPerWeek: r.scen.map(x => ({ daysPerWeek: x.n, workDaysLeft: x.days, hoursPerDay: hm(x.need) })),
+      ifWorkingAtJobPct: { hoursPerDay: fmtHM(r.pctDay), endOfMonthTotal: Math.round(r.pctEarn) } },
+    recentMonths: [1, 2, 3].map(i => { const k = movePeriod(key, -i), t = calcPeriod(k, "all").t; return { month: periodLabel(k), gross: Math.round(t.total), hours: fmtHM(t.allMin), days: t.daysWorked }; })
+  };
+}
+const aiText = t => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\n/g, "<br>");
+function advisorModal() {
+  const C = ui.chat = ui.chat || [];
+  const st = state.settings;
+  const chips = [+st.goalAmount > 0 ? `כמה שעות ביום צריך כדי להגיע ל-${money(+st.goalAmount)}?` : "כמה אני צריך לעבוד כדי להרוויח 6,000 ₪?", "מה אם אעבוד רק 3 ימים בשבוע?", "איך אפשר להרוויח יותר החודש?", "כדאי לי לעבוד בשבת?"];
+  let busy = false;
+  const draw = m => {
+    const bub = x => `<div class="bub ${x.role === "model" ? "bot" : "me"}">${x.role === "model" ? aiText(x.text) : esc(x.text)}</div>`;
+    m.innerHTML = `<div class="card-head" style="margin:0"><h3>🧭 יועץ משכורת</h3><button class="link" data-dismiss>סגירה</button></div>
+      <div class="chat" id="ai-chat">
+        <div class="bub bot">היי! אני יועץ המשכורת 🧭 אני רואה את השעות, התעריף והיעד שלך, ואפשר לשאול אותי כל שאלה על תכנון העבודה והמשכורת. מה מעניין אותך?</div>
+        ${C.map(bub).join("")}${busy ? `<div class="bub bot typing">חושב…</div>` : ""}
+      </div>
+      ${C.length ? "" : `<div class="quick">${chips.map(c => `<button type="button" data-q="${esc(c)}">${esc(c)}</button>`).join("")}</div>`}
+      <div class="chat-input"><textarea id="ai-in" rows="1" maxlength="1000" placeholder="כתבו שאלה…" ${busy ? "disabled" : ""}></textarea><button class="btn primary" id="ai-send" ${busy ? "disabled" : ""} aria-label="שליחה">שליחה</button></div>
+      <div class="btn-row"><button class="btn ghost sm" id="ai-quick">תוכנית מהירה צעד אחר צעד</button>${C.length ? `<button class="btn ghost sm" id="ai-clear">שיחה חדשה</button>` : ""}</div>`;
+    const chat = $("#ai-chat", m); if (chat.lastElementChild) chat.lastElementChild.scrollIntoView({ block: "nearest" });
+    const send = async text => {
+      text = String(text || "").trim(); if (!text || busy) return;
+      C.push({ role: "user", text }); busy = true; draw(m);
+      let reply;
+      try {
+        const r = await fetch("/api/advisor", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ messages: C, context: aiContext() }) });
+        const j = await r.json().catch(() => ({}));
+        if (r.ok && j.text) reply = j.text;
+        else reply = { no_key: "היועץ החכם עוד לא מחובר (חסר מפתח Gemini בשרת). בינתיים אפשר להשתמש ב״תוכנית מהירה״ למטה.", quota: "הגענו למכסה החינמית של היועץ להיום. נסו שוב מחר, או השתמשו ב״תוכנית מהירה״.", unauthorized: "צריך להתחבר מחדש כדי לדבר עם היועץ." }[j.error] || "משהו השתבש מול היועץ. נסו שוב עוד רגע.";
+      } catch (e) { reply = "אין חיבור לאינטרנט. נסו שוב כשיש רשת."; }
+      C.push({ role: "model", text: reply }); busy = false;
+      if ($("#ai-chat")) { draw(m); const i = $("#ai-in", m); if (i) i.focus(); }
+    };
+    m.querySelectorAll("[data-q]").forEach(b => b.onclick = () => send(b.dataset.q));
+    $("#ai-send", m).onclick = () => send($("#ai-in", m).value);
+    $("#ai-in", m).addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(e.target.value); } });
+    $("#ai-quick", m).onclick = () => { closeModal(); quickPlanModal(); };
+    const cl = $("#ai-clear", m); if (cl) cl.onclick = () => { C.length = 0; draw(m); };
   };
   openModal("", m => draw(m));
 }
