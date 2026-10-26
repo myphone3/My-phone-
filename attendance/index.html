@@ -1,0 +1,1231 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>שעון נוכחות</title>
+<meta name="description" content="שעון נוכחות לעובד: כניסה ויציאה, הפסקות, שעות נוספות, סיכום חודשי ודוח לבוס.">
+<meta name="theme-color" content="#0E7A5D">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="שעון נוכחות">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&family=Secular+One&display=swap">
+<style>
+/* Layout: one-column phone app — a punch-clock card on top, bottom tab bar, the boss report as a formal sheet */
+:root {
+  --bg: #EAF0ED; --surface: #FFFFFF; --surface-2: #F4F7F5; --ink: #12241F; --muted: #5A6B66; --line: #D3DDD9;
+  --accent: #0E7A5D; --accent-ink: #FFFFFF; --accent-soft: #D3ECE3; --punch: #C8470E; --punch-soft: #FBE2D4;
+  --warn: #9A6A00; --danger: #B42318;
+  --shadow: 0 1px 2px rgba(18,36,31,.06), 0 6px 20px rgba(18,36,31,.06);
+  --f-display: "Secular One", "IBM Plex Sans Hebrew", "Arial Hebrew", Arial, sans-serif;
+  --f-body: "IBM Plex Sans Hebrew", "Arial Hebrew", "Segoe UI", Arial, sans-serif;
+  --f-num: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0E1614; --surface: #16211E; --surface-2: #1C2925; --ink: #E4EEEA; --muted: #93A6A0;
+    --line: #2A3A36; --accent: #3DC79E; --accent-ink: #06231A; --accent-soft: #173A30;
+    --punch: #FF8B52; --punch-soft: #3E2418; --warn: #E6B54A; --danger: #FF7A6E;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: env(safe-area-inset-top, 0px) calc(84px + env(safe-area-inset-bottom, 0px));
+}
+[hidden] { display: none !important; }
+.app { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.num, .mono { font-family: var(--f-num); font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 400; margin: 0; text-wrap: balance; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button:disabled { opacity: .6; cursor: default; }
+
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 16px; }
+.brand { display: flex; flex-direction: column; min-width: 0; }
+.brand h1 { font-size: 22px; line-height: 1.1; }
+.brand .who { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sync { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.sync::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.sync.cloud::before { background: var(--accent); }
+.sync.err::before { background: var(--danger); }
+.sync.saving::before { background: var(--warn); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; box-shadow: var(--shadow); }
+.card h3 { font-size: 17px; margin-bottom: 10px; }
+.card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.card-head h3 { margin: 0; }
+.label { font-size: 12px; color: var(--muted); letter-spacing: .02em; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+
+.clock { text-align: center; padding: 22px 16px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.clock .now { font-size: 14px; color: var(--muted); }
+.clock .now b { font-family: var(--f-num); color: var(--ink); font-weight: 600; }
+.punch {
+  width: 196px; height: 196px; max-width: 100%; border-radius: 50%; border: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 2px; background: var(--accent); color: var(--accent-ink);
+  box-shadow: 0 0 0 10px var(--accent-soft), 0 10px 30px rgba(14,122,93,.25); transition: transform .12s ease;
+}
+.punch:active { transform: scale(.97); }
+.punch span { font-family: var(--f-display); font-size: 40px; line-height: 1; }
+.punch small { font-size: 13px; opacity: .85; }
+.status { display: inline-flex; gap: 8px; align-items: center; padding: 4px 12px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 600; font-size: 13px; }
+.status.break { background: var(--punch-soft); color: var(--punch); }
+.status .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: pulse 1.6s infinite; }
+@keyframes pulse { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .status .dot { animation: none; } .punch { transition: none; } }
+.elapsed { font-size: clamp(44px, 14vw, 64px); font-weight: 600; line-height: 1; letter-spacing: -.02em; }
+.earn { font-size: 15px; color: var(--muted); }
+.earn b { color: var(--ink); }
+.progress { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.progress .track { height: 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); overflow: hidden; display: flex; }
+.progress .fill { background: var(--accent); height: 100%; }
+.progress .over { background: var(--punch); height: 100%; }
+.progress .txt { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); gap: 8px; }
+.breaks { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center; font-size: 13px; }
+.bchip { display: inline-flex; align-items: center; gap: 4px; background: var(--punch-soft); color: var(--punch); border: 0; border-radius: 999px; padding: 3px 4px 3px 10px; font-weight: 600; font-size: 13px; }
+.bchip span.x { width: 20px; height: 20px; border-radius: 50%; display: inline-grid; place-items: center; background: rgba(0,0,0,.08); font-size: 13px; line-height: 1; }
+.btn-row { display: flex; gap: 10px; width: 100%; flex-wrap: wrap; }
+.btn-row > * { flex: 1 1 140px; }
+.btn { border: 1px solid var(--line); background: var(--surface-2); border-radius: 12px; padding: 12px 14px; font-weight: 600; min-height: 48px; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.out { background: var(--punch); border-color: var(--punch); color: #fff; font-family: var(--f-display); font-size: 20px; font-weight: 400; }
+.btn.ghost { background: transparent; }
+.btn.danger { color: var(--danger); background: transparent; }
+.btn.sm { min-height: 38px; padding: 6px 12px; font-size: 14px; border-radius: 10px; }
+.btn.block { width: 100%; }
+.link { background: none; border: 0; color: var(--accent); font-weight: 600; padding: 4px; text-decoration: underline; text-underline-offset: 3px; }
+
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.stat { background: var(--surface-2); border-radius: 12px; padding: 10px 12px; min-width: 0; }
+.stat .v { font-family: var(--f-num); font-size: 20px; font-weight: 600; direction: ltr; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat.hero { background: var(--accent); color: var(--accent-ink); grid-column: 1 / -1; order: -1; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.stat.hero .label { color: inherit; opacity: .85; }
+.stat.hero .v { font-size: 26px; }
+
+.pnav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pnav h2 { font-size: 22px; text-align: center; }
+.pnav .sub { font-size: 12px; color: var(--muted); text-align: center; display: block; font-family: var(--f-body); }
+.pnav button { width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font-size: 20px; }
+
+.chart-wrap { overflow-x: auto; padding-bottom: 4px; }
+.chart { display: flex; align-items: flex-end; gap: 3px; height: 130px; min-width: 100%; position: relative; padding-top: 6px; }
+.bar { flex: 1 0 9px; display: flex; flex-direction: column-reverse; align-items: stretch; height: 100%; position: relative; }
+.bar i { display: block; border-radius: 3px 3px 0 0; }
+.bar i.reg { background: var(--accent); }
+.bar i.ot { background: var(--punch); }
+.bar i.reg + i.ot { margin-bottom: 1px; }
+.bar.we::after { content: ""; position: absolute; inset: 0; background: var(--surface-2); z-index: -1; border-radius: 3px; }
+.bar.today { outline: 1px dashed var(--muted); outline-offset: 1px; border-radius: 3px; }
+.xlab { display: flex; gap: 3px; min-width: 100%; }
+.xlab span { flex: 1 0 9px; font-size: 9px; color: var(--muted); text-align: center; font-family: var(--f-num); }
+.tline { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--muted); opacity: .6; pointer-events: none; }
+.tline span { position: absolute; left: 0; top: -15px; font-size: 10px; color: var(--muted); background: var(--surface); padding: 0 3px; font-family: var(--f-num); }
+.legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); margin-top: 8px; flex-wrap: wrap; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-inline-end: 5px; vertical-align: -1px; }
+
+.kv { display: flex; flex-direction: column; }
+.kv .r { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.kv .r:last-child { border-bottom: 0; }
+.kv .r .k { min-width: 0; }
+.kv .r .v { font-family: var(--f-num); direction: ltr; white-space: nowrap; }
+.kv .r.total { font-weight: 700; font-size: 17px; border-top: 2px solid var(--ink); border-bottom: 0; margin-top: 4px; padding-top: 10px; }
+.kv .r.total .v { color: var(--accent); }
+
+.days { display: flex; flex-direction: column; gap: 8px; }
+.day { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; }
+.day-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface-2); }
+.day-h .d { font-weight: 600; }
+.day-h .d small { color: var(--muted); font-weight: 400; margin-inline-start: 6px; }
+.day-h .t { text-align: left; font-size: 13px; }
+.shift { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-top: 1px solid var(--line); width: 100%; background: none; border-inline: 0; border-bottom: 0; text-align: right; }
+.shift:hover { background: var(--surface-2); }
+.shift .tm { font-family: var(--f-num); direction: ltr; unicode-bidi: isolate; font-size: 14px; }
+.shift .meta { color: var(--muted); font-size: 12px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shift .h { font-family: var(--f-num); font-size: 14px; }
+.chip { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--punch-soft); color: var(--punch); font-weight: 600; white-space: nowrap; }
+.chip.n { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+.chips { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.empty { text-align: center; padding: 26px 12px; color: var(--muted); display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.empty b { color: var(--ink); font-size: 16px; }
+.banner { background: var(--punch-soft); color: var(--ink); border-radius: 12px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; flex-wrap: wrap; }
+
+.sheet { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 20px 16px; box-shadow: var(--shadow); }
+.sheet-h { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-bottom: 2px solid var(--ink); padding-bottom: 12px; margin-bottom: 12px; }
+.sheet-h h2 { font-size: 24px; }
+.sheet-h .meta { font-size: 13px; color: var(--muted); display: grid; grid-template-columns: auto auto; gap: 2px 10px; }
+.sheet-h .meta b { color: var(--ink); font-weight: 600; }
+.tbl-wrap { overflow-x: auto; margin: 0 -4px; }
+table.rep { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 560px; }
+table.rep th { text-align: right; font-size: 11px; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--ink); padding: 6px; white-space: nowrap; }
+table.rep td { padding: 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.rep td.n { font-family: var(--f-num); font-variant-numeric: tabular-nums; direction: ltr; text-align: right; }
+table.rep tr.we td { background: var(--surface-2); }
+table.rep tfoot td { font-weight: 700; border-top: 2px solid var(--ink); border-bottom: 0; }
+.sign { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 28px; font-size: 13px; color: var(--muted); }
+.sign div { border-top: 1px solid var(--ink); padding-top: 6px; }
+.export { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.export .btn { display: flex; flex-direction: column; align-items: flex-start; gap: 0; text-align: right; }
+.export .btn small { font-weight: 400; color: var(--muted); font-size: 12px; }
+.export .btn.primary small { color: inherit; opacity: .85; }
+@media (max-width: 400px) { .export { grid-template-columns: 1fr; } }
+
+.form { display: flex; flex-direction: column; gap: 12px; }
+.fld { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fld label { font-size: 13px; font-weight: 600; }
+.fld .hint { font-size: 12px; color: var(--muted); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
+input, select, textarea {
+  font: inherit; color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 12px; min-height: 46px; width: 100%; min-width: 0; font-size: 16px;
+}
+input[type="time"], input[type="date"], input[type="number"], input[type="datetime-local"], input[type="tel"], input[type="email"] { font-family: var(--f-num); direction: ltr; text-align: right; }
+.switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; cursor: pointer; }
+.switch input { width: 46px; min-height: 26px; height: 26px; appearance: none; -webkit-appearance: none; border-radius: 999px; background: var(--line); position: relative; padding: 0; border: 0; flex: none; cursor: pointer; }
+.switch input::after { content: ""; position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: right .15s; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+.switch input:checked { background: var(--accent); }
+.switch input:checked::after { right: 23px; }
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.seg button { border: 1px solid var(--line); background: var(--surface-2); border-radius: 10px; padding: 8px 4px; font-size: 13px; font-weight: 600; min-height: 42px; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.quick { display: flex; gap: 6px; flex-wrap: wrap; }
+.quick button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 12px; font-size: 13px; font-weight: 600; min-height: 34px; }
+.calc-preview { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; font-size: 14px; display: flex; justify-content: space-between; gap: 10px; }
+.err-msg { color: var(--danger); font-size: 14px; min-height: 1em; }
+.ok-msg { background: var(--accent-soft); color: var(--ink); border-radius: 10px; padding: 12px; font-size: 14px; }
+
+/* auth */
+.auth { min-height: calc(100vh - 120px); display: flex; flex-direction: column; justify-content: center; gap: 18px; padding-block: 24px; }
+.auth-logo { display: flex; align-items: center; gap: 12px; }
+.auth-logo img { width: 52px; height: 52px; border-radius: 14px; }
+.auth-logo h1 { font-size: 28px; line-height: 1.1; }
+.auth-tabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--surface-2); border-radius: 12px; padding: 4px; gap: 4px; border: 1px solid var(--line); }
+.auth-tabs button { border: 0; background: transparent; border-radius: 9px; padding: 10px; font-weight: 600; color: var(--muted); }
+.auth-tabs button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.loading { display: grid; place-items: center; min-height: 60vh; color: var(--muted); }
+
+.overlay { position: fixed; inset: 0; background: rgba(8,16,14,.5); z-index: 40; display: flex; align-items: flex-end; justify-content: center; padding-top: env(safe-area-inset-top, 0px); }
+.modal { background: var(--surface); width: 100%; max-width: 560px; max-height: 92%; overflow-y: auto; border-radius: 18px 18px 0 0;
+  padding: 18px max(16px, env(safe-area-inset-right, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 14px; }
+@media (min-width: 600px) { .overlay { align-items: center; } .modal { border-radius: 18px; } }
+.modal h3 { font-size: 20px; }
+.modal-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.modal-actions .btn { flex: 1 1 120px; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(92px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 12px; z-index: 50; font-size: 14px; max-width: calc(100% - 32px); box-shadow: var(--shadow); }
+textarea.copy { min-height: 180px; font-family: var(--f-num); font-size: 13px; direction: rtl; }
+.bgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.bgrid button { border: 1px solid var(--line); background: var(--surface-2); border-radius: 12px; padding: 12px 4px; font-weight: 600; font-family: var(--f-num); }
+
+.nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 30; background: var(--surface); border-top: 1px solid var(--line);
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  padding: 6px max(8px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
+.nav button { background: none; border: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; border-radius: 10px; color: var(--muted); font-size: 12px; font-weight: 600; position: relative; }
+.nav button svg { width: 22px; height: 22px; }
+.nav button[aria-current="page"] { color: var(--accent); background: var(--accent-soft); }
+.nav .live { width: 7px; height: 7px; border-radius: 50%; background: var(--punch); position: absolute; top: 6px; margin-inline-start: 18px; }
+</style>
+</head>
+<body>
+<div class="app" id="app"><div class="loading">טוען…</div></div>
+<nav class="nav" id="nav" aria-label="ניווט" hidden>
+  <button data-tab="clock" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg>שעון</button>
+  <button data-tab="month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>החודש</button>
+  <button data-tab="report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6M9 13h8M9 17h8"/></svg>דוח לבוס</button>
+  <button data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>הגדרות</button>
+</nav>
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>window.supabase || document.write('<script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"><\/script>');</script>
+<script>
+(() => {
+"use strict";
+const SUPABASE_URL = "https://iiaxizrezhczgutqijbe.supabase.co";
+const SUPABASE_KEY = "sb_publishable_GlpxeLkaiEs9zbILs_oeUg_HU5xMKfu";
+if (!window.supabase) { document.getElementById("app").innerHTML = '<div class="loading">אין חיבור לאינטרנט. התחברו לרשת ורעננו את הדף.</div>'; return; }
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: "attendance-auth" } });
+
+// ---------- helpers ----------
+const $ = (s, el = document) => el.querySelector(s);
+const pad = n => String(n).padStart(2, "0");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+const MONTHS = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+const DAYS = ["א׳","ב׳","ג׳","ד׳","ה׳","ו׳","ש׳"];
+const TYPES = { work: "עבודה", holiday: "שבת / חג", vacation: "חופשה", sick: "מחלה" };
+
+const localDS = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const localHM = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const todayDS = () => localDS(new Date());
+const parseDS = ds => ds.split("-").map(Number);
+const utc = (y, m, d) => new Date(Date.UTC(y, m - 1, d));
+const utcDS = d => `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+const weekday = ds => { const [y, m, d] = parseDS(ds); return utc(y, m, d).getUTCDay(); };
+const daysIn = (y, m) => new Date(Date.UTC(y, m, 0)).getUTCDate();
+const toMin = hm => { const [h, m] = String(hm || "0:0").split(":").map(Number); return (h || 0) * 60 + (m || 0); };
+const minToHM = min => { min = ((Math.round(min) % 1440) + 1440) % 1440; return `${pad(Math.floor(min / 60))}:${pad(min % 60)}`; };
+const fmtHM = min => { min = Math.round(min); const s = min < 0 ? "-" : ""; min = Math.abs(min); return `${s}${Math.floor(min / 60)}:${pad(min % 60)}`; };
+const fmtDec = min => (Math.round(min / 60 * 100) / 100).toFixed(2);
+const fmtDate = ds => { const [y, m, d] = parseDS(ds); return `${d}.${m}.${String(y).slice(2)}`; };
+const fmtDateLong = ds => { const [, m, d] = parseDS(ds); return `${d} ב${MONTHS[m - 1]}`; };
+function money(x) {
+  const cur = state.settings.currency || "₪";
+  const n = Math.abs(Math.round(x * 100) / 100).toLocaleString("he-IL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${x < 0 ? "-" : ""}${cur}${n}`;
+}
+const normPhone = p => String(p || "").replace(/[^\d+]/g, "");
+const validPhone = p => /^(\+?\d{9,15})$/.test(normPhone(p));
+const validEmail = e => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(e || "").trim());
+
+// ---------- state ----------
+const DEFAULT_SETTINGS = {
+  name: "", employer: "", rate: 0, currency: "₪", shiftHours: 8,
+  otEnabled: true, otThreshold: 8.6, ot1Span: 2,
+  weekendOn: true, weekendRate: 150,
+  travelOn: false, travelPerDay: 0, periodStart: 1,
+  vacPct: 100, sickPct: 100, onboarded: false
+};
+const freshState = () => ({ v: 2, updatedAt: 0, settings: { ...DEFAULT_SETTINGS }, shifts: [], active: null, adjustments: [], sample: false });
+function normalize(s) {
+  s = JSON.parse(JSON.stringify(s || {}));
+  const n = freshState();
+  const out = { ...n, ...s, settings: { ...n.settings, ...(s.settings || {}) },
+    shifts: Array.isArray(s.shifts) ? s.shifts : [], adjustments: Array.isArray(s.adjustments) ? s.adjustments : [],
+    active: s.active && s.active.start ? s.active : null };
+  if (out.active && !Array.isArray(out.active.breaks)) out.active = { ...out.active, breaks: [] };
+  if (s.settings && s.settings.travelPerDay > 0 && s.settings.travelOn === undefined) out.settings.travelOn = true;
+  return out;
+}
+let state = freshState();
+let session = null, account = null; // account = {phone, full_name, email}
+const ui = { tab: "clock", period: null, authMode: "login", authMsg: "" };
+try { const t = localStorage.getItem("attendance:tab"); if (t) ui.tab = t; } catch (e) {}
+const cacheKey = () => session ? "attendance:data:" + session.user.id : null;
+const saveCache = () => { try { if (cacheKey()) localStorage.setItem(cacheKey(), JSON.stringify(state)); } catch (e) {} };
+
+// ---------- cloud sync ----------
+let saving = false, dirty = false, saveTimer = null, syncState = "local";
+function setSync(s) { syncState = s; const el = $("#sync"); if (el) paintSync(el); }
+function paintSync(el) {
+  const map = { local: ["", "לא מחובר לרשת"], cloud: ["cloud", "מגובה בענן"], saving: ["saving", "שומר…"], err: ["err", "ממתין לרשת"] };
+  const [c, t] = map[syncState] || map.local;
+  el.className = "sync " + c; el.textContent = t;
+}
+function commit(msg, noRender) {
+  state.updatedAt = Date.now();
+  saveCache(); if (!noRender) render();
+  if (msg) toast(msg);
+  dirty = true; clearTimeout(saveTimer); saveTimer = setTimeout(flush, 500);
+}
+async function flush() {
+  if (saving || !dirty || !session) return;
+  saving = true; dirty = false; setSync("saving");
+  const payload = JSON.parse(JSON.stringify(state));
+  const { error } = await sb.from("attendance_accounts").update({ data: payload, full_name: state.settings.name || account?.full_name || "", updated_at: new Date().toISOString() }).eq("user_id", session.user.id);
+  saving = false;
+  if (error) { dirty = true; setSync("err"); setTimeout(flush, 5000 + Math.random() * 3000); return; }
+  setSync("cloud");
+  if (dirty) flush();
+}
+async function pullRemote() {
+  if (!session) return;
+  const { data, error } = await sb.from("attendance_accounts").select("phone, full_name, email, data").eq("user_id", session.user.id).maybeSingle();
+  if (error) { setSync("err"); return "error"; }
+  if (!data) return "missing";
+  account = { phone: data.phone, full_name: data.full_name, email: data.email };
+  const remote = data.data || {};
+  const rT = remote.updatedAt || 0;
+  if (rT > state.updatedAt) { state = normalize(remote); saveCache(); }
+  else if (rT < state.updatedAt) { dirty = true; flush(); }
+  if (!state.settings.name && data.full_name) state.settings = { ...state.settings, name: data.full_name };
+  setSync(dirty ? "saving" : "cloud");
+  return "ok";
+}
+async function createAccount(phone, fullName) {
+  const u = session.user;
+  const row = { user_id: u.id, phone: normPhone(phone), full_name: fullName || "", email: u.email, data: JSON.parse(JSON.stringify(state)) };
+  const { error } = await sb.from("attendance_accounts").insert(row);
+  if (error && error.code !== "23505") throw error;
+  account = { phone: row.phone, full_name: row.full_name, email: u.email };
+}
+window.addEventListener("online", () => { if (dirty) flush(); else pullRemote().then(() => render()); });
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) { if (dirty) flush(); return; }
+  if (!session) return;
+  if (!dirty && !saving) pullRemote().then(r => { if (r === "ok" && !$("#modal-root").firstChild) render(); });
+  else tick();
+});
+
+// ---------- boot / auth ----------
+async function startSession(s) {
+  session = s;
+  try { const c = localStorage.getItem(cacheKey()); state = c ? normalize(JSON.parse(c)) : freshState(); } catch (e) { state = freshState(); }
+  render(); // show cached data right away
+  const r = await pullRemote();
+  if (r === "missing") {
+    const meta = s.user.user_metadata || {};
+    if (meta.phone && validPhone(meta.phone)) {
+      if (!state.settings.name && meta.full_name) state.settings = { ...state.settings, name: meta.full_name };
+      try { await createAccount(meta.phone, meta.full_name || state.settings.name); setSync("cloud"); }
+      catch (e) { setSync("err"); }
+    } else { ui.needPhone = true; }
+  }
+  render();
+}
+function endSession() {
+  try { if (cacheKey()) localStorage.removeItem(cacheKey()); } catch (e) {}
+  session = null; account = null; state = freshState(); ui.needPhone = false; ui.authMode = "login";
+  render();
+}
+sb.auth.onAuthStateChange((event, s) => {
+  if (event === "PASSWORD_RECOVERY") { setTimeout(newPasswordModal, 50); }
+  if (event === "SIGNED_OUT") { endSession(); return; }
+  if (s && (!session || session.user.id !== s.user.id)) { startSession(s); return; }
+  if (s) session = s;
+});
+sb.auth.getSession().then(({ data }) => { if (data.session) { if (!session) startSession(data.session); } else render(); });
+
+function viewAuth() {
+  const m = ui.authMode;
+  const head = `<div class="auth-logo"><img src="/icon-192.png" alt=""><div><h1>שעון נוכחות</h1><div class="muted small">רישום שעות, חישוב שכר ודוח לבוס</div></div></div>`;
+  if (m === "sent") {
+    return `<div class="auth">${head}<section class="card form"><h3>כמעט סיימנו</h3>
+      <div class="ok-msg">שלחנו מייל אימות אל <b class="num">${esc(ui.authEmail || "")}</b>.<br>פתחו את המייל ולחצו על הקישור. אחר כך חזרו לכאן והתחברו עם המייל והסיסמה.</div>
+      <p class="muted small" style="margin:0">לא הגיע? בדקו בתיקיית הספאם או קידומי מכירות.</p>
+      <button class="btn primary block" data-auth="toLogin">להתחברות</button></section></div>`;
+  }
+  if (m === "forgot") {
+    return `<div class="auth">${head}<section class="card"><form class="form" id="forgot-form" novalidate><h3>איפוס סיסמה</h3>
+      <div class="fld"><label for="fg-email">המייל שאיתו נרשמתם</label><input type="email" id="fg-email" autocomplete="email" required value="${esc(ui.authEmail || "")}"></div>
+      <div class="err-msg" id="auth-err">${esc(ui.authMsg)}</div>
+      <button class="btn primary block" type="submit">שליחת קישור לאיפוס</button>
+      <button class="link" type="button" data-auth="toLogin">חזרה להתחברות</button></form></section></div>`;
+  }
+  const signup = m === "signup";
+  return `<div class="auth">${head}
+    <div class="auth-tabs" role="tablist"><button role="tab" aria-selected="${!signup}" data-auth="toLogin">התחברות</button><button role="tab" aria-selected="${signup}" data-auth="toSignup">הרשמה</button></div>
+    <section class="card"><form class="form" id="auth-form" novalidate>
+      ${signup ? `<div class="fld"><label for="au-name">שם מלא</label><input type="text" id="au-name" autocomplete="name" maxlength="50" required></div>
+      <div class="fld"><label for="au-phone">מספר טלפון</label><input type="tel" id="au-phone" autocomplete="tel" inputmode="tel" placeholder="050-0000000" required></div>` : ""}
+      <div class="fld"><label for="au-email">אימייל</label><input type="email" id="au-email" autocomplete="email" inputmode="email" required value="${esc(ui.authEmail || "")}"></div>
+      <div class="fld"><label for="au-pass">סיסמה</label><input type="password" id="au-pass" autocomplete="${signup ? "new-password" : "current-password"}" minlength="6" required>${signup ? `<span class="hint">לפחות 6 תווים</span>` : ""}</div>
+      <div class="err-msg" id="auth-err">${esc(ui.authMsg)}</div>
+      <button class="btn primary block" type="submit" id="auth-submit">${signup ? "יצירת חשבון" : "כניסה"}</button>
+      ${signup ? `<p class="muted small" style="margin:0">כל הנתונים שלכם נשמרים בחשבון. אם תחליפו טלפון או תמחקו את האפליקציה, פשוט התחברו שוב והכול יחזור.</p>` : `<button class="link" type="button" data-auth="toForgot">שכחתי סיסמה</button>`}
+    </form></section></div>`;
+}
+function viewNeedPhone() {
+  return `<div class="auth"><div class="auth-logo"><img src="/icon-192.png" alt=""><div><h1>עוד פרט אחד</h1><div class="muted small">${esc(session.user.email || "")}</div></div></div>
+    <section class="card"><form class="form" id="phone-form" novalidate>
+      <div class="fld"><label for="np-name">שם מלא</label><input type="text" id="np-name" autocomplete="name" maxlength="50" value="${esc(state.settings.name || (session.user.user_metadata || {}).full_name || "")}" required></div>
+      <div class="fld"><label for="np-phone">מספר טלפון</label><input type="tel" id="np-phone" autocomplete="tel" inputmode="tel" placeholder="050-0000000" required></div>
+      <div class="err-msg" id="auth-err"></div>
+      <button class="btn primary block" type="submit">המשך</button>
+      <button class="link" type="button" data-act="logout">התנתקות</button>
+    </form></section></div>`;
+}
+const authErr = msg => { const e = $("#auth-err"); if (e) e.textContent = msg; };
+function heAuthError(err) {
+  const m = (err && err.message || "").toLowerCase();
+  if (m.includes("invalid login")) return "המייל או הסיסמה לא נכונים";
+  if (m.includes("email not confirmed")) return "צריך לאשר את המייל קודם. חפשו את מייל האימות בתיבה שלכם.";
+  if (m.includes("already registered") || m.includes("already been registered")) return "המייל הזה כבר רשום. נסו להתחבר.";
+  if (m.includes("password")) return "הסיסמה צריכה להיות לפחות 6 תווים";
+  if (m.includes("rate limit") || m.includes("too many")) return "יותר מדי ניסיונות. חכו כמה דקות ונסו שוב.";
+  if (m.includes("fetch") || m.includes("network")) return "אין חיבור לאינטרנט";
+  return "משהו השתבש. נסו שוב.";
+}
+document.addEventListener("submit", async e => {
+  const f = e.target; e.preventDefault();
+  if (f.id === "auth-form") {
+    const signup = ui.authMode === "signup";
+    const email = $("#au-email").value.trim(), pass = $("#au-pass").value;
+    ui.authEmail = email;
+    if (!validEmail(email)) return authErr("כתובת המייל לא תקינה");
+    if (pass.length < 6) return authErr("הסיסמה צריכה להיות לפחות 6 תווים");
+    let name = "", phone = "";
+    if (signup) {
+      name = $("#au-name").value.trim(); phone = $("#au-phone").value.trim();
+      if (!name) return authErr("מלאו שם מלא");
+      if (!validPhone(phone)) return authErr("מספר הטלפון לא תקין");
+    }
+    const btn = $("#auth-submit"); btn.disabled = true; authErr("");
+    if (signup) {
+      const { data, error } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: name, phone: normPhone(phone) }, emailRedirectTo: location.origin + "/" } });
+      btn.disabled = false;
+      if (error) return authErr(heAuthError(error));
+      if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) return authErr("המייל הזה כבר רשום. נסו להתחבר.");
+      if (!data.session) { ui.authMode = "sent"; render(); }
+    } else {
+      const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+      btn.disabled = false;
+      if (error) return authErr(heAuthError(error));
+    }
+  } else if (f.id === "forgot-form") {
+    const email = $("#fg-email").value.trim(); ui.authEmail = email;
+    if (!validEmail(email)) return authErr("כתובת המייל לא תקינה");
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + "/" });
+    if (error) return authErr(heAuthError(error));
+    ui.authMode = "login"; ui.authMsg = ""; render(); toast("שלחנו קישור לאיפוס למייל");
+  } else if (f.id === "phone-form") {
+    const name = $("#np-name").value.trim(), phone = $("#np-phone").value.trim();
+    if (!name) return authErr("מלאו שם מלא");
+    if (!validPhone(phone)) return authErr("מספר הטלפון לא תקין");
+    state.settings = { ...state.settings, name };
+    try { await createAccount(phone, name); ui.needPhone = false; commit(); }
+    catch (err) { authErr("לא הצלחנו לשמור. בדקו חיבור לאינטרנט ונסו שוב."); }
+  }
+});
+function newPasswordModal() {
+  openModal(`<h3>בחירת סיסמה חדשה</h3>
+    <div class="fld"><label for="np-pass">סיסמה חדשה</label><input type="password" id="np-pass" autocomplete="new-password" minlength="6"></div>
+    <div class="err-msg" id="np-err"></div>
+    <div class="modal-actions"><button class="btn primary" id="np-save">שמירה</button></div>`, m => {
+    $("#np-save", m).onclick = async () => {
+      const p = $("#np-pass", m).value;
+      if (p.length < 6) { $("#np-err", m).textContent = "לפחות 6 תווים"; return; }
+      const { error } = await sb.auth.updateUser({ password: p });
+      if (error) { $("#np-err", m).textContent = heAuthError(error); return; }
+      closeModal(); toast("הסיסמה עודכנה");
+    };
+  });
+}
+
+// ---------- pay periods ----------
+const PS = () => Math.min(28, Math.max(1, Math.round(+state.settings.periodStart || 1)));
+function periodKeyOf(ds) {
+  const [y, m, d] = parseDS(ds);
+  if (PS() === 1 || d < PS()) return `${y}-${pad(m)}`;
+  const n = utc(y, m + 1, 1);
+  return `${n.getUTCFullYear()}-${pad(n.getUTCMonth() + 1)}`;
+}
+function periodRange(key) {
+  const [y, m] = key.split("-").map(Number);
+  if (PS() === 1) return [`${y}-${pad(m)}-01`, `${y}-${pad(m)}-${pad(daysIn(y, m))}`];
+  return [utcDS(utc(y, m - 1, PS())), `${y}-${pad(m)}-${pad(PS() - 1)}`];
+}
+function movePeriod(key, delta) { const [y, m] = key.split("-").map(Number); const d = utc(y, m + delta, 1); return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}`; }
+function periodLabel(key) { const [y, m] = key.split("-").map(Number); return `${MONTHS[m - 1]} ${y}`; }
+function periodSub(key) { if (PS() === 1) return ""; const [a, b] = periodRange(key); return `${fmtDate(a)} – ${fmtDate(b)}`; }
+function datesBetween(a, b) {
+  const out = []; const [y, m, d] = parseDS(a); const cur = utc(y, m, d);
+  while (utcDS(cur) <= b && out.length < 40) { out.push(utcDS(cur)); cur.setUTCDate(cur.getUTCDate() + 1); }
+  return out;
+}
+
+// ---------- calculations ----------
+const isLeave = s => s.type === "vacation" || s.type === "sick";
+function shiftMin(s) {
+  if (isLeave(s)) return Math.max(0, Math.round((+s.hours || 0) * 60));
+  let a = toMin(s.start), b = toMin(s.end);
+  if (b <= a) b += 1440;
+  return Math.max(0, b - a - (+s.breakMin || 0));
+}
+const isWeekendDate = ds => state.settings.weekendOn && weekday(ds) === 6;
+function calcDay(ds, list) {
+  const st = state.settings, rate = +st.rate || 0;
+  const work = list.filter(s => !isLeave(s));
+  const wMin = work.reduce((a, s) => a + shiftMin(s), 0);
+  const special = isWeekendDate(ds) || (st.weekendOn && work.some(s => s.type === "holiday"));
+  let reg = wMin, o1 = 0, o2 = 0;
+  if (st.otEnabled) {
+    const T = Math.max(0, +st.otThreshold || 0) * 60, span = Math.max(0, +st.ot1Span || 0) * 60;
+    reg = Math.min(wMin, T); o1 = Math.min(Math.max(wMin - T, 0), span); o2 = Math.max(wMin - T - span, 0);
+  }
+  const base = special ? (+st.weekendRate || 150) / 100 : 1;
+  const mults = [base, base + .25, base + .5];
+  const buckets = {};
+  [reg, o1, o2].forEach((mn, i) => { if (mn > 0) { const k = Math.round(mults[i] * 100); buckets[k] = (buckets[k] || 0) + mn; } });
+  const workPay = [reg, o1, o2].reduce((a, mn, i) => a + rate * mn / 60 * mults[i], 0);
+  let vacMin = 0, sickMin = 0;
+  list.forEach(s => { if (s.type === "vacation") vacMin += shiftMin(s); if (s.type === "sick") sickMin += shiftMin(s); });
+  const vacPay = rate * vacMin / 60 * (+st.vacPct || 0) / 100;
+  const sickPay = rate * sickMin / 60 * (+st.sickPct || 0) / 100;
+  return { ds, list, wMin, reg, ot: o1 + o2, buckets, special, workPay, vacMin, sickMin, vacPay, sickPay, pay: workPay + vacPay + sickPay };
+}
+function calcPeriod(key) {
+  const [a, b] = periodRange(key);
+  const by = {};
+  state.shifts.forEach(s => { if (s.date >= a && s.date <= b) (by[s.date] = by[s.date] || []).push(s); });
+  const days = Object.keys(by).sort().map(ds => {
+    by[ds].sort((x, y) => (x.start || "").localeCompare(y.start || ""));
+    return calcDay(ds, by[ds]);
+  });
+  const t = { wMin: 0, buckets: {}, workPay: 0, vacMin: 0, sickMin: 0, vacPay: 0, sickPay: 0, daysWorked: 0, otMin: 0 };
+  days.forEach(d => {
+    t.wMin += d.wMin; t.workPay += d.workPay; t.vacMin += d.vacMin; t.sickMin += d.sickMin;
+    t.vacPay += d.vacPay; t.sickPay += d.sickPay; t.otMin += d.ot; if (d.wMin > 0) t.daysWorked++;
+    for (const k in d.buckets) t.buckets[k] = (t.buckets[k] || 0) + d.buckets[k];
+  });
+  t.travel = state.settings.travelOn ? t.daysWorked * (+state.settings.travelPerDay || 0) : 0;
+  t.adj = state.adjustments.filter(x => x.period === key);
+  t.adjSum = t.adj.reduce((a, x) => a + (+x.amount || 0), 0);
+  t.total = t.workPay + t.vacPay + t.sickPay + t.travel + t.adjSum;
+  t.allMin = t.wMin + t.vacMin + t.sickMin;
+  return { key, range: [a, b], days, t };
+}
+const fixedBreakMin = a => (a.breaks || []).reduce((s, b) => s + (+b.min || 0), 0);
+function activeBreakMs(a, now = Date.now()) { return fixedBreakMin(a) * 60000 + (a.breakMs || 0) + (a.breakStart ? now - a.breakStart : 0); }
+function activeWorkedMs(now = Date.now()) {
+  const a = state.active; if (!a) return 0;
+  return Math.max(0, now - a.start - activeBreakMs(a, now));
+}
+
+// ---------- toast & modal ----------
+let toastTimer;
+function toast(msg) {
+  const r = $("#toast-root"); r.innerHTML = `<div class="toast" role="status">${esc(msg)}</div>`;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { r.innerHTML = ""; }, 2600);
+}
+let pendingRender = false;
+function openModal(html, onMount) {
+  const root = $("#modal-root");
+  root.innerHTML = `<div class="overlay"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`;
+  const ov = root.firstChild;
+  ov.addEventListener("click", e => { if (e.target === ov || e.target.closest("[data-dismiss]")) closeModal(); });
+  if (onMount) onMount(ov.firstChild);
+}
+function closeModal() { $("#modal-root").innerHTML = ""; if (pendingRender) { pendingRender = false; render(); } }
+document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#modal-root").firstChild) closeModal(); });
+function confirmBox(title, text, okLabel, onOk, danger) {
+  openModal(`<h3>${esc(title)}</h3><p class="muted" style="margin:0">${esc(text)}</p>
+    <div class="modal-actions"><button class="btn ${danger ? "out" : "primary"}" id="cf-ok" style="${danger ? "font-family:var(--f-body);font-size:15px;font-weight:600" : ""}">${esc(okLabel)}</button><button class="btn" data-dismiss>ביטול</button></div>`,
+    m => { $("#cf-ok", m).onclick = () => { closeModal(); onOk(); }; });
+}
+function showCopy(title, text) {
+  openModal(`<h3>${esc(title)}</h3><p class="muted small" style="margin:0">סמנו את הטקסט והעתיקו.</p>
+    <textarea class="copy" id="copy-area" readonly>${esc(text)}</textarea>
+    <div class="modal-actions"><button class="btn" data-dismiss>סגירה</button></div>`,
+    m => { const t = $("#copy-area", m); t.focus(); t.select(); });
+}
+
+// ---------- clock actions ----------
+function clockIn() {
+  state.active = { start: Date.now(), breaks: [], breakMs: 0, breakStart: null };
+  commit("כניסה נרשמה · " + localHM(new Date()));
+}
+function breakModal() {
+  const a = state.active;
+  openModal(`<h3>הוספת הפסקה</h3>
+    <p class="muted small" style="margin:0">בחרו כמה זמן הייתה ההפסקה. אפשר להוסיף כמה הפסקות במשמרת.</p>
+    <div class="bgrid">${[5, 10, 15, 20, 30, 45, 60, 90].map(n => `<button data-min="${n}">${n} דק׳</button>`).join("")}</div>
+    <div class="grid2" style="align-items:end"><div class="fld"><label for="b-custom">זמן אחר (דקות)</label><input type="number" id="b-custom" min="1" max="600" step="1" inputmode="numeric"></div><button class="btn" id="b-add">הוספה</button></div>
+    ${a.breakStart ? "" : `<button class="btn ghost block" id="b-timer">⏱ להתחיל הפסקה עכשיו עם טיימר</button>`}
+    <div class="modal-actions"><button class="btn" data-dismiss>סגירה</button></div>`, m => {
+    const add = n => {
+      n = Math.round(+n);
+      if (!(n > 0) || n > 600) { toast("הזינו מספר דקות"); return; }
+      state.active = { ...state.active, breaks: [...(state.active.breaks || []), { id: uid(), min: n }] };
+      closeModal(); commit(`נוספה הפסקה של ${n} דק׳`);
+    };
+    m.querySelectorAll("[data-min]").forEach(b => b.onclick = () => add(b.dataset.min));
+    $("#b-add", m).onclick = () => add($("#b-custom", m).value);
+    const t = $("#b-timer", m); if (t) t.onclick = () => { state.active = { ...state.active, breakStart: Date.now() }; closeModal(); commit("הפסקה התחילה"); };
+  });
+}
+function endTimedBreak() {
+  const a = { ...state.active };
+  const ms = Date.now() - a.breakStart;
+  a.breakMs = (a.breakMs || 0) + ms; a.breakStart = null; state.active = a;
+  commit(`ההפסקה הסתיימה · ${Math.round(ms / 60000)} דק׳`);
+}
+function removeBreak(id) {
+  if (id === "timed") { state.active = { ...state.active, breakMs: 0 }; }
+  else state.active = { ...state.active, breaks: (state.active.breaks || []).filter(b => b.id !== id) };
+  commit("ההפסקה הוסרה");
+}
+function clockOut() {
+  const a = state.active; if (!a) return;
+  const now = Date.now();
+  const brkMs = activeBreakMs(a, now);
+  const worked = activeWorkedMs(now);
+  state.active = null;
+  if (worked < 60000) { commit("המשמרת הייתה קצרה מדקה ולא נשמרה"); return; }
+  const sd = new Date(a.start), ed = new Date(now);
+  const shift = { id: uid(), date: localDS(sd), start: localHM(sd), end: localHM(ed), breakMin: Math.round(brkMs / 60000), type: "work", note: "" };
+  if (shift.start === shift.end) shift.end = localHM(new Date(now + 60000));
+  state.shifts = [...state.shifts, shift];
+  commit(`יציאה נרשמה · ${fmtHM(shiftMin(shift))} שעות`);
+}
+function editActive() {
+  const a = state.active; const d = new Date(a.start);
+  openModal(`<h3>תיקון שעת כניסה</h3>
+    <p class="muted small" style="margin:0">שכחתם להחתים בזמן? עדכנו מתי התחלתם לעבוד.</p>
+    <div class="fld"><label for="act-start">שעת כניסה</label><input type="datetime-local" id="act-start" value="${localDS(d)}T${localHM(d)}"></div>
+    <div class="modal-actions"><button class="btn primary" id="act-save">שמירה</button><button class="btn" data-dismiss>ביטול</button></div>
+    <button class="btn danger" id="act-discard">ביטול המשמרת הנוכחית (בלי לשמור)</button>`, m => {
+    $("#act-save", m).onclick = () => {
+      const v = $("#act-start", m).value; const t = v ? new Date(v).getTime() : NaN;
+      if (!isFinite(t) || t > Date.now()) { toast("שעת כניסה לא תקינה"); return; }
+      state.active = { ...state.active, start: t };
+      closeModal(); commit("שעת הכניסה עודכנה");
+    };
+    $("#act-discard", m).onclick = () => { closeModal(); confirmBox("לבטל את המשמרת?", "המשמרת שרצה עכשיו תימחק ולא תירשם.", "כן, לבטל", () => { state.active = null; commit("המשמרת בוטלה"); }, true); };
+  });
+}
+
+// ---------- shift form ----------
+function shiftForm(existing, presetDate) {
+  const st = state.settings, sh = +st.shiftHours || 8;
+  const s = existing ? { ...existing } : { id: uid(), date: presetDate || todayDS(), start: "08:00", end: minToHM(480 + sh * 60), breakMin: 0, type: "work", hours: sh, note: "" };
+  if (s.hours == null) s.hours = sh;
+  openModal(`<h3>${existing ? "עריכת משמרת" : "הוספת משמרת ידנית"}</h3>
+    <div class="form">
+      <div class="fld"><label>סוג</label><div class="seg" id="f-type">${Object.entries(TYPES).map(([k, v]) => `<button type="button" data-v="${k}" aria-pressed="${s.type === k}">${v}</button>`).join("")}</div></div>
+      <div class="fld"><label for="f-date">תאריך</label><input type="date" id="f-date" value="${esc(s.date)}"></div>
+      <div id="f-times" class="form">
+        <div class="grid2">
+          <div class="fld"><label for="f-start">כניסה</label><input type="time" id="f-start" value="${esc(s.start || "")}"></div>
+          <div class="fld"><label for="f-end">יציאה</label><input type="time" id="f-end" value="${esc(s.end || "")}"></div>
+        </div>
+        ${existing ? "" : `<div class="quick" id="f-len"><span class="muted small" style="align-self:center">משמרת של:</span>${[4, 6, 8, 9, 10, 12].map(h => `<button type="button" data-h="${h}">${h} ש׳</button>`).join("")}</div>`}
+        <div class="fld"><label for="f-break">הפסקות (סה״כ דקות)</label><input type="number" id="f-break" min="0" step="1" inputmode="numeric" value="${+s.breakMin || 0}">
+          <div class="quick" id="f-bq">${[5, 10, 15, 30].map(n => `<button type="button" data-b="${n}">+${n}</button>`).join("")}<button type="button" data-b="0">איפוס</button></div></div>
+      </div>
+      <div id="f-hours-wrap" class="fld"><label for="f-hours">שעות לתשלום</label><input type="number" id="f-hours" min="0" max="24" step="0.25" inputmode="decimal" value="${+s.hours}"></div>
+      <div class="fld"><label for="f-note">הערה (לא חובה)</label><input type="text" id="f-note" maxlength="120" placeholder="למשל: אצל לקוח, מילוי מקום" value="${esc(s.note || "")}"></div>
+      <div class="calc-preview" id="f-preview"></div>
+    </div>
+    <div class="modal-actions"><button class="btn primary" id="f-save">${existing ? "שמירת שינויים" : "הוספה"}</button><button class="btn" data-dismiss>ביטול</button></div>
+    ${existing ? `<button class="btn danger" id="f-del">מחיקת המשמרת</button>` : ""}`, m => {
+    let type = s.type;
+    const read = () => ({ ...s, type, date: $("#f-date", m).value, start: $("#f-start", m).value, end: $("#f-end", m).value,
+      breakMin: Math.max(0, Math.round(+$("#f-break", m).value || 0)), hours: Math.max(0, +$("#f-hours", m).value || 0), note: $("#f-note", m).value.trim() });
+    const sync = () => {
+      const leave = type === "vacation" || type === "sick";
+      $("#f-times", m).hidden = leave; $("#f-hours-wrap", m).hidden = !leave;
+      m.querySelectorAll("#f-type button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === type));
+      const r = read(); const mn = shiftMin(r);
+      const cross = !leave && r.start && r.end && toMin(r.end) <= toMin(r.start);
+      $("#f-preview", m).innerHTML = `<span>${leave ? "שעות" : "שעות עבודה נטו"}${cross ? ' <span class="chip n">עד למחרת</span>' : ""}</span><b class="num">${fmtHM(mn)}</b>`;
+    };
+    m.querySelectorAll("#f-type button").forEach(b => b.onclick = () => { type = b.dataset.v; sync(); });
+    m.querySelectorAll("#f-len button").forEach(b => b.onclick = () => { $("#f-end", m).value = minToHM(toMin($("#f-start", m).value || "08:00") + (+b.dataset.h) * 60 + (+$("#f-break", m).value || 0)); sync(); });
+    m.querySelectorAll("#f-bq button").forEach(b => b.onclick = () => { const i = $("#f-break", m); i.value = +b.dataset.b === 0 ? 0 : (+i.value || 0) + (+b.dataset.b); sync(); });
+    m.querySelectorAll("input").forEach(i => i.addEventListener("input", sync));
+    sync();
+    $("#f-save", m).onclick = () => {
+      const r = read();
+      if (!r.date) { toast("בחרו תאריך"); return; }
+      if (!isLeave(r)) {
+        if (!r.start || !r.end) { toast("מלאו שעת כניסה ויציאה"); return; }
+        if (shiftMin(r) <= 0) { toast("ההפסקה ארוכה מהמשמרת"); return; }
+        delete r.hours;
+      } else { if (!(r.hours > 0)) { toast("מלאו מספר שעות"); return; } r.start = ""; r.end = ""; r.breakMin = 0; }
+      state.shifts = existing ? state.shifts.map(x => x.id === r.id ? r : x) : [...state.shifts, r];
+      closeModal(); ui.period = periodKeyOf(r.date);
+      commit(existing ? "המשמרת עודכנה" : "המשמרת נוספה");
+    };
+    if (existing) $("#f-del", m).onclick = () => {
+      closeModal();
+      confirmBox("למחוק את המשמרת?", `${fmtDateLong(s.date)} · ${isLeave(s) ? TYPES[s.type] : `${s.start}–${s.end}`}`, "מחיקה", () => {
+        state.shifts = state.shifts.filter(x => x.id !== s.id); commit("המשמרת נמחקה");
+      }, true);
+    };
+  });
+}
+function adjForm(key, existing) {
+  const a = existing ? { ...existing } : { id: uid(), period: key, label: "", amount: "" };
+  const neg = existing && +existing.amount < 0;
+  openModal(`<h3>${existing ? "עריכת" : "הוספת"} תוספת / ניכוי</h3>
+    <p class="muted small" style="margin:0">בונוס, טיפים, החזר הוצאות, או מקדמה שכבר קיבלתם (ניכוי). חל על ${esc(periodLabel(key))}.</p>
+    <div class="seg" style="grid-template-columns:1fr 1fr" id="a-kind"><button type="button" data-v="+" aria-pressed="${!neg}">תוספת +</button><button type="button" data-v="-" aria-pressed="${neg}">ניכוי −</button></div>
+    <div class="grid2"><div class="fld"><label for="a-label">תיאור</label><input type="text" id="a-label" maxlength="60" placeholder="בונוס / מקדמה" value="${esc(a.label)}"></div>
+    <div class="fld"><label for="a-amount">סכום</label><input type="number" id="a-amount" min="0" step="0.01" inputmode="decimal" value="${a.amount === "" ? "" : Math.abs(+a.amount)}"></div></div>
+    <div class="modal-actions"><button class="btn primary" id="a-save">שמירה</button><button class="btn" data-dismiss>ביטול</button></div>
+    ${existing ? `<button class="btn danger" id="a-del">מחיקה</button>` : ""}`, m => {
+    let sign = neg ? -1 : 1;
+    m.querySelectorAll("#a-kind button").forEach(b => b.onclick = () => { sign = b.dataset.v === "-" ? -1 : 1; m.querySelectorAll("#a-kind button").forEach(x => x.setAttribute("aria-pressed", x === b)); });
+    $("#a-save", m).onclick = () => {
+      const amt = Math.abs(+$("#a-amount", m).value || 0); const label = $("#a-label", m).value.trim();
+      if (!amt) { toast("הזינו סכום"); return; }
+      const r = { ...a, label: label || (sign < 0 ? "ניכוי" : "תוספת"), amount: sign * amt };
+      state.adjustments = existing ? state.adjustments.map(x => x.id === r.id ? r : x) : [...state.adjustments, r];
+      closeModal(); commit("נשמר");
+    };
+    if (existing) $("#a-del", m).onclick = () => { state.adjustments = state.adjustments.filter(x => x.id !== a.id); closeModal(); commit("נמחק"); };
+  });
+}
+
+// ---------- views ----------
+function header() {
+  const st = state.settings;
+  const who = [st.name, st.employer].filter(Boolean).join(" · ") || (session && session.user.email) || "";
+  return `<header class="top"><div class="brand"><h1>שעון נוכחות</h1><span class="who">${esc(who)}</span></div><span class="sync" id="sync"></span></header>`;
+}
+function sampleBanner() {
+  return state.sample ? `<div class="banner"><span>מוצגים נתוני <b>דוגמה</b>. כשתתחילו לעבוד באמת, נקו אותם.</span><button class="btn sm" data-act="clearSample">ניקוי הדוגמה</button></div>` : "";
+}
+function setupCard() {
+  const st = state.settings;
+  if (st.onboarded) return "";
+  return `<section class="card form" style="border-color:var(--accent)"><h3 style="margin:0">בואו נגדיר את המשמרת שלך</h3>
+    <p class="muted small" style="margin:0">שני פרטים וזהו. אפשר לשנות אחר כך בהגדרות.</p>
+    <div class="grid2">
+      <div class="fld"><label for="o-rate">כמה מקבלים לשעה (${esc(st.currency)})</label><input type="number" id="o-rate" data-set="rate" min="0" step="0.5" inputmode="decimal" value="${+st.rate || ""}" placeholder="למשל 40"></div>
+      <div class="fld"><label for="o-shift">כמה שעות המשמרת שלך</label><input type="number" id="o-shift" data-set="shiftHours" min="1" max="24" step="0.5" inputmode="decimal" value="${+st.shiftHours}"></div>
+    </div>
+    <button class="btn primary" data-act="finishSetup">סיימתי</button></section>`;
+}
+function viewClock() {
+  const st = state.settings, a = state.active, now = new Date();
+  const curKey = periodKeyOf(todayDS());
+  const P = calcPeriod(curKey);
+  const todayList = state.shifts.filter(s => s.date === todayDS()).sort((x, y) => (x.start || "").localeCompare(y.start || ""));
+  const todayCalc = calcDay(todayDS(), todayList);
+  let clock;
+  if (!a) {
+    clock = `<section class="card clock">
+      <div class="now">יום ${DAYS[now.getDay()]}, ${fmtDateLong(todayDS())} · <b id="now-time">${localHM(now)}</b></div>
+      <button class="punch" data-act="clockIn" aria-label="כניסה למשמרת"><span>כניסה</span><small>לחצו להתחלת משמרת</small></button>
+      <button class="link" data-act="addShift">שכחתי להחתים? הוספת משמרת ידנית</button>
+    </section>`;
+  } else {
+    const sd = new Date(a.start);
+    const sameDay = localDS(sd) === todayDS();
+    const chips = (a.breaks || []).map(b => `<button class="bchip" data-rmbreak="${esc(b.id)}" aria-label="הסרת הפסקה של ${b.min} דקות">${b.min} דק׳<span class="x">×</span></button>`);
+    const timed = Math.round((a.breakMs || 0) / 60000);
+    if (timed > 0) chips.push(`<button class="bchip" data-rmbreak="timed">${timed} דק׳ (טיימר)<span class="x">×</span></button>`);
+    clock = `<section class="card clock">
+      <span class="status ${a.breakStart ? "break" : ""}"><span class="dot"></span>${a.breakStart ? "בהפסקה" : "במשמרת"} · מאז <span class="num">${localHM(sd)}</span>${sameDay ? "" : ` (${fmtDate(localDS(sd))})`}</span>
+      <div class="elapsed mono" id="elapsed">00:00:00</div>
+      <div class="earn" id="earn-live"></div>
+      <div class="progress" id="prog"></div>
+      ${chips.length ? `<div class="breaks"><span class="muted">הפסקות:</span>${chips.join("")}</div>` : ""}
+      ${a.breakStart ? `<div class="btn-row"><button class="btn primary" data-act="endBreak">סיום הפסקה <span class="num" id="break-run"></span></button></div>` : ""}
+      <div class="btn-row">
+        <button class="btn" data-act="addBreak">+ הוספת הפסקה</button>
+        <button class="btn out" data-act="clockOut">יציאה</button>
+      </div>
+      <button class="link" data-act="editActive">תיקון שעת כניסה</button>
+    </section>`;
+  }
+  const todayRows = todayList.length ? `<div class="days"><div class="day">${todayList.map(shiftRow).join("")}</div></div>` : `<p class="muted small" style="margin:0">עוד לא נרשמו משמרות היום.</p>`;
+  return `${header()}${setupCard()}${sampleBanner()}${clock}
+    <section class="card"><div class="card-head"><h3>היום</h3><span class="num muted small">${fmtHM(todayCalc.wMin + todayCalc.vacMin + todayCalc.sickMin)} ש׳ · ${money(todayCalc.pay)}</span></div>${todayRows}</section>
+    <section class="card"><div class="card-head"><h3>${esc(periodLabel(curKey))} עד עכשיו</h3><button class="link" data-tab-go="month">לפירוט</button></div>
+      <div class="stats">
+        <div class="stat"><div class="label">שעות</div><div class="v">${fmtHM(P.t.allMin)}</div></div>
+        <div class="stat"><div class="label">ימי עבודה</div><div class="v">${P.t.daysWorked}</div></div>
+        <div class="stat hero"><div class="label">צבירה (ברוטו)</div><div class="v">${money(P.t.total)}</div></div>
+      </div></section>
+    ${installCard()}`;
+}
+function shiftRow(s) {
+  const mn = shiftMin(s);
+  const label = isLeave(s) ? `<span class="tm">${fmtHM(mn)}</span>` : `<span class="tm">${esc(s.start)}–${esc(s.end)}</span>`;
+  const bits = [];
+  if (s.type !== "work") bits.push(TYPES[s.type]);
+  if (!isLeave(s) && +s.breakMin) bits.push(`הפסקה ${s.breakMin} דק׳`);
+  if (!isLeave(s) && toMin(s.end) <= toMin(s.start)) bits.push("עד למחרת");
+  if (s.note) bits.push(s.note);
+  return `<button class="shift" data-edit="${esc(s.id)}">${label}<span class="meta">${esc(bits.join(" · "))}</span><span class="h num">${fmtHM(mn)}</span></button>`;
+}
+function periodNav() {
+  const sub = periodSub(ui.period);
+  return `<div class="pnav"><button data-act="prevP" aria-label="החודש הקודם">→</button><h2>${esc(periodLabel(ui.period))}${sub ? `<span class="sub num">${sub}</span>` : ""}</h2><button data-act="nextP" aria-label="החודש הבא">←</button></div>`;
+}
+function breakdown(P) {
+  const t = P.t, rate = +state.settings.rate || 0, rows = [];
+  Object.keys(t.buckets).map(Number).sort((a, b) => a - b).forEach(k => {
+    const mn = t.buckets[k];
+    rows.push([`שעות ${k}%`, `${fmtHM(mn)} ש׳ × ${money(rate * k / 100)}`, money(rate * mn / 60 * k / 100)]);
+  });
+  if (t.vacMin) rows.push([`חופשה${+state.settings.vacPct !== 100 ? ` (${state.settings.vacPct}%)` : ""}`, `${fmtHM(t.vacMin)} ש׳`, money(t.vacPay)]);
+  if (t.sickMin) rows.push([`מחלה${+state.settings.sickPct !== 100 ? ` (${state.settings.sickPct}%)` : ""}`, `${fmtHM(t.sickMin)} ש׳`, money(t.sickPay)]);
+  if (t.travel) rows.push(["נסיעות", `${t.daysWorked} ימים × ${money(+state.settings.travelPerDay)}`, money(t.travel)]);
+  t.adj.forEach(x => rows.push([`<button class="link" style="padding:0" data-adj="${esc(x.id)}">${esc(x.label)}</button>`, "", money(+x.amount)]));
+  return `<div class="kv">${rows.map(([k, d, v]) => `<div class="r"><span class="k">${k}${d ? `<br><span class="muted small num">${d}</span>` : ""}</span><span class="v">${v}</span></div>`).join("")}
+    <div class="r total"><span class="k">סה״כ לתשלום (ברוטו)</span><span class="v">${money(t.total)}</span></div></div>`;
+}
+function chart(P) {
+  const dates = datesBetween(P.range[0], P.range[1]);
+  const map = {}; P.days.forEach(d => map[d.ds] = d);
+  const T = state.settings.otEnabled ? (+state.settings.otThreshold || 0) * 60 : 0;
+  const maxMin = Math.max(600, ...P.days.map(d => d.wMin + d.vacMin + d.sickMin));
+  const today = todayDS();
+  const bars = dates.map(ds => {
+    const d = map[ds]; const we = isWeekendDate(ds);
+    const cls = `bar${we ? " we" : ""}${ds === today ? " today" : ""}`;
+    if (!d) return `<div class="${cls}" title="${fmtDate(ds)}"></div>`;
+    const reg = d.reg + d.vacMin + d.sickMin, ot = d.ot;
+    return `<div class="${cls}" title="${fmtDate(ds)} · ${fmtHM(d.wMin + d.vacMin + d.sickMin)}"><i class="reg" style="height:${reg / maxMin * 100}%"></i>${ot ? `<i class="ot" style="height:${ot / maxMin * 100}%"></i>` : ""}</div>`;
+  }).join("");
+  const labels = dates.map((ds, i) => { const d = parseDS(ds)[2]; return `<span>${(i % 3 === 0 || d === 1) ? d : ""}</span>`; }).join("");
+  const tline = T && T < maxMin ? `<div class="tline" style="bottom:${T / maxMin * 100}%"><span>${+state.settings.otThreshold}ש׳</span></div>` : "";
+  return `<div class="chart-wrap"><div class="chart" dir="ltr">${tline}${bars}</div><div class="xlab" dir="ltr">${labels}</div></div>
+    <div class="legend"><span><i style="background:var(--accent)"></i>שעות רגילות</span><span><i style="background:var(--punch)"></i>שעות נוספות</span>${state.settings.weekendOn ? `<span><i style="background:var(--surface-2);border:1px solid var(--line)"></i>שבת</span>` : ""}</div>`;
+}
+function viewMonth() {
+  const P = calcPeriod(ui.period), t = P.t;
+  const dayCards = P.days.slice().reverse().map(d => {
+    const chips = Object.keys(d.buckets).map(Number).filter(k => k !== 100).sort((a, b) => a - b).map(k => `<span class="chip">${k}%</span>`).join("");
+    return `<div class="day"><div class="day-h"><span class="d">${fmtDateLong(d.ds)}<small>יום ${DAYS[weekday(d.ds)]}</small> <span class="chips">${chips}</span></span>
+      <span class="t"><span class="num">${fmtHM(d.wMin + d.vacMin + d.sickMin)}</span> ש׳<br><span class="num muted">${money(d.pay)}</span></span></div>
+      ${d.list.map(shiftRow).join("")}</div>`;
+  }).join("");
+  return `${header()}${sampleBanner()}${periodNav()}
+    <div class="stats">
+      <div class="stat"><div class="label">סה״כ שעות</div><div class="v">${fmtHM(t.allMin)}</div></div>
+      <div class="stat"><div class="label">ימי עבודה</div><div class="v">${t.daysWorked}</div></div>
+      <div class="stat hero"><div class="label">לתשלום (ברוטו)</div><div class="v">${money(t.total)}</div></div>
+    </div>
+    <section class="card"><div class="card-head"><h3>שעות לפי יום</h3><span class="muted small">נוספות: <span class="num">${fmtHM(t.otMin)}</span></span></div>${chart(P)}</section>
+    <section class="card"><div class="card-head"><h3>חישוב השכר</h3><button class="btn sm" data-act="addAdj">+ תוספת / ניכוי</button></div>${breakdown(P)}</section>
+    <section class="card"><div class="card-head"><h3>משמרות</h3><button class="btn sm primary" data-act="addShift">+ משמרת</button></div>
+      ${P.days.length ? `<div class="days">${dayCards}</div>` : `<div class="empty"><b>אין משמרות בתקופה הזו</b><span>לחצו "כניסה" במסך השעון, או הוסיפו משמרת ידנית.</span>${state.shifts.length === 0 ? `<button class="btn sm" data-act="loadSample">הצגת חודש לדוגמה</button>` : ""}</div>`}
+    </section>`;
+}
+function reportTable(P) {
+  const keys = [...new Set(P.days.flatMap(d => Object.keys(d.buckets).map(Number)))].sort((a, b) => a - b);
+  if (!keys.length) keys.push(100);
+  const rows = [];
+  P.days.forEach(d => d.list.forEach((s, i) => {
+    const first = i === 0;
+    rows.push(`<tr class="${d.special ? "we" : ""}">
+      <td>${first ? `${fmtDate(d.ds)} ${DAYS[weekday(d.ds)]}` : ""}</td>
+      <td>${TYPES[s.type]}</td>
+      <td class="n">${isLeave(s) ? "—" : esc(s.start)}</td><td class="n">${isLeave(s) ? "—" : esc(s.end)}</td>
+      <td class="n">${isLeave(s) ? "—" : (+s.breakMin || 0)}</td>
+      <td class="n">${fmtHM(shiftMin(s))}</td>
+      ${keys.map(k => `<td class="n">${first && d.buckets[k] ? fmtHM(d.buckets[k]) : ""}</td>`).join("")}
+      <td class="n">${first ? money(d.pay) : ""}</td>
+      <td>${esc(s.note || "")}</td></tr>`);
+  }));
+  const t = P.t;
+  return `<table class="rep"><thead><tr><th>תאריך</th><th>סוג</th><th>כניסה</th><th>יציאה</th><th>הפסקה (דק׳)</th><th>שעות</th>${keys.map(k => `<th>${k}%</th>`).join("")}<th>סכום</th><th>הערה</th></tr></thead>
+    <tbody>${rows.join("") || `<tr><td colspan="${8 + keys.length}" style="text-align:center;color:#888">אין משמרות בתקופה</td></tr>`}</tbody>
+    <tfoot><tr><td colspan="5">סה״כ</td><td class="n">${fmtHM(t.allMin)}</td>${keys.map(k => `<td class="n">${t.buckets[k] ? fmtHM(t.buckets[k]) : ""}</td>`).join("")}<td class="n">${money(t.workPay + t.vacPay + t.sickPay)}</td><td></td></tr></tfoot></table>`;
+}
+function summaryRows(P) {
+  const t = P.t, st = state.settings, rate = +st.rate || 0, rows = [];
+  rows.push(["ימי עבודה", String(t.daysWorked)]);
+  rows.push(["סה״כ שעות עבודה", `${fmtHM(t.wMin)} (${fmtDec(t.wMin)})`]);
+  Object.keys(t.buckets).map(Number).sort((a, b) => a - b).forEach(k => rows.push([`  שעות ${k}%`, `${fmtHM(t.buckets[k])} = ${money(rate * t.buckets[k] / 60 * k / 100)}`]));
+  if (t.vacMin) rows.push(["חופשה", `${fmtHM(t.vacMin)} = ${money(t.vacPay)}`]);
+  if (t.sickMin) rows.push(["מחלה", `${fmtHM(t.sickMin)} = ${money(t.sickPay)}`]);
+  if (t.travel) rows.push(["נסיעות", money(t.travel)]);
+  t.adj.forEach(x => rows.push([x.label, money(+x.amount)]));
+  rows.push(["סה״כ לתשלום (ברוטו)", money(t.total)]);
+  return rows;
+}
+function rulesNote() {
+  const st = state.settings;
+  return `${st.otEnabled ? `שעות נוספות מחושבות לפי יום: מעל ${+st.otThreshold} ש׳ — ${+st.ot1Span} השעות הראשונות 125%, ומעבר להן 150%.` : "ללא חישוב שעות נוספות."}${st.weekendOn ? ` עבודה בשבת/חג: ${+st.weekendRate}%.` : ""} הסכומים ברוטו, לפני ניכויי מס וביטוח לאומי.`;
+}
+function viewReport() {
+  const P = calcPeriod(ui.period), st = state.settings;
+  const [a, b] = P.range;
+  return `${header()}${sampleBanner()}${periodNav()}
+    <section class="card"><h3>שליחה לבוס</h3>
+      <div class="export">
+        <button class="btn primary" data-act="shareSummary">שליחת סיכום<small>וואטסאפ, מייל או SMS</small></button>
+        <button class="btn" data-act="dlCsv">קובץ Excel<small>כל המשמרות בטבלה</small></button>
+        <button class="btn" data-act="printReport">הדפסה / PDF<small>דוח מעוצב עם חתימות</small></button>
+        <button class="btn" data-act="dlHtml">קובץ דוח<small>לשליחה כקובץ מצורף</small></button>
+      </div>
+    </section>
+    <article class="sheet">
+      <div class="sheet-h"><div><h2>דוח שעות עבודה</h2><div class="muted small">${esc(periodLabel(P.key))} · <span class="num">${fmtDate(a)} – ${fmtDate(b)}</span></div></div>
+        <div class="meta"><span>עובד/ת:</span><b>${esc(st.name || "—")}</b>${account && account.phone ? `<span>טלפון:</span><b class="num">${esc(account.phone)}</b>` : ""}<span>מעסיק:</span><b>${esc(st.employer || "—")}</b><span>תעריף:</span><b class="num">${money(+st.rate || 0)} לשעה</b></div></div>
+      <div class="tbl-wrap">${reportTable(P)}</div>
+      <div class="kv" style="margin-top:14px">${summaryRows(P).map(([k, v], i, arr) => `<div class="r${i === arr.length - 1 ? " total" : ""}"><span class="k">${esc(k.trim())}</span><span class="v">${esc(v)}</span></div>`).join("")}</div>
+      <p class="muted small">${rulesNote()}</p>
+      <div class="sign"><div>חתימת העובד/ת</div><div>אישור המעסיק</div></div>
+    </article>`;
+}
+function viewSettings() {
+  const st = state.settings;
+  const num = (id, label, val, attrs, hint) => `<div class="fld"><label for="${id}">${label}</label><input type="number" id="${id}" data-set="${id.slice(2)}" value="${esc(val)}" ${attrs}>${hint ? `<span class="hint">${hint}</span>` : ""}</div>`;
+  const sw = (id, label, val, hint) => `<label class="switch" for="${id}"><span><b style="font-weight:600">${label}</b>${hint ? `<br><span class="hint muted small">${hint}</span>` : ""}</span><input type="checkbox" id="${id}" data-set="${id.slice(2)}" ${val ? "checked" : ""}></label>`;
+  return `${header()}
+    <section class="card form"><h3>החשבון שלי</h3>
+      <div class="kv">
+        <div class="r"><span class="k">אימייל</span><span class="v">${esc(session.user.email || "")}</span></div>
+      </div>
+      <div class="fld"><label for="acc-phone">טלפון</label><input type="tel" id="acc-phone" inputmode="tel" value="${esc(account ? account.phone : "")}"></div>
+      <p class="muted small" style="margin:0">כל הנתונים מגובים בחשבון. בטלפון חדש, או אחרי שמחקתם את האפליקציה, התחברו עם המייל והסיסמה והכול חוזר.</p>
+      <button class="btn" data-act="logout">התנתקות</button>
+    </section>
+    <section class="card form"><h3>המשמרת שלי</h3>
+      <div class="grid2">
+        <div class="fld"><label for="s-name">שם העובד/ת</label><input type="text" id="s-name" data-set="name" maxlength="50" value="${esc(st.name)}" placeholder="השם שלך"></div>
+        <div class="fld"><label for="s-employer">מקום העבודה</label><input type="text" id="s-employer" data-set="employer" maxlength="50" value="${esc(st.employer)}" placeholder="שם העסק"></div>
+      </div>
+      <div class="grid2">
+        ${num("s-rate", "תעריף לשעה", st.rate, 'min="0" step="0.5" inputmode="decimal"')}
+        ${num("s-shiftHours", "כמה שעות המשמרת שלי", st.shiftHours, 'min="1" max="24" step="0.5" inputmode="decimal"', "מוצג בשעון כמה נשאר לסיום")}
+      </div>
+      <div class="grid2">
+        <div class="fld"><label for="s-currency">מטבע</label><select id="s-currency" data-set="currency">${["₪", "$", "€", "£"].map(c => `<option ${c === st.currency ? "selected" : ""}>${c}</option>`).join("")}</select></div>
+        ${num("s-periodStart", "יום תחילת חודש השכר", st.periodStart, 'min="1" max="28" step="1" inputmode="numeric"', "1 = חודש רגיל")}
+      </div>
+      ${sw("s-travelOn", "דמי נסיעות", st.travelOn, "סכום קבוע לכל יום שעבדתם")}
+      ${st.travelOn ? num("s-travelPerDay", "סכום נסיעות ליום", st.travelPerDay, 'min="0" step="0.5" inputmode="decimal"') : ""}
+    </section>
+    <section class="card form"><h3>שעות נוספות ושבת</h3>
+      ${sw("s-otEnabled", "חישוב שעות נוספות", st.otEnabled, "לפי חוק שעות עבודה: 125% ואחר כך 150%")}
+      ${st.otEnabled ? `<div class="grid2">
+        ${num("s-otThreshold", "שעות נוספות אחרי (ש׳ ביום)", st.otThreshold, 'min="1" max="24" step="0.1" inputmode="decimal"', "נפוץ: 8.6 בשבוע של 5 ימים")}
+        ${num("s-ot1Span", "כמה שעות ב-125%", st.ot1Span, 'min="0" max="12" step="0.5" inputmode="decimal"', "לפי החוק: 2")}
+      </div>` : ""}
+      ${sw("s-weekendOn", "תוספת לשבת וחג", st.weekendOn, "שבת מחושבת אוטומטית. חג: סמנו את המשמרת כ״שבת / חג״.")}
+      ${st.weekendOn ? num("s-weekendRate", "אחוז תשלום בשבת/חג", st.weekendRate, 'min="100" max="300" step="5" inputmode="numeric"', "בדרך כלל 150%") : ""}
+      <div class="grid2">
+        ${num("s-vacPct", "תשלום על חופשה (%)", st.vacPct, 'min="0" max="200" step="5" inputmode="numeric"')}
+        ${num("s-sickPct", "תשלום על מחלה (%)", st.sickPct, 'min="0" max="200" step="5" inputmode="numeric"', "חוק: יום 1 — 0%, ימים 2–3 — 50%, מיום 4 — 100%")}
+      </div>
+    </section>
+    <section class="card form"><h3>נתונים</h3>
+      <div class="btn-row"><button class="btn" data-act="backup">הורדת גיבוי לקובץ</button><button class="btn" data-act="restore">שחזור מקובץ</button></div>
+      <input type="file" id="restore-file" accept=".json,application/json" hidden>
+      <div class="btn-row">${state.shifts.length === 0 ? `<button class="btn ghost" data-act="loadSample">הצגת נתוני דוגמה</button>` : ""}<button class="btn danger" data-act="wipe">מחיקת כל המשמרות</button></div>
+    </section>
+    ${installCard(true)}`;
+}
+
+// ---------- install (PWA) ----------
+let installEvt = null;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; if (session) render(); });
+const isStandalone = () => window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
+function installCard(always) {
+  if (isStandalone()) return "";
+  let dismissed = false; try { dismissed = localStorage.getItem("attendance:install-dismissed") === "1"; } catch (e) {}
+  if (dismissed && !always) return "";
+  if (installEvt) return `<section class="card"><div class="card-head"><h3>התקנה בטלפון</h3>${always ? "" : `<button class="link" data-act="dismissInstall">לא עכשיו</button>`}</div><p class="muted small" style="margin:0 0 10px">האפליקציה תופיע במסך הבית ותיפתח כמו כל אפליקציה.</p><button class="btn primary block" data-act="install">התקנה למסך הבית</button></section>`;
+  if (isIOS()) return `<section class="card"><div class="card-head"><h3>התקנה באייפון</h3>${always ? "" : `<button class="link" data-act="dismissInstall">הבנתי</button>`}</div><p class="muted small" style="margin:0">בספארי: לחצו על כפתור השיתוף ⬆️ ואז ״הוספה למסך הבית״.</p></section>`;
+  return always ? `<section class="card"><h3>התקנה בטלפון</h3><p class="muted small" style="margin:0">בכרום: תפריט ⋮ ואז ״התקנת אפליקציה״ או ״הוספה למסך הבית״.</p></section>` : "";
+}
+if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+
+function render() {
+  const app = $("#app"), nav = $("#nav");
+  if (!session) { nav.hidden = true; app.innerHTML = viewAuth(); return; }
+  if (ui.needPhone) { nav.hidden = true; app.innerHTML = viewNeedPhone(); return; }
+  nav.hidden = false;
+  if (!ui.period) ui.period = periodKeyOf(todayDS());
+  const v = { clock: viewClock, month: viewMonth, report: viewReport, settings: viewSettings }[ui.tab] || viewClock;
+  app.innerHTML = v();
+  document.querySelectorAll("#nav button").forEach(b => {
+    b.setAttribute("aria-current", b.dataset.tab === ui.tab ? "page" : "false");
+    const dot = b.querySelector(".live");
+    if (b.dataset.tab === "clock" && state.active && ui.tab !== "clock") { if (!dot) b.insertAdjacentHTML("afterbegin", '<span class="live"></span>'); }
+    else if (dot) dot.remove();
+  });
+  const s = $("#sync"); if (s) paintSync(s);
+  tick();
+}
+
+// ---------- live tick ----------
+function tick() {
+  const n = $("#now-time"); if (n) n.textContent = localHM(new Date());
+  const el = $("#elapsed"); if (!el || !state.active) return;
+  const ms = activeWorkedMs(); const s = Math.floor(ms / 1000);
+  el.textContent = `${pad(Math.floor(s / 3600))}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}`;
+  const e = $("#earn-live"); const rate = +state.settings.rate || 0;
+  if (e) e.innerHTML = rate ? `הרווחתם עד עכשיו בערך <b class="num">${money(rate * ms / 3600000)}</b>` : `<span class="small">הגדירו תעריף כדי לראות כמה הרווחתם</span>`;
+  const p = $("#prog"); const goal = (+state.settings.shiftHours || 0) * 3600000;
+  if (p && goal) {
+    const pct = Math.min(100, ms / goal * 100), overMs = Math.max(0, ms - goal);
+    const overPct = overMs ? Math.min(40, overMs / goal * 100) : 0;
+    const left = Math.max(0, goal - ms) / 60000;
+    p.innerHTML = `<div class="track"><div class="fill" style="width:${pct * (100 - overPct) / 100}%"></div>${overPct ? `<div class="over" style="width:${overPct}%"></div>` : ""}</div>
+      <div class="txt"><span>משמרת של ${+state.settings.shiftHours} ש׳</span><span>${overMs ? `<b style="color:var(--punch)">עברת ב-<span class="num">${fmtHM(overMs / 60000)}</span></b>` : `נשארו <span class="num">${fmtHM(left)}</span>`}</span></div>`;
+  }
+  const br = $("#break-run"); if (br && state.active.breakStart) { const bs = Math.floor((Date.now() - state.active.breakStart) / 1000); br.textContent = `${pad(Math.floor(bs / 60))}:${pad(bs % 60)}`; }
+}
+setInterval(tick, 1000);
+
+// ---------- exports ----------
+function downloadFile(filename, data, mime) {
+  const blob = new Blob([data], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+async function shareOrDownload(filename, data, mime) {
+  try {
+    const file = new File([data], filename, { type: mime });
+    if (navigator.canShare && navigator.canShare({ files: [file] }) && /android|iphone|ipad/i.test(navigator.userAgent)) {
+      await navigator.share({ files: [file], title: filename }); return;
+    }
+  } catch (e) { if (e && e.name === "AbortError") return; }
+  downloadFile(filename, data, mime); toast("הקובץ ירד למכשיר");
+}
+function csvFor(P) {
+  const st = state.settings, rate = +st.rate || 0;
+  const q = v => { const s = String(v ?? ""); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const keys = [...new Set(P.days.flatMap(d => Object.keys(d.buckets).map(Number)))].sort((a, b) => a - b);
+  const lines = [];
+  lines.push(["דוח שעות", periodLabel(P.key)].map(q).join(","));
+  lines.push(["עובד/ת", st.name, "טלפון", account ? account.phone : "", "מעסיק", st.employer, "תעריף לשעה", rate].map(q).join(","));
+  lines.push("");
+  lines.push(["תאריך", "יום", "סוג", "כניסה", "יציאה", "הפסקה (דק')", "שעות", "שעות (עשרוני)", ...keys.map(k => `${k}%`), "סכום יומי", "הערה"].map(q).join(","));
+  P.days.forEach(d => d.list.forEach((s, i) => {
+    const mn = shiftMin(s);
+    lines.push([fmtDate(d.ds), DAYS[weekday(d.ds)], TYPES[s.type], isLeave(s) ? "" : s.start, isLeave(s) ? "" : s.end, isLeave(s) ? "" : (+s.breakMin || 0),
+      fmtHM(mn), fmtDec(mn), ...keys.map(k => i === 0 && d.buckets[k] ? fmtDec(d.buckets[k]) : ""), i === 0 ? d.pay.toFixed(2) : "", s.note || ""].map(q).join(","));
+  }));
+  lines.push("");
+  summaryRows(P).forEach(([k, v]) => lines.push([k.trim(), v].map(q).join(",")));
+  return "﻿" + lines.join("\r\n");
+}
+function htmlReportFor(P, autoPrint) {
+  const st = state.settings; const [a, b] = P.range;
+  return `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>דוח שעות ${esc(st.name)} ${esc(periodLabel(P.key))}</title><style>
+body{font-family:Arial,"Arial Hebrew",sans-serif;color:#111;background:#fff;margin:24px;font-size:14px}
+h1{font-size:24px;margin:0 0 4px}.head{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;border-bottom:2px solid #111;padding-bottom:12px;margin-bottom:14px}
+.meta{display:grid;grid-template-columns:auto auto;gap:2px 10px;color:#555}.meta b{color:#111}
+.wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13px}th{text-align:right;font-size:11px;color:#555;border-bottom:1px solid #111;padding:6px}
+td{padding:6px;border-bottom:1px solid #ddd;white-space:nowrap}td.n{direction:ltr;text-align:right;font-variant-numeric:tabular-nums}tr.we td{background:#f3f3f3}
+tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:0}.sum{max-width:420px;margin-top:18px}.sum div{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #ddd}
+.sum div:last-child{font-weight:700;font-size:17px;border-top:2px solid #111;border-bottom:0}.sum span:last-child{direction:ltr}
+.note{color:#666;font-size:12px;margin-top:14px}.sign{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:48px;color:#555}.sign div{border-top:1px solid #111;padding-top:6px}
+@media print{body{margin:10mm}}</style></head><body>
+<div class="head"><div><h1>דוח שעות עבודה</h1><div>${esc(periodLabel(P.key))} · ${fmtDate(a)} – ${fmtDate(b)}</div></div>
+<div class="meta"><span>עובד/ת:</span><b>${esc(st.name || "—")}</b>${account && account.phone ? `<span>טלפון:</span><b>${esc(account.phone)}</b>` : ""}<span>מעסיק:</span><b>${esc(st.employer || "—")}</b><span>תעריף:</span><b>${money(+st.rate || 0)} לשעה</b></div></div>
+<div class="wrap">${reportTable(P)}</div>
+<div class="sum">${summaryRows(P).map(([k, v]) => `<div><span>${esc(k.trim())}</span><span>${esc(v)}</span></div>`).join("")}</div>
+<p class="note">${rulesNote()} הופק ב-${fmtDate(todayDS())}.</p>
+<div class="sign"><div>חתימת העובד/ת</div><div>אישור המעסיק</div></div>
+${autoPrint ? "<script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>" : ""}</body></html>`;
+}
+function summaryText(P) {
+  const st = state.settings; const [a, b] = P.range;
+  const lines = [`דוח שעות – ${st.name || "עובד/ת"}`, `${st.employer ? st.employer + " · " : ""}${periodLabel(P.key)} (${fmtDate(a)}–${fmtDate(b)})`, ""];
+  summaryRows(P).forEach(([k, v], i, arr) => lines.push(`${i === arr.length - 1 ? "*" : ""}${k}: ${v}${i === arr.length - 1 ? "*" : ""}`));
+  lines.push("", `תעריף: ${money(+st.rate || 0)} לשעה`);
+  return lines.join("\n");
+}
+async function shareText(text, title) {
+  if (navigator.share) { try { await navigator.share({ text, title }); return; } catch (e) { if (e && e.name === "AbortError") return; } }
+  try { await navigator.clipboard.writeText(text); toast("הסיכום הועתק — אפשר להדביק בוואטסאפ"); }
+  catch (e) { showCopy(title, text); }
+}
+function printReport(P) {
+  const html = htmlReportFor(P, true);
+  const w = window.open("", "_blank");
+  if (w) { w.document.open(); w.document.write(html); w.document.close(); }
+  else downloadFile(`דוח שעות ${periodLabel(P.key)}.html`, html, "text/html");
+}
+
+// ---------- sample data ----------
+function loadSample() {
+  const key = periodKeyOf(todayDS()); const [a] = periodRange(key);
+  const end = todayDS(); const out = [];
+  const starts = ["07:55", "08:02", "08:10", "07:48", "08:00", "08:05"];
+  const ends = ["17:05", "16:40", "18:45", "17:30", "19:20", "16:55"];
+  datesBetween(a, end).forEach((ds, i) => {
+    if (ds === end) return;
+    const wd = weekday(ds);
+    if (wd === 5) return;
+    if (wd === 6) { if (i % 14 === 6) out.push({ id: uid(), date: ds, start: "09:00", end: "14:00", breakMin: 0, type: "work", note: "דוגמה · משמרת שבת" }); return; }
+    if (i === 9) { out.push({ id: uid(), date: ds, type: "vacation", hours: +state.settings.shiftHours || 8, start: "", end: "", breakMin: 0, note: "דוגמה" }); return; }
+    out.push({ id: uid(), date: ds, start: starts[i % 6], end: ends[i % 6], breakMin: [15, 30, 45][i % 3], type: "work", note: "דוגמה" });
+  });
+  state.shifts = out; state.sample = true;
+  if (!(+state.settings.rate > 0)) state.settings = { ...state.settings, rate: 45 };
+  state.adjustments = [{ id: uid(), period: key, label: "בונוס (דוגמה)", amount: 300 }];
+  ui.period = key; ui.tab = "month";
+  commit("נטענו נתוני דוגמה");
+}
+function clearSample() {
+  confirmBox("לנקות את נתוני הדוגמה?", "כל המשמרות והתוספות לדוגמה יימחקו. ההגדרות שלכם יישארו.", "ניקוי", () => {
+    state.shifts = []; state.adjustments = []; state.sample = false; commit("הדוגמה נוקתה");
+  }, true);
+}
+
+// ---------- events ----------
+document.addEventListener("click", e => {
+  const au = e.target.closest("[data-auth]");
+  if (au) {
+    const t = au.dataset.auth; ui.authMsg = "";
+    const em = $("#au-email"); if (em) ui.authEmail = em.value.trim();
+    ui.authMode = t === "toSignup" ? "signup" : t === "toForgot" ? "forgot" : "login";
+    render(); return;
+  }
+  const nav = e.target.closest("[data-tab]");
+  if (nav && nav.closest("#nav")) { goTab(nav.dataset.tab); return; }
+  const go = e.target.closest("[data-tab-go]"); if (go) { goTab(go.dataset.tabGo); return; }
+  const rb = e.target.closest("[data-rmbreak]"); if (rb) { removeBreak(rb.dataset.rmbreak); return; }
+  const ed = e.target.closest("[data-edit]"); if (ed) { const s = state.shifts.find(x => x.id === ed.dataset.edit); if (s) shiftForm(s); return; }
+  const adj = e.target.closest("[data-adj]"); if (adj) { const x = state.adjustments.find(y => y.id === adj.dataset.adj); if (x) adjForm(x.period, x); return; }
+  const act = e.target.closest("[data-act]"); if (!act || act.closest("#modal-root")) return;
+  const P = () => calcPeriod(ui.period);
+  const st = state.settings; const fname = k => `דוח שעות ${st.name ? st.name + " " : ""}${periodLabel(k)}`;
+  switch (act.dataset.act) {
+    case "clockIn": clockIn(); break;
+    case "clockOut": clockOut(); break;
+    case "addBreak": breakModal(); break;
+    case "endBreak": endTimedBreak(); break;
+    case "editActive": editActive(); break;
+    case "addShift": shiftForm(null, ui.tab === "month" && periodKeyOf(todayDS()) !== ui.period ? periodRange(ui.period)[0] : null); break;
+    case "addAdj": adjForm(ui.period); break;
+    case "prevP": ui.period = movePeriod(ui.period, -1); render(); break;
+    case "nextP": ui.period = movePeriod(ui.period, 1); render(); break;
+    case "shareSummary": shareText(summaryText(P()), "סיכום שעות"); break;
+    case "dlCsv": shareOrDownload(fname(ui.period) + ".csv", csvFor(P()), "text/csv"); break;
+    case "dlHtml": shareOrDownload(fname(ui.period) + ".html", htmlReportFor(P(), false), "text/html"); break;
+    case "printReport": printReport(P()); break;
+    case "backup": downloadFile(`גיבוי שעון נוכחות ${todayDS()}.json`, JSON.stringify(state, null, 1), "application/json"); break;
+    case "restore": $("#restore-file").click(); break;
+    case "loadSample": loadSample(); break;
+    case "clearSample": clearSample(); break;
+    case "finishSetup": state.settings = { ...state.settings, onboarded: true }; commit("מעולה, אפשר להתחיל"); break;
+    case "install": if (installEvt) { installEvt.prompt(); installEvt.userChoice.finally(() => { installEvt = null; render(); }); } break;
+    case "dismissInstall": try { localStorage.setItem("attendance:install-dismissed", "1"); } catch (err) {} render(); break;
+    case "logout": confirmBox("להתנתק?", "הנתונים שמורים בחשבון ויחזרו כשתתחברו שוב.", "התנתקות", async () => { if (dirty) await flush(); await sb.auth.signOut(); endSession(); }); break;
+    case "wipe": confirmBox("למחוק את כל המשמרות?", "כל המשמרות והתוספות יימחקו לצמיתות, גם מהגיבוי בענן. ההגדרות והחשבון יישארו.", "מחיקה לצמיתות", () => { state.shifts = []; state.adjustments = []; state.active = null; state.sample = false; commit("כל המשמרות נמחקו"); }, true); break;
+  }
+});
+function goTab(t) {
+  ui.tab = t; try { localStorage.setItem("attendance:tab", t); } catch (e) {}
+  if (t === "clock") ui.period = periodKeyOf(todayDS());
+  render(); window.scrollTo(0, 0);
+}
+document.addEventListener("change", async e => {
+  const el = e.target;
+  if (el.id === "restore-file" && el.files && el.files[0]) {
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const data = JSON.parse(r.result);
+        if (!data || !Array.isArray(data.shifts)) throw 0;
+        confirmBox("לשחזר מהגיבוי?", `בגיבוי ${data.shifts.length} משמרות. הנתונים הנוכחיים יוחלפו.`, "שחזור", () => { state = normalize(data); commit("הגיבוי שוחזר"); });
+      } catch (err) { toast("הקובץ הזה אינו גיבוי תקין של שעון הנוכחות"); }
+    };
+    r.readAsText(el.files[0]); el.value = ""; return;
+  }
+  if (el.id === "acc-phone") {
+    const p = el.value.trim();
+    if (!validPhone(p)) { toast("מספר הטלפון לא תקין"); el.value = account ? account.phone : ""; return; }
+    const { error } = await sb.from("attendance_accounts").update({ phone: normPhone(p) }).eq("user_id", session.user.id);
+    if (error) { toast("לא נשמר. בדקו חיבור לאינטרנט"); return; }
+    account = { ...account, phone: normPhone(p) }; toast("הטלפון עודכן"); return;
+  }
+  const key = el.dataset && el.dataset.set; if (!key) return;
+  let v = el.type === "checkbox" ? el.checked : el.value;
+  if (el.type === "number") { v = +v; if (!isFinite(v) || el.value === "") v = DEFAULT_SETTINGS[key]; if (el.min !== "" && v < +el.min) v = +el.min; if (el.max !== "" && v > +el.max) v = +el.max; }
+  if (typeof v === "string") v = v.trim();
+  state.settings = { ...state.settings, [key]: v };
+  if (key === "periodStart") ui.period = null;
+  // keep focus while filling a form: only toggles change what the page shows
+  commit(el.id.startsWith("o-") ? "" : "נשמר", el.type !== "checkbox");
+});
+})();
+</script>
+</body>
+</html>

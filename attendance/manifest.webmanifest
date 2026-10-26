@@ -1,0 +1,17 @@
+{
+  "name": "שעון נוכחות",
+  "short_name": "שעון נוכחות",
+  "description": "רישום שעות עבודה, חישוב שכר ודוח לבוס",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#EAF0ED",
+  "theme_color": "#0E7A5D",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
