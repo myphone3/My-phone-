@@ -56,7 +56,7 @@
     }
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html { background: var(--bg); }
+  html { background: var(--bg); overflow-x: hidden; }
   body {
     margin: 0 auto; max-width: 480px; min-height: 100vh; color: var(--text); background: transparent;
     font-family: -apple-system, "SF Pro Display", "Segoe UI", Roboto, Arial, sans-serif;
@@ -81,6 +81,8 @@
   .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
   .brand img { width: 42px; height: 42px; border-radius: 12px; box-shadow: var(--shadow-sm); flex: none; }
   .brand small { display: block; color: var(--muted); font-size: 12px; margin-top: 1px; }
+  h1 { cursor: pointer; }
+  h1::after { content: " ✎"; font-size: 13px; color: var(--muted); font-weight: 400; }
   h1 { font-size: 18px; margin: 0; font-weight: 700; letter-spacing: -.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .chip { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); padding: 7px 11px; border-radius: 999px; flex: none; }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 3px rgba(251, 191, 36, .2); }
@@ -164,12 +166,13 @@
   .edit { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .edit button { min-height: 48px; font-size: 14px; }
 
-  .apps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 6px; }
+  .apps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px 8px; }
   .app { position: relative; display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 0; border: 0; background: transparent; box-shadow: none; min-height: 0; font-size: 11.5px; color: var(--text); backdrop-filter: none; -webkit-backdrop-filter: none; }
   .app.pressed, .app:active { background: transparent; }
+  .app { min-width: 0; }
   .app .ico { width: 58px; height: 58px; border-radius: 17px; background: var(--surface-strong); box-shadow: var(--shadow-sm); overflow: hidden; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--accent-b); font-size: 20px; }
   .app .ico img { width: 100%; height: 100%; object-fit: cover; }
-  .app span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .app .name { width: 100%; line-height: 1.3; text-align: center; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word; }
   .app .star { position: absolute; top: -5px; left: 6px; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 11px; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm); }
   .empty { color: var(--muted); font-size: 13px; grid-column: 1 / -1; text-align: center; padding: 8px 0; }
 
@@ -198,6 +201,12 @@
     opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 20; max-width: 90vw; text-align: center;
   }
   .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .sheet { position: fixed; inset: 0; z-index: 30; background: rgba(30, 15, 50, .28); display: flex; align-items: flex-end; justify-content: center; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); animation: fade .15s ease; }
+  .sheet .panel { width: 100%; max-width: 440px; border-radius: 28px; padding: 18px; display: grid; gap: 10px; animation: up .2s ease; }
+  .sheet .panel h3 { margin: 0 0 4px; text-align: center; font-size: 16px; }
+  .sheet .panel button { font-weight: 600; color: var(--text); }
+  @keyframes fade { from { opacity: 0; } }
+  @keyframes up { from { transform: translateY(30px); opacity: 0; } }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -308,7 +317,11 @@
       <h2>כל האפליקציות <button id="reloadApps">רענון</button></h2>
       <div class="apps" id="allApps"><div class="empty">טוען…</div></div>
     </section>
-    <p class="note" style="text-align:center">לחיצה ארוכה על אפליקציה מוסיפה או מסירה מהמועדפים</p>
+    <section class="card glass" id="hiddenCard" hidden>
+      <h2><span>מוסתרות (<span id="hiddenCount">0</span>)</span> <button id="hiddenToggle">הצג</button></h2>
+      <div class="apps" id="hiddenApps" hidden></div>
+    </section>
+    <p class="note" style="text-align:center">לחיצה ארוכה על אפליקציה: מועדפים או הסתרה</p>
   </main>
   </div>
 
@@ -319,6 +332,16 @@
   </nav>
 
   <div class="toast glass" id="toast"></div>
+
+  <div class="sheet" id="sheet" hidden>
+    <div class="panel glass">
+      <h3 id="sheetTitle"></h3>
+      <button class="btn-accent" id="sheetOpen" style="color:#fff">פתח</button>
+      <button id="sheetFav"></button>
+      <button id="sheetHide"></button>
+      <button id="sheetCancel">ביטול</button>
+    </div>
+  </div>
 
 <script>
 (() => {
@@ -558,19 +581,49 @@
   // ===== אפליקציות =====
   const DEFAULT_FAVS = ['com.teamsmart.videomanager.tv', 'com.liskovsoft.smarttubetv', 'com.google.android.youtube.tv',
     'com.netflix.ninja', 'com.disney.disneyplus', 'com.amazon.amazonvideo.livingroom', 'com.spotify.tv.android'];
+  // אפליקציות מערכת שאין סיבה לפתוח מהשלט - מוסתרות מראש (אפשר להחזיר)
+  const JUNK = /launcher|webview|assist|remote ?service|^com\.|^android|tester|stub|provider|bridge|setup|wizard/i;
   let apps = [];
   let favs = store.get('favs', null);
+  let hidden = store.get('hidden', null);
 
-  function isFav(pkg) {
-    if (favs) return favs.includes(pkg);
-    return DEFAULT_FAVS.some((f) => pkg.startsWith(f));
-  }
+  const isFav = (pkg) => favs ? favs.includes(pkg) : DEFAULT_FAVS.some((f) => pkg.startsWith(f));
+  const isHidden = (app) => hidden ? hidden.includes(app.pkg) : JUNK.test(app.label) || JUNK.test(app.pkg.split('.').pop());
+
   function toggleFav(app) {
     if (!favs) favs = apps.filter((a) => isFav(a.pkg)).map((a) => a.pkg);
     if (favs.includes(app.pkg)) { favs = favs.filter((p) => p !== app.pkg); toast(app.label + ' הוסר מהמועדפים'); }
-    else { favs.push(app.pkg); toast(app.label + ' נוסף למועדפים'); }
+    else { favs.push(app.pkg); toast(app.label + ' נוסף למועדפים ★'); }
     store.set('favs', favs);
     renderApps();
+  }
+  function toggleHidden(app) {
+    if (!hidden) hidden = apps.filter(isHidden).map((a) => a.pkg);
+    if (hidden.includes(app.pkg)) { hidden = hidden.filter((p) => p !== app.pkg); toast(app.label + ' חזר לרשימה'); }
+    else { hidden.push(app.pkg); toast(app.label + ' הוסתר'); }
+    store.set('hidden', hidden);
+    renderApps();
+  }
+
+  // תפריט שנפתח בלחיצה ארוכה על אפליקציה
+  let sheetApp = null;
+  function openSheet(app) {
+    sheetApp = app;
+    $('sheetTitle').textContent = app.label;
+    $('sheetFav').textContent = isFav(app.pkg) ? 'הסר מהמועדפים' : 'הוסף למועדפים ★';
+    $('sheetHide').textContent = isHidden(app) ? 'החזר לרשימה' : 'הסתר מהרשימה';
+    $('sheet').hidden = false;
+  }
+  const closeSheet = () => { $('sheet').hidden = true; sheetApp = null; };
+  $('sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
+  $('sheetCancel').onclick = closeSheet;
+  $('sheetOpen').onclick = () => { const a = sheetApp; closeSheet(); launch(a); };
+  $('sheetFav').onclick = () => { const a = sheetApp; closeSheet(); toggleFav(a); };
+  $('sheetHide').onclick = () => { const a = sheetApp; closeSheet(); toggleHidden(a); };
+
+  function launch(app) {
+    buzz();
+    call('launch', { pkg: app.pkg }).then((r) => toast(r.ok ? 'פותח את ' + app.label + '…' : 'לא הצלחתי לפתוח'));
   }
 
   function appButton(app) {
@@ -586,6 +639,8 @@
       img.onload = () => { ico.textContent = ''; ico.appendChild(img); };
     });
     const label = document.createElement('span');
+    label.className = 'name';
+    label.dir = 'auto';
     label.textContent = app.label;
     b.append(ico, label);
     if (isFav(app.pkg)) {
@@ -594,14 +649,10 @@
       b.appendChild(star);
     }
     let longPress = null, fired = false;
-    b.addEventListener('pointerdown', () => { fired = false; longPress = setTimeout(() => { fired = true; buzz(); toggleFav(app); }, 550); });
+    b.addEventListener('pointerdown', () => { fired = false; longPress = setTimeout(() => { fired = true; buzz(); openSheet(app); }, 500); });
     ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => b.addEventListener(ev, () => clearTimeout(longPress)));
     b.addEventListener('contextmenu', (e) => e.preventDefault());
-    b.addEventListener('click', () => {
-      if (fired) return;
-      buzz();
-      call('launch', { pkg: app.pkg }).then((r) => toast(r.ok ? 'פותח את ' + app.label + '…' : 'לא הצלחתי לפתוח'));
-    });
+    b.addEventListener('click', () => { if (!fired) launch(app); });
     return b;
   }
 
@@ -619,13 +670,24 @@
   function renderApps() {
     const filter = $('appFilter').value.trim().toLowerCase();
     const match = (a) => !filter || a.label.toLowerCase().includes(filter) || a.pkg.includes(filter);
-    const favList = apps.filter((a) => isFav(a.pkg));
-    $('favCard').hidden = !!filter;
-    fill($('favApps'), favList, 'אין מועדפים עדיין. לחיצה ארוכה על אפליקציה מוסיפה אותה.');
-    fill($('allApps'), apps.filter(match), filter ? 'לא נמצאה אפליקציה' : 'לא נמצאו אפליקציות');
+    const byName = (a, b) => a.label.localeCompare(b.label, 'he');
+    const visible = apps.filter((a) => !isHidden(a)).sort(byName);
+    const hiddenList = apps.filter(isHidden).sort(byName);
+    const favList = visible.filter((a) => isFav(a.pkg));
+    $('favCard').hidden = !!filter || !favList.length;
+    fill($('favApps'), favList, '');
+    fill($('allApps'), (filter ? apps.filter(match).sort(byName) : visible), filter ? 'לא נמצאה אפליקציה' : 'לא נמצאו אפליקציות');
+    $('hiddenCard').hidden = !!filter || !hiddenList.length;
+    $('hiddenCount').textContent = hiddenList.length;
+    fill($('hiddenApps'), hiddenList, '');
     $('quickCard').hidden = !favList.length;
     fill($('quickApps'), favList.slice(0, 8), '');
   }
+  $('hiddenToggle').onclick = () => {
+    const box = $('hiddenApps');
+    box.hidden = !box.hidden;
+    $('hiddenToggle').textContent = box.hidden ? 'הצג' : 'הסתר';
+  };
 
   function loadApps() {
     $('allApps').innerHTML = '<div class="empty">טוען…</div>';
@@ -640,6 +702,17 @@
   $('appFilter').addEventListener('input', renderApps);
   apps = store.get('apps', []);
   if (apps.length) renderApps();
+
+  // ===== שם הטלוויזיה (לחיצה על השם משנה אותו, לכל הטלפונים) =====
+  $('tvName').addEventListener('click', () => {
+    const current = $('tvName').textContent;
+    const name = (prompt('איך לקרוא לטלוויזיה?', current) || '').trim();
+    if (!name || name === current) return;
+    call('rename', { name: name.slice(0, 30) }).then((r) => {
+      if (r.ok) { $('tvName').textContent = name.slice(0, 30); toast('השם עודכן ✓'); }
+      else toast('לא הצלחתי לשנות את השם');
+    });
+  });
 
   // ===== מצב החיבור =====
   function setOnline(online) {

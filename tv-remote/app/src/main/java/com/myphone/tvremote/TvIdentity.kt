@@ -18,4 +18,12 @@ object TvIdentity {
         cached = id
         return id
     }
+
+    /** השם שמופיע בראש השלט. נשמר בטלוויזיה, כך שכל הטלפונים רואים אותו. */
+    fun name(context: Context): String =
+        context.getSharedPreferences("tv", Context.MODE_PRIVATE).getString("name", null) ?: "הטלוויזיה שלנו"
+
+    fun setName(context: Context, name: String) {
+        context.getSharedPreferences("tv", Context.MODE_PRIVATE).edit().putString("name", name).apply()
+    }
 }

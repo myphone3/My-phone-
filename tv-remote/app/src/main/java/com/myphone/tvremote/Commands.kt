@@ -1,7 +1,6 @@
 package com.myphone.tvremote
 
 import android.content.Context
-import android.os.Build
 import android.util.Base64
 import org.json.JSONArray
 import org.json.JSONObject
@@ -18,7 +17,7 @@ object Commands {
             JSONObject()
                 .put("connected", AdbBridge.connected)
                 .put("status", AdbBridge.status)
-                .put("name", "${Build.MANUFACTURER} ${Build.MODEL}".trim())
+                .put("name", TvIdentity.name(context))
                 .put("tv", TvIdentity.id(context))
                 .put("remoteUrl", Config.remoteUrl(TvIdentity.id(context)))
                 .put("cloud", CloudRelay.online)
@@ -55,6 +54,13 @@ object Commands {
         }
         "launch" -> if (Apps.launch(context, params["pkg"].orEmpty())) ok() else fail("not found")
         "reconnect" -> { AdbBridge.reconnect(); ok() }
+        "rename" -> {
+            val name = params["name"].orEmpty().trim()
+            if (name.isEmpty() || name.length > 30) fail("bad name") else {
+                TvIdentity.setName(context, name)
+                ok()
+            }
+        }
         else -> fail("unknown command")
     }
 }
