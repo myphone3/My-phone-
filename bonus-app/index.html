@@ -137,7 +137,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 .mini-btn { background: var(--soft); border: 0; border-radius: 9px; padding: 6px 10px; font-weight: 700; font-size: .82rem; }
 .mini-btn.del { background: transparent; color: var(--muted); font-size: 1.05rem; padding: 4px 8px; }
 .mini-btn:disabled { opacity: .6; cursor: default; }
-.mini-btn.pen { font-size: .95rem; padding: 4px 8px; }
+.mini-btn.pen { background: transparent; color: var(--muted); padding: 5px 7px; line-height: 0; }
+.mini-btn.pen svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.mini-btn.pen:hover, .mini-btn.pen:focus-visible { color: var(--ink); background: var(--soft); }
 .mini-btn.on { background: var(--accent); color: var(--accent-ink); }
 .head-r { display: flex; align-items: baseline; gap: 8px; }
 .qty-step { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 6px; }
@@ -1059,6 +1061,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   function $(id) { return document.getElementById(id); }
   function $$(sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function penBtn() { var b = el("button", "mini-btn pen"); b.type = "button"; var s = document.createElementNS("http://www.w3.org/2000/svg", "svg"); s.setAttribute("viewBox", "0 0 24 24"); s.setAttribute("aria-hidden", "true"); s.innerHTML = '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>'; b.appendChild(s); return b; }
   function icon(name) { var s = document.createElementNS("http://www.w3.org/2000/svg", "svg"); s.setAttribute("viewBox", "0 0 24 24"); s.setAttribute("aria-hidden", "true"); s.innerHTML = ICONS[name] || ICONS.star; return s; }
   function lsGet(k, def) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch (e) { return def; } }
   function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
@@ -1670,7 +1673,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
         it.addEventListener("keydown", function (ev) { if (ev.key === " " || ev.key === "Enter") { ev.preventDefault(); flip(); } });
         box.appendChild(it); return;
       }
-      var ed = el("button", "mini-btn pen", "✏️"); ed.type = "button"; ed.setAttribute("aria-label", "עריכת " + catName(e.kind) + " " + e.sub);
+      var ed = penBtn(); ed.setAttribute("aria-label", "עריכת " + catName(e.kind) + " " + e.sub);
       ed.addEventListener("click", function () { openEdit(e.id); });
       it.appendChild(ed);
       var d = el("button", "mini-btn del", "✕"); d.type = "button"; d.setAttribute("aria-label", "מחיקת " + catName(e.kind) + " " + e.sub);
@@ -1935,7 +1938,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
         var tp = tempPill(t); if (tp) name.appendChild(tp);
         row.appendChild(name);
         row.appendChild(el("span", "t-amt num", fmt(typeAmountC(E, t)) + " ₪"));
-        if (editable) { var b = el("button", "mini-btn pen", "✏️"); b.type = "button"; b.setAttribute("aria-label", "עריכת " + t.name); b.addEventListener("click", function () { openType(t.kind, t.id); }); row.appendChild(b); }
+        if (editable) { var b = penBtn(); b.setAttribute("aria-label", "עריכת " + t.name); b.addEventListener("click", function () { openType(t.kind, t.id); }); row.appendChild(b); }
         else row.appendChild(el("span"));
         rows.appendChild(row);
       });
