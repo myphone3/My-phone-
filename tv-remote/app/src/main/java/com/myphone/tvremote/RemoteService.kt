@@ -18,10 +18,10 @@ class RemoteService : Service() {
     override fun onCreate() {
         super.onCreate()
         val manager = getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(NotificationChannel(CHANNEL, "שלט מהטלפון", NotificationManager.IMPORTANCE_MIN))
+        manager.createNotificationChannel(NotificationChannel(CHANNEL, "שלט מהפון", NotificationManager.IMPORTANCE_MIN))
         val notification = Notification.Builder(this, CHANNEL)
             .setSmallIcon(R.drawable.ic_launcher)
-            .setContentTitle("שלט מהטלפון פעיל")
+            .setContentTitle("שלט מהפון פעיל")
             .setContentText(address())
             .build()
         startForeground(1, notification)

@@ -55,7 +55,7 @@
         <service
             android:name=".RemoteIme"
             android:exported="true"
-            android:label="שלט מהטלפון (הקלדה)"
+            android:label="שלט מהפון (הקלדה)"
             android:permission="android.permission.BIND_INPUT_METHOD">
             <intent-filter>
                 <action android:name="android.view.InputMethod" />

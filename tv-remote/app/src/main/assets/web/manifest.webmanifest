@@ -1,6 +1,6 @@
 {
-  "name": "שלט מהטלפון",
-  "short_name": "שלט",
+  "name": "שלט מהפון",
+  "short_name": "שלט מהפון",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#FFF7F9",

@@ -1,6 +1,8 @@
 package com.myphone.tvremote
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
 import android.util.Log
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -33,6 +35,7 @@ object CloudRelay {
     private lateinit var topic: String
     private var socket: WebSocket? = null
     private var heartbeat: ScheduledFuture<*>? = null
+    private var pendingRetry: ScheduledFuture<*>? = null
     private var backoffSec = 2L
     private var started = false
 
@@ -46,6 +49,36 @@ object CloudRelay {
         appContext = context.applicationContext
         topic = "realtime:tv-" + TvIdentity.id(appContext)
         connect()
+        watchNetwork()
+    }
+
+    /**
+     * כשהרשת חוזרת (למשל אחרי שיקוף מסך שמכבה את ה-WiFi) מתחברים מיד,
+     * בלי לחכות לניסיון הבא.
+     */
+    private fun watchNetwork() {
+        val connectivity = appContext.getSystemService(ConnectivityManager::class.java) ?: return
+        connectivity.registerDefaultNetworkCallback(object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) = reconnectNow()
+            override fun onLost(network: Network) {
+                online = false
+            }
+        })
+    }
+
+    @Synchronized
+    private fun reconnectNow() {
+        backoffSec = 2
+        if (online) return
+        pendingRetry?.cancel(false)
+        socket?.cancel()
+        socket = null
+        timer.schedule({ connectIfIdle() }, 1, TimeUnit.SECONDS)
+    }
+
+    @Synchronized
+    private fun connectIfIdle() {
+        if (socket == null) connect()
     }
 
     @Synchronized
@@ -112,8 +145,8 @@ object CloudRelay {
         heartbeat?.cancel(false)
         socket = null
         val delay = backoffSec
-        backoffSec = (backoffSec * 2).coerceAtMost(60)
-        timer.schedule({ connect() }, delay, TimeUnit.SECONDS)
+        backoffSec = (backoffSec * 2).coerceAtMost(15)
+        pendingRetry = timer.schedule({ connectIfIdle() }, delay, TimeUnit.SECONDS)
     }
 
     private fun handle(webSocket: WebSocket, request: JSONObject) = handlers.execute {
