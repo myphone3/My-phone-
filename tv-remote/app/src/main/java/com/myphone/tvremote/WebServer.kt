@@ -43,6 +43,6 @@ class WebServer(private val context: Context, port: Int) : NanoHTTPD(port) {
             .also { it.addHeader("Cache-Control", "max-age=86400") }
 
     companion object {
-        private val STATIC_IMAGES = setOf("/apple-touch-icon.png", "/icon-192.png", "/icon-512.png", "/logo.png")
+        private val STATIC_IMAGES = setOf("/apple-touch-icon.png", "/icon-192.png", "/icon-512.png", "/icon-maskable.png", "/logo.png")
     }
 }

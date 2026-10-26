@@ -12,6 +12,15 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <title>שלט מהפון</title>
+<script>
+  // באנדרואיד: כרום מתקין את השלט כאפליקציה אמיתית (בלי סימן של כרום).
+  // באייפון לא - שם האייקון שומר את קוד הטלוויזיה מתוך הקישור עצמו.
+  if (location.protocol === 'http:' || !/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+    var m = document.createElement('link');
+    m.rel = 'manifest'; m.href = 'manifest.webmanifest';
+    document.head.appendChild(m);
+  }
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
   :root {
@@ -432,11 +441,6 @@
   }
   const tv = local ? makeLocal() : makeCloud(tvId);
   $('modeText').textContent = tv.mode;
-  if (local) {
-    const link = document.createElement('link');
-    link.rel = 'manifest'; link.href = 'manifest.webmanifest';
-    document.head.appendChild(link);
-  }
 
   function call(cmd, args) {
     return tv.call(cmd, args).then((r) => {
