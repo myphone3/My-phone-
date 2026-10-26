@@ -20,6 +20,9 @@
 `PUSH_SECRET` הוא sensitive ואי אפשר לקרוא אותו בחזרה. אם צריך אותו שוב: לייצר סוד חדש,
 לעדכן ב-Vercel (upsert) ובטבלה `attendance_config` (מפתח `push_secret`) ואז לפרסם מחדש.
 
+**26.10.2026:** הסוד הוחלף ב-Vercel והאתר פורסם מחדש. הסוד החדש עדיין לא בטבלה: `setup.sql` לא הורץ,
+כי חיבור Supabase לא היה מחובר בשיחה. המשתמש קיבל קובץ SQL מוכן (setup + config עם הסוד) להדבקה ב-SQL Editor.
+
 ## מה נשאר לעשות
 
 1. להריץ את `setup.sql` בפרויקט `mkqjysfflavzfkckiuil` (טבלאות, RLS, פונקציות, cron).
