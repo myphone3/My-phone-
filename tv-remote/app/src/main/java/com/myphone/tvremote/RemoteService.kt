@@ -28,6 +28,7 @@ class RemoteService : Service() {
         running = true
 
         AdbBridge.init(this)
+        CursorOverlay.init(this)
         KeepAliveJob.schedule(this)
         CloudRelay.start(this)
         try {

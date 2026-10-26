@@ -117,11 +117,42 @@
   .power { color: var(--bad); }
   .power.armed { background: var(--bad); color: #fff; font-size: 13px; font-weight: 600; }
 
-  .seg { display: grid; grid-template-columns: 1fr 1fr; border-radius: 18px; padding: 5px; margin-bottom: 14px; position: relative; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr 1fr; border-radius: 18px; padding: 5px; margin-bottom: 14px; position: relative; }
   .seg button { min-height: 40px; border: 0; background: transparent; box-shadow: none; border-radius: 14px; font-size: 14px; color: var(--muted); backdrop-filter: none; -webkit-backdrop-filter: none; position: relative; z-index: 1; }
   .seg button.on { color: #fff; font-weight: 600; }
-  .seg .thumb { position: absolute; top: 5px; bottom: 5px; width: calc(50% - 5px); right: 5px; border-radius: 14px; background: var(--accent); box-shadow: 0 6px 16px rgba(167, 139, 250, .35); transition: transform .25s cubic-bezier(.3, .7, .3, 1); }
-  .seg.second .thumb { transform: translateX(-100%); }
+  .seg .thumb { position: absolute; top: 5px; bottom: 5px; width: calc((100% - 10px) / 3); right: 5px; border-radius: 14px; background: var(--accent); box-shadow: 0 6px 16px rgba(167, 139, 250, .35); transition: transform .25s cubic-bezier(.3, .7, .3, 1); }
+  .seg.pos-1 .thumb { transform: translateX(-100%); }
+  .seg.pos-2 .thumb { transform: translateX(-200%); }
+
+  .mouse-wrap { margin: 6px 0 14px; }
+  .mouse {
+    position: relative; width: 100%; aspect-ratio: 1 / 1.08; border-radius: 32px; overflow: hidden; touch-action: none;
+    background-image: radial-gradient(circle, rgba(167, 139, 250, .22) 1.2px, transparent 1.3px);
+    background-size: 22px 22px; background-position: center;
+  }
+  .mouse canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .mouse .hint {
+    position: absolute; inset: auto 0 18px 0; text-align: center; font-size: 12.5px; color: var(--muted);
+    line-height: 1.7; pointer-events: none; transition: opacity .3s;
+  }
+  .mouse .hint b { color: var(--text); font-weight: 600; }
+  .mouse.active .hint { opacity: 0; }
+  .mouse .badge {
+    position: absolute; top: 14px; right: 14px; display: flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 999px;
+    font-size: 12px; color: var(--muted); background: var(--surface-strong); box-shadow: var(--shadow-sm); pointer-events: none;
+  }
+  .mouse .badge svg { width: 15px; height: 15px; fill: none; stroke: var(--accent-b); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .rail {
+    position: absolute; top: 56px; bottom: 56px; left: 10px; width: 34px; border-radius: 999px; touch-action: none;
+    background: linear-gradient(180deg, rgba(255, 143, 163, .16), rgba(167, 139, 250, .16));
+    display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 10px 0; color: var(--accent-b);
+  }
+  .rail svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .rail i { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: .45; }
+  .rail.active { background: linear-gradient(180deg, rgba(255, 143, 163, .35), rgba(167, 139, 250, .35)); }
+  .mouse-btns { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 12px; margin-top: 12px; }
+  .mouse-btns button { font-size: 14px; font-weight: 600; color: var(--text); }
+  .mouse-btns .btn-accent { color: #fff; }
 
   .stage { display: flex; justify-content: center; margin: 6px 0 20px; }
   .dpad { position: relative; width: min(74vw, 280px); aspect-ratio: 1; border-radius: 50%; }
@@ -250,7 +281,8 @@
     <div class="seg glass" id="seg">
       <span class="thumb"></span>
       <button id="modePad" class="on">חצים</button>
-      <button id="modeTouch">משטח מגע</button>
+      <button id="modeTouch">החלקה</button>
+      <button id="modeMouse">עכבר</button>
     </div>
 
     <div class="stage" id="padView">
@@ -267,6 +299,24 @@
       <div class="touch glass" id="touch">
         <svg viewBox="0 0 24 24"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V11"/><path d="M12 10.5V9a1.5 1.5 0 0 1 3 0v2"/><path d="M15 10.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-.5a6 6 0 0 1-4.6-2.2L4.5 16a1.6 1.6 0 0 1 2.4-2.1L9 15.5"/></svg>
         <div>החליקו כדי לזוז · הקישו לבחירה</div>
+      </div>
+    </div>
+
+    <div class="mouse-wrap" id="mouseView" hidden>
+      <div class="mouse glass" id="mouse">
+        <canvas id="trail"></canvas>
+        <div class="badge"><svg viewBox="0 0 24 24"><path d="M5 3l14 7-6 2-2 6z"/></svg>עכבר בטלוויזיה</div>
+        <div class="rail" id="rail" aria-label="גלילה">
+          <svg viewBox="0 0 24 24"><path d="M7 14l5-5 5 5"/></svg>
+          <i></i><i></i><i></i><i></i><i></i>
+          <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></svg>
+        </div>
+        <div class="hint"><b>גררו</b> להזזת הסמן · <b>הקישו</b> ללחיצה<br><b>שתי אצבעות</b> לגלילה · <b>החזיקו</b> ללחיצה ארוכה</div>
+      </div>
+      <div class="mouse-btns">
+        <button id="mLong">לחיצה ארוכה</button>
+        <button class="btn-accent" id="mClick">לחיצה</button>
+        <button data-key="BACK">חזור</button>
       </div>
     </div>
 
@@ -387,6 +437,9 @@
         return fetch('api/' + cmd + (q ? '?' + q : ''), { method: 'POST', cache: 'no-store' })
           .then((r) => r.json().catch(() => ({})).then((body) => ({ ok: r.ok, body })));
       },
+      fire(cmd, args = {}) {
+        fetch('api/' + cmd + '?' + new URLSearchParams(args), { method: 'POST', cache: 'no-store', keepalive: true }).catch(() => {});
+      },
       icon(pkg) { return Promise.resolve('api/icon?pkg=' + encodeURIComponent(pkg)); },
     };
   }
@@ -420,6 +473,9 @@
           };
           ready ? send() : queue.push(send);
         });
+      },
+      fire(cmd, args = {}) {
+        if (ready) channel.send({ type: 'broadcast', event: 'cmd', payload: { id: '', cmd, args, noreply: true } });
       },
       icon(pkg) {
         if (iconCache[pkg]) return Promise.resolve(iconCache[pkg]);
@@ -498,16 +554,24 @@
   });
 
   // ===== חצים / משטח מגע =====
+  const MODES = ['pad', 'touch', 'mouse'];
   function setMode(mode) {
-    const touch = mode === 'touch';
-    $('padView').hidden = touch; $('touchView').hidden = !touch;
-    $('modePad').classList.toggle('on', !touch); $('modeTouch').classList.toggle('on', touch);
-    $('seg').classList.toggle('second', touch);
+    if (!MODES.includes(mode)) mode = 'pad';
+    $('padView').hidden = mode !== 'pad';
+    $('touchView').hidden = mode !== 'touch';
+    $('mouseView').hidden = mode !== 'mouse';
+    $('modePad').classList.toggle('on', mode === 'pad');
+    $('modeTouch').classList.toggle('on', mode === 'touch');
+    $('modeMouse').classList.toggle('on', mode === 'mouse');
+    const seg = $('seg');
+    seg.classList.remove('pos-1', 'pos-2');
+    if (MODES.indexOf(mode)) seg.classList.add('pos-' + MODES.indexOf(mode));
     store.set('mode', mode);
+    if (mode === 'mouse') sizeTrail();
   }
-  $('modePad').onclick = () => setMode('pad');
-  $('modeTouch').onclick = () => setMode('touch');
-  setMode(store.get('mode', 'pad'));
+  $('modePad').onclick = () => { buzz(); setMode('pad'); };
+  $('modeTouch').onclick = () => { buzz(); setMode('touch'); };
+  $('modeMouse').onclick = () => { buzz(); setMode('mouse'); };
 
   const pad = $('touch');
   let start = null;
@@ -530,6 +594,142 @@
     else key(dy > 0 ? 'DOWN' : 'UP', steps);
   });
   pad.addEventListener('pointercancel', () => { start = null; });
+
+
+  // ===== עכבר =====
+  const mouse = $('mouse');
+  const trail = $('trail');
+  const ctx = trail.getContext('2d');
+  let points = [];
+  function sizeTrail() {
+    const r = trail.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    trail.width = Math.max(1, r.width * dpr); trail.height = Math.max(1, r.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener('resize', sizeTrail);
+
+  // שובל זוהר שעוקב אחרי האצבע
+  let drawing = false;
+  function draw() {
+    const now = performance.now();
+    points = points.filter((p) => now - p.t < 380);
+    const r = trail.getBoundingClientRect();
+    ctx.clearRect(0, 0, r.width, r.height);
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1], b = points[i];
+      const life = 1 - (now - b.t) / 380;
+      const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
+      grad.addColorStop(0, `rgba(255, 120, 150, ${life * 0.85})`);
+      grad.addColorStop(1, `rgba(150, 110, 245, ${life * 0.95})`);
+      ctx.strokeStyle = grad; ctx.lineWidth = 4 + life * 16; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    }
+    for (const f of fingers.values()) {
+      const g = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, 46);
+      g.addColorStop(0, 'rgba(167, 139, 250, .55)'); g.addColorStop(1, 'rgba(167, 139, 250, 0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(f.x, f.y, 46, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255, 255, 255, .9)'; ctx.beginPath(); ctx.arc(f.x, f.y, 7, 0, Math.PI * 2); ctx.fill();
+    }
+    if (points.length || fingers.size) requestAnimationFrame(draw); else drawing = false;
+  }
+  function kick() { if (!drawing) { drawing = true; requestAnimationFrame(draw); } }
+
+  function burst(x, y) {
+    const box = mouse.getBoundingClientRect();
+    const r = document.createElement('span');
+    r.className = 'ripple'; r.style.left = (x - box.left) + 'px'; r.style.top = (y - box.top) + 'px';
+    mouse.appendChild(r); setTimeout(() => r.remove(), 500);
+  }
+
+  // תזוזות מצטברות ונשלחות עד 25 פעמים בשנייה
+  let moveX = 0, moveY = 0, scrollY = 0, flushTimer = null;
+  function flush() {
+    flushTimer = null;
+    if (Math.abs(moveX) >= 0.5 || Math.abs(moveY) >= 0.5) {
+      tv.fire('mouse', { dx: moveX.toFixed(1), dy: moveY.toFixed(1) });
+      moveX = moveY = 0;
+    }
+    if (Math.abs(scrollY) >= 4) {
+      tv.fire('scroll', { dy: Math.round(scrollY) });
+      scrollY = 0;
+    }
+  }
+  const schedule = (ms) => { if (!flushTimer) flushTimer = setTimeout(flush, ms); };
+
+  const fingers = new Map();
+  let gesture = null;
+  mouse.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.rail')) return;
+    mouse.setPointerCapture(e.pointerId);
+    const box = mouse.getBoundingClientRect();
+    const f = { x: e.clientX - box.left, y: e.clientY - box.top, t: performance.now() };
+    fingers.set(e.pointerId, f);
+    mouse.classList.add('active');
+    if (fingers.size === 1) {
+      gesture = { start: f.t, sx: f.x, sy: f.y, moved: 0, multi: false, held: false };
+      gesture.hold = setTimeout(() => {
+        if (gesture && gesture.moved < 10 && !gesture.multi) { gesture.held = true; buzz(); burst(e.clientX, e.clientY); tv.fire('longpress'); }
+      }, 600);
+    } else if (gesture) {
+      gesture.multi = true;
+      clearTimeout(gesture.hold);
+    }
+    kick();
+  });
+  mouse.addEventListener('pointermove', (e) => {
+    const f = fingers.get(e.pointerId);
+    if (!f || !gesture) return;
+    const box = mouse.getBoundingClientRect();
+    const x = e.clientX - box.left, y = e.clientY - box.top, t = performance.now();
+    const dx = x - f.x, dy = y - f.y, dt = Math.max(1, t - f.t);
+    f.x = x; f.y = y; f.t = t;
+    gesture.moved += Math.abs(dx) + Math.abs(dy);
+    if (gesture.multi) {
+      if (e.pointerId === fingers.keys().next().value) { scrollY += dy * 2.2; schedule(110); }
+    } else {
+      // תאוצה: תנועה מהירה מזיזה רחוק, תנועה איטית מדויקת
+      const speed = Math.hypot(dx, dy) / dt;
+      const accel = 1.5 + Math.min(speed * 2.4, 3.6);
+      moveX += dx * accel; moveY += dy * accel;
+      schedule(40);
+      points.push({ x, y, t });
+    }
+    kick();
+  });
+  function release(e) {
+    const f = fingers.get(e.pointerId);
+    if (!f) return;
+    fingers.delete(e.pointerId);
+    if (fingers.size || !gesture) return;
+    clearTimeout(gesture.hold);
+    const quick = performance.now() - gesture.start < 260;
+    if (quick && gesture.moved < 12 && !gesture.held) {
+      buzz(); burst(e.clientX, e.clientY);
+      if (gesture.multi) key('BACK'); else tv.fire('click');
+    }
+    gesture = null;
+    mouse.classList.remove('active');
+    flush();
+  }
+  mouse.addEventListener('pointerup', release);
+  mouse.addEventListener('pointercancel', release);
+
+  // פס גלילה בצד: גוררים למעלה ולמטה
+  const rail = $('rail');
+  let railY = null;
+  rail.addEventListener('pointerdown', (e) => { e.stopPropagation(); rail.setPointerCapture(e.pointerId); railY = e.clientY; rail.classList.add('active'); buzz(); });
+  rail.addEventListener('pointermove', (e) => {
+    if (railY == null) return;
+    scrollY += (e.clientY - railY) * 3; railY = e.clientY; schedule(110);
+  });
+  const railEnd = () => { railY = null; rail.classList.remove('active'); flush(); };
+  rail.addEventListener('pointerup', railEnd);
+  rail.addEventListener('pointercancel', railEnd);
+
+  $('mClick').onclick = () => { buzz(); tv.fire('click'); };
+  $('mLong').onclick = () => { buzz(); tv.fire('longpress'); };
+  setMode(store.get('mode', 'pad'));
 
   // ===== חיפוש =====
   const query = $('query');

@@ -159,6 +159,8 @@ object CloudRelay {
         } catch (e: Exception) {
             Commands.Result(false, JSONObject().put("error", e.toString()))
         }
+        // תזוזות עכבר נשלחות הרבה פעמים בשנייה - לא צריך לענות עליהן
+        if (request.optBoolean("noreply")) return@execute
         val reply = JSONObject()
             .put("type", "broadcast")
             .put("event", "reply")

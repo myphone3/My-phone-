@@ -25,6 +25,7 @@ object Commands {
         "key" -> {
             val code = KEYS[params["k"]]
             if (code == null) fail("unknown key") else {
+                CursorOverlay.hide()
                 AdbBridge.sendKeys(code, (params["n"]?.toIntOrNull() ?: 1).coerceIn(1, 10))
                 ok()
             }
@@ -32,6 +33,18 @@ object Commands {
         "text" -> {
             val text = params["t"].orEmpty()
             if (text.length > 300) fail("too_long") else AdbBridge.typeText(text)?.let { fail(it) } ?: ok()
+        }
+        "mouse" -> {
+            val dx = params["dx"]?.toFloatOrNull() ?: 0f
+            val dy = params["dy"]?.toFloatOrNull() ?: 0f
+            CursorOverlay.move(dx.coerceIn(-400f, 400f), dy.coerceIn(-400f, 400f))
+            ok()
+        }
+        "click" -> { CursorOverlay.click(); ok() }
+        "longpress" -> { CursorOverlay.longPress(); ok() }
+        "scroll" -> {
+            CursorOverlay.scroll((params["dy"]?.toFloatOrNull() ?: 0f).coerceIn(-600f, 600f))
+            ok()
         }
         "submit" -> { AdbBridge.submitText(); ok() }
         "youtube" -> {
