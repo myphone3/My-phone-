@@ -137,6 +137,20 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 .mini-btn { background: var(--soft); border: 0; border-radius: 9px; padding: 6px 10px; font-weight: 700; font-size: .82rem; }
 .mini-btn.del { background: transparent; color: var(--muted); font-size: 1.05rem; padding: 4px 8px; }
 .mini-btn:disabled { opacity: .6; cursor: default; }
+.mini-btn.pen { font-size: .95rem; padding: 4px 8px; }
+.mini-btn.on { background: var(--accent); color: var(--accent-ink); }
+.head-r { display: flex; align-items: baseline; gap: 8px; }
+.qty-step { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 6px; }
+.qty-step button { border: 1.5px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 12px; font-size: 1.3rem; font-weight: 800; }
+.qty-step input { text-align: center; min-width: 0; }
+.log-item.selecting { grid-template-columns: auto 1fr auto; cursor: pointer; border-radius: 10px; }
+.log-item.picked { background: var(--soft); }
+.log-item .ck { width: 22px; height: 22px; border: 2px solid var(--muted); border-radius: 6px; display: grid; place-items: center; font-size: .8rem; font-weight: 800; margin-inline-start: 4px; }
+.log-item.picked .ck { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.sel-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 25; background: var(--ink); color: var(--bg); border-radius: 14px; padding: 8px 10px; display: flex; align-items: center; gap: 8px; font-weight: 700; width: max-content; max-width: calc(100% - 32px); box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+.sel-bar button { background: transparent; border: 0; color: var(--bg); font-weight: 800; padding: 6px 8px; border-radius: 9px; }
+.sel-bar button.del { background: #d64545; color: #fff; }
+.sel-bar button:disabled { opacity: .45; }
 .split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .stat { background: var(--soft); border-radius: 12px; padding: 10px 12px; }
 .stat b { display: block; font-family: var(--font-display); font-size: 1.2rem; }
@@ -410,7 +424,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     </section>
     <div class="adds" id="addKeys" role="group" aria-label="הוספה מהירה"></div>
     <section class="card" aria-labelledby="hToday">
-      <div class="card-head"><h2 id="hToday">נוספו היום</h2><span class="sum num" id="sToday"></span></div>
+      <div class="card-head"><h2 id="hToday">נוספו היום</h2><div class="head-r"><span class="sum num" id="sToday"></span><button class="mini-btn" type="button" data-sel="todayList">בחירה</button></div></div>
       <div class="log" id="todayList"></div>
     </section>
   </section>
@@ -452,7 +466,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     <div class="tab" id="catCards"></div>
     <div class="readonly-note" id="lockNote" hidden>🔒 המנהל אישר את החודש הזה, אז אי אפשר לשנות בו רישומים. אם צריך תיקון, פנה למנהל.</div>
     <section class="card" aria-labelledby="hLog">
-      <div class="card-head"><h2 id="hLog">כל הרישומים בחודש</h2><span class="sum num" id="sLog"></span></div>
+      <div class="card-head"><h2 id="hLog">כל הרישומים בחודש</h2><div class="head-r"><span class="sum num" id="sLog"></span><button class="mini-btn" type="button" data-sel="monthList">בחירה</button></div></div>
       <div class="field search"><input id="searchBox" type="search" placeholder="🔍 חיפוש בכל הרישומים: דגם, סוג, הערה…" aria-label="חיפוש"></div>
       <div class="log" id="monthList"></div>
     </section>
@@ -709,6 +723,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   </section>
 </div>
 
+<div class="sel-bar" id="selBar" role="region" aria-label="בחירה מרובה" hidden><span id="selCount" aria-live="polite"></span><button type="button" id="selAll">הכל</button><button type="button" id="selDel" class="del">🗑 מחיקה</button><button type="button" id="selCancel">ביטול</button></div>
 <nav class="tabbar" aria-label="ניווט">
   <div class="tabbar-inner">
     <button type="button" data-tab="add"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>הוספה</button>
@@ -818,11 +833,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       <input id="customAmt" type="number" min="0" inputmode="numeric" placeholder="למשל 30">
     </div>
     <div class="inline">
-      <div class="field" id="qtyBox"><label class="lbl" for="addQty">כמות</label><input id="addQty" type="number" min="1" max="50" value="1" inputmode="numeric"></div>
+      <div class="field" id="qtyBox"><label class="lbl" for="addQty">כמות</label><div class="qty-step"><button type="button" id="qtyPlus" aria-label="עוד אחד">+</button><input id="addQty" type="number" min="1" max="99" value="1" inputmode="numeric"><button type="button" id="qtyMinus" aria-label="אחד פחות">−</button></div></div>
       <div class="field"><label class="lbl" for="addDate">תאריך</label><input id="addDate" type="date"></div>
     </div>
     <div class="field"><label class="lbl" for="addNote" id="addNoteLbl">הערה (לא חובה)</label><input id="addNote" type="text" placeholder="למשל: לקוח קבוע"></div>
-    <button class="save" type="button" id="saveBtn" disabled>בחר סוג כדי לשמור</button>
+    <button class="save" type="button" id="saveBtn">שמירה</button>
     <button class="btn danger" type="button" id="entryDelete" hidden>מחיקת הרישום</button>
   </div>
 </div>
@@ -1354,6 +1369,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   // ---------- tabs ----------
   var TABS = ["add", "summary", "team", "settings"], SUBS = ["profile", "types", "team", "share", "backup"], MEMBER_SUBS = ["profile", "share"];
   function setTab(t) {
+    if (sel) { sel = null; paintSel(); }
     if (t === "team" && !isLead()) t = "add";
     state.tab = t; lsSet("bt.tab", t);
     TABS.forEach(function (n) { $("tab-" + n).hidden = n !== t; });
@@ -1619,6 +1635,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   }
   function renderLog(box, list, byDay, emptyMsg, readOnly) {
     box.textContent = "";
+    if (sel && sel.box === box.id) sel.visible = [];
     if (!list.length) { box.appendChild(el("div", "empty-note", emptyMsg)); return; }
     var lastDay = "", dayTotals = {};
     if (byDay) list.forEach(function (e) { dayTotals[e.date] = (dayTotals[e.date] || 0) + (Number(e.amount) || 0); });
@@ -1638,7 +1655,22 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       it.appendChild(el("span", "val num" + (e.big ? " big" : ""), fmt(e.amount) + " ₪"));
       if (typeof readOnly === "function") { readOnly(it, e); box.appendChild(it); return; }
       if (readOnly || state.approved[e.month]) { it.appendChild(el("span")); it.appendChild(el("span", "hint", readOnly ? "" : "🔒")); box.appendChild(it); return; }
-      var ed = el("button", "mini-btn", "עריכה"); ed.type = "button"; ed.setAttribute("aria-label", "עריכת " + catName(e.kind) + " " + e.sub);
+      if (sel && sel.box === box.id) {
+        sel.visible.push(e.id);
+        var on = !!sel.ids[e.id], ck = el("span", "ck", on ? "✓" : "");
+        it.classList.add("selecting"); if (on) it.classList.add("picked");
+        it.insertBefore(ck, it.firstChild);
+        it.setAttribute("role", "checkbox"); it.setAttribute("aria-checked", String(on)); it.tabIndex = 0;
+        var flip = function () {
+          var now = !sel.ids[e.id]; if (now) sel.ids[e.id] = 1; else delete sel.ids[e.id];
+          it.classList.toggle("picked", now); it.setAttribute("aria-checked", String(now)); ck.textContent = now ? "✓" : "";
+          paintSel();
+        };
+        it.addEventListener("click", flip);
+        it.addEventListener("keydown", function (ev) { if (ev.key === " " || ev.key === "Enter") { ev.preventDefault(); flip(); } });
+        box.appendChild(it); return;
+      }
+      var ed = el("button", "mini-btn pen", "✏️"); ed.type = "button"; ed.setAttribute("aria-label", "עריכת " + catName(e.kind) + " " + e.sub);
       ed.addEventListener("click", function () { openEdit(e.id); });
       it.appendChild(ed);
       var d = el("button", "mini-btn del", "✕"); d.type = "button"; d.setAttribute("aria-label", "מחיקת " + catName(e.kind) + " " + e.sub);
@@ -1903,7 +1935,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
         var tp = tempPill(t); if (tp) name.appendChild(tp);
         row.appendChild(name);
         row.appendChild(el("span", "t-amt num", fmt(typeAmountC(E, t)) + " ₪"));
-        if (editable) { var b = el("button", "mini-btn", "עריכה"); b.type = "button"; b.addEventListener("click", function () { openType(t.kind, t.id); }); row.appendChild(b); }
+        if (editable) { var b = el("button", "mini-btn pen", "✏️"); b.type = "button"; b.setAttribute("aria-label", "עריכת " + t.name); b.addEventListener("click", function () { openType(t.kind, t.id); }); row.appendChild(b); }
         else row.appendChild(el("span"));
         rows.appendChild(row);
       });
@@ -2343,6 +2375,48 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     delete state.entries[id]; saveCache(); render();
     queue({ kind: "delete", id: id });
   }
+  function putEntries(pairs) {
+    pairs.forEach(function (p) { state.entries[p[0]] = p[1]; pending = pending.filter(function (x) { return x.id !== p[0]; }); pending.push({ kind: "upsert", id: p[0], row: Object.assign({ id: p[0] }, p[1]) }); });
+    saveCache(); render(); setStatus(); flush();
+  }
+  function removeEntries(ids) {
+    ids.forEach(function (id) { delete state.entries[id]; pending = pending.filter(function (x) { return x.id !== id; }); pending.push({ kind: "delete", id: id }); });
+    saveCache(); render(); setStatus(); flush();
+  }
+  // ---------- multi-select (bulk delete) ----------
+  var sel = null;
+  function selIds() { return sel ? Object.keys(sel.ids).filter(function (id) { return state.entries[id]; }) : []; }
+  function paintSel() {
+    $("selBar").hidden = !sel;
+    $$("[data-sel]").forEach(function (b) { var on = !!sel && sel.box === b.getAttribute("data-sel"); b.textContent = on ? "סיום" : "בחירה"; b.classList.toggle("on", on); });
+    if (!sel) return;
+    var n = selIds().length;
+    $("selCount").textContent = n ? n + " נבחרו" : "סמן רישומים";
+    $("selDel").disabled = !n;
+    $("selAll").textContent = sel.visible.length && sel.visible.every(function (id) { return sel.ids[id]; }) ? "נקה" : "הכל";
+    $("selAll").disabled = !sel.visible.length;
+  }
+  function endSel() { if (!sel) return; sel = null; render(); paintSel(); }
+  $$("[data-sel]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var box = b.getAttribute("data-sel");
+      if (sel && sel.box === box) { endSel(); return; }
+      sel = { box: box, ids: {}, visible: [] }; $("toast").hidden = true; render(); paintSel();
+    });
+  });
+  $("selCancel").addEventListener("click", endSel);
+  $("selAll").addEventListener("click", function () {
+    var all = sel.visible.every(function (id) { return sel.ids[id]; });
+    sel.ids = {}; if (!all) sel.visible.forEach(function (id) { sel.ids[id] = 1; });
+    render(); paintSel();
+  });
+  $("selDel").addEventListener("click", function () {
+    var ids = selIds(); if (!ids.length) return;
+    var saved = ids.map(function (id) { return [id, Object.assign({}, state.entries[id])]; });
+    var sum = saved.reduce(function (a, p) { return a + (Number(p[1].amount) || 0); }, 0);
+    sel = null; removeEntries(ids); paintSel();
+    toast("נמחקו " + ids.length + " רישומים (−" + fmt(sum) + " ₪)", function () { putEntries(saved); });
+  });
   function deleteWithUndo(id) {
     var e = state.entries[id]; if (!e) return;
     removeEntry(id);
@@ -2586,12 +2660,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     if (draft.bonus === "custom") return Math.max(0, parseInt($("customAmt").value, 10) || 0);
     return cfg().reg || 0;
   }
-  function draftSub() { return draft.sub === "אחר" ? ($("subOther").value.trim() || "אחר") : draft.sub; }
-  function draftQty() { return draft.mode === "edit" ? 1 : Math.max(1, Math.min(50, parseInt($("addQty").value, 10) || 1)); }
+  function draftSub() { return !draft.sub || draft.sub === "אחר" ? ($("subOther").value.trim() || "אחר") : draft.sub; }
+  function draftQty() { return draft.mode === "edit" ? 1 : Math.max(1, Math.min(99, parseInt($("addQty").value, 10) || 1)); }
   function updateSave() {
     var qty = draftQty();
-    $("saveBtn").disabled = !draft.sub;
-    if (!draft.sub) { $("saveBtn").textContent = "בחר סוג כדי לשמור"; return; }
+    $("saveBtn").disabled = false;
     $("saveBtn").textContent = (draft.mode === "edit" ? "שמירת שינויים · " : "שמירה · ") + (qty > 1 ? qty + " × " : "") + draftSub() + " · " + (draft.mode === "edit" ? "" : "+") + fmt(bonusAmount() * qty) + " ₪";
   }
   function fillKindChips(kind) {
@@ -2607,7 +2680,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   function fillKind(kind, keepSub) {
     draft.kind = kind;
     var c = catOf(kind);
-    $("subLabel").textContent = c.subLabel || "סוג";
+    $("subLabel").textContent = (c.subLabel || "סוג") + " (לא חובה)";
     var nl = NOTE_LBL[kind] || ["הערה (לא חובה)", ""];
     $("addNoteLbl").textContent = nl[0]; $("addNote").placeholder = nl[1];
     $("subOtherLbl").textContent = "מה בדיוק? (לא חובה)";
@@ -2641,6 +2714,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     }
   }
   function pickType(chip, t) {
+    if (chip.getAttribute("aria-pressed") === "true") { // tap again to clear: saved as "אחר"
+      chip.setAttribute("aria-pressed", "false");
+      draft.sub = null; draft.typeUltra = false; $("subOtherBox").hidden = true; $("subOther").value = "";
+      setBonus("reg"); return;
+    }
     $$("#subChips .chip").forEach(function (x) { x.setAttribute("aria-pressed", "false"); });
     chip.setAttribute("aria-pressed", "true");
     draft.sub = t.name; draft.typeUltra = !!t.ultra;
@@ -2684,9 +2762,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   $("bCustom").addEventListener("click", function () { setBonus("custom"); $("customAmt").focus(); });
   $("customAmt").addEventListener("input", updateSave);
   $("addQty").addEventListener("input", updateSave);
+  function stepQty(d) { $("addQty").value = Math.max(1, Math.min(99, (parseInt($("addQty").value, 10) || 1) + d)); updateSave(); }
+  $("qtyPlus").addEventListener("click", function () { stepQty(1); });
+  $("qtyMinus").addEventListener("click", function () { stepQty(-1); });
   $("subOther").addEventListener("input", updateSave);
   $("saveBtn").addEventListener("click", function () {
-    if (!draft.sub) return;
     var sub = draftSub(), qty = draftQty(), amount = bonusAmount(), kind = draft.kind;
     var ultra = draft.bonus === "big" || (draft.bonus === "custom" && draft.typeUltra);
     var date = $("addDate").value || todayStr();
@@ -2698,13 +2778,14 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       hide(); toast("הרישום עודכן", function () { putEntry(eid, before); });
       return;
     }
-    var ids = [];
+    var ids = [], rows = [], base = uid();
     for (var i = 0; i < qty; i++) {
-      var id = uid() + i; ids.push(id);
-      putEntry(id, { kind: kind, sub: sub, big: ultra, amount: amount, date: date, month: date.slice(0, 7), note: note, ts: Date.now() + i });
+      var id = base + i; ids.push(id);
+      rows.push([id, { kind: kind, sub: sub, big: ultra, amount: amount, date: date, month: date.slice(0, 7), note: note, ts: Date.now() + i }]);
     }
+    putEntries(rows);
     hide();
-    toast("נוסף: " + (qty > 1 ? qty + " × " : "") + catName(kind) + " · " + sub + " (+" + fmt(amount * qty) + " ₪)", function () { ids.forEach(removeEntry); });
+    toast("נוסף: " + (qty > 1 ? qty + " × " : "") + catName(kind) + " · " + sub + " (+" + fmt(amount * qty) + " ₪)", function () { removeEntries(ids); });
   });
   $("entryDelete").addEventListener("click", function () { var id = draft.id; hide(); deleteWithUndo(id); });
 
