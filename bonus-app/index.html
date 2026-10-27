@@ -1001,6 +1001,16 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   </div>
 </div>
 
+<div class="sheet" id="notesSheet" role="dialog" aria-modal="true" aria-labelledby="notesTitle" hidden>
+  <div class="sheet-inner">
+    <div class="sheet-head"><h3 id="notesTitle">📒 הבונוסים מהפתקים מוכנים</h3><button class="icon-btn" type="button" data-close>סגירה</button></div>
+    <div class="hint">1,120 בונוסים מינואר עד ספטמבר 2026 (11,200 ₪), לפי הפתקים מהאייפון. כל אחד ייכנס לחודש שלו, עם ההערה "יובא מהפתקים".</div>
+    <div class="err" id="notesErr" hidden></div>
+    <button class="save" type="button" id="notesYes">כן, להכניס לחשבון הזה</button>
+    <button class="btn ghost" type="button" id="notesNo">לא, זה לא החשבון שלי</button>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status" hidden><span id="toastMsg"></span><button type="button" id="toastUndo" hidden>ביטול</button></div>
 
 <script src="/supabase.js"></script>
@@ -1323,7 +1333,27 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     checkProfileComplete();
     addKosherModels();
     fixBrandNames();
+    offerNotesImport();
   }
+  // the owner's 2026 bonuses from iPhone Notes, offered once to a non-employee account that doesn't have them yet
+  function notesKey() { return "bt.notesAsked." + accts.active; }
+  function offerNotesImport() {
+    if (!activeAcct() || isMember() || openSheet) return;
+    try { if (localStorage.getItem(notesKey())) return; } catch (e) {}
+    if (Object.keys(state.entries).some(function (id) { return id.indexOf("imp-2026-") === 0; })) return;
+    $("notesErr").hidden = true; show($("notesSheet"));
+  }
+  function notesDone() { try { localStorage.setItem(notesKey(), "1"); } catch (e) {} }
+  $("notesNo").addEventListener("click", function () { notesDone(); hide(); });
+  $("notesYes").addEventListener("click", async function () {
+    $("notesYes").disabled = true;
+    try {
+      var r = await fetch("/import-2026.json", { cache: "no-store" });
+      if (!r.ok) throw new Error(r.status);
+      importData(await r.text()); notesDone(); hide();
+    } catch (e) { $("notesErr").textContent = "לא הצלחתי להוריד את הקובץ. בדוק חיבור לאינטרנט ונסה שוב."; $("notesErr").hidden = false; }
+    finally { $("notesYes").disabled = false; }
+  });
   // one-time: brand names as written on kosher-phone.com (QLX -> QLYX, S-Calls -> Escolls), also on past entries
   var BRAND_FIX = { "QLX Q8": "QLYX Q8", "S-Calls 5x5": "Escolls 5x5" };
   function fixBrandNames() {
