@@ -131,6 +131,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 .log-day { font-size: .78rem; color: var(--muted); font-weight: 700; letter-spacing: .04em; padding: 10px 0 4px; display: flex; justify-content: space-between; }
 .log-item { display: grid; grid-template-columns: 1fr auto auto auto; gap: 6px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
 .log-item .what { min-width: 0; }
+.log-item .what .log-img { height: 34px; width: auto; max-width: 96px; object-fit: contain; vertical-align: middle; border-radius: 6px; background: #fff; }
 .log-item .what small { display: block; color: var(--muted); font-size: .82rem; overflow-wrap: anywhere; }
 .log-item .val { font-weight: 700; padding-inline-end: 4px; }
 .log-item .val.big { color: var(--gold); }
@@ -1049,15 +1050,29 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   ];
   // kosher phone models sold in the store, added once to every manager's list (shown with the rabbinical committee stamp)
   var KOSHER_MODELS = ["QLX Q8", "פירסט פון Pro 30", "S-Calls 5x5", "Q3", "F16", "Flip 2", "D30", "X30", "iTop", "4x4", "Q7", "King"];
+  // product photos of the kosher models, from the store's own site kosher-phone.com (checked before the generic stamp)
+  BUILTIN_IMG.unshift(
+    ["device", ["q8"], "https://kosher-phone.com/uploads/1785854033592-6eq9hh.webp"],
+    ["device", ["pro 30", "פרו 30"], "https://kosher-phone.com/uploads/1792881148202-ybp5rv.webp"],
+    ["device", ["5x5"], "https://kosher-phone.com/uploads/1785854274617-nhbwcs.webp"],
+    ["device", ["q3"], "https://kosher-phone.com/uploads/1780491236390-lhd1ua.avif"],
+    ["device", ["f16"], "https://kosher-phone.com/uploads/1792881118438-4hsmb9.webp"],
+    ["device", ["flip 2", "פליפ 2"], "https://kosher-phone.com/uploads/1792881149682-y981x7.webp"],
+    ["device", ["d30"], "https://kosher-phone.com/uploads/1776875025622-9xxt8e.webp"],
+    ["device", ["x30"], "https://kosher-phone.com/uploads/1785872178139-zpuu5t.webp"],
+    ["device", ["4x4"], "https://kosher-phone.com/uploads/1785856115705-dpuc22.webp"],
+    ["device", ["q7"], "https://kosher-phone.com/uploads/1792881150231-fqrfjg.webp"],
+    ["device", ["king", "קינג"], "https://kosher-phone.com/uploads/1792685031391-3pg0yd.webp"]
+  );
   BUILTIN_IMG.push(["device", KOSHER_MODELS.concat(["qlx", "first phone", "פירסט פון", "s-calls", "scalls"]), BUILTIN_IMG.filter(function (b) { return b[1][0] === "כשר"; })[0][2]]);
   var builtinCache = {};
-  function fitImg(im) { im.addEventListener("load", function () { if (im.naturalWidth > im.naturalHeight * 1.3) im.classList.add("wide"); else if (im.naturalHeight > im.naturalWidth * 1.1) im.style.objectFit = "contain"; }); return im; }
+  function fitImg(im, onFail) { im.addEventListener("error", function () { if (onFail) onFail(); im.remove(); }); im.addEventListener("load", function () { if (im.naturalWidth > im.naturalHeight * 1.3) im.classList.add("wide"); else if (im.naturalHeight > im.naturalWidth * 1.1) im.style.objectFit = "contain"; }); return im; }
   function typeImg(t, kind) {
     if (t.img) return t.img;
     var k = kind || t.kind, n = norm(t.name), key = k + "|" + n;
     if (key in builtinCache) return builtinCache[key];
     var hit = BUILTIN_IMG.filter(function (b) { return b[0] === k && b[1].some(function (w) { return n.indexOf(norm(w)) >= 0; }); })[0];
-    return (builtinCache[key] = !hit ? "" : hit[2].indexOf("data:") === 0 ? hit[2] : "data:image/svg+xml;charset=utf-8," + encodeURIComponent(hit[2]));
+    return (builtinCache[key] = !hit ? "" : /^(data:|https:)/.test(hit[2]) ? hit[2] : "data:image/svg+xml;charset=utf-8," + encodeURIComponent(hit[2]));
   }
   var NOTE_LBL = {
     device: ["איזה דגם? (לא חובה)", "למשל: iPhone 16 Pro 256GB"],
@@ -1699,7 +1714,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
         box.appendChild(h);
       }
       var it = el("div", "log-item");
-      var what = el("div", "what", catName(e.kind) + " · " + e.sub);
+      var what = el("div", "what"), label = catName(e.kind) + " · " + e.sub;
+      var lt = types().filter(function (t) { return t.kind === e.kind && t.name === e.sub; })[0] || { name: e.sub, kind: e.kind };
+      var limg = typeImg(lt, e.kind);
+      if (limg) {
+        var li = fitImg(el("img", "log-img"), function () { what.insertBefore(document.createTextNode(label), what.firstChild); });
+        li.src = limg; li.alt = label; li.title = label; what.appendChild(li);
+      } else what.appendChild(document.createTextNode(label));
       if (e.big) what.appendChild(el("span", "pill", "אולטרה"));
       if (e.note) what.appendChild(el("small", null, e.note));
       if (e.mgr_note) what.appendChild(el("span", "note-line", "💬 המנהל: " + e.mgr_note));

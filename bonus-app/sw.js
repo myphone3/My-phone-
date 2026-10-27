@@ -1,5 +1,5 @@
 // App-shell cache so the app opens without a connection. Data calls to Supabase always go to the network.
-const CACHE = "bonus-v21";
+const CACHE = "bonus-v22";
 const SHELL = [
   "/",
   "/manifest.webmanifest",
@@ -25,6 +25,11 @@ self.addEventListener("fetch", (e) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.hostname.endsWith("supabase.co")) return;
+  // device photos from kosher-phone.com: keep a copy so they still show without a connection
+  if (url.hostname === "kosher-phone.com") {
+    e.respondWith(caches.open(CACHE).then((c) => c.match(req).then((hit) => hit || fetch(req).then((res) => { if (res.ok || res.type === "opaque") c.put(req, res.clone()); return res; }))));
+    return;
+  }
   // pages: network first so updates arrive; everything else: cache first
   if (req.mode === "navigate") {
     e.respondWith(
