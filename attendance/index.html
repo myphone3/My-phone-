@@ -1434,6 +1434,12 @@ function viewSettings() {
       <input type="file" id="restore-file" accept=".json,application/json" hidden>
       <div class="btn-row">${state.shifts.length === 0 ? `<button class="btn ghost" data-act="loadSample">הצגת נתוני דוגמה</button>` : ""}<button class="btn danger" data-act="wipe">מחיקת כל המשמרות</button></div>
     </section>
+    <section class="card form"><h3>שיתוף האפליקציה</h3>
+      <p class="muted small" style="margin:0">שלחו את השעון לחברים לעבודה. כל אחד נרשם ומקבל חשבון משלו.</p>
+      <div class="btn-row"><button class="btn primary" data-act="shareApp">שיתוף</button><button class="btn" data-act="copyAppLink">העתקת קישור</button></div>
+      <a class="btn block" href="${APK_URL}" download style="text-align:center;text-decoration:none;color:inherit">הורדת קובץ APK לאנדרואיד</a>
+      <span class="hint muted small">אחרי ההורדה פותחים את הקובץ ומאשרים ״התקנה ממקור לא ידוע״.</span>
+    </section>
     ${installCard(true)}`;
 }
 
@@ -1583,6 +1589,17 @@ async function shareText(text, title) {
   try { await navigator.clipboard.writeText(text); toast("הסיכום הועתק — אפשר להדביק בוואטסאפ"); }
   catch (e) { showCopy(title, text); }
 }
+const APP_URL = "https://shaon-nochechut.vercel.app";
+const APK_URL = "https://github.com/myphone3/My-phone-/releases/download/shaon-apk-latest/shaon-nochechut.apk";
+async function shareApp() {
+  const text = "שעון נוכחות: רישום שעות, חישוב שכר ודוח לבוס";
+  if (navigator.share) { try { await navigator.share({ title: "שעון נוכחות", text, url: APP_URL }); return; } catch (e) { if (e && e.name === "AbortError") return; } }
+  copyAppLink();
+}
+async function copyAppLink() {
+  try { await navigator.clipboard.writeText(APP_URL); toast("הקישור הועתק"); }
+  catch (e) { showCopy("קישור לאפליקציה", APP_URL); }
+}
 function printReport(P) {
   const html = htmlReportFor(P, true);
   const w = window.open("", "_blank");
@@ -1677,6 +1694,8 @@ document.addEventListener("click", e => {
     case "dlCsv": shareOrDownload(fname(ui.period) + ".csv", csvFor(P()), "text/csv"); break;
     case "dlHtml": shareOrDownload(fname(ui.period) + ".html", htmlReportFor(P(), false), "text/html"); break;
     case "printReport": printReport(P()); break;
+    case "shareApp": shareApp(); break;
+    case "copyAppLink": copyAppLink(); break;
     case "backup": downloadFile(`גיבוי שעון נוכחות ${todayDS()}.json`, JSON.stringify(state, null, 1), "application/json"); break;
     case "restore": $("#restore-file").click(); break;
     case "loadSample": loadSample(); break;

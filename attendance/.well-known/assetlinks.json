@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.myphone.shaon",
+    "sha256_cert_fingerprints": ["C5:F3:0A:42:AF:3E:D3:78:01:1A:5E:6B:CF:FC:6A:E3:79:95:1D:F2:85:99:6E:57:93:14:57:DC:DD:3F:BF:C7"]
+  }
+}]
