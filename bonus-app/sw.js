@@ -1,5 +1,5 @@
 // App-shell cache so the app opens without a connection. Data calls to Supabase always go to the network.
-const CACHE = "bonus-v23";
+const CACHE = "bonus-v24";
 const SHELL = [
   "/",
   "/manifest.webmanifest",

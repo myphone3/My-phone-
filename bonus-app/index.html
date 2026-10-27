@@ -1248,11 +1248,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     var myAcct = accts.active;
     syncing = true;
     try {
+      var single = false;
       while (pending.length && accts.active === myAcct) {
-        var op = pending[0], res;
-        if (op.kind === "upsert") res = await sb.from("entries").upsert(Object.assign({ user_id: myAcct }, op.row), { onConflict: "user_id,id" });
+        var op = pending[0], res, batch = [op];
+        // consecutive new/changed entries go up together (an import can be over a thousand)
+        if (op.kind === "upsert" && !single) for (var bi = 1; bi < pending.length && batch.length < 200 && pending[bi].kind === "upsert"; bi++) batch.push(pending[bi]);
+        if (op.kind === "upsert") res = await sb.from("entries").upsert(batch.map(function (b) { return Object.assign({ user_id: myAcct }, b.row); }), { onConflict: "user_id,id" });
         else if (op.kind === "delete") res = await sb.from("entries").delete().eq("id", op.id);
         else if (op.kind === "settings") res = await upsertSettings(myAcct, op.row);
+        if (res && res.error && batch.length > 1) { single = true; continue; } // retry one by one to find the rejected row
         if (res && res.error && (res.error.code === "42501" || /row-level security/i.test(res.error.message || "")) && op.kind !== "settings") {
           toast("החודש הזה כבר אושר על ידי המנהל, אז השינוי לא נשמר.");
           pending = pending.filter(function (x) { return x !== op; }); saveCache();
@@ -1262,7 +1266,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
         if (res && res.error) throw res.error;
         if (accts.active !== myAcct) break;
         // queue() may have replaced or reordered ops while this one was uploading
-        pending = pending.filter(function (x) { return x !== op; }); saveCache();
+        pending = pending.filter(function (x) { return batch.indexOf(x) < 0; }); saveCache(); single = false;
       }
     } catch (e) {
       online = false;
@@ -2950,15 +2954,17 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     try { data = JSON.parse(raw); } catch (e) { data = null; }
     var src = data && (data.entries || data);
     if (!src || typeof src !== "object") { $("importErr").textContent = "זה לא נראה כמו גיבוי. נסה שוב עם הקובץ או הטקסט המלא."; $("importErr").hidden = false; return; }
-    var n = 0, list = Array.isArray(src) ? src : Object.keys(src).map(function (k) { return Object.assign({ id: k }, src[k]); });
+    var rows = [], skipped = 0, list = Array.isArray(src) ? src : Object.keys(src).map(function (k) { return Object.assign({ id: k }, src[k]); });
     list.forEach(function (e) {
       if (!e || !e.kind || !e.date || state.entries[e.id]) return;
-      var id = String(e.id || uid());
-      putEntry(id, { kind: String(e.kind), sub: String(e.sub || "אחר"), big: !!e.big, amount: Number(e.amount) || 0, date: String(e.date).slice(0, 10), month: String(e.month || String(e.date).slice(0, 7)), note: String(e.note || ""), ts: Number(e.ts) || Date.now() });
-      n++;
+      var month = String(e.month || String(e.date).slice(0, 7));
+      if (state.approved[month]) { skipped++; return; }
+      rows.push([String(e.id || uid()), { kind: String(e.kind), sub: String(e.sub || "אחר"), big: !!e.big, amount: Number(e.amount) || 0, date: String(e.date).slice(0, 10), month: month, note: String(e.note || ""), ts: Number(e.ts) || Date.now() }]);
     });
+    if (rows.length) putEntries(rows);
+    var n = rows.length;
     $("importText").value = "";
-    toast(n ? "יובאו " + n + " רישומים" : "לא נמצאו רישומים חדשים לייבוא");
+    toast(n ? "יובאו " + n + " רישומים" + (skipped ? " (" + skipped + " בחודשים שאושרו דולגו)" : "") : skipped ? "כל הרישומים בחודשים שהמנהל כבר אישר" : "לא נמצאו רישומים חדשים לייבוא");
   }
   $("importBtn").addEventListener("click", function () { importData($("importText").value); });
   $("importFile").addEventListener("change", function () {
