@@ -6,7 +6,9 @@
 
 - **האתר:** https://shaon-nochechut.vercel.app
 - **Vercel:** פרויקט `shaon-nochechut` בצוות `myphone3` (team id `team_lCaXrHkFHBL2FXEndgcmO2Ft`).
-  מתפרסם מהריפו `myphone3/my-phone-`, ענף `claude/attendance-app`, תיקייה `attendance` (Root Directory).
+  מתפרסם מהריפו `myphone3/my-phone-`, תיקייה `attendance` (Root Directory). הענף הפעיל הוא `claude/attendance-app-handoff-pwddw6`,
+  וכבר מוזגה אליו העבודה מ-`claude/attendance-app-handoff-hbfxwg`.
+  **לפני כל פרסום:** לבדוק ב-`list_deployments` מאיזה ענף וקומיט עלתה הגרסה האחרונה, ולמזג אותה קודם. ככה לא דורסים גרסה חדשה בישנה.
   פרסום: `create_deployment` עם `gitSource` לענף ול-sha האחרון, `target: production`.
 - **Supabase של השעון:** פרויקט `mkqjysfflavzfkckiuil` (`shaon-nochechut`, אזור ap-northeast-1),
   ארגון `shaon` (בעלים: `d0587223040+shaon@gmail.com`; `d0556771356@gmail.com` חבר בתפקיד Developer).
@@ -43,7 +45,14 @@ Site URL הוגדר על ידי המשתמש. נבדק: cron `attendance-dispatc
 
 **יועץ משכורת:** "תוכנית מהירה" (`quickPlanModal`, שאלות קבועות וחישוב `advise`), וצ'אט AI (`advisorModal`) שעובד דרך `/api/advisor`. הפונקציה בודקת טוקן של Supabase ושולחת ל-Gemini את ההקשר מ-`aiContext()`. הצ'אט דורש `GEMINI_API_KEY` ב-Vercel, ובלעדיו הוא אומר שהיועץ עוד לא מחובר.
 
-הפריסה האחרונה נעשתה מהענף `claude/attendance-app-handoff-hbfxwg`.
+- **הגדרות, אחרי 27.10:** ימי העבודה ואחוז המשרה נמצאים בכרטיס ״שכר והיקף משרה״, ולא בכרטיס היעד. בכרטיס ״שיתוף האפליקציה״ (בקבוצה ״כללי״) יש שיתוף, העתקת קישור והורדת APK.
+
+## אפליקציית אנדרואיד (APK)
+
+- `attendance-android/`: עטיפת TWA (androidbrowserhelper) שפותחת את האתר במסך מלא דרך כרום. חבילה `com.myphone.shaon`.
+- נבנית ב-GitHub Actions (`.github/workflows/attendance-apk.yml`) בכל דחיפה לתיקייה, ומתפרסמת בריליס `shaon-apk-latest`:
+  https://github.com/myphone3/My-phone-/releases/download/shaon-apk-latest/shaon-nochechut.apk
+- מפתח החתימה שמור בריפו הציבורי, כמו ב-`tv-remote`, באישור המשתמש. טביעת האצבע שלו רשומה ב-`attendance/.well-known/assetlinks.json`.
 
 ## מה נשאר לעשות
 
