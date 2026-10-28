@@ -1305,10 +1305,22 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       loadPrevWaiting();
     }
   }
+  // the server hands back at most 1000 rows per request, so read in pages until everything is in
+  async function selectAll(make) {
+    var out = [], from = 0, P = 1000;
+    for (;;) {
+      var r = await make().order("id").range(from, from + P - 1);
+      if (r.error) return r;
+      out = out.concat(r.data || []);
+      // fewer than a page means done; more than a page means the server ignored the range and sent everything
+      if (!r.data || r.data.length !== P) return { data: r.data && r.data.length > P ? r.data : out, error: null };
+      from += P;
+    }
+  }
   async function pull() {
     var myAcct = accts.active;
-    var r = await sb.from("entries").select(ENTRY_COLS + ",mgr_note").range(0, 49999);
-    if (r.error) r = await sb.from("entries").select(ENTRY_COLS).range(0, 49999);
+    var r = await selectAll(function () { return sb.from("entries").select(ENTRY_COLS + ",mgr_note"); });
+    if (r.error) r = await selectAll(function () { return sb.from("entries").select(ENTRY_COLS); });
     if (r.error) throw r.error;
     var s = await sb.from("settings").select(SETTINGS_COLS).maybeSingle();
     if (s.error) s = await sb.from("settings").select(SETTINGS_COLS_OLD).maybeSingle();
@@ -2347,7 +2359,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   $("teamXl").addEventListener("click", async function () {
     var btn = $("teamXl"); btn.disabled = true;
     try {
-      var r = await sb.from("entries").select("user_id," + ENTRY_COLS).eq("month", state.month);
+      var r = await selectAll(function () { return sb.from("entries").select("user_id," + ENTRY_COLS).eq("month", state.month).order("user_id"); });
       if (r.error) throw r.error;
       var X = await loadXlsx();
       var wb = X.utils.book_new(); wb.Workbook = { Views: [{ RTL: true }] };
@@ -2429,8 +2441,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     $("mbErr").hidden = true; $("mbPass").value = ""; $("mbRemoveConfirm").hidden = true; $("mbRemove").hidden = false;
     $("mbCats").textContent = ""; $("mbList").textContent = ""; $("mbList").appendChild(el("div", "empty-note", "טוען…"));
     show($("memberSheet"));
-    var r = await sb.from("entries").select(ENTRY_COLS + ",mgr_note").eq("user_id", m.user_id).eq("month", state.month);
-    if (r.error) r = await sb.from("entries").select(ENTRY_COLS).eq("user_id", m.user_id).eq("month", state.month);
+    var r = await selectAll(function () { return sb.from("entries").select(ENTRY_COLS + ",mgr_note").eq("user_id", m.user_id).eq("month", state.month); });
+    if (r.error) r = await selectAll(function () { return sb.from("entries").select(ENTRY_COLS).eq("user_id", m.user_id).eq("month", state.month); });
     if (openMemberRow !== m) return;
     if (r.error) { $("mbList").textContent = ""; $("mbList").appendChild(el("div", "empty-note", "לא הצלחתי לטעון את הרישומים.")); return; }
     var list = (r.data || []).slice().sort(function (a, b) { return a.date === b.date ? b.ts - a.ts : (b.date < a.date ? -1 : 1); });
@@ -3368,7 +3380,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   var topKey = "";
   async function loadTopTypes() {
     if (topKey === state.month + overview.length) return; topKey = state.month + overview.length;
-    var r = await sb.from("entries").select("user_id,kind,sub,amount").eq("month", state.month);
+    var r = await selectAll(function () { return sb.from("entries").select("id,user_id,kind,sub,amount").eq("month", state.month).order("user_id"); });
     var box = $("topTypes"); box.textContent = "";
     if (r.error || !(r.data || []).length) { box.appendChild(el("div", "empty-note", "אין עדיין נתונים בחודש הזה.")); return; }
     var agg = {}, byCat = {};
@@ -3430,7 +3442,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   });
   async function drawMemberChart(m) {
     var months = []; for (var i = 5; i >= 0; i--) months.push(shiftMonth(state.month, -i));
-    var r = await sb.from("entries").select("month,amount").eq("user_id", m.user_id).in("month", months);
+    var r = await selectAll(function () { return sb.from("entries").select("id,month,amount").eq("user_id", m.user_id).in("month", months); });
     if (openMemberRow !== m || r.error) return;
     var sum = {}; (r.data || []).forEach(function (e) { sum[e.month] = (sum[e.month] || 0) + (Number(e.amount) || 0); });
     drawChart($("mbChart"), months.map(function (mk) { return { m: mk, v: sum[mk] || 0 }; }));
