@@ -69,6 +69,7 @@ class HomeActivity : Activity() {
     private var showHidden = false
     private var photoIndex = 0
     private var frontBitmap: Bitmap? = null
+    private var favWidth = 200
 
     private val prefs by lazy { getSharedPreferences("home", Context.MODE_PRIVATE) }
 
@@ -174,7 +175,7 @@ class HomeActivity : Activity() {
             visibility = View.GONE
         }
         weatherTemp = text("", 22f, "#FFFFFF", weight = 600)
-        weatherText = text("", 18f, "#FFFFFF", weight = 400).apply { alpha = 0.92f; setPadding(dp(12), 0, 0, 0) }
+        weatherText = text("", 18f, "#FFFFFF", weight = 400).apply { alpha = 0.92f; setPaddingRelative(dp(16), 0, 0, 0) }
         wBox.addView(weatherTemp)
         wBox.addView(weatherText)
         weatherBox = wBox
@@ -193,18 +194,24 @@ class HomeActivity : Activity() {
         }
         val favScroll = HorizontalScrollView(this).apply {
             isHorizontalScrollBarEnabled = false
+            isFillViewport = true
             clipChildren = false
             clipToPadding = false
-            setPadding(dp(50), dp(16), dp(50), dp(10))
+            setPadding(dp(SAFE_SIDE), dp(18), dp(SAFE_SIDE), dp(12))
         }
-        favRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; clipChildren = false }
+        favRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            clipChildren = false
+        }
         favScroll.addView(favRow)
         bottom.addView(favScroll)
         bottom.addView(text("⌄   כל האפליקציות", 16f, "#FFFFFF", weight = 500).apply {
             alpha = 0.8f
             gravity = Gravity.CENTER
             shadow(this)
-            setPadding(0, 0, 0, dp(18))
+            // מרווח מהשוליים: הרבה טלוויזיות "חותכות" קצת מקצוות המסך
+            setPadding(0, dp(2), 0, dp(SAFE_BOTTOM))
         }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         root.addView(bottom, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM))
 
@@ -227,9 +234,9 @@ class HomeActivity : Activity() {
         titles.addView(text("לחיצה ארוכה על OK: מועדפים או הסתרה  ·  חזור: סגירה", 15f, "#C9B8F0"))
         header.addView(titles, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         // קיצורים: WiFi, הגדרות, ושלט מהפון
-        header.addView(shortcut("📶  WiFi") { openWifi() })
-        header.addView(shortcut("⚙  הגדרות") { openSettings() })
-        header.addView(shortcut("📱  שלט מהפון") { startActivity(Intent(this, MainActivity::class.java)) })
+        header.addView(shortcut("📶  WiFi", onClick = { openWifi() }))
+        header.addView(shortcut("⚙  הגדרות", onClick = { openSettings() }))
+        header.addView(shortcut("שלט מהפון", R.drawable.ic_launcher) { startActivity(Intent(this, MainActivity::class.java)) })
         drawerPage.addView(header)
         grid = GridLayout(this).apply {
             columnCount = GRID_COLUMNS
@@ -243,26 +250,37 @@ class HomeActivity : Activity() {
         return root
     }
 
-    /** כפתור קיצור בראש רשימת האפליקציות. "למעלה" ממנו סוגר את הרשימה. */
-    private fun shortcut(label: String, onClick: () -> Unit) = text(label, 17f, "#FFFFFF", weight = 500).apply {
-        isFocusable = true
-        gravity = Gravity.CENTER
-        background = rounded(Color.argb(40, 255, 255, 255), 999f, Color.argb(70, 255, 255, 255))
-        setPadding(dp(20), dp(10), dp(20), dp(10))
-        setOnClickListener { onClick() }
-        onFocusChangeListener = focusAnimator(1.08f, light = true, round = true)
-        setOnKeyListener { _, keyCode, event ->
-            if (keyCode == KeyEvent.KEYCODE_DPAD_UP && event.action == KeyEvent.ACTION_DOWN) { closeDrawer(); true } else false
+    /** כפתור קיצור בראש רשימת האפליקציות (אפשר עם אייקון). "למעלה" ממנו סוגר את הרשימה. */
+    private fun shortcut(label: String, icon: Int? = null, onClick: () -> Unit): View {
+        val button = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            isFocusable = true
+            background = rounded(Color.argb(40, 255, 255, 255), 999f, Color.argb(70, 255, 255, 255))
+            setPaddingRelative(dp(if (icon != null) 8 else 20), dp(7), dp(20), dp(7))
+            setOnClickListener { onClick() }
+            onFocusChangeListener = focusAnimator(1.08f, light = true, round = true)
+            setOnKeyListener { _, keyCode, event ->
+                if (keyCode == KeyEvent.KEYCODE_DPAD_UP && event.action == KeyEvent.ACTION_DOWN) { closeDrawer(); true } else false
+            }
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                marginStart = dp(12)
+            }
         }
-        layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-            marginStart = dp(12)
+        if (icon != null) {
+            button.addView(ImageView(this).apply { setImageResource(icon) }, LinearLayout.LayoutParams(dp(30), dp(30)).apply {
+                marginEnd = dp(10)
+            })
         }
+        button.addView(text(label, 17f, "#FFFFFF", weight = 500))
+        return button
     }
 
     private fun openWifi() {
         for (intent in listOf(
-            Intent(Settings.ACTION_WIFI_SETTINGS),
             Intent().setClassName("com.android.tv.settings", "com.android.tv.settings.connectivity.NetworkActivity"),
+            Intent("android.settings.WIFI_SETTINGS").setPackage("com.android.tv.settings"),
+            Intent(Settings.ACTION_WIFI_SETTINGS),
             Intent(Settings.ACTION_WIRELESS_SETTINGS),
         )) if (tryStart(intent)) return
         openSettings()
@@ -378,6 +396,8 @@ class HomeActivity : Activity() {
 
         favRow.removeAllViews()
         val favApps = favs.mapNotNull { byPkg[it] }
+        val across = favApps.size.coerceIn(1, 5)
+        favWidth = ((designWidth - SAFE_SIDE * 2 - 40 - across * FAV_GAP) / across).coerceAtMost(210)
         for (app in favApps) favRow.addView(favoriteCard(app))
         if (favApps.isEmpty()) favRow.addView(addFavoriteCard())
 
@@ -436,7 +456,10 @@ class HomeActivity : Activity() {
                 else -> false
             }
         }
-        card.layoutParams = LinearLayout.LayoutParams(dp(208), dp(117)).apply { marginEnd = dp(22) }
+        card.layoutParams = LinearLayout.LayoutParams(dp(favWidth), dp(favWidth * 9 / 16)).apply {
+            marginStart = dp(FAV_GAP / 2)
+            marginEnd = dp(FAV_GAP / 2)
+        }
         return card
     }
 
@@ -454,7 +477,7 @@ class HomeActivity : Activity() {
                 if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN && event.action == KeyEvent.ACTION_DOWN) { openDrawer(); true } else false
             }
         }
-        card.layoutParams = LinearLayout.LayoutParams(dp(260), dp(117))
+        card.layoutParams = LinearLayout.LayoutParams(dp(260), dp(110))
         return card
     }
 
@@ -705,6 +728,9 @@ class HomeActivity : Activity() {
 
     companion object {
         private const val GRID_COLUMNS = 8
+        private const val SAFE_SIDE = 56
+        private const val SAFE_BOTTOM = 30
+        private const val FAV_GAP = 22
         private const val DRAWER_PAD = 48
         private const val TILE_GAP = 6
         private val JUNK = Regex("launcher|webview|assist|remote ?service|tester|stub|provider|bridge|setup|wizard|^com\\.|^android", RegexOption.IGNORE_CASE)

@@ -52,7 +52,7 @@ object CursorOverlay {
 
     fun move(dx: Float, dy: Float) = main.post {
         if (!ensureView()) return@post
-        val scale = screenW / 1000f
+        val scale = screenW / 780f
         targetX = (targetX + dx * scale).coerceIn(0f, screenW - 1)
         targetY = (targetY + dy * scale).coerceIn(0f, screenH - 1)
         wake()
@@ -80,39 +80,41 @@ object CursorOverlay {
             AdbBridge.sequence { run ->
                 val a11y = RemoteAccessibility.instance
                 val target = a11y?.targetAt(x, y)
+                val tap = {
+                    if (a11y == null || !a11y.tap(x, y, 40)) run("input tap ${x.toInt()} ${y.toInt()}")
+                }
+                val what = target?.let { describe(it.focusable ?: it.clickable) }.orEmpty()
                 when {
-                    a11y == null -> {
-                        run("input tap ${x.toInt()} ${y.toInt()}")
-                        "no_a11y"
-                    }
-                    target == null || target.touchFirst || (target.focusable == null && target.clickable == null) -> {
-                        if (!a11y.tap(x, y, 40)) run("input tap ${x.toInt()} ${y.toInt()}")
-                        if (target == null) "touch_no_node" else "touch"
-                    }
+                    a11y == null -> { tap(); "no_a11y" }
+                    target == null -> { tap(); "touch_no_node" }
+                    target.touchFirst -> { tap(); "touch|$what" }
                     target.focusable != null -> {
-                        run("input keyevent 59") // מקש "שיפט" - מוציא את האפליקציה ממצב מגע בלי לעשות כלום אחר
-                        if (a11y.focus(target.focusable)) {
-                            run("input keyevent 23")
-                            "focus_ok"
-                        } else if (target.clickable?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true) {
-                            "click_action"
-                        } else {
-                            run("input keyevent 23")
-                            "ok_only"
+                        // יוצאים מ"מצב מגע" (מקש שיפט שלא עושה כלום אחר), מסמנים את הפריט, ולוחצים OK
+                        run("input keyevent 59")
+                        when {
+                            a11y.focus(target.focusable) -> { run("input keyevent 23"); "focus_ok|$what" }
+                            target.clickable?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true -> "click_action|$what"
+                            else -> { run("input keyevent 23"); "ok_only|$what" }
                         }
                     }
-                    target.clickable?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true -> "click_action"
-                    else -> {
-                        if (!a11y.tap(x, y, 40)) run("input tap ${x.toInt()} ${y.toInt()}")
-                        "touch"
-                    }
+                    target.clickable?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true -> "click_action|$what"
+                    else -> { tap(); "touch|$what" }
                 }
             }
         } catch (e: Exception) {
             Log.w(TAG, "click", e)
-            "error"
+            "error|${e.javaClass.simpleName}"
         }
         return lastClick
+    }
+
+    /** תיאור קצר של הפריט שמתחת לסמן (לאבחון): איזו אפליקציה, איזה סוג רכיב, ומה כתוב עליו. */
+    private fun describe(node: AccessibilityNodeInfo?): String {
+        if (node == null) return ""
+        val pkg = node.packageName?.toString()?.substringAfterLast('.').orEmpty()
+        val cls = node.className?.toString()?.substringAfterLast('.').orEmpty()
+        val label = (node.text ?: node.contentDescription)?.toString()?.take(24).orEmpty()
+        return listOf(pkg, cls, label).filter { it.isNotBlank() }.joinToString(" · ")
     }
 
     fun longPress() = main.post {
