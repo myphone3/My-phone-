@@ -38,6 +38,7 @@ object CloudRelay {
     private var pendingRetry: ScheduledFuture<*>? = null
     private var backoffSec = 2L
     private var started = false
+    @Volatile private var lastMessageAt = 0L
 
     @Volatile var online = false
         private set
@@ -50,6 +51,24 @@ object CloudRelay {
         topic = "realtime:tv-" + TvIdentity.id(appContext)
         connect()
         watchNetwork()
+        timer.scheduleAtFixedRate({ watchdog() }, 20, 20, TimeUnit.SECONDS)
+    }
+
+    /**
+     * בדיקה כל 20 שניות: אם אין חיבור ואין ניסיון בדרך - מתחברים.
+     * אם החיבור "קפא" (השרת לא ענה דקה וקצת, אפילו לא לדופק) - מנתקים ומתחברים מחדש.
+     */
+    @Synchronized
+    private fun watchdog() {
+        val current = socket
+        if (current == null) {
+            if (pendingRetry?.isDone != false) connect()
+            return
+        }
+        if (lastMessageAt > 0 && System.currentTimeMillis() - lastMessageAt > 75_000) {
+            Log.w(TAG, "connection looks frozen, reconnecting")
+            current.cancel()
+        }
     }
 
     /**
@@ -83,6 +102,7 @@ object CloudRelay {
 
     @Synchronized
     private fun connect() {
+        lastMessageAt = 0
         val url = "wss://${Config.SUPABASE_HOST}/realtime/v1/websocket?apikey=${Config.SUPABASE_KEY}&vsn=1.0.0"
         socket = client.newWebSocket(Request.Builder().url(url).build(), listener)
     }
@@ -90,6 +110,7 @@ object CloudRelay {
     private val listener = object : WebSocketListener() {
         override fun onOpen(webSocket: WebSocket, response: Response) {
             backoffSec = 2
+            lastMessageAt = System.currentTimeMillis()
             val config = JSONObject()
                 .put("broadcast", JSONObject().put("self", false).put("ack", false))
                 .put("presence", JSONObject().put("key", ""))
@@ -107,6 +128,7 @@ object CloudRelay {
         }
 
         override fun onMessage(webSocket: WebSocket, text: String) {
+            lastMessageAt = System.currentTimeMillis()
             try {
                 val message = JSONObject(text)
                 val payload = message.optJSONObject("payload") ?: return

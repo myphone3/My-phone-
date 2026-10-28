@@ -13,7 +13,9 @@ object Commands {
     private fun fail(error: String) = Result(false, JSONObject().put("error", error))
 
     fun handle(context: Context, command: String, params: Map<String, String>): Result = when (command) {
-        "status" -> ok(
+        "status" -> {
+            AdbBridge.ensureConnected()
+            ok(
             JSONObject()
                 .put("connected", AdbBridge.connected)
                 .put("status", AdbBridge.status)
@@ -21,7 +23,8 @@ object Commands {
                 .put("tv", TvIdentity.id(context))
                 .put("remoteUrl", Config.remoteUrl(TvIdentity.id(context)))
                 .put("cloud", CloudRelay.online)
-        )
+            )
+        }
         "key" -> {
             val code = KEYS[params["k"]]
             if (code == null) fail("unknown key") else {

@@ -6,7 +6,7 @@
     android:gravity="center"
     android:layoutDirection="rtl"
     android:orientation="horizontal"
-    android:padding="48dp">
+    android:padding="36dp">
 
     <!-- צד ימין: לוגו, מצב וכפתורים -->
     <LinearLayout
@@ -22,15 +22,15 @@
             android:orientation="horizontal">
 
             <ImageView
-                android:layout_width="84dp"
-                android:layout_height="84dp"
+                android:layout_width="128dp"
+                android:layout_height="128dp"
                 android:contentDescription="@null"
                 android:src="@drawable/ic_launcher" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="18dp"
+                android:layout_marginStart="24dp"
                 android:orientation="vertical">
 
                 <TextView
@@ -38,7 +38,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/app_name"
                     android:textColor="#2E1F47"
-                    android:textSize="36sp"
+                    android:textSize="52sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -46,7 +46,7 @@
                     android:layout_height="wrap_content"
                     android:text="הטלוויזיה בכף היד"
                     android:textColor="#9A6FB8"
-                    android:textSize="18sp" />
+                    android:textSize="24sp" />
             </LinearLayout>
         </LinearLayout>
 
@@ -54,12 +54,12 @@
             android:id="@+id/status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
+            android:layout_marginTop="24dp"
             android:background="@drawable/pill"
-            android:paddingHorizontal="18dp"
-            android:paddingVertical="8dp"
+            android:paddingHorizontal="20dp"
+            android:paddingVertical="9dp"
             android:textColor="#4A3470"
-            android:textSize="17sp" />
+            android:textSize="20sp" />
 
         <TextView
             android:id="@+id/cloud"
@@ -67,36 +67,26 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
             android:background="@drawable/pill"
-            android:paddingHorizontal="18dp"
-            android:paddingVertical="8dp"
+            android:paddingHorizontal="20dp"
+            android:paddingVertical="9dp"
             android:textColor="#4A3470"
-            android:textSize="17sp" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="22dp"
-            android:text="באותו WiFi אפשר גם לפתוח בדפדפן:"
-            android:textColor="#8C7AA8"
-            android:textSize="15sp" />
-
-        <TextView
-            android:id="@+id/address"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="#4A3470"
-            android:textDirection="ltr"
-            android:textSize="22sp"
-            android:textStyle="bold" />
+            android:textSize="20sp" />
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="26dp"
+            android:layout_marginTop="22dp"
             android:orientation="horizontal">
 
             <Button android:id="@+id/btn_retry" style="@style/TvButton" android:text="התחבר מחדש" />
             <Button android:id="@+id/btn_dev" style="@style/TvButton" android:text="אפשרויות למפתחים" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
             <Button android:id="@+id/btn_about" style="@style/TvButton" android:text="אודות" />
             <Button android:id="@+id/btn_settings" style="@style/TvButton" android:text="הגדרות" />
         </LinearLayout>
@@ -106,35 +96,45 @@
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="40dp"
+        android:layout_marginStart="32dp"
         android:background="@drawable/card"
         android:elevation="6dp"
         android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:padding="26dp">
+        android:paddingHorizontal="28dp"
+        android:paddingVertical="22dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="סרקו עם המצלמה בטלפון"
             android:textColor="#2E1F47"
-            android:textSize="20sp"
+            android:textSize="24sp"
             android:textStyle="bold" />
 
         <ImageView
             android:id="@+id/qr"
-            android:layout_width="260dp"
-            android:layout_height="260dp"
-            android:layout_marginTop="14dp"
+            android:layout_width="280dp"
+            android:layout_height="280dp"
+            android:layout_marginTop="12dp"
             android:contentDescription="@null" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="10dp"
             android:gravity="center"
-            android:text="עובד מכל רשת ומכל טלפון\nאייפון וגלקסי"
+            android:text="עובד מכל רשת ומכל טלפון"
             android:textColor="#8C7AA8"
+            android:textSize="18sp" />
+
+        <TextView
+            android:id="@+id/address"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="#B3A3CC"
+            android:textDirection="ltr"
             android:textSize="15sp" />
     </LinearLayout>
 </LinearLayout>

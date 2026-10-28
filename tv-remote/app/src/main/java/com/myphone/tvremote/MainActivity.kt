@@ -26,8 +26,9 @@ class MainActivity : Activity() {
 
     private val refresh = object : Runnable {
         override fun run() {
-            address.text = RemoteService.address()
-            status.text = (if (AdbBridge.connected) "🟢 " else "🟡 ") + AdbBridge.status
+            address.text = "ברשת הביתית: " + RemoteService.address()
+            status.text = (if (AdbBridge.connected) "🟢 " else "🟡 ") + AdbBridge.status +
+                (if (RemoteAccessibility.instance != null) "  ·  עולה לבד בהדלקה ✓" else "")
             cloud.text = if (CloudRelay.online) "🟢 מחובר לאינטרנט: אפשר לשלוט מכל רשת" else "🟡 מתחבר לאינטרנט…"
             handler.postDelayed(this, 1500)
         }

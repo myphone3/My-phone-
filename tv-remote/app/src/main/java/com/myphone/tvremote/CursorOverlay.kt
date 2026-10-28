@@ -61,7 +61,10 @@ object CursorOverlay {
         snap()
         clickPulse = 1f
         wake()
-        AdbBridge.shell("input tap ${targetX.toInt()} ${targetY.toInt()}")
+        val a11y = RemoteAccessibility.instance
+        if (a11y == null || !a11y.tap(targetX, targetY, 40)) {
+            AdbBridge.shell("input tap ${targetX.toInt()} ${targetY.toInt()}")
+        }
     }
 
     fun longPress() = main.post {
@@ -69,19 +72,25 @@ object CursorOverlay {
         snap()
         clickPulse = 1f
         wake()
-        val x = targetX.toInt()
-        val y = targetY.toInt()
-        AdbBridge.shell("input swipe $x $y $x $y 700")
+        val a11y = RemoteAccessibility.instance
+        if (a11y == null || !a11y.tap(targetX, targetY, 700)) {
+            val x = targetX.toInt()
+            val y = targetY.toInt()
+            AdbBridge.shell("input swipe $x $y $x $y 700")
+        }
     }
 
     /** גלילה: "גוררים" את המסך מנקודת הסמן, כמו אצבע על מסך מגע. */
     fun scroll(dy: Float) = main.post {
         if (!ensureView()) return@post
         wake()
-        val x = targetX.toInt()
         val fromY = targetY.coerceIn(screenH * 0.2f, screenH * 0.8f)
         val toY = (fromY - dy * screenH / 1000f).coerceIn(5f, screenH - 5)
-        AdbBridge.shell("input swipe $x ${fromY.toInt()} $x ${toY.toInt()} 180")
+        val a11y = RemoteAccessibility.instance
+        if (a11y == null || !a11y.swipe(targetX, fromY, targetX, toY, 180)) {
+            val x = targetX.toInt()
+            AdbBridge.shell("input swipe $x ${fromY.toInt()} $x ${toY.toInt()} 180")
+        }
     }
 
     fun hide() = main.post { view?.visibility = View.GONE }

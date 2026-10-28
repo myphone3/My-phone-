@@ -48,6 +48,19 @@ object AdbBridge {
         reconnect()
     }
 
+    @Volatile private var lastAttempt = 0L
+
+    /** אם החיבור ל-ADB נפל (למשל אחרי שהטלוויזיה נכנסה להמתנה), מנסה שוב - לכל היותר פעם ב-10 שניות. */
+    fun ensureConnected() {
+        if (connected || keyPair == null) return
+        val now = System.currentTimeMillis()
+        if (now - lastAttempt < 10_000) return
+        lastAttempt = now
+        worker.execute {
+            try { connection() } catch (e: Exception) { Log.w(TAG, "reconnect failed", e) }
+        }
+    }
+
     fun reconnect() = worker.execute {
         disconnect()
         try {
@@ -160,11 +173,35 @@ object AdbBridge {
     private fun keepAlive(dadb: Dadb) {
         for (command in listOf(
             "cmd deviceidle whitelist +$packageName",
+            "dumpsys deviceidle whitelist +$packageName",
             "appops set $packageName RUN_ANY_IN_BACKGROUND allow",
+            "appops set $packageName RUN_IN_BACKGROUND allow",
             "appops set $packageName SYSTEM_ALERT_WINDOW allow",
+            "am set-standby-bucket $packageName active",
+            "am set-inactive $packageName false",
             "ime enable $ourKeyboard",
         )) {
             try { dadb.shell(command) } catch (e: Exception) { Log.w(TAG, "keepAlive: $command", e) }
+        }
+        enableAccessibility(dadb)
+    }
+
+    /**
+     * מדליק את שירות הנגישות של השלט (בלי לגעת באחרים שכבר דולקים).
+     * המערכת מפעילה אותו בעצמה בכל הדלקה של הטלוויזיה - ככה לא צריך לפתוח את האפליקציה.
+     */
+    private fun enableAccessibility(dadb: Dadb) {
+        try {
+            val ours = "$packageName/$packageName.RemoteAccessibility"
+            val current = dadb.shell("settings get secure enabled_accessibility_services").output.trim()
+            val list = current.split(':').filter { it.isNotBlank() && it != "null" }
+            if (list.none { it == ours || it == "$packageName/.RemoteAccessibility" }) {
+                val updated = (list + ours).joinToString(":")
+                dadb.shell("settings put secure enabled_accessibility_services '$updated'")
+            }
+            dadb.shell("settings put secure accessibility_enabled 1")
+        } catch (e: Exception) {
+            Log.w(TAG, "accessibility", e)
         }
     }
 

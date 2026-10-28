@@ -13,8 +13,6 @@ import java.net.NetworkInterface
 
 /** שירות שרץ ברקע כל הזמן ומחזיק את השרת פתוח, גם כשהאפליקציה סגורה. */
 class RemoteService : Service() {
-    private var server: WebServer? = null
-
     override fun onCreate() {
         super.onCreate()
         val manager = getSystemService(NotificationManager::class.java)
@@ -27,22 +25,16 @@ class RemoteService : Service() {
         startForeground(1, notification)
         running = true
 
-        AdbBridge.init(this)
-        CursorOverlay.init(this)
-        KeepAliveJob.schedule(this)
-        CloudRelay.start(this)
-        try {
-            server = WebServer(this, PORT).also { it.start(5000, false) }
-        } catch (e: Exception) {
-            Log.e("RemoteService", "server failed", e)
-        }
+        RemoteCore.start(this)
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int) = START_STICKY
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        RemoteCore.start(this)
+        return START_STICKY
+    }
 
     override fun onDestroy() {
         running = false
-        server?.stop()
         super.onDestroy()
     }
 
@@ -55,9 +47,15 @@ class RemoteService : Service() {
         @Volatile var running = false
             private set
 
+        /** מפעיל את השלט. גם אם אנדרואיד לא מרשה שירות רקע ברגע זה, החלקים עצמם עולים בכל זאת. */
         fun start(context: Context) {
+            RemoteCore.start(context)
             if (running) return
-            context.startForegroundService(Intent(context, RemoteService::class.java))
+            try {
+                context.startForegroundService(Intent(context, RemoteService::class.java))
+            } catch (e: Exception) {
+                Log.w("RemoteService", "foreground start not allowed right now", e)
+            }
         }
 
         fun address(): String {

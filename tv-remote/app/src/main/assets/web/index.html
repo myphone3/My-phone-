@@ -446,20 +446,42 @@
 
   function makeCloud(id) {
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { persistSession: false }, realtime: { params: { eventsPerSecond: 30 } },
+      auth: { persistSession: false }, realtime: { params: { eventsPerSecond: 30 }, heartbeatIntervalMs: 15000 },
     });
     const pending = new Map();
     let ready = false;
+    let channel = null;
+    let failures = 0;
+    let reopenTimer = null;
     const queue = [];
-    const channel = client.channel('tv-' + id, { config: { broadcast: { self: false } } });
-    channel.on('broadcast', { event: 'reply' }, ({ payload }) => {
-      const done = pending.get(payload.id);
-      if (done) { pending.delete(payload.id); done({ ok: payload.ok, body: payload.body }); }
-    });
-    channel.subscribe((status) => {
-      ready = status === 'SUBSCRIBED';
-      if (ready) { while (queue.length) queue.shift()(); poll(); }
-    });
+
+    // פותח (או פותח מחדש) את הערוץ לטלוויזיה
+    function open() {
+      clearTimeout(reopenTimer); reopenTimer = null;
+      if (channel) { try { client.removeChannel(channel); } catch (e) {} }
+      ready = false;
+      const ch = client.channel('tv-' + id, { config: { broadcast: { self: false } } });
+      channel = ch;
+      ch.on('broadcast', { event: 'reply' }, ({ payload }) => {
+        const done = pending.get(payload.id);
+        if (done) { pending.delete(payload.id); done({ ok: payload.ok, body: payload.body }); }
+      });
+      ch.subscribe((status) => {
+        if (ch !== channel) return;
+        ready = status === 'SUBSCRIBED';
+        if (ready) { failures = 0; while (queue.length) queue.shift()(); poll(); }
+        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') reopenSoon(2000);
+      });
+    }
+    function reopenSoon(ms) {
+      if (!reopenTimer) reopenTimer = setTimeout(() => {
+        // אחרי שהטלפון היה נעול - לפעמים החיבור "מת" בלי הודעה. מתחילים נקי.
+        try { client.realtime.disconnect(); } catch (e) {}
+        open();
+      }, ms);
+    }
+    open();
+
     const iconCache = store.get('icons', {});
     return {
       mode: 'דרך האינטרנט',
@@ -469,11 +491,17 @@
           const send = () => {
             pending.set(id, resolve);
             channel.send({ type: 'broadcast', event: 'cmd', payload: { id, cmd, args } });
-            setTimeout(() => { if (pending.delete(id)) resolve({ ok: false, body: { error: 'offline' } }); }, timeout);
+            setTimeout(() => {
+              if (!pending.delete(id)) return;
+              // שתי שאלות בלי תשובה ברצף = החיבור תקוע. בונים אותו מחדש.
+              if (++failures >= 2) { failures = 0; reopenSoon(100); }
+              resolve({ ok: false, body: { error: 'offline' } });
+            }, timeout);
           };
           ready ? send() : queue.push(send);
         });
       },
+      wake() { if (!ready) reopenSoon(50); },
       fire(cmd, args = {}) {
         if (ready) channel.send({ type: 'broadcast', event: 'cmd', payload: { id: '', cmd, args, noreply: true } });
       },
@@ -941,7 +969,13 @@
   window.poll = poll;
   poll();
   setInterval(() => { if (!document.hidden) poll(); }, 8000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) return;
+    if (tv.wake) tv.wake();
+    poll();
+  });
+  window.addEventListener('pageshow', () => { if (tv.wake) tv.wake(); poll(); });
+  window.addEventListener('online', () => { if (tv.wake) tv.wake(); poll(); });
 })();
 </script>
 </body>
