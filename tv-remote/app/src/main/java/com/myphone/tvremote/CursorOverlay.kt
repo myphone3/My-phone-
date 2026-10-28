@@ -19,7 +19,9 @@ import android.view.Choreographer
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
+import android.view.accessibility.AccessibilityNodeInfo
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /**
  * סמן עכבר שמצויר מעל כל המסך בטלוויזיה. הטלפון שולח תזוזות, הסמן נע אליהן בצורה חלקה,
@@ -28,7 +30,7 @@ import kotlin.math.abs
 @SuppressLint("StaticFieldLeak")
 object CursorOverlay {
     private const val TAG = "CursorOverlay"
-    private const val HIDE_AFTER_MS = 6000L
+    private const val HIDE_AFTER_MS = 3000L
 
     private val main = Handler(Looper.getMainLooper())
     private lateinit var appContext: Context
@@ -56,20 +58,61 @@ object CursorOverlay {
         wake()
     }
 
-    fun click() = main.post {
-        if (!ensureView()) return@post
-        snap()
-        clickPulse = 1f
-        wake()
-        val a11y = RemoteAccessibility.instance
-        when (a11y?.smartClick(targetX, targetY)) {
-            RemoteAccessibility.Result.CLICKED -> Unit
-            // הפריט סומן - עכשיו "OK" כמו בשלט, שעובד בכל אפליקציית טלוויזיה
-            RemoteAccessibility.Result.FOCUSED -> main.postDelayed({ AdbBridge.sendKeys(23, 1) }, 60)
-            else -> if (a11y == null || !a11y.tap(targetX, targetY, 40)) {
-                AdbBridge.shell("input tap ${targetX.toInt()} ${targetY.toInt()}")
-            }
+    /** מה קרה בלחיצה האחרונה - מוצג בטלפון כדי שנדע מה עבד. */
+    @Volatile var lastClick = ""
+        private set
+
+    /**
+     * לחיצה. אפליקציות טלוויזיה (המסך הראשי, נטפליקס, אפל TV) מתעלמות מנגיעות במסך,
+     * אז: יוצאים מ"מצב מגע", מסמנים את הפריט שמתחת לסמן, ולוחצים OK - בדיוק כמו בשלט.
+     * באתרים (כרום) - נגיעה אמיתית במסך.
+     */
+    fun click(): String {
+        main.post {
+            if (!ensureView()) return@post
+            snap()
+            clickPulse = 1f
+            wake()
         }
+        val x = targetX
+        val y = targetY
+        lastClick = try {
+            AdbBridge.sequence { run ->
+                val a11y = RemoteAccessibility.instance
+                val target = a11y?.targetAt(x, y)
+                when {
+                    a11y == null -> {
+                        run("input tap ${x.toInt()} ${y.toInt()}")
+                        "no_a11y"
+                    }
+                    target == null || target.touchFirst || (target.focusable == null && target.clickable == null) -> {
+                        if (!a11y.tap(x, y, 40)) run("input tap ${x.toInt()} ${y.toInt()}")
+                        if (target == null) "touch_no_node" else "touch"
+                    }
+                    target.focusable != null -> {
+                        run("input keyevent 59") // מקש "שיפט" - מוציא את האפליקציה ממצב מגע בלי לעשות כלום אחר
+                        if (a11y.focus(target.focusable)) {
+                            run("input keyevent 23")
+                            "focus_ok"
+                        } else if (target.clickable?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true) {
+                            "click_action"
+                        } else {
+                            run("input keyevent 23")
+                            "ok_only"
+                        }
+                    }
+                    target.clickable?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true -> "click_action"
+                    else -> {
+                        if (!a11y.tap(x, y, 40)) run("input tap ${x.toInt()} ${y.toInt()}")
+                        "touch"
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "click", e)
+            "error"
+        }
+        return lastClick
     }
 
     fun longPress() = main.post {
@@ -78,6 +121,11 @@ object CursorOverlay {
         clickPulse = 1f
         wake()
         val a11y = RemoteAccessibility.instance
+        val target = a11y?.targetAt(targetX, targetY)
+        val node = target?.clickable ?: target?.focusable
+        if (target != null && !target.touchFirst && node != null &&
+            node.performAction(AccessibilityNodeInfo.ACTION_LONG_CLICK)
+        ) return@post
         if (a11y == null || !a11y.tap(targetX, targetY, 700)) {
             val x = targetX.toInt()
             val y = targetY.toInt()
@@ -85,15 +133,32 @@ object CursorOverlay {
         }
     }
 
-    /** גלילה: "גוררים" את המסך מנקודת הסמן, כמו אצבע על מסך מגע - למעלה/למטה וגם ימינה/שמאלה. */
+    /**
+     * גלילה בשתי אצבעות. באפליקציות טלוויזיה = חצים (שעובדים בכל שורה של סרטים),
+     * באתרים = החלקה אמיתית על המסך.
+     */
     fun scroll(dx: Float, dy: Float) = main.post {
         if (!ensureView()) return@post
         wake()
+        val a11y = RemoteAccessibility.instance
+        val pkg = a11y?.foregroundPackage()
+        if (a11y != null && !a11y.isTouchFirst(pkg)) {
+            val horizontal = abs(dx) > abs(dy)
+            val amount = if (horizontal) dx else dy
+            val steps = (abs(amount) / 110f).roundToInt().coerceIn(1, 6)
+            val key = when {
+                horizontal && dx > 0 -> 22
+                horizontal -> 21
+                dy > 0 -> 20
+                else -> 19
+            }
+            AdbBridge.sendKeys(key, steps)
+            return@post
+        }
         val fromX = targetX.coerceIn(screenW * 0.2f, screenW * 0.8f)
         val fromY = targetY.coerceIn(screenH * 0.2f, screenH * 0.8f)
         val toX = (fromX - dx * screenW / 1000f).coerceIn(5f, screenW - 5)
         val toY = (fromY - dy * screenH / 1000f).coerceIn(5f, screenH - 5)
-        val a11y = RemoteAccessibility.instance
         if (a11y == null || !a11y.swipe(fromX, fromY, toX, toY, 160)) {
             AdbBridge.shell("input swipe ${fromX.toInt()} ${fromY.toInt()} ${toX.toInt()} ${toY.toInt()} 160")
         }
@@ -106,8 +171,12 @@ object CursorOverlay {
         shownY = targetY
     }
 
+    private val hideTask = Runnable { view?.visibility = View.GONE }
+
     private fun wake() {
         lastActivity = SystemClock.uptimeMillis()
+        main.removeCallbacks(hideTask)
+        main.postDelayed(hideTask, HIDE_AFTER_MS)
         view?.let {
             if (it.visibility != View.VISIBLE) {
                 snap()

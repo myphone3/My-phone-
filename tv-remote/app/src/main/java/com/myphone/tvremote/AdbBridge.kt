@@ -131,6 +131,9 @@ object AdbBridge {
         }, RESTORE_KEYBOARD_AFTER_SEC, TimeUnit.SECONDS)
     }
 
+    /** מריץ כמה פעולות ברצף על אותו ערוץ ADB (למשל: לצאת ממצב מגע, לסמן פריט, ללחוץ OK). */
+    fun <T> sequence(block: ((String) -> String?) -> T): T = onWorker { block { command -> run(command) } }
+
     private fun <T> onWorker(block: () -> T): T = worker.submit(Callable { block() }).get(8, TimeUnit.SECONDS)
 
     private fun run(command: String): String? {

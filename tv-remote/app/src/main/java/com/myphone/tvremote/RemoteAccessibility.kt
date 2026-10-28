@@ -46,20 +46,41 @@ class RemoteAccessibility : AccessibilityService() {
         }
     }
 
-    /**
-     * לחיצה "חכמה": אפליקציות טלוויזיה (המסך הראשי, נטפליקס, אפל TV) מתעלמות מנגיעות,
-     * אז מוצאים את הפריט שמתחת לסמן ולוחצים עליו כמו שהשלט היה עושה.
-     * מחזיר CLICKED אם לחץ, FOCUSED אם רק סימן (ואז צריך לשלוח OK), או NONE אם אין פריט כזה.
-     */
-    fun smartClick(x: Float, y: Float): Result {
-        val node = nodeAt(x.toInt(), y.toInt()) ?: return Result.NONE
-        if (node.packageName?.toString() in TOUCH_FIRST_APPS) return Result.NONE
-        if (node.isClickable && node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return Result.CLICKED
-        if (node.isFocusable) {
-            if (!node.isFocused) node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
-            return Result.FOCUSED
+    /** מה יש מתחת לסמן: פריט שאפשר לבחור, פריט שאפשר ללחוץ, והאם זו אפליקציה שעדיף בה מגע אמיתי. */
+    class Target(val focusable: AccessibilityNodeInfo?, val clickable: AccessibilityNodeInfo?, val touchFirst: Boolean)
+
+    fun targetAt(x: Float, y: Float): Target? {
+        val node = nodeAt(x.toInt(), y.toInt()) ?: return null
+        val touchFirst = node.packageName?.toString() in TOUCH_FIRST_APPS
+        return Target(ancestor(node) { it.isFocusable }, ancestor(node) { it.isClickable }, touchFirst)
+    }
+
+    /** מסמן פריט (כמו להגיע אליו עם החצים). מחזיר true אם הסימון הצליח. */
+    fun focus(node: AccessibilityNodeInfo): Boolean {
+        if (node.isFocused) return true
+        node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
+        node.refresh()
+        return node.isFocused
+    }
+
+    /** האפליקציה שפתוחה עכשיו על המסך. */
+    fun foregroundPackage(): String? = try {
+        rootInActiveWindow?.packageName?.toString()
+    } catch (e: Exception) {
+        null
+    }
+
+    fun isTouchFirst(pkg: String?) = pkg in TOUCH_FIRST_APPS
+
+    private fun ancestor(start: AccessibilityNodeInfo, test: (AccessibilityNodeInfo) -> Boolean): AccessibilityNodeInfo? {
+        var node: AccessibilityNodeInfo? = start
+        var depth = 0
+        while (node != null && depth < 12) {
+            if (test(node)) return node
+            node = node.parent
+            depth++
         }
-        return Result.NONE
+        return null
     }
 
     /** הפריט הכי קטן (הכי "פנימי") שאפשר ללחוץ עליו או לבחור אותו, בנקודה הזו על המסך. */
@@ -88,10 +109,8 @@ class RemoteAccessibility : AccessibilityService() {
             val child = node.getChild(i) ?: continue
             find(child, x, y, depth + 1)?.let { return it }
         }
-        return if (node.isClickable || node.isFocusable) node else null
+        return node
     }
-
-    enum class Result { CLICKED, FOCUSED, NONE }
 
     companion object {
         // באפליקציות האלה נגיעה אמיתית מדויקת יותר (אתרים, כפתורים קטנים)

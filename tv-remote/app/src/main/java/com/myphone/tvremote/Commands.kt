@@ -43,7 +43,7 @@ object Commands {
             CursorOverlay.move(dx.coerceIn(-400f, 400f), dy.coerceIn(-400f, 400f))
             ok()
         }
-        "click" -> { CursorOverlay.click(); ok() }
+        "click" -> ok(JSONObject().put("ok", true).put("how", CursorOverlay.click()))
         "longpress" -> { CursorOverlay.longPress(); ok() }
         "scroll" -> {
             CursorOverlay.scroll(

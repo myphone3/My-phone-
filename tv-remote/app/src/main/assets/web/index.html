@@ -726,7 +726,7 @@
       f.x = x; f.y = y; f.t = t;
       gesture.moved += Math.abs(dx) + Math.abs(dy);
       if (gesture.multi) {
-        if (e.pointerId === fingers.keys().next().value) { scrollX += dx * 2.4; scrollY += dy * 2.4; }
+        if (e.pointerId === fingers.keys().next().value) { scrollX -= dx * 2.4; scrollY -= dy * 2.4; }
       } else {
         const g = gain(Math.hypot(dx, dy) / dt);
         moveX += dx * g; moveY += dy * g;
@@ -745,7 +745,7 @@
     const quick = performance.now() - gesture.start < 260;
     if (quick && gesture.moved < 12 && !gesture.held) {
       buzz(); burst(e.clientX, e.clientY);
-      if (gesture.multi) key('BACK'); else tv.fire('click');
+      if (gesture.multi) key('BACK'); else mouseClick();
     }
     gesture = null;
     mouse.classList.remove('active');
@@ -766,7 +766,20 @@
   rail.addEventListener('pointerup', railEnd);
   rail.addEventListener('pointercancel', railEnd);
 
-  $('mClick').onclick = () => { buzz(); tv.fire('click'); };
+  $('mClick').onclick = () => { buzz(); mouseClick(); };
+  // לחיצה עם תשובה: אם הטלוויזיה השתמשה בדרך גיבוי, מספרים למשתמש (עוזר לנו לדעת מה לא עבד)
+  const CLICK_NOTES = {
+    no_a11y: 'שירות הנגישות לא פעיל בטלוויזיה. פתחו בה את "שלט מהפון" ולחצו "התחבר מחדש"',
+    touch_no_node: 'לא זוהה פריט מתחת לסמן - נשלחה נגיעה במסך',
+    ok_only: 'הסימון לא הצליח - נשלח OK',
+    error: 'הלחיצה נכשלה, נסו שוב',
+  };
+  function mouseClick() {
+    call('click').then((r) => {
+      const note = r.ok && r.body && CLICK_NOTES[r.body.how];
+      if (note) toast(note);
+    });
+  }
   $('mLong').onclick = () => { buzz(); tv.fire('longpress'); };
   setMode(store.get('mode', 'pad'));
 
