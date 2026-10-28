@@ -79,7 +79,7 @@
             android:orientation="horizontal">
 
             <Button android:id="@+id/btn_retry" style="@style/TvButton" android:text="התחבר מחדש" />
-            <Button android:id="@+id/btn_dev" style="@style/TvButton" android:text="אפשרויות למפתחים" />
+            <Button android:id="@+id/btn_home" style="@style/TvButton" android:text="מסך הבית שלנו" />
         </LinearLayout>
 
         <LinearLayout
@@ -87,6 +87,7 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal">
 
+            <Button android:id="@+id/btn_dev" style="@style/TvButton" android:text="למפתחים" />
             <Button android:id="@+id/btn_about" style="@style/TvButton" android:text="אודות" />
             <Button android:id="@+id/btn_settings" style="@style/TvButton" android:text="הגדרות" />
         </LinearLayout>

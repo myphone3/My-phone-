@@ -3,6 +3,7 @@ package com.myphone.tvremote
 import android.app.Activity
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.os.Bundle
@@ -29,6 +30,8 @@ class MainActivity : Activity() {
             address.text = "ברשת הביתית: " + RemoteService.address()
             status.text = (if (AdbBridge.connected) "🟢 " else "🟡 ") + AdbBridge.status +
                 (if (RemoteAccessibility.instance != null) "  ·  עולה לבד בהדלקה ✓" else "")
+            findViewById<Button>(R.id.btn_home).text =
+                if (homeIsOurs()) "מסך הבית שלנו ✓ (להחזיר?)" else "מסך הבית שלנו"
             cloud.text = if (CloudRelay.online) "🟢 מחובר לאינטרנט: אפשר לשלוט מכל רשת" else "🟡 מתחבר לאינטרנט…"
             handler.postDelayed(this, 1500)
         }
@@ -65,6 +68,7 @@ class MainActivity : Activity() {
                 Intent(Settings.ACTION_SETTINGS),
             )
         }
+        findViewById<Button>(R.id.btn_home).setOnClickListener { toggleHome() }
         findViewById<Button>(R.id.btn_retry).setOnClickListener {
             AdbBridge.reconnect()
             Toast.makeText(this, "מנסה להתחבר…", Toast.LENGTH_SHORT).show()
@@ -80,6 +84,39 @@ class MainActivity : Activity() {
     override fun onPause() {
         handler.removeCallbacks(refresh)
         super.onPause()
+    }
+
+    private val homeIntent get() = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+
+    private fun homeIsOurs(): Boolean =
+        packageManager.resolveActivity(homeIntent, PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo?.packageName == packageName
+
+    /** מחליף בין מסך הבית שלנו למסך הבית המקורי של הטלוויזיה (דרך ADB, בלי לשאול כל פעם). */
+    private fun toggleHome() {
+        val prefs = getSharedPreferences("home", MODE_PRIVATE)
+        if (!homeIsOurs()) {
+            if (prefs.getString("original", null) == null) {
+                packageManager.queryIntentActivities(homeIntent, 0)
+                    .map { it.activityInfo }
+                    .firstOrNull { it.packageName != packageName }
+                    ?.let { prefs.edit().putString("original", "${it.packageName}/${it.name}").apply() }
+            }
+            AdbBridge.shell("cmd package set-home-activity $packageName/$packageName.HomeActivity")
+            Toast.makeText(this, "מסך הבית החדש מופעל ✓ לחצו על \"בית\" בשלט", Toast.LENGTH_LONG).show()
+            startActivity(Intent(this, HomeActivity::class.java))
+        } else {
+            val original = prefs.getString("original", null)
+            if (original == null) {
+                Toast.makeText(this, "לא מצאתי את מסך הבית המקורי", Toast.LENGTH_LONG).show()
+                return
+            }
+            AdbBridge.shell("cmd package set-home-activity $original")
+            Toast.makeText(this, "מסך הבית המקורי חזר", Toast.LENGTH_LONG).show()
+            try {
+                startActivity(Intent(homeIntent).setClassName(original.substringBefore('/'), original.substringAfter('/')).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            } catch (_: Exception) {
+            }
+        }
     }
 
     private fun qrCode(text: String, size: Int): Bitmap {
