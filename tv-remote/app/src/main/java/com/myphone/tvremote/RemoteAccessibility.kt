@@ -109,13 +109,17 @@ class RemoteAccessibility : AccessibilityService() {
             emptyList()
         }.ifEmpty { listOfNotNull(rootInActiveWindow) }
         for (root in roots) {
-            if (root.packageName?.toString() == packageName) continue
+            // מדלגים רק על שכבת הסמן עצמה (לא על מסך הבית שלנו!)
+            if (root.className?.toString()?.contains("CursorView") == true) continue
             val bounds = Rect()
             root.getBoundsInScreen(bounds)
             if (!bounds.contains(x, y)) continue
-            return find(root, x, y, 0) ?: continue
+            val found = find(root, x, y, 0) ?: continue
+            // חלון "ריק" שמכסה את המסך (בלי שום פריט בתוכו) - ממשיכים לחלון שמתחתיו
+            if (found != root || found.isClickable || found.isFocusable) return found
         }
-        return null
+        // גיבוי: החלון הפעיל
+        return rootInActiveWindow?.let { find(it, x, y, 0) }
     }
 
     private fun find(node: AccessibilityNodeInfo, x: Int, y: Int, depth: Int): AccessibilityNodeInfo? {

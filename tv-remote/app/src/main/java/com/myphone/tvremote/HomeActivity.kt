@@ -234,9 +234,8 @@ class HomeActivity : Activity() {
         titles.addView(text("לחיצה ארוכה על OK: מועדפים או הסתרה  ·  חזור: סגירה", 15f, "#C9B8F0"))
         header.addView(titles, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         // קיצורים: WiFi, הגדרות, ושלט מהפון
-        header.addView(shortcut("📶  WiFi", onClick = { openWifi() }))
-        header.addView(shortcut("⚙  הגדרות", onClick = { openSettings() }))
-        header.addView(shortcut("שלט מהפון", R.drawable.ic_launcher) { startActivity(Intent(this, MainActivity::class.java)) })
+        header.addView(iconButton(R.drawable.ic_wifi_line) { openWifi() })
+        header.addView(iconButton(R.drawable.ic_settings_line) { openSettings() })
         drawerPage.addView(header)
         grid = GridLayout(this).apply {
             columnCount = GRID_COLUMNS
@@ -250,29 +249,19 @@ class HomeActivity : Activity() {
         return root
     }
 
-    /** כפתור קיצור בראש רשימת האפליקציות (אפשר עם אייקון). "למעלה" ממנו סוגר את הרשימה. */
-    private fun shortcut(label: String, icon: Int? = null, onClick: () -> Unit): View {
-        val button = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
+    /** כפתור עגול עם סמל בלבד (בסגנון אפל), בראש רשימת האפליקציות. "למעלה" ממנו סוגר את הרשימה. */
+    private fun iconButton(icon: Int, onClick: () -> Unit): View {
+        val button = FrameLayout(this).apply {
             isFocusable = true
-            background = rounded(Color.argb(40, 255, 255, 255), 999f, Color.argb(70, 255, 255, 255))
-            setPaddingRelative(dp(if (icon != null) 8 else 20), dp(7), dp(20), dp(7))
+            background = rounded(Color.argb(45, 255, 255, 255), 999f, Color.argb(80, 255, 255, 255))
             setOnClickListener { onClick() }
-            onFocusChangeListener = focusAnimator(1.08f, light = true, round = true)
+            onFocusChangeListener = focusAnimator(1.12f, light = true, round = true)
             setOnKeyListener { _, keyCode, event ->
                 if (keyCode == KeyEvent.KEYCODE_DPAD_UP && event.action == KeyEvent.ACTION_DOWN) { closeDrawer(); true } else false
             }
-            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                marginStart = dp(12)
-            }
+            layoutParams = LinearLayout.LayoutParams(dp(52), dp(52)).apply { marginStart = dp(14) }
         }
-        if (icon != null) {
-            button.addView(ImageView(this).apply { setImageResource(icon) }, LinearLayout.LayoutParams(dp(30), dp(30)).apply {
-                marginEnd = dp(10)
-            })
-        }
-        button.addView(text(label, 17f, "#FFFFFF", weight = 500))
+        button.addView(ImageView(this).apply { setImageResource(icon) }, FrameLayout.LayoutParams(dp(26), dp(26), Gravity.CENTER))
         return button
     }
 
@@ -370,7 +359,7 @@ class HomeActivity : Activity() {
             val intent = Intent(Intent.ACTION_MAIN).addCategory(category)
             for (info in packageManager.queryIntentActivities(intent, 0)) {
                 val pkg = info.activityInfo.packageName
-                if (pkg in result || pkg == packageName) continue
+                if (pkg in result) continue
                 result[pkg] = App(pkg, info.loadLabel(packageManager).toString(), info)
             }
         }
@@ -487,20 +476,21 @@ class HomeActivity : Activity() {
             gravity = Gravity.CENTER
             isFocusable = true
             background = rounded(Color.argb(28, 255, 255, 255), 22f)
-            setPadding(dp(8), dp(12), dp(8), dp(10))
+            setPadding(dp(6), dp(8), dp(6), dp(8))
             alpha = if (dimmed) 0.45f else 1f
         }
         val icon = ImageView(this)
-        tile.addView(icon, LinearLayout.LayoutParams(dp(56), dp(56)))
+        tile.addView(icon, LinearLayout.LayoutParams(dp(50), dp(50)))
         loader.execute {
             val drawable = try { app.info.loadIcon(packageManager) } catch (e: Exception) { null }
             main.post { icon.setImageDrawable(drawable) }
         }
-        tile.addView(text(app.label, 14f, "#FFFFFF").apply {
+        tile.addView(text(app.label, 13f, "#FFFFFF").apply {
             gravity = Gravity.CENTER
             maxLines = 1
             ellipsize = TextUtils.TruncateAt.END
-            setPadding(0, dp(8), 0, 0)
+            includeFontPadding = true
+            setPadding(0, dp(7), 0, dp(2))
         }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         tile.setOnClickListener { launch(app) }
         tile.setOnLongClickListener { showAppMenu(app); true }
@@ -529,7 +519,7 @@ class HomeActivity : Activity() {
         val usable = designWidth - DRAWER_PAD * 2
         val size = usable / GRID_COLUMNS - TILE_GAP * 2
         width = dp(size)
-        height = dp(size)
+        height = dp(size + 8)
         setMargins(dp(TILE_GAP), dp(TILE_GAP), dp(TILE_GAP), dp(TILE_GAP))
     }
 
