@@ -46,7 +46,10 @@ object Commands {
         "click" -> { CursorOverlay.click(); ok() }
         "longpress" -> { CursorOverlay.longPress(); ok() }
         "scroll" -> {
-            CursorOverlay.scroll((params["dy"]?.toFloatOrNull() ?: 0f).coerceIn(-600f, 600f))
+            CursorOverlay.scroll(
+                (params["dx"]?.toFloatOrNull() ?: 0f).coerceIn(-600f, 600f),
+                (params["dy"]?.toFloatOrNull() ?: 0f).coerceIn(-600f, 600f),
+            )
             ok()
         }
         "submit" -> { AdbBridge.submitText(); ok() }

@@ -62,8 +62,13 @@ object CursorOverlay {
         clickPulse = 1f
         wake()
         val a11y = RemoteAccessibility.instance
-        if (a11y == null || !a11y.tap(targetX, targetY, 40)) {
-            AdbBridge.shell("input tap ${targetX.toInt()} ${targetY.toInt()}")
+        when (a11y?.smartClick(targetX, targetY)) {
+            RemoteAccessibility.Result.CLICKED -> Unit
+            // הפריט סומן - עכשיו "OK" כמו בשלט, שעובד בכל אפליקציית טלוויזיה
+            RemoteAccessibility.Result.FOCUSED -> main.postDelayed({ AdbBridge.sendKeys(23, 1) }, 60)
+            else -> if (a11y == null || !a11y.tap(targetX, targetY, 40)) {
+                AdbBridge.shell("input tap ${targetX.toInt()} ${targetY.toInt()}")
+            }
         }
     }
 
@@ -80,16 +85,17 @@ object CursorOverlay {
         }
     }
 
-    /** גלילה: "גוררים" את המסך מנקודת הסמן, כמו אצבע על מסך מגע. */
-    fun scroll(dy: Float) = main.post {
+    /** גלילה: "גוררים" את המסך מנקודת הסמן, כמו אצבע על מסך מגע - למעלה/למטה וגם ימינה/שמאלה. */
+    fun scroll(dx: Float, dy: Float) = main.post {
         if (!ensureView()) return@post
         wake()
+        val fromX = targetX.coerceIn(screenW * 0.2f, screenW * 0.8f)
         val fromY = targetY.coerceIn(screenH * 0.2f, screenH * 0.8f)
+        val toX = (fromX - dx * screenW / 1000f).coerceIn(5f, screenW - 5)
         val toY = (fromY - dy * screenH / 1000f).coerceIn(5f, screenH - 5)
         val a11y = RemoteAccessibility.instance
-        if (a11y == null || !a11y.swipe(targetX, fromY, targetX, toY, 180)) {
-            val x = targetX.toInt()
-            AdbBridge.shell("input swipe $x ${fromY.toInt()} $x ${toY.toInt()} 180")
+        if (a11y == null || !a11y.swipe(fromX, fromY, toX, toY, 160)) {
+            AdbBridge.shell("input swipe ${fromX.toInt()} ${fromY.toInt()} ${toX.toInt()} ${toY.toInt()} 160")
         }
     }
 
@@ -181,8 +187,8 @@ object CursorOverlay {
 
         private val frame = object : Choreographer.FrameCallback {
             override fun doFrame(frameTimeNanos: Long) {
-                shownX += (targetX - shownX) * 0.45f
-                shownY += (targetY - shownY) * 0.45f
+                shownX += (targetX - shownX) * 0.62f
+                shownY += (targetY - shownY) * 0.62f
                 clickPulse = (clickPulse - 0.06f).coerceAtLeast(0f)
                 invalidate()
                 val idle = SystemClock.uptimeMillis() - lastActivity

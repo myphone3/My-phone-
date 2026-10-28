@@ -311,7 +311,7 @@
           <i></i><i></i><i></i><i></i><i></i>
           <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></svg>
         </div>
-        <div class="hint"><b>גררו</b> להזזת הסמן · <b>הקישו</b> ללחיצה<br><b>שתי אצבעות</b> לגלילה · <b>החזיקו</b> ללחיצה ארוכה</div>
+        <div class="hint"><b>גררו</b> להזזת הסמן · <b>הקישו</b> ללחיצה<br><b>שתי אצבעות</b> לגלילה לכל כיוון · <b>החזיקו</b> ללחיצה ארוכה</div>
       </div>
       <div class="mouse-btns">
         <button id="mLong">לחיצה ארוכה</button>
@@ -446,7 +446,7 @@
 
   function makeCloud(id) {
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { persistSession: false }, realtime: { params: { eventsPerSecond: 30 }, heartbeatIntervalMs: 15000 },
+      auth: { persistSession: false }, realtime: { params: { eventsPerSecond: 60 }, heartbeatIntervalMs: 15000 },
     });
     const pending = new Map();
     let ready = false;
@@ -670,17 +670,19 @@
     mouse.appendChild(r); setTimeout(() => r.remove(), 500);
   }
 
-  // תזוזות מצטברות ונשלחות עד 25 פעמים בשנייה
-  let moveX = 0, moveY = 0, scrollY = 0, flushTimer = null;
+  // תזוזות מצטברות ונשלחות עד 40 פעמים בשנייה
+  let moveX = 0, moveY = 0, scrollX = 0, scrollY = 0, flushTimer = null;
   function flush() {
     flushTimer = null;
     if (Math.abs(moveX) >= 0.5 || Math.abs(moveY) >= 0.5) {
       tv.fire('mouse', { dx: moveX.toFixed(1), dy: moveY.toFixed(1) });
       moveX = moveY = 0;
     }
-    if (Math.abs(scrollY) >= 4) {
-      tv.fire('scroll', { dy: Math.round(scrollY) });
-      scrollY = 0;
+    if (Math.abs(scrollY) >= 4 || Math.abs(scrollX) >= 4) {
+      // גלילה בכיוון הדומיננטי בלבד, כדי שגלילה ימינה בשורה של סרטים לא תזוז גם למעלה
+      if (Math.abs(scrollX) > Math.abs(scrollY)) tv.fire('scroll', { dx: Math.round(scrollX), dy: 0 });
+      else tv.fire('scroll', { dx: 0, dy: Math.round(scrollY) });
+      scrollX = scrollY = 0;
     }
   }
   const schedule = (ms) => { if (!flushTimer) flushTimer = setTimeout(flush, ms); };
@@ -691,7 +693,7 @@
     if (e.target.closest('.rail')) return;
     mouse.setPointerCapture(e.pointerId);
     const box = mouse.getBoundingClientRect();
-    const f = { x: e.clientX - box.left, y: e.clientY - box.top, t: performance.now() };
+    const f = { x: e.clientX - box.left, y: e.clientY - box.top, t: e.timeStamp || performance.now() };
     fingers.set(e.pointerId, f);
     mouse.classList.add('active');
     if (fingers.size === 1) {
@@ -705,24 +707,33 @@
     }
     kick();
   });
+  // עקומת מהירות: תנועה איטית = מדויקת מאוד, תנועה מהירה = חוצה את המסך
+  const gain = (speed) => {
+    const k = Math.min(1, Math.max(0, (speed - 0.08) / 1.2));
+    return 1.3 + 6 * k * k * (3 - 2 * k);
+  };
   mouse.addEventListener('pointermove', (e) => {
     const f = fingers.get(e.pointerId);
     if (!f || !gesture) return;
     const box = mouse.getBoundingClientRect();
-    const x = e.clientX - box.left, y = e.clientY - box.top, t = performance.now();
-    const dx = x - f.x, dy = y - f.y, dt = Math.max(1, t - f.t);
-    f.x = x; f.y = y; f.t = t;
-    gesture.moved += Math.abs(dx) + Math.abs(dy);
-    if (gesture.multi) {
-      if (e.pointerId === fingers.keys().next().value) { scrollY += dy * 2.2; schedule(110); }
-    } else {
-      // תאוצה: תנועה מהירה מזיזה רחוק, תנועה איטית מדויקת
-      const speed = Math.hypot(dx, dy) / dt;
-      const accel = 1.5 + Math.min(speed * 2.4, 3.6);
-      moveX += dx * accel; moveY += dy * accel;
-      schedule(40);
-      points.push({ x, y, t });
+    // בטלפונים חדשים יש כמה דגימות בין פריים לפריים - משתמשים בכולן לדיוק
+    const samples = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
+    const list = samples.length ? samples : [e];
+    for (const ev of list) {
+      const x = ev.clientX - box.left, y = ev.clientY - box.top;
+      const t = ev.timeStamp || performance.now();
+      const dx = x - f.x, dy = y - f.y, dt = Math.max(1, t - f.t);
+      f.x = x; f.y = y; f.t = t;
+      gesture.moved += Math.abs(dx) + Math.abs(dy);
+      if (gesture.multi) {
+        if (e.pointerId === fingers.keys().next().value) { scrollX += dx * 2.4; scrollY += dy * 2.4; }
+      } else {
+        const g = gain(Math.hypot(dx, dy) / dt);
+        moveX += dx * g; moveY += dy * g;
+      }
     }
+    if (gesture.multi) schedule(90);
+    else { schedule(25); points.push({ x: f.x, y: f.y, t: performance.now() }); }
     kick();
   });
   function release(e) {
