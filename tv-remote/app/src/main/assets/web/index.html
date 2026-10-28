@@ -1025,7 +1025,7 @@
         c.width = Math.round(img.naturalWidth * scale); c.height = Math.round(img.naturalHeight * scale);
         c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
         URL.revokeObjectURL(url);
-        resolve(c.toDataURL('image/jpeg', 0.85).split(',')[1]);
+        resolve(c.toDataURL('image/jpeg', 0.8).split(',')[1]);
       };
       img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('bad image')); };
       img.src = url;
@@ -1040,11 +1040,24 @@
         status.textContent = `מעלה תמונה ${i + 1} מתוך ${files.length}…`;
         const data = await shrink(file);
         const id = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
-        const size = 48000, total = Math.ceil(data.length / size);
+        // חתיכות קטנות (כ-12KB) - עוברות בקלות גם דרך האינטרנט. כל חתיכה מנסים עד 3 פעמים.
+        const size = 16000, total = Math.ceil(data.length / size);
+        if (total > 200) throw new Error('התמונה גדולה מדי');
         for (let part = 0; part < total; part++) {
           status.textContent = `מעלה תמונה ${i + 1} מתוך ${files.length}… ${Math.round(((part + 1) / total) * 100)}%`;
-          const r = await call('photo_add', { id, part, total, data: data.slice(part * size, (part + 1) * size) });
-          if (!r.ok) throw new Error(r.body && r.body.error === 'too_many' ? 'הגעתם למקסימום של 40 תמונות' : 'השליחה נכשלה');
+          let r = null;
+          for (let attempt = 0; attempt < 3; attempt++) {
+            r = await call('photo_add', { id, part, total, data: data.slice(part * size, (part + 1) * size) });
+            if (r.ok || (r.body && r.body.error === 'too_many')) break;
+            await new Promise((res) => setTimeout(res, 600));
+          }
+          if (!r.ok) {
+            const err = r.body && r.body.error;
+            throw new Error(err === 'too_many' ? 'הגעתם למקסימום של 40 תמונות'
+              : err === 'unknown command' ? 'צריך לעדכן את האפליקציה בטלוויזיה'
+              : err === 'offline' ? 'השליחה נכשלה: אין תשובה מהטלוויזיה'
+              : 'השליחה נכשלה (' + (err || 'שגיאה') + ')');
+          }
         }
         done++;
       } catch (e) {

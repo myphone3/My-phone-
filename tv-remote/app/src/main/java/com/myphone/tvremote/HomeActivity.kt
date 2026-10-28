@@ -60,7 +60,6 @@ class HomeActivity : Activity() {
     private lateinit var weatherText: TextView
     private lateinit var weatherBox: View
     private lateinit var favRow: LinearLayout
-    private lateinit var gear: View
     private lateinit var drawer: FrameLayout
     private lateinit var grid: GridLayout
     private lateinit var drawerScroll: ScrollView
@@ -132,13 +131,12 @@ class HomeActivity : Activity() {
         val match = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
 
         // תמונות הרקע (שתי שכבות שמתחלפות ברכות). בלי תמונות: רקע צבעוני רך.
-        val fallback = View(this).apply {
+        root.addView(View(this).apply {
             background = GradientDrawable(
                 GradientDrawable.Orientation.TL_BR,
                 intArrayOf(Color.parseColor("#F79AC0"), Color.parseColor("#B794F6"), Color.parseColor("#6D5BD0")),
             )
-        }
-        root.addView(fallback, match)
+        }, match)
         bgBack = ImageView(this).apply { scaleType = ImageView.ScaleType.CENTER_CROP; alpha = 0f }
         bgFront = ImageView(this).apply { scaleType = ImageView.ScaleType.CENTER_CROP; alpha = 0f }
         root.addView(bgBack, FrameLayout.LayoutParams(match))
@@ -148,51 +146,43 @@ class HomeActivity : Activity() {
         root.addView(View(this).apply {
             background = GradientDrawable(
                 GradientDrawable.Orientation.TOP_BOTTOM,
-                intArrayOf(Color.argb(120, 20, 10, 35), Color.argb(10, 20, 10, 35), Color.argb(40, 20, 10, 35), Color.argb(190, 20, 10, 35)),
+                intArrayOf(Color.argb(110, 15, 8, 30), Color.argb(20, 15, 8, 30), Color.argb(30, 15, 8, 30), Color.argb(190, 15, 8, 30)),
             )
         }, FrameLayout.LayoutParams(match))
 
-        // שעון, תאריך וברכה - למעלה מימין
-        val clockBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        greeting = text("", 26f, "#FFFFFF", bold = true).apply { alpha = 0.92f }
-        clock = text("", 120f, "#FFFFFF", bold = true).apply {
-            setLineSpacing(0f, 0.85f)
-            includeFontPadding = false
-            letterSpacing = -0.02f
+        // שעון בסגנון אפל: תאריך קטן למעלה, שעה ענקית ודקה מתחתיו, מזג אוויר בשורה עדינה - הכול במרכז
+        val clockBox = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
         }
-        date = text("", 26f, "#FFFFFF").apply { alpha = 0.9f }
-        listOf(greeting, clock, date).forEach { shadow(it); clockBox.addView(it) }
-        root.addView(clockBox, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP or Gravity.START).apply {
-            marginStart = dp(56); topMargin = dp(40)
-        })
+        date = text("", 24f, "#FFFFFF", weight = 500).apply { alpha = 0.92f; gravity = Gravity.CENTER }
+        clock = text("", 150f, "#FFFFFF", weight = 250).apply {
+            gravity = Gravity.CENTER
+            includeFontPadding = false
+            maxLines = 1
+            isSingleLine = true
+            setPadding(0, dp(-6), 0, dp(-4))
+        }
+        greeting = text("", 1f, "#FFFFFF").apply { visibility = View.GONE }
+        listOf(date, clock).forEach { shadow(it); clockBox.addView(it, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)) }
 
-        // מזג אוויר - בכרטיס זכוכית, מתחת לשעון
         val wBox = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            background = rounded(Color.argb(70, 255, 255, 255), 28f, Color.argb(90, 255, 255, 255))
-            setPadding(dp(22), dp(12), dp(26), dp(12))
+            background = rounded(Color.argb(55, 255, 255, 255), 999f, Color.argb(80, 255, 255, 255))
+            setPadding(dp(18), dp(7), dp(18), dp(7))
             visibility = View.GONE
         }
-        weatherTemp = text("", 44f, "#FFFFFF", bold = true).apply { includeFontPadding = false }
-        weatherText = text("", 19f, "#FFFFFF").apply { setPadding(dp(16), 0, 0, 0); setLineSpacing(0f, 1.1f) }
+        weatherTemp = text("", 22f, "#FFFFFF", weight = 600)
+        weatherText = text("", 18f, "#FFFFFF", weight = 400).apply { alpha = 0.92f; setPadding(dp(12), 0, 0, 0) }
         wBox.addView(weatherTemp)
         wBox.addView(weatherText)
         weatherBox = wBox
-        root.addView(wBox, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP or Gravity.START).apply {
-            marginStart = dp(60); topMargin = dp(262)
+        clockBox.addView(wBox, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = dp(10)
         })
-
-        // כפתור הגדרות - בפינה למעלה
-        gear = text("⚙", 30f, "#FFFFFF").apply {
-            gravity = Gravity.CENTER
-            isFocusable = true
-            background = rounded(Color.argb(70, 255, 255, 255), 999f, Color.argb(110, 255, 255, 255))
-            setOnClickListener { showSettingsMenu() }
-            onFocusChangeListener = focusAnimator(1.15f, round = true)
-        }
-        root.addView(gear, FrameLayout.LayoutParams(dp(64), dp(64), Gravity.TOP or Gravity.END).apply {
-            marginEnd = dp(44); topMargin = dp(40)
+        root.addView(clockBox, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply {
+            topMargin = dp(46)
         })
 
         // שורת המועדפים - למטה
@@ -210,29 +200,42 @@ class HomeActivity : Activity() {
         favRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; clipChildren = false }
         favScroll.addView(favRow)
         bottom.addView(favScroll)
-        bottom.addView(text("▼   כל האפליקציות", 17f, "#FFFFFF").apply {
-            alpha = 0.85f
+        bottom.addView(text("⌄   כל האפליקציות", 16f, "#FFFFFF", weight = 500).apply {
+            alpha = 0.8f
             gravity = Gravity.CENTER
             shadow(this)
-            setPadding(0, dp(2), 0, dp(20))
+            setPadding(0, 0, 0, dp(18))
         }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         root.addView(bottom, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM))
 
-        // רשימת כל האפליקציות - נפתחת מלמטה
+        // רשימת כל האפליקציות - נפתחת מלמטה, על כל רוחב המסך
         drawer = FrameLayout(this).apply {
-            setBackgroundColor(Color.argb(225, 24, 14, 40))
+            setBackgroundColor(Color.argb(232, 22, 13, 38))
             visibility = View.GONE
         }
         drawerScroll = ScrollView(this).apply { isVerticalScrollBarEnabled = false; clipToPadding = false }
         val drawerPage = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(56), dp(34), dp(56), dp(40))
+            setPadding(dp(DRAWER_PAD), dp(30), dp(DRAWER_PAD), dp(40))
         }
-        drawerPage.addView(text("כל האפליקציות", 30f, "#FFFFFF", bold = true))
-        drawerPage.addView(text("לחיצה ארוכה על OK: הוספה למועדפים או הסתרה  ·  חזור: סגירה", 16f, "#C9B8F0").apply {
-            setPadding(0, dp(4), 0, dp(18))
-        })
-        grid = GridLayout(this).apply { columnCount = 7; clipChildren = false }
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val titles = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        titles.addView(text("כל האפליקציות", 28f, "#FFFFFF", weight = 700))
+        titles.addView(text("לחיצה ארוכה על OK: מועדפים או הסתרה  ·  חזור: סגירה", 15f, "#C9B8F0"))
+        header.addView(titles, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        // קיצורים: WiFi, הגדרות, ושלט מהפון
+        header.addView(shortcut("📶  WiFi") { openWifi() })
+        header.addView(shortcut("⚙  הגדרות") { openSettings() })
+        header.addView(shortcut("📱  שלט מהפון") { startActivity(Intent(this, MainActivity::class.java)) })
+        drawerPage.addView(header)
+        grid = GridLayout(this).apply {
+            columnCount = GRID_COLUMNS
+            clipChildren = false
+            setPadding(0, dp(18), 0, 0)
+        }
         drawerPage.addView(grid)
         drawerScroll.addView(drawerPage)
         drawer.addView(drawerScroll, FrameLayout.LayoutParams(match))
@@ -240,16 +243,35 @@ class HomeActivity : Activity() {
         return root
     }
 
+    /** כפתור קיצור בראש רשימת האפליקציות. "למעלה" ממנו סוגר את הרשימה. */
+    private fun shortcut(label: String, onClick: () -> Unit) = text(label, 17f, "#FFFFFF", weight = 500).apply {
+        isFocusable = true
+        gravity = Gravity.CENTER
+        background = rounded(Color.argb(40, 255, 255, 255), 999f, Color.argb(70, 255, 255, 255))
+        setPadding(dp(20), dp(10), dp(20), dp(10))
+        setOnClickListener { onClick() }
+        onFocusChangeListener = focusAnimator(1.08f, light = true, round = true)
+        setOnKeyListener { _, keyCode, event ->
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP && event.action == KeyEvent.ACTION_DOWN) { closeDrawer(); true } else false
+        }
+        layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            marginStart = dp(12)
+        }
+    }
+
+    private fun openWifi() {
+        for (intent in listOf(
+            Intent(Settings.ACTION_WIFI_SETTINGS),
+            Intent().setClassName("com.android.tv.settings", "com.android.tv.settings.connectivity.NetworkActivity"),
+            Intent(Settings.ACTION_WIRELESS_SETTINGS),
+        )) if (tryStart(intent)) return
+        openSettings()
+    }
+
     private fun updateClock() {
         val now = Date()
-        clock.text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(now)
-        date.text = SimpleDateFormat("EEEE, d 'ב'MMMM", Locale("iw")).format(now)
-        greeting.text = when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
-            in 5..11 -> "בוקר טוב"
-            in 12..16 -> "צהריים טובים"
-            in 17..21 -> "ערב טוב"
-            else -> "לילה טוב"
-        }
+        clock.text = SimpleDateFormat("H:mm", Locale.getDefault()).format(now)
+        date.text = SimpleDateFormat("EEEE, d בMMMM", Locale("iw")).format(now)
     }
 
     // ===== תמונות רקע =====
@@ -361,7 +383,7 @@ class HomeActivity : Activity() {
 
         grid.removeAllViews()
         val visible = apps.filter { showHidden || it.pkg !in hidden }
-        for ((i, app) in visible.withIndex()) grid.addView(appTile(app, dimmed = app.pkg in hidden, firstRow = i < 7))
+        for (app in visible) grid.addView(appTile(app, dimmed = app.pkg in hidden))
         grid.addView(actionTile(if (showHidden) "🙈\nהסתר מוסתרות" else "👀\nהצג מוסתרות") {
             showHidden = !showHidden
             render()
@@ -436,7 +458,7 @@ class HomeActivity : Activity() {
         return card
     }
 
-    private fun appTile(app: App, dimmed: Boolean, firstRow: Boolean): View {
+    private fun appTile(app: App, dimmed: Boolean): View {
         val tile = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
@@ -462,8 +484,6 @@ class HomeActivity : Activity() {
         tile.onFocusChangeListener = focusAnimator(1.12f, light = true)
         tile.setOnKeyListener { _, keyCode, event ->
             when {
-                // מהשורה העליונה, "למעלה" חוזר למסך הבית
-                firstRow && keyCode == KeyEvent.KEYCODE_DPAD_UP && event.action == KeyEvent.ACTION_DOWN -> { closeDrawer(); true }
                 keyCode == KeyEvent.KEYCODE_MENU && event.action == KeyEvent.ACTION_UP -> { showAppMenu(app); true }
                 else -> false
             }
@@ -481,10 +501,13 @@ class HomeActivity : Activity() {
         layoutParams = tileParams()
     }
 
+    /** גודל משבצת שממלא את כל רוחב המסך בשורות שלמות. */
     private fun tileParams() = GridLayout.LayoutParams().apply {
-        width = dp(110)
-        height = dp(112)
-        setMargins(dp(7), dp(7), dp(7), dp(7))
+        val usable = designWidth - DRAWER_PAD * 2
+        val size = usable / GRID_COLUMNS - TILE_GAP * 2
+        width = dp(size)
+        height = dp(size)
+        setMargins(dp(TILE_GAP), dp(TILE_GAP), dp(TILE_GAP), dp(TILE_GAP))
     }
 
     private fun openDrawer() {
@@ -554,26 +577,6 @@ class HomeActivity : Activity() {
             .show()
     }
 
-    private fun showSettingsMenu() {
-        val photos = PhotoStore.list(this).size
-        val options = listOf<Pair<String, () -> Unit>>(
-            "⚙  הגדרות הטלוויזיה" to { openSettings() },
-            "📱  שלט מהפון (קוד QR וחיבור)" to { startActivity(Intent(this, MainActivity::class.java)) },
-            "🖼  תמונות רקע ($photos)" to {
-                AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert)
-                    .setTitle("תמונות רקע")
-                    .setMessage("מוסיפים ומוחקים תמונות מהטלפון:\nבשלט ← לשונית \"אפליקציות\" ← \"תמונות רקע למסך הבית\".\n\nשם אפשר גם לבחור כל כמה זמן התמונה מתחלפת.")
-                    .setPositiveButton("הבנתי", null)
-                    .show()
-                Unit
-            },
-        )
-        AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert)
-            .setTitle("הגדרות")
-            .setItems(options.map { it.first }.toTypedArray()) { _, which -> options[which].second() }
-            .show()
-    }
-
     private fun saveFavs(list: List<String>) = prefs.edit().putString("favs2", list.joinToString("|")).apply()
     private fun saveHidden(set: Set<String>) = prefs.edit().putString("hidden", set.joinToString("|")).apply()
 
@@ -639,9 +642,8 @@ class HomeActivity : Activity() {
 
     private fun showWeather(data: JSONObject) {
         val code = data.optInt("code")
-        weatherTemp.text = "${weatherIcon(code)} ${data.optInt("temp")}°"
-        val city = data.optString("city")
-        weatherText.text = "${weatherName(code)}\n${data.optInt("max")}° / ${data.optInt("min")}°" + if (city.isNotBlank()) "  ·  $city" else ""
+        weatherTemp.text = "${weatherIcon(code)}  ${data.optInt("temp")}°"
+        weatherText.text = "${weatherName(code)}  ·  ${data.optInt("max")}° / ${data.optInt("min")}°"
         weatherBox.visibility = View.VISIBLE
     }
 
@@ -672,13 +674,25 @@ class HomeActivity : Activity() {
 
     // ===== עזרים לעיצוב =====
 
-    private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
+    /**
+     * כל המידות מתוכננות למסך בגובה 540 יחידות, ומוגדלות לפי הטלוויזיה -
+     * ככה המסך נראה אותו דבר בכל טלוויזיה ובכל רזולוציה.
+     */
+    private val unit by lazy { resources.displayMetrics.heightPixels / 540f }
+    private val designWidth by lazy { (resources.displayMetrics.widthPixels / unit).toInt() }
 
-    private fun text(value: String, sizeSp: Float, color: String, bold: Boolean = false) = TextView(this).apply {
+    private fun dp(value: Int) = (value * unit).toInt()
+
+    private fun text(value: String, size: Float, color: String, bold: Boolean = false, weight: Int = 0) = TextView(this).apply {
         text = value
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, sizeSp)
+        setTextSize(TypedValue.COMPLEX_UNIT_PX, size * unit)
         setTextColor(Color.parseColor(color))
-        if (bold) typeface = Typeface.DEFAULT_BOLD
+        typeface = when {
+            weight > 0 && android.os.Build.VERSION.SDK_INT >= 28 -> Typeface.create(Typeface.SANS_SERIF, weight, false)
+            weight >= 600 -> Typeface.DEFAULT_BOLD
+            bold -> Typeface.DEFAULT_BOLD
+            else -> Typeface.DEFAULT
+        }
     }
 
     private fun shadow(view: TextView) = view.setShadowLayer(dp(10).toFloat(), 0f, dp(2).toFloat(), Color.argb(130, 20, 10, 40))
@@ -690,6 +704,9 @@ class HomeActivity : Activity() {
     }
 
     companion object {
+        private const val GRID_COLUMNS = 8
+        private const val DRAWER_PAD = 48
+        private const val TILE_GAP = 6
         private val JUNK = Regex("launcher|webview|assist|remote ?service|tester|stub|provider|bridge|setup|wizard|^com\\.|^android", RegexOption.IGNORE_CASE)
     }
 }

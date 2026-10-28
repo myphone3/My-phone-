@@ -15,7 +15,7 @@ import java.io.File
  */
 object PhotoStore {
     private val ID = Regex("^[a-z0-9]{6,24}$")
-    private const val MAX_PARTS = 80
+    private const val MAX_PARTS = 200
     private const val MAX_PHOTOS = 40
     private val main = Handler(Looper.getMainLooper())
 
@@ -35,24 +35,30 @@ object PhotoStore {
         notifyChanged()
     }
 
-    /** מקבל חתיכה אחת של תמונה. כשהחתיכה האחרונה מגיעה - התמונה נשמרת. */
+    /**
+     * מקבל חתיכה אחת של תמונה. כל חתיכה נשמרת בנפרד (כך ששליחה חוזרת של אותה חתיכה לא מקלקלת),
+     * וכשכל החתיכות הגיעו - מחברים אותן לתמונה אחת.
+     */
+    @Synchronized
     fun addPart(context: Context, id: String, part: Int, total: Int, data: String): String? {
-        if (!ID.matches(id) || total !in 1..MAX_PARTS || part !in 0 until total) return "bad request"
+        if (!ID.matches(id) || total !in 1..MAX_PARTS || part !in 0 until total) return "bad_request"
         if (part == 0 && list(context).size >= MAX_PHOTOS) return "too_many"
-        val tmp = File(dir(context), "$id.part")
-        val bytes = try { Base64.decode(data, Base64.DEFAULT) } catch (e: Exception) { return "bad data" }
-        if (part == 0) tmp.delete()
-        tmp.appendBytes(bytes)
-        if (part == total - 1) {
-            val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            BitmapFactory.decodeFile(tmp.path, opts)
-            if (opts.outWidth <= 0) {
-                tmp.delete()
-                return "not an image"
-            }
-            tmp.renameTo(File(dir(context), "$id.jpg"))
-            notifyChanged()
+        val bytes = try { Base64.decode(data, Base64.DEFAULT) } catch (e: Exception) { return "bad_data" }
+        if (bytes.isEmpty()) return "bad_data"
+        val folder = dir(context)
+        File(folder, "$id.part$part").writeBytes(bytes)
+        val parts = (0 until total).map { File(folder, "$id.part$it") }
+        if (parts.any { !it.exists() }) return null
+        val target = File(folder, "$id.jpg")
+        target.outputStream().use { out -> parts.forEach { out.write(it.readBytes()) } }
+        parts.forEach { it.delete() }
+        val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(target.path, opts)
+        if (opts.outWidth <= 0) {
+            target.delete()
+            return "not_image"
         }
+        notifyChanged()
         return null
     }
 
