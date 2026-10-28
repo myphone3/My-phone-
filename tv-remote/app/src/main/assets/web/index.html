@@ -216,6 +216,16 @@
   .app .ico img { width: 100%; height: 100%; object-fit: cover; }
   .app .name { width: 100%; line-height: 1.3; text-align: center; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word; }
   .app .star { position: absolute; top: -5px; left: 6px; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 11px; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm); }
+  .photos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .photo { position: relative; aspect-ratio: 16 / 10; border-radius: 14px; overflow: hidden; background: var(--surface-strong); box-shadow: var(--shadow-sm); }
+  .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo button {
+    position: absolute; top: 6px; left: 6px; min-height: 0; width: 28px; height: 28px; padding: 0; border-radius: 50%;
+    font-size: 14px; line-height: 1; color: #fff; background: rgba(30, 15, 50, .55); border: 0; box-shadow: none;
+  }
+  .photo button.armed { width: auto; padding: 0 10px; border-radius: 999px; background: var(--bad); font-size: 12px; font-weight: 600; }
+  .photo-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; font-size: 13px; color: var(--muted); }
+  .photo-row select { font: inherit; font-size: 14px; color: var(--text); background: var(--surface-strong); border: 1px solid var(--border); border-radius: 12px; padding: 8px 10px; }
   .empty { color: var(--muted); font-size: 13px; grid-column: 1 / -1; text-align: center; padding: 8px 0; }
 
   .welcome { text-align: center; padding: 30px 18px; border-radius: 30px; margin-top: 30px; }
@@ -369,6 +379,23 @@
   <!-- ===== אפליקציות ===== -->
   <main id="view-apps" hidden>
     <input class="field" id="appFilter" dir="auto" placeholder="חיפוש אפליקציה…" autocomplete="off" style="margin-bottom:14px">
+    <section class="card glass" id="photosCard">
+      <h2>תמונות רקע למסך הבית <button id="addPhotos">＋ הוספת תמונות</button></h2>
+      <input type="file" id="photoInput" accept="image/*" multiple hidden>
+      <div class="photos" id="photoGrid"><div class="empty">טוען…</div></div>
+      <div class="photo-row">
+        <label for="photoInterval">התמונה מתחלפת כל</label>
+        <select id="photoInterval">
+          <option value="10">10 שניות</option>
+          <option value="20">20 שניות</option>
+          <option value="30">30 שניות</option>
+          <option value="60">דקה</option>
+          <option value="300">5 דקות</option>
+          <option value="900">15 דקות</option>
+        </select>
+      </div>
+      <p class="note" id="photoStatus" hidden></p>
+    </section>
     <section class="card glass" id="favCard">
       <h2>מועדפים</h2>
       <div class="apps" id="favApps"></div>
@@ -434,8 +461,7 @@
     return {
       mode: 'רשת ביתית',
       call(cmd, args = {}) {
-        const q = new URLSearchParams(args).toString();
-        return fetch('api/' + cmd + (q ? '?' + q : ''), { method: 'POST', cache: 'no-store' })
+        return fetch('api/' + cmd, { method: 'POST', cache: 'no-store', body: new URLSearchParams(args) })
           .then((r) => r.json().catch(() => ({})).then((body) => ({ ok: r.ok, body })));
       },
       fire(cmd, args = {}) {
@@ -544,6 +570,7 @@
     document.querySelectorAll('nav.tabbar button').forEach((b) => b.classList.toggle('on', b.dataset.tab === name));
     store.set('tab', name);
     window.scrollTo(0, 0);
+    if (name === 'apps' && typeof loadPhotos === 'function') setTimeout(loadPhotos, 0);
   }
   document.querySelectorAll('nav.tabbar button').forEach((b) => b.addEventListener('click', () => { buzz(); showTab(b.dataset.tab); }));
   showTab(store.get('tab', 'remote'));
@@ -940,6 +967,99 @@
   $('appFilter').addEventListener('input', renderApps);
   apps = store.get('apps', []);
   if (apps.length) renderApps();
+
+
+  // ===== תמונות רקע למסך הבית =====
+  let photosLoaded = false;
+  function renderPhotos(list) {
+    const box = $('photoGrid');
+    box.innerHTML = '';
+    if (!list.length) {
+      const e = document.createElement('div');
+      e.className = 'empty';
+      e.textContent = 'עוד אין תמונות. הוסיפו תמונות מהגלריה, והן יתחלפו ברקע של מסך הבית בטלוויזיה.';
+      box.appendChild(e);
+      return;
+    }
+    list.forEach((p) => {
+      const tile = document.createElement('div');
+      tile.className = 'photo';
+      const img = document.createElement('img');
+      img.alt = ''; img.src = 'data:image/jpeg;base64,' + p.thumb;
+      const del = document.createElement('button');
+      del.textContent = '✕'; del.setAttribute('aria-label', 'מחיקה');
+      let armed = null;
+      del.onclick = () => {
+        if (!del.classList.contains('armed')) {
+          del.classList.add('armed'); del.textContent = 'למחוק?';
+          armed = setTimeout(() => { del.classList.remove('armed'); del.textContent = '✕'; }, 3000);
+          return;
+        }
+        clearTimeout(armed);
+        call('photo_delete', { id: p.id }).then((r) => { toast(r.ok ? 'התמונה נמחקה' : 'לא הצלחתי למחוק'); loadPhotos(); });
+      };
+      tile.append(img, del);
+      box.appendChild(tile);
+    });
+  }
+  function loadPhotos() {
+    call('photos').then((r) => {
+      if (!r.ok) { $('photoGrid').innerHTML = '<div class="empty">לא הצלחתי לטעון את התמונות</div>'; return; }
+      photosLoaded = true;
+      renderPhotos(r.body.photos || []);
+      const sel = $('photoInterval');
+      if ([...sel.options].some((o) => +o.value === r.body.interval)) sel.value = String(r.body.interval);
+    });
+  }
+  $('photoInterval').onchange = () => call('photo_interval', { sec: $('photoInterval').value }).then((r) => toast(r.ok ? 'נשמר ✓' : 'לא נשמר'));
+  $('addPhotos').onclick = () => $('photoInput').click();
+
+  // מקטינים כל תמונה לגודל של טלוויזיה (עד 1920 פיקסלים) ושולחים בחתיכות קטנות
+  function shrink(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, 1920 / Math.max(img.naturalWidth, img.naturalHeight));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.naturalWidth * scale); c.height = Math.round(img.naturalHeight * scale);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL('image/jpeg', 0.85).split(',')[1]);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('bad image')); };
+      img.src = url;
+    });
+  }
+  async function upload(files) {
+    const status = $('photoStatus');
+    status.hidden = false;
+    let done = 0;
+    for (const [i, file] of files.entries()) {
+      try {
+        status.textContent = `מעלה תמונה ${i + 1} מתוך ${files.length}…`;
+        const data = await shrink(file);
+        const id = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+        const size = 48000, total = Math.ceil(data.length / size);
+        for (let part = 0; part < total; part++) {
+          status.textContent = `מעלה תמונה ${i + 1} מתוך ${files.length}… ${Math.round(((part + 1) / total) * 100)}%`;
+          const r = await call('photo_add', { id, part, total, data: data.slice(part * size, (part + 1) * size) });
+          if (!r.ok) throw new Error(r.body && r.body.error === 'too_many' ? 'הגעתם למקסימום של 40 תמונות' : 'השליחה נכשלה');
+        }
+        done++;
+      } catch (e) {
+        toast(e.message === 'bad image' ? 'אחת התמונות לא נפתחה' : e.message);
+      }
+    }
+    status.hidden = true;
+    if (done) toast(done === 1 ? 'התמונה נוספה למסך הבית ✓' : `${done} תמונות נוספו למסך הבית ✓`);
+    loadPhotos();
+  }
+  $('photoInput').onchange = () => {
+    const files = [...$('photoInput').files];
+    $('photoInput').value = '';
+    if (files.length) upload(files);
+  };
 
   // ===== שם הטלוויזיה (לחיצה על השם משנה אותו, לכל הטלפונים) =====
   $('tvName').addEventListener('click', () => {

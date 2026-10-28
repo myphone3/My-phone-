@@ -8,6 +8,10 @@ import java.io.ByteArrayInputStream
 class WebServer(private val context: Context, port: Int) : NanoHTTPD(port) {
 
     override fun serve(session: IHTTPSession): Response {
+        // פקודות גדולות (למשל חתיכות של תמונה) מגיעות בגוף הבקשה ולא בכתובת
+        if (session.method == Method.POST) {
+            try { session.parseBody(HashMap()) } catch (e: Exception) { }
+        }
         val params = session.parameters.mapValues { it.value.firstOrNull().orEmpty() }
         val uri = session.uri
         return try {

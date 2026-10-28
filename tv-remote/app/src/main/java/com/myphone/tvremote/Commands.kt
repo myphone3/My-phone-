@@ -80,6 +80,25 @@ object Commands {
         }
         "launch" -> if (Apps.launch(context, params["pkg"].orEmpty())) ok() else fail("not found")
         "reconnect" -> { AdbBridge.reconnect(); ok() }
+        "photos" -> {
+            val list = JSONArray()
+            for (file in PhotoStore.list(context)) {
+                list.put(JSONObject().put("id", file.nameWithoutExtension).put("thumb", PhotoStore.thumb(file)))
+            }
+            ok(JSONObject().put("photos", list).put("interval", PhotoStore.intervalSec(context)))
+        }
+        "photo_add" -> {
+            val error = PhotoStore.addPart(
+                context, params["id"].orEmpty(),
+                params["part"]?.toIntOrNull() ?: -1, params["total"]?.toIntOrNull() ?: 0, params["data"].orEmpty(),
+            )
+            if (error == null) ok() else fail(error)
+        }
+        "photo_delete" -> if (PhotoStore.delete(context, params["id"].orEmpty())) ok() else fail("not found")
+        "photo_interval" -> {
+            PhotoStore.setInterval(context, params["sec"]?.toIntOrNull() ?: 20)
+            ok()
+        }
         "rename" -> {
             val name = params["name"].orEmpty().trim()
             if (name.isEmpty() || name.length > 30) fail("bad name") else {
