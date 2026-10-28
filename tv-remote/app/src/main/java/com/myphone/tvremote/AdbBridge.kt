@@ -33,6 +33,7 @@ object AdbBridge {
 
     @Volatile var connected = false
         private set
+    @Volatile private var everConnected = false
     @Volatile var status = "מתחבר…"
         private set
 
@@ -155,10 +156,12 @@ object AdbBridge {
         for (port in PORTS) {
             val candidate = Dadb.create("127.0.0.1", port, keys, connectTimeout = 2000)
             try {
-                status = "ממתין לאישור על מסך הטלוויזיה… (סמנו \"אפשר תמיד\")"
+                // ההודעה הזו רלוונטית רק בחיבור הראשון; בחיבור מחדש שקט לא משנים את מה שכתוב על המסך
+                if (!everConnected) status = "ממתין לאישור על מסך הטלוויזיה… (סמנו \"אפשר תמיד\")"
                 candidate.shell("echo ok")
                 dadb = candidate
                 connected = true
+                everConnected = true
                 status = "מחובר ✓ אפשר לשלוט מהטלפון"
                 keepAlive(candidate)
                 return candidate
@@ -168,7 +171,7 @@ object AdbBridge {
             }
         }
         connected = false
-        status = "אין חיבור ל-ADB. צריך להדליק ניפוי באגים באפשרויות למפתחים, ואז ללחוץ \"התחבר מחדש\"."
+        if (!everConnected) status = "אין חיבור ל-ADB. צריך להדליק ניפוי באגים באפשרויות למפתחים, ואז ללחוץ \"התחבר מחדש\"."
         throw lastError ?: IllegalStateException("no adb port")
     }
 

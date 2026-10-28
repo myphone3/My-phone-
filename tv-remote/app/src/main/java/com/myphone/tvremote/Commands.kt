@@ -27,7 +27,12 @@ object Commands {
         }
         "key" -> {
             val code = KEYS[params["k"]]
-            if (code == null) fail("unknown key") else {
+            if (code == null) fail("unknown key") else if (params["k"] == "HOME") {
+                // "בית" בשלט שלנו פותח את מסך הבית שלנו
+                CursorOverlay.hide()
+                AdbBridge.shell("am start -n ${context.packageName}/${context.packageName}.HomeActivity")
+                ok()
+            } else {
                 CursorOverlay.hide()
                 AdbBridge.sendKeys(code, (params["n"]?.toIntOrNull() ?: 1).coerceIn(1, 10))
                 ok()
@@ -56,8 +61,10 @@ object Commands {
         "youtube" -> {
             val query = params["q"].orEmpty().trim()
             if (query.isEmpty() || query.length > 300) fail("empty") else {
-                AdbBridge.youtubeSearch(query, Apps.youtubeApp(context))
-                ok()
+                val smartTube = Apps.smartTubeSearch(context, query)
+                if (smartTube != null) AdbBridge.shell(smartTube)
+                else AdbBridge.youtubeSearch(query, Apps.youtubeApp(context))
+                ok(JSONObject().put("ok", true).put("app", if (smartTube != null) "smarttube" else "youtube"))
             }
         }
         "apps" -> {

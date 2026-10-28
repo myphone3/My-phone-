@@ -93,12 +93,16 @@
   h1 { cursor: pointer; }
   h1::after { content: " ✎"; font-size: 13px; color: var(--muted); font-weight: 400; }
   h1 { font-size: 18px; margin: 0; font-weight: 700; letter-spacing: -.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .chip { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); padding: 7px 11px; border-radius: 999px; flex: none; }
+  .chip { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; border-radius: 50%; flex: none; }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 3px rgba(251, 191, 36, .2); }
   .dot.ok { background: var(--ok); box-shadow: 0 0 0 3px rgba(52, 211, 153, .22); }
   .dot.bad { background: var(--bad); box-shadow: 0 0 0 3px rgba(251, 113, 133, .22); }
 
-  .banner { border-radius: 20px; padding: 12px 14px; font-size: 13px; line-height: 1.55; margin-bottom: 14px; color: var(--text); }
+  .banner {
+    position: fixed; z-index: 25; left: 50%; transform: translateX(-50%); top: calc(10px + env(safe-area-inset-top));
+    width: min(calc(100% - 32px), 440px); border-radius: 20px; padding: 12px 14px; font-size: 13px; line-height: 1.55; color: var(--text);
+    animation: fade .2s ease;
+  }
   .banner b { color: var(--bad); }
 
   button {
@@ -195,8 +199,6 @@
   input.field:focus { border-color: var(--accent-b); }
   .search-row { display: flex; gap: 10px; }
   .search-row input { flex: 1; min-width: 0; }
-  .mic { width: 56px; flex: none; border: 0; background: var(--accent); color: #fff; box-shadow: 0 8px 20px rgba(167, 139, 250, .4); }
-  .mic.listening { animation: pulse 1s ease-in-out infinite; }
   @keyframes pulse { 50% { box-shadow: 0 0 0 10px rgba(255, 143, 163, .25); } }
   .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
   .actions button { font-weight: 600; font-size: 15px; }
@@ -256,7 +258,7 @@
       <img src="logo.png" alt="">
       <div><h1 id="tvName">שלט מהפון</h1><small id="modeText"></small></div>
     </div>
-    <div class="chip glass"><span class="dot" id="dot"></span><span id="statusText">מתחבר…</span></div>
+    <div class="chip glass" id="chip"><span class="dot" id="dot"></span><span id="statusText" hidden></span></div>
   </header>
 
   <div class="banner glass" id="offline" hidden><b>אין קשר לטלוויזיה.</b> בדקו שהיא דולקת ומחוברת לאינטרנט. אם היא בדיוק נדלקה, חכו חצי דקה.</div>
@@ -344,14 +346,13 @@
       <h2>מה מחפשים היום?</h2>
       <div class="search-row">
         <input class="field" id="query" dir="auto" placeholder="עברית או אנגלית…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
-        <button class="mic" id="mic" aria-label="חיפוש קולי"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button>
       </div>
       <div class="actions">
-        <button class="btn-yt" id="ytSearch">חפש ביוטיוב</button>
+        <button class="btn-yt" id="ytSearch">חפש ב-SmartTube</button>
         <button class="btn-accent" id="typeOnTv">כתוב בטלוויזיה</button>
       </div>
       <p class="note">
-        <b>חפש ביוטיוב</b> פותח ישר את תוצאות החיפוש.<br>
+        <b>חפש ב-SmartTube</b> פותח ישר את תוצאות החיפוש.<br>
         <b>כתוב בטלוויזיה</b> כותב בשדה שבחרתם בטלוויזיה, בכל אפליקציה.
       </p>
     </section>
@@ -789,7 +790,7 @@
     const q = query.value.trim();
     if (!q) { query.focus(); return toast('כתבו קודם מה לחפש'); }
     buzz();
-    call('youtube', { q }).then((r) => toast(r.ok ? 'פותח ביוטיוב…' : 'לא הצלחתי לפתוח את יוטיוב'));
+    call('youtube', { q }).then((r) => toast(!r.ok ? 'לא הצלחתי לפתוח' : r.body && r.body.app === 'youtube' ? 'SmartTube לא נמצא - פותח ביוטיוב…' : 'מחפש ב-SmartTube…'));
   }
   function typeOnTv(text, thenSubmit) {
     buzz();
@@ -814,25 +815,6 @@
   $('submitTv').onclick = () => { buzz(); call('submit'); };
   query.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); query.blur(); youtube(); } });
 
-  // חיפוש קולי: בקישור המאובטח (https) - זיהוי דיבור מובנה בעברית. אחרת - המיקרופון של המקלדת.
-  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  $('mic').onclick = () => {
-    buzz();
-    if (Recognition && window.isSecureContext) {
-      const rec = new Recognition();
-      rec.lang = 'he-IL'; rec.interimResults = false; rec.maxAlternatives = 1;
-      $('mic').classList.add('listening');
-      toast('מקשיב… דברו עכשיו');
-      rec.onresult = (e) => { query.value = e.results[0][0].transcript; youtube(); };
-      rec.onend = () => $('mic').classList.remove('listening');
-      rec.onerror = () => { $('mic').classList.remove('listening'); toast('לא שמעתי, נסו שוב'); };
-      rec.start();
-      return;
-    }
-    query.value = '';
-    query.focus();
-    toast('לחצו על 🎤 במקלדת של הטלפון ודברו');
-  };
 
   // ===== אפליקציות =====
   const DEFAULT_FAVS = ['com.teamsmart.videomanager.tv', 'com.liskovsoft.smarttubetv', 'com.google.android.youtube.tv',
@@ -971,9 +953,14 @@
   });
 
   // ===== מצב החיבור =====
+  // רענון שקט: לא מציגים "מתחבר/מנותק" על כל תקלה קטנה. רק אם אין תשובה שלוש פעמים ברצף.
+  let misses = 0;
   function setOnline(online) {
-    $('offline').hidden = online;
-    if (!online) setStatus('bad', 'מנותק');
+    misses = online ? 0 : misses + 1;
+    const down = misses >= 3;
+    $('offline').hidden = !down;
+    if (online) $('dot').className = 'dot ok';
+    else if (down) $('dot').className = 'dot bad';
   }
   function setStatus(kind, text) {
     $('dot').className = 'dot' + (kind === 'ok' ? ' ok' : kind === 'bad' ? ' bad' : '');

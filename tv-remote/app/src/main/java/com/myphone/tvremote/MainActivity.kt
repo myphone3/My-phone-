@@ -30,8 +30,6 @@ class MainActivity : Activity() {
             address.text = "ברשת הביתית: " + RemoteService.address()
             status.text = (if (AdbBridge.connected) "🟢 " else "🟡 ") + AdbBridge.status +
                 (if (RemoteAccessibility.instance != null) "  ·  עולה לבד בהדלקה ✓" else "")
-            findViewById<Button>(R.id.btn_home).text =
-                if (homeIsOurs()) "מסך הבית שלנו ✓ (להחזיר?)" else "מסך הבית שלנו"
             cloud.text = if (CloudRelay.online) "🟢 מחובר לאינטרנט: אפשר לשלוט מכל רשת" else "🟡 מתחבר לאינטרנט…"
             handler.postDelayed(this, 1500)
         }
@@ -78,12 +76,17 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        updateHomeButton()
         handler.post(refresh)
     }
 
     override fun onPause() {
         handler.removeCallbacks(refresh)
         super.onPause()
+    }
+
+    private fun updateHomeButton() {
+        findViewById<Button>(R.id.btn_home).text = if (homeIsOurs()) "מסך הבית המקורי" else "מסך הבית שלנו"
     }
 
     private val homeIntent get() = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
@@ -112,6 +115,7 @@ class MainActivity : Activity() {
             }
             AdbBridge.shell("cmd package set-home-activity $original")
             Toast.makeText(this, "מסך הבית המקורי חזר", Toast.LENGTH_LONG).show()
+            handler.postDelayed({ updateHomeButton() }, 1500)
             try {
                 startActivity(Intent(homeIntent).setClassName(original.substringBefore('/'), original.substringAfter('/')).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             } catch (_: Exception) {

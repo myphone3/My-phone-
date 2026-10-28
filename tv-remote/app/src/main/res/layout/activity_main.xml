@@ -52,6 +52,7 @@
 
         <TextView
             android:id="@+id/status"
+            android:minWidth="440dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
@@ -63,6 +64,7 @@
 
         <TextView
             android:id="@+id/cloud"
+            android:minWidth="440dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
