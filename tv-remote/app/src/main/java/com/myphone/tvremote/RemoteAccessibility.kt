@@ -4,6 +4,8 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.graphics.Path
 import android.graphics.Rect
+import android.content.Intent
+import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 
@@ -21,6 +23,22 @@ class RemoteAccessibility : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
+
+    /**
+     * כשמסך הבית שלנו מופעל: כפתור "בית" בשלט המקורי פותח אותו,
+     * גם אם היצרן קיבע את הכפתור למסך הבית שלו.
+     */
+    override fun onKeyEvent(event: KeyEvent): Boolean {
+        if (event.keyCode != KeyEvent.KEYCODE_HOME || !homeTakeover(this)) return false
+        if (event.action == KeyEvent.ACTION_UP) {
+            try {
+                startActivity(Intent(this, HomeActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP))
+            } catch (e: Exception) {
+                return false
+            }
+        }
+        return true
+    }
 
     override fun onInterrupt() {}
 
@@ -113,6 +131,9 @@ class RemoteAccessibility : AccessibilityService() {
     }
 
     companion object {
+        fun homeTakeover(context: android.content.Context) =
+            context.getSharedPreferences("home", MODE_PRIVATE).getBoolean("takeover", false)
+
         // באפליקציות האלה נגיעה אמיתית מדויקת יותר (אתרים, כפתורים קטנים)
         private val TOUCH_FIRST_APPS = setOf(
             "com.android.chrome", "org.chromium.webview_shell", "com.opera.browser",

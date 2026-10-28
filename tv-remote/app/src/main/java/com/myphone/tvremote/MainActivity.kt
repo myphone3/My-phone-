@@ -92,7 +92,8 @@ class MainActivity : Activity() {
     private val homeIntent get() = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
 
     private fun homeIsOurs(): Boolean =
-        packageManager.resolveActivity(homeIntent, PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo?.packageName == packageName
+        getSharedPreferences("home", MODE_PRIVATE).getBoolean("takeover", false) ||
+            packageManager.resolveActivity(homeIntent, PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo?.packageName == packageName
 
     /** מחליף בין מסך הבית שלנו למסך הבית המקורי של הטלוויזיה (דרך ADB, בלי לשאול כל פעם). */
     private fun toggleHome() {
@@ -104,13 +105,16 @@ class MainActivity : Activity() {
                     .firstOrNull { it.packageName != packageName }
                     ?.let { prefs.edit().putString("original", "${it.packageName}/${it.name}").apply() }
             }
+            prefs.edit().putBoolean("takeover", true).apply()
             AdbBridge.shell("cmd package set-home-activity $packageName/$packageName.HomeActivity")
             Toast.makeText(this, "מסך הבית החדש מופעל ✓ לחצו על \"בית\" בשלט", Toast.LENGTH_LONG).show()
             startActivity(Intent(this, HomeActivity::class.java))
         } else {
             val original = prefs.getString("original", null)
+            prefs.edit().putBoolean("takeover", false).apply()
             if (original == null) {
-                Toast.makeText(this, "לא מצאתי את מסך הבית המקורי", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "מסך הבית המקורי חזר", Toast.LENGTH_LONG).show()
+                handler.postDelayed({ updateHomeButton() }, 500)
                 return
             }
             AdbBridge.shell("cmd package set-home-activity $original")
