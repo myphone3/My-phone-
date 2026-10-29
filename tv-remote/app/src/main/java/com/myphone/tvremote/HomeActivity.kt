@@ -10,6 +10,9 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -70,6 +73,8 @@ class HomeActivity : Activity() {
     private var photoIndex = 0
     private var frontBitmap: Bitmap? = null
     private var favWidth = 200
+    private val wifiIcons = mutableListOf<ImageView>()
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
     private val prefs by lazy { getSharedPreferences("home", Context.MODE_PRIVATE) }
 
@@ -97,6 +102,7 @@ class HomeActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        watchWifi()
         main.post(tick)
         PhotoStore.listener = { restartSlideshow() }
         restartSlideshow()
@@ -105,6 +111,8 @@ class HomeActivity : Activity() {
     }
 
     override fun onPause() {
+        networkCallback?.let { cb -> try { getSystemService(ConnectivityManager::class.java)?.unregisterNetworkCallback(cb) } catch (e: Exception) { } }
+        networkCallback = null
         main.removeCallbacks(tick)
         main.removeCallbacks(slideshow)
         PhotoStore.listener = null
@@ -186,6 +194,13 @@ class HomeActivity : Activity() {
             topMargin = dp(46)
         })
 
+        // סמל WiFi קטן בפינה העליונה, כמו בשורת המצב של אפל
+        val statusWifi = ImageView(this).apply { setImageResource(R.drawable.ic_wifi_line); alpha = 0.95f }
+        wifiIcons += statusWifi
+        root.addView(statusWifi, FrameLayout.LayoutParams(dp(26), dp(26), Gravity.TOP or Gravity.RIGHT).apply {
+            rightMargin = dp(SAFE_SIDE); topMargin = dp(32)
+        })
+
         // שורת המועדפים - למטה
         val bottom = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -234,7 +249,7 @@ class HomeActivity : Activity() {
         titles.addView(text("לחיצה ארוכה על OK: מועדפים או הסתרה  ·  חזור: סגירה", 15f, "#C9B8F0"))
         header.addView(titles, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         // קיצורים: WiFi, הגדרות, ושלט מהפון
-        header.addView(iconButton(R.drawable.ic_wifi_line) { openWifi() })
+        header.addView(iconButton(R.drawable.ic_wifi_line) { openWifi() }.also { wifiIcons += (it as ViewGroup).getChildAt(0) as ImageView })
         header.addView(iconButton(R.drawable.ic_settings_line) { openSettings() })
         drawerPage.addView(header)
         grid = GridLayout(this).apply {
@@ -263,6 +278,32 @@ class HomeActivity : Activity() {
         }
         button.addView(ImageView(this).apply { setImageResource(icon) }, FrameLayout.LayoutParams(dp(26), dp(26), Gravity.CENTER))
         return button
+    }
+
+    /** WiFi מחובר: סמל לבן. לא מחובר: סמל אפור עם איקס קטן. מתעדכן מיד כשהחיבור משתנה. */
+    private fun watchWifi() {
+        val cm = getSystemService(ConnectivityManager::class.java) ?: return
+        fun update() {
+            val caps = cm.getNetworkCapabilities(cm.activeNetwork)
+            val online = caps != null &&
+                caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
+            main.post {
+                wifiIcons.forEach { it.setImageResource(if (online) R.drawable.ic_wifi_line else R.drawable.ic_wifi_off_line) }
+            }
+        }
+        update()
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) = update()
+            override fun onLost(network: Network) = update()
+            override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) = update()
+        }
+        try {
+            cm.registerDefaultNetworkCallback(callback)
+            networkCallback = callback
+        } catch (e: Exception) {
+            Log.w("HomeActivity", "network callback", e)
+        }
     }
 
     private fun openWifi() {
