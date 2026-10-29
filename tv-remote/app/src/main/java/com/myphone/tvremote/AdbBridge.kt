@@ -197,31 +197,38 @@ object AdbBridge {
         fixKeyboard()
     }
 
-    /** מחזיר מקלדת רגילה, כדי שהשלט הפיזי של הטלוויזיה תמיד יראה מקלדת על המסך. */
+    /** מחזיר מקלדת רגילה, כדי שהשלט הפיזי של הטלוויזיה תמיד יראה מקלדת על המסך. Gboard קודם, אם מותקן. */
     private fun restoreKeyboard() {
         if (RemoteIme.instance == null) return
-        val target = previousKeyboard?.takeIf { it != ourKeyboard } ?: bestKeyboard()
+        val target = gboard() ?: previousKeyboard?.takeIf { it != ourKeyboard } ?: bestKeyboard()
         if (target != null) run("ime set $target")
     }
 
+    private fun installedKeyboards(): List<String> =
+        run("ime list -a -s")?.lines()?.map { it.trim() }?.filter { SAFE_ARG.matches(it) && it != ourKeyboard }.orEmpty()
+
+    /** המקלדת של גוגל (Gboard), אם הותקנה - בכל גרסה שלה. */
+    private fun gboard(): String? = installedKeyboards().firstOrNull { it.startsWith("com.google.android.inputmethod.latin/") }
+        ?: installedKeyboards().firstOrNull { it.contains("gboard", ignoreCase = true) || it.startsWith("com.google.android.tvkeyboard") }
+
     /**
-     * בדיקה בכל חיבור: אם נשארה דלוקה המקלדת השקופה שלנו (למשל כי הטלוויזיה כבתה באמצע הקלדה)
-     * - מחזירים מקלדת רגילה. אם הותקנה המקלדת של גוגל (Gboard) - מפעילים אותה.
+     * בדיקה בכל חיבור: אם הותקנה המקלדת של גוגל (Gboard) - היא תמיד המקלדת של הטלוויזיה.
+     * אחרת, אם נשארה דלוקה המקלדת השקופה שלנו (למשל כי הטלוויזיה כבתה באמצע הקלדה) - מחזירים מקלדת רגילה.
      */
     private fun fixKeyboard() {
         try {
-            val gboard = "com.google.android.inputmethod.latin/com.android.inputmethod.latin.LatinIME"
-            val installed = run("ime list -a -s")?.lines()?.map { it.trim() }?.filter { it.isNotBlank() }.orEmpty()
-            if (gboard in installed) run("ime enable $gboard")
             val current = run("settings get secure default_input_method")?.trim()
-            if (current == null || current == "null" || current.isBlank() || current == ourKeyboard) {
-                val target = (if (gboard in installed) gboard else null)
-                    ?: previousKeyboard?.takeIf { it != ourKeyboard && it in installed }
-                    ?: bestKeyboard()
-                if (target != null) {
-                    run("ime enable $target")
-                    run("ime set $target")
-                }
+            val google = gboard()
+            val target = when {
+                google != null && current != google -> google
+                current == null || current == "null" || current.isBlank() || current == ourKeyboard ->
+                    previousKeyboard?.takeIf { it != ourKeyboard } ?: bestKeyboard()
+                else -> null
+            }
+            if (target != null) {
+                run("ime enable $target")
+                run("ime set $target")
+                if (target == google) previousKeyboard = google
             }
         } catch (e: Exception) {
             Log.w(TAG, "keyboard", e)
@@ -230,12 +237,15 @@ object AdbBridge {
 
     /** המקלדת הכי מתאימה שמותקנת (חוץ משלנו): גוגל, מקלדת הטלוויזיה, ואז כל מקלדת אחרת. */
     private fun bestKeyboard(): String? {
-        val list = run("ime list -a -s")?.lines()?.map { it.trim() }?.filter { SAFE_ARG.matches(it) && it != ourKeyboard }.orEmpty()
+        val list = installedKeyboards()
         return list.firstOrNull { it.startsWith("com.google.android.inputmethod.latin") }
             ?: list.firstOrNull { it.contains("leanback", ignoreCase = true) }
             ?: list.firstOrNull { it.startsWith("com.android.inputmethod") }
             ?: list.firstOrNull()
     }
+
+    /** מפעיל את Gboard עכשיו (נקרא גם מהטלפון). */
+    fun useGboard() = worker.execute { fixKeyboard() }
 
     @Volatile private var lastA11yFix = 0L
 
