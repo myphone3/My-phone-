@@ -15,6 +15,7 @@ object Commands {
     fun handle(context: Context, command: String, params: Map<String, String>): Result = when (command) {
         "status" -> {
             AdbBridge.ensureConnected()
+            AdbBridge.ensureAccessibility()
             ok(
             JSONObject()
                 .put("connected", AdbBridge.connected)
@@ -48,7 +49,10 @@ object Commands {
             CursorOverlay.move(dx.coerceIn(-400f, 400f), dy.coerceIn(-400f, 400f))
             ok()
         }
-        "click" -> ok(JSONObject().put("ok", true).put("how", CursorOverlay.click()))
+        "click" -> {
+            AdbBridge.ensureAccessibility()
+            ok(JSONObject().put("ok", true).put("how", CursorOverlay.click()))
+        }
         "longpress" -> { CursorOverlay.longPress(); ok() }
         "scroll" -> {
             CursorOverlay.scroll(

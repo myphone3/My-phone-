@@ -28,7 +28,10 @@ object AdbBridge {
     private var keyPair: AdbKeyPair? = null
     private var dadb: Dadb? = null
     private var packageName = ""
-    private var previousKeyboard: String? = null
+    private var prefs: android.content.SharedPreferences? = null
+    private var previousKeyboard: String?
+        get() = prefs?.getString("prev_ime", null)
+        set(value) { prefs?.edit()?.putString("prev_ime", value)?.apply() }
     private var restoreTask: ScheduledFuture<*>? = null
 
     @Volatile var connected = false
@@ -42,6 +45,7 @@ object AdbBridge {
     fun init(context: Context) {
         if (keyPair != null) return
         packageName = context.packageName
+        prefs = context.getSharedPreferences("adb", Context.MODE_PRIVATE)
         val priv = File(context.filesDir, "adbkey")
         val pub = File(context.filesDir, "adbkey.pub")
         if (!priv.exists() || !pub.exists()) AdbKeyPair.generate(priv, pub)
@@ -128,7 +132,7 @@ object AdbBridge {
     private fun scheduleKeyboardRestore() {
         restoreTask?.cancel(false)
         restoreTask = timer.schedule({
-            worker.execute { previousKeyboard?.let { run("ime set $it") } }
+            worker.execute { restoreKeyboard() }
         }, RESTORE_KEYBOARD_AFTER_SEC, TimeUnit.SECONDS)
     }
 
@@ -190,6 +194,72 @@ object AdbBridge {
             try { dadb.shell(command) } catch (e: Exception) { Log.w(TAG, "keepAlive: $command", e) }
         }
         enableAccessibility(dadb)
+        fixKeyboard()
+    }
+
+    /** מחזיר מקלדת רגילה, כדי שהשלט הפיזי של הטלוויזיה תמיד יראה מקלדת על המסך. */
+    private fun restoreKeyboard() {
+        if (RemoteIme.instance == null) return
+        val target = previousKeyboard?.takeIf { it != ourKeyboard } ?: bestKeyboard()
+        if (target != null) run("ime set $target")
+    }
+
+    /**
+     * בדיקה בכל חיבור: אם נשארה דלוקה המקלדת השקופה שלנו (למשל כי הטלוויזיה כבתה באמצע הקלדה)
+     * - מחזירים מקלדת רגילה. אם הותקנה המקלדת של גוגל (Gboard) - מפעילים אותה.
+     */
+    private fun fixKeyboard() {
+        try {
+            val gboard = "com.google.android.inputmethod.latin/com.android.inputmethod.latin.LatinIME"
+            val installed = run("ime list -a -s")?.lines()?.map { it.trim() }?.filter { it.isNotBlank() }.orEmpty()
+            if (gboard in installed) run("ime enable $gboard")
+            val current = run("settings get secure default_input_method")?.trim()
+            if (current == null || current == "null" || current.isBlank() || current == ourKeyboard) {
+                val target = (if (gboard in installed) gboard else null)
+                    ?: previousKeyboard?.takeIf { it != ourKeyboard && it in installed }
+                    ?: bestKeyboard()
+                if (target != null) {
+                    run("ime enable $target")
+                    run("ime set $target")
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "keyboard", e)
+        }
+    }
+
+    /** המקלדת הכי מתאימה שמותקנת (חוץ משלנו): גוגל, מקלדת הטלוויזיה, ואז כל מקלדת אחרת. */
+    private fun bestKeyboard(): String? {
+        val list = run("ime list -a -s")?.lines()?.map { it.trim() }?.filter { SAFE_ARG.matches(it) && it != ourKeyboard }.orEmpty()
+        return list.firstOrNull { it.startsWith("com.google.android.inputmethod.latin") }
+            ?: list.firstOrNull { it.contains("leanback", ignoreCase = true) }
+            ?: list.firstOrNull { it.startsWith("com.android.inputmethod") }
+            ?: list.firstOrNull()
+    }
+
+    @Volatile private var lastA11yFix = 0L
+
+    /** אם שירות הנגישות נכבה (ובלעדיו העכבר לא יכול ללחוץ) - מדליקים אותו מחדש. לכל היותר פעם ב-20 שניות. */
+    fun ensureAccessibility() {
+        if (RemoteAccessibility.instance != null || !connected) return
+        val now = System.currentTimeMillis()
+        if (now - lastA11yFix < 20_000) return
+        lastA11yFix = now
+        worker.execute {
+            val d = dadb ?: return@execute
+            try {
+                // מכבים ומדליקים, כדי שהמערכת תחבר את השירות מחדש
+                val ours = "$packageName/$packageName.RemoteAccessibility"
+                val current = d.shell("settings get secure enabled_accessibility_services").output.trim()
+                val others = current.split(':').filter { it.isNotBlank() && it != "null" && it != ours && it != "$packageName/.RemoteAccessibility" }
+                d.shell("settings put secure enabled_accessibility_services '${others.joinToString(":").ifEmpty { "null" }}'")
+                Thread.sleep(500)
+                d.shell("settings put secure enabled_accessibility_services '${(others + ours).joinToString(":")}'")
+                d.shell("settings put secure accessibility_enabled 1")
+            } catch (e: Exception) {
+                Log.w(TAG, "a11y fix", e)
+            }
+        }
     }
 
     /**
