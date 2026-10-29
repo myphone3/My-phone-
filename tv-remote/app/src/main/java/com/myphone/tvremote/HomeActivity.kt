@@ -113,6 +113,7 @@ class HomeActivity : Activity() {
     override fun onPause() {
         networkCallback?.let { cb -> try { getSystemService(ConnectivityManager::class.java)?.unregisterNetworkCallback(cb) } catch (e: Exception) { } }
         networkCallback = null
+        main.removeCallbacks(wifiCheck)
         main.removeCallbacks(tick)
         main.removeCallbacks(slideshow)
         PhotoStore.listener = null
@@ -197,8 +198,8 @@ class HomeActivity : Activity() {
         // סמל WiFi קטן בפינה העליונה, כמו בשורת המצב של אפל
         val statusWifi = ImageView(this).apply { setImageResource(R.drawable.ic_wifi_line); alpha = 0.95f }
         wifiIcons += statusWifi
-        root.addView(statusWifi, FrameLayout.LayoutParams(dp(26), dp(26), Gravity.TOP or Gravity.RIGHT).apply {
-            rightMargin = dp(SAFE_SIDE); topMargin = dp(32)
+        root.addView(statusWifi, FrameLayout.LayoutParams(dp(26), dp(26), Gravity.TOP or Gravity.LEFT).apply {
+            leftMargin = dp(SAFE_SIDE); topMargin = dp(32)
         })
 
         // שורת המועדפים - למטה
@@ -280,29 +281,44 @@ class HomeActivity : Activity() {
         return button
     }
 
-    /** WiFi מחובר: סמל לבן. לא מחובר: סמל אפור עם איקס קטן. מתעדכן מיד כשהחיבור משתנה. */
+    /**
+     * WiFi מחובר עם אינטרנט שעובד: סמל לבן. אחרת: סמל אפור עם איקס קטן.
+     * מתעדכן מיד כשהחיבור משתנה, ובנוסף נבדק כל 10 שניות.
+     */
     private fun watchWifi() {
         val cm = getSystemService(ConnectivityManager::class.java) ?: return
-        fun update() {
-            val caps = cm.getNetworkCapabilities(cm.activeNetwork)
-            val online = caps != null &&
-                caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
-            main.post {
-                wifiIcons.forEach { it.setImageResource(if (online) R.drawable.ic_wifi_line else R.drawable.ic_wifi_off_line) }
-            }
+        fun online(caps: NetworkCapabilities?) = caps != null &&
+            caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) &&
+            (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
+        fun show(connected: Boolean) = main.post {
+            wifiIcons.forEach { it.setImageResource(if (connected) R.drawable.ic_wifi_line else R.drawable.ic_wifi_off_line) }
         }
-        update()
+        show(online(cm.getNetworkCapabilities(cm.activeNetwork)))
         val callback = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) = update()
-            override fun onLost(network: Network) = update()
-            override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) = update()
+            override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) { show(online(caps)) }
+            override fun onLost(network: Network) { show(false) }
+            override fun onUnavailable() { show(false) }
         }
         try {
             cm.registerDefaultNetworkCallback(callback)
             networkCallback = callback
         } catch (e: Exception) {
             Log.w("HomeActivity", "network callback", e)
+        }
+        main.removeCallbacks(wifiCheck)
+        main.postDelayed(wifiCheck, 10_000)
+    }
+
+    private val wifiCheck = object : Runnable {
+        override fun run() {
+            val cm = getSystemService(ConnectivityManager::class.java) ?: return
+            val caps = cm.getNetworkCapabilities(cm.activeNetwork)
+            val connected = caps != null &&
+                caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) &&
+                (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
+            wifiIcons.forEach { it.setImageResource(if (connected) R.drawable.ic_wifi_line else R.drawable.ic_wifi_off_line) }
+            main.postDelayed(this, 10_000)
         }
     }
 
