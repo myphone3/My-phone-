@@ -206,7 +206,7 @@ class HomeActivity : Activity() {
         }
         favScroll.addView(favRow)
         bottom.addView(favScroll)
-        bottom.addView(text("⌄   כל האפליקציות", 16f, "#FFFFFF", weight = 500).apply {
+        bottom.addView(text("כל האפליקציות\n⌄", 16f, "#FFFFFF", weight = 500).apply { setLineSpacing(0f, 0.85f) }.apply {
             alpha = 0.8f
             gravity = Gravity.CENTER
             shadow(this)
