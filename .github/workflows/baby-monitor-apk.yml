@@ -19,19 +19,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check Supabase secrets
-        id: secrets
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-        run: |
-          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
-            echo "::warning::SUPABASE_URL / SUPABASE_ANON_KEY missing (Settings > Secrets and variables > Actions). Building a test APK that cannot connect; it will not be published."
-            echo "ok=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "ok=true" >> "$GITHUB_OUTPUT"
-          fi
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -68,7 +55,6 @@ jobs:
           path: baby-monitor-app/baby-monitor.apk
 
       - name: Publish download link
-        if: steps.secrets.outputs.ok == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

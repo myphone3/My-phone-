@@ -6,9 +6,8 @@
 הבנייה רצה אוטומטית ב-GitHub Actions (`.github/workflows/baby-monitor-apk.yml`) בכל שינוי בתיקייה הזו.
 קובץ ה-APK מתפרסם בעמוד Releases של הריפו.
 
-סודות נדרשים (Settings > Secrets and variables > Actions):
-- `SUPABASE_URL`, `SUPABASE_ANON_KEY` - אותם ערכים של החנות.
-- לא חובה: `TURN_URLS` (מופרד בפסיקים), `TURN_USERNAME`, `TURN_CREDENTIAL` - שרת ממסר לשמע חי ברשתות סלולריות.
+כתובת ומפתח Supabase הציבוריים של החנות מוגדרים בקוד (`src/main.js`). אפשר לדרוס אותם בסודות `SUPABASE_URL`, `SUPABASE_ANON_KEY`.
+סודות לא חובה (Settings > Secrets and variables > Actions): `TURN_URLS` (מופרד בפסיקים), `TURN_USERNAME`, `TURN_CREDENTIAL` - שרת ממסר לשמע חי ברשתות סלולריות.
 
 ## פיתוח מקומי
 ```

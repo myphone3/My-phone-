@@ -2,8 +2,9 @@ import { createClient } from '@supabase/supabase-js';
 import { registerPlugin, Capacitor } from '@capacitor/core';
 
 // ---------- הגדרות ----------
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// כתובת ומפתח ציבוריים של Supabase של החנות (אותם ערכים שמופיעים באתר). אפשר לדרוס ב-VITE_*
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://iiaxizrezhczgutqijbe.supabase.co';
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_GlpxeLkaiEs9zbILs_oeUg_HU5xMKfu';
 const TURN_URLS = (import.meta.env.VITE_TURN_URLS || '').split(',').map((s) => s.trim()).filter(Boolean);
 
 const ICE = {
