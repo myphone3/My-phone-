@@ -26,6 +26,7 @@ import com.getcapacitor.annotation.PermissionCallback;
     name = "Monitor",
     permissions = {
         @Permission(alias = "microphone", strings = { Manifest.permission.RECORD_AUDIO }),
+        @Permission(alias = "camera", strings = { Manifest.permission.CAMERA }),
         @Permission(alias = "notifications", strings = { "android.permission.POST_NOTIFICATIONS" })
     }
 )
@@ -35,17 +36,22 @@ public class MonitorPlugin extends Plugin {
     @PluginMethod
     public void requestAll(PluginCall call) {
         boolean needNotif = Build.VERSION.SDK_INT >= 33 && getPermissionState("notifications") != PermissionState.GRANTED;
-        boolean needMic = "baby".equals(call.getString("mode")) && getPermissionState("microphone") != PermissionState.GRANTED;
-        if (needMic && needNotif) requestPermissionForAliases(new String[] { "microphone", "notifications" }, call, "permsDone");
-        else if (needMic) requestPermissionForAlias("microphone", call, "permsDone");
-        else if (needNotif) requestPermissionForAlias("notifications", call, "permsDone");
-        else permsDone(call);
+        boolean baby = "baby".equals(call.getString("mode"));
+        boolean needMic = baby && getPermissionState("microphone") != PermissionState.GRANTED;
+        boolean needCam = baby && Boolean.TRUE.equals(call.getBoolean("camera", false)) && getPermissionState("camera") != PermissionState.GRANTED;
+        java.util.List<String> aliases = new java.util.ArrayList<>();
+        if (needMic) aliases.add("microphone");
+        if (needCam) aliases.add("camera");
+        if (needNotif) aliases.add("notifications");
+        if (aliases.isEmpty()) permsDone(call);
+        else requestPermissionForAliases(aliases.toArray(new String[0]), call, "permsDone");
     }
 
     @PermissionCallback
     private void permsDone(PluginCall call) {
         JSObject r = new JSObject();
         r.put("microphone", getPermissionState("microphone") == PermissionState.GRANTED);
+        r.put("camera", getPermissionState("camera") == PermissionState.GRANTED);
         r.put("notifications", Build.VERSION.SDK_INT < 33 || getPermissionState("notifications") == PermissionState.GRANTED);
         call.resolve(r);
     }
@@ -57,6 +63,7 @@ public class MonitorPlugin extends Plugin {
         i.putExtra("mode", call.getString("mode", "parent"));
         i.putExtra("title", call.getString("title", "ביבי-מוניטור"));
         i.putExtra("text", call.getString("text", ""));
+        i.putExtra("camera", Boolean.TRUE.equals(call.getBoolean("camera", false)));
         try {
             ContextCompat.startForegroundService(ctx, i);
             call.resolve();
@@ -75,15 +82,15 @@ public class MonitorPlugin extends Plugin {
     public void alert(PluginCall call) {
         Context ctx = getContext();
         MonitorService.ensureChannels(ctx);
-        Uri sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
-        NotificationCompat.Builder b = new NotificationCompat.Builder(ctx, MonitorService.CH_ALERT)
+        String mode = call.getString("mode", "ring");
+        String channel = "silent".equals(mode) ? MonitorService.CH_ALERT_SILENT
+            : "vibrate".equals(mode) ? MonitorService.CH_ALERT_VIBRATE : MonitorService.CH_ALERT;
+        NotificationCompat.Builder b = new NotificationCompat.Builder(ctx, channel)
             .setSmallIcon(android.R.drawable.ic_dialog_alert)
             .setContentTitle(call.getString("title", "התינוק בוכה"))
             .setContentText(call.getString("text", ""))
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setSound(sound)
-            .setVibrate(new long[] { 0, 500, 200, 500, 200, 500 })
             .setAutoCancel(true)
             .setContentIntent(MonitorService.openApp(ctx));
         try {
@@ -92,6 +99,25 @@ public class MonitorPlugin extends Plugin {
             // אין הרשאת התראות
         }
         call.resolve();
+    }
+
+    /** מחשיך את המסך כמעט לגמרי ומונע ממנו להינעל, כך שהמצלמה והמיקרופון ממשיכים לעבוד */
+    @PluginMethod
+    public void dim(PluginCall call) {
+        boolean on = Boolean.TRUE.equals(call.getBoolean("on", false));
+        getActivity().runOnUiThread(() -> {
+            android.view.Window w = getActivity().getWindow();
+            android.view.WindowManager.LayoutParams lp = w.getAttributes();
+            if (on) {
+                w.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                lp.screenBrightness = 0.01f;
+            } else {
+                w.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                lp.screenBrightness = android.view.WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE;
+            }
+            w.setAttributes(lp);
+            call.resolve();
+        });
     }
 
     @PluginMethod

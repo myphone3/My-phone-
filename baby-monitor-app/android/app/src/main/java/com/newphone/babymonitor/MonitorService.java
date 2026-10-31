@@ -20,7 +20,9 @@ import androidx.core.app.ServiceCompat;
  */
 public class MonitorService extends Service {
     public static final String CH_RUN = "monitor_running";
-    public static final String CH_ALERT = "monitor_alert";
+    public static final String CH_ALERT = "monitor_alert_ring";
+    public static final String CH_ALERT_VIBRATE = "monitor_alert_vibrate";
+    public static final String CH_ALERT_SILENT = "monitor_alert_silent";
     static final int RUN_ID = 1001;
 
     private PowerManager.WakeLock wakeLock;
@@ -36,7 +38,21 @@ public class MonitorService extends Service {
         alert.enableVibration(true);
         alert.setVibrationPattern(new long[] {0, 500, 200, 500, 200, 500});
         alert.setBypassDnd(true);
+        android.media.AudioAttributes aa = new android.media.AudioAttributes.Builder()
+            .setUsage(android.media.AudioAttributes.USAGE_ALARM)
+            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build();
+        alert.setSound(android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_ALARM), aa);
         nm.createNotificationChannel(alert);
+        NotificationChannel vib = new NotificationChannel(CH_ALERT_VIBRATE, "התראות בכי ברטט", NotificationManager.IMPORTANCE_HIGH);
+        vib.setSound(null, null);
+        vib.enableVibration(true);
+        vib.setVibrationPattern(new long[] {0, 500, 200, 500, 200, 500});
+        nm.createNotificationChannel(vib);
+        NotificationChannel silent = new NotificationChannel(CH_ALERT_SILENT, "התראות בכי שקטות", NotificationManager.IMPORTANCE_HIGH);
+        silent.setSound(null, null);
+        silent.enableVibration(false);
+        nm.createNotificationChannel(silent);
     }
 
     static PendingIntent openApp(Context ctx) {
@@ -51,6 +67,7 @@ public class MonitorService extends Service {
         String mode = intent != null ? intent.getStringExtra("mode") : "parent";
         String title = intent != null ? intent.getStringExtra("title") : "ביבי-מוניטור";
         String text = intent != null ? intent.getStringExtra("text") : "";
+        boolean camera = intent != null && intent.getBooleanExtra("camera", false);
 
         Notification n = new NotificationCompat.Builder(this, CH_RUN)
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
@@ -62,9 +79,12 @@ public class MonitorService extends Service {
 
         int type = 0;
         if (Build.VERSION.SDK_INT >= 30) {
-            type = "baby".equals(mode)
-                ? ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
-                : ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK;
+            if ("baby".equals(mode)) {
+                type = ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE;
+                if (camera) type |= ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA;
+            } else {
+                type = ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK;
+            }
         }
         ServiceCompat.startForeground(this, RUN_ID, n, type);
 
