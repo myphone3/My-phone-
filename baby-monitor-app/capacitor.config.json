@@ -1,0 +1,8 @@
+{
+  "appId": "com.newphone.babymonitor",
+  "appName": "ביבי-מוניטור",
+  "webDir": "dist",
+  "android": {
+    "backgroundColor": "#0b1220"
+  }
+}

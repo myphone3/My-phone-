@@ -1,0 +1,77 @@
+name: Baby Monitor APK
+
+on:
+  push:
+    paths:
+      - 'baby-monitor-app/**'
+      - '.github/workflows/baby-monitor-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: baby-monitor-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Supabase secrets
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::Add SUPABASE_URL and SUPABASE_ANON_KEY under Settings > Secrets and variables > Actions"
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: baby-monitor-app/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Build web app
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          VITE_TURN_URLS: ${{ secrets.TURN_URLS }}
+          VITE_TURN_USERNAME: ${{ secrets.TURN_USERNAME }}
+          VITE_TURN_CREDENTIAL: ${{ secrets.TURN_CREDENTIAL }}
+        run: |
+          npm ci
+          npm run build
+          npx cap sync android
+
+      - name: Build APK
+        working-directory: baby-monitor-app/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk ../baby-monitor.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: baby-monitor-apk
+          path: baby-monitor-app/baby-monitor.apk
+
+      - name: Publish download link
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="baby-monitor-${GITHUB_REF_NAME//\//-}"
+          gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "$TAG" baby-monitor.apk \
+            --target "$GITHUB_SHA" \
+            --title "ביבי-מוניטור (${GITHUB_REF_NAME}) גרסה ${GITHUB_RUN_NUMBER}" \
+            --notes "להורדה: לחצו על baby-monitor.apk מהטלפון והתקינו." \
+            --prerelease
