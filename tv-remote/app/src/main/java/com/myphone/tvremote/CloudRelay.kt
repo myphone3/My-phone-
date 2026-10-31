@@ -51,7 +51,7 @@ object CloudRelay {
         topic = "realtime:tv-" + TvIdentity.id(appContext)
         connect()
         watchNetwork()
-        timer.scheduleAtFixedRate({ watchdog() }, 20, 20, TimeUnit.SECONDS)
+        timer.scheduleAtFixedRate({ watchdog() }, 10, 10, TimeUnit.SECONDS)
     }
 
     /**
@@ -65,7 +65,7 @@ object CloudRelay {
             if (pendingRetry?.isDone != false) connect()
             return
         }
-        if (lastMessageAt > 0 && System.currentTimeMillis() - lastMessageAt > 75_000) {
+        if (lastMessageAt > 0 && System.currentTimeMillis() - lastMessageAt > 35_000) {
             Log.w(TAG, "connection looks frozen, reconnecting")
             current.cancel()
         }
@@ -124,7 +124,7 @@ object CloudRelay {
             heartbeat?.cancel(false)
             heartbeat = timer.scheduleAtFixedRate({
                 send(webSocket, "phoenix", "heartbeat", JSONObject(), ref.incrementAndGet().toString())
-            }, 25, 25, TimeUnit.SECONDS)
+            }, 12, 12, TimeUnit.SECONDS)
         }
 
         override fun onMessage(webSocket: WebSocket, text: String) {
@@ -167,7 +167,7 @@ object CloudRelay {
         heartbeat?.cancel(false)
         socket = null
         val delay = backoffSec
-        backoffSec = (backoffSec * 2).coerceAtMost(15)
+        backoffSec = (backoffSec * 2).coerceAtMost(8)
         pendingRetry = timer.schedule({ connectIfIdle() }, delay, TimeUnit.SECONDS)
     }
 

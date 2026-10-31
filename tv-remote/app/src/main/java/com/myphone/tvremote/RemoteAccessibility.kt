@@ -20,9 +20,42 @@ class RemoteAccessibility : AccessibilityService() {
         super.onServiceConnected()
         instance = this
         RemoteService.start(this)
+        // בהדלקה: אם הטלוויזיה פתחה את מסך הבית של היצרן - מחליפים מיד לשלנו
+        android.os.Handler(mainLooper).postDelayed({
+            if (isOriginalHome(foregroundPackage(), rootInActiveWindow?.className?.toString(), allowAnyClass = true)) openOurHome()
+        }, 1500)
     }
 
-    override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
+    /**
+     * בכל פעם שמסך חדש נפתח: אם זה מסך הבית של היצרן (Sensor) והפעלנו את מסך הבית שלנו -
+     * פותחים את שלנו במקומו. ככה לא רואים את המסך של Sensor אף פעם, גם אחרי הדלקה.
+     */
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        if (event?.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
+        if (isOriginalHome(event.packageName?.toString(), event.className?.toString(), allowAnyClass = false)) openOurHome()
+    }
+
+    private var lastHomeSwitch = 0L
+
+    private fun isOriginalHome(pkg: String?, cls: String?, allowAnyClass: Boolean): Boolean {
+        if (pkg == null || pkg == packageName || !homeTakeover(this)) return false
+        val original = originalHome(this) ?: return false
+        if (pkg != original.substringBefore('/')) return false
+        if (allowAnyClass || cls == null) return true
+        val originalClass = original.substringAfter('/')
+        return cls == originalClass || cls.substringAfterLast('.') == originalClass.substringAfterLast('.')
+    }
+
+    private fun openOurHome() {
+        val now = android.os.SystemClock.uptimeMillis()
+        if (now - lastHomeSwitch < 1500) return
+        lastHomeSwitch = now
+        try {
+            startActivity(Intent(this, HomeActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP))
+        } catch (e: Exception) {
+            AdbBridge.shell("am start -n $packageName/$packageName.HomeActivity")
+        }
+    }
 
     /**
      * כשמסך הבית שלנו מופעל: כפתור "בית" בשלט המקורי פותח אותו,
@@ -137,6 +170,18 @@ class RemoteAccessibility : AccessibilityService() {
     companion object {
         fun homeTakeover(context: android.content.Context) =
             context.getSharedPreferences("home", MODE_PRIVATE).getBoolean("takeover", false)
+
+        /** מסך הבית המקורי של היצרן ("חבילה/מסך"). אם עוד לא נשמר - מוצאים ושומרים. */
+        fun originalHome(context: android.content.Context): String? {
+            val prefs = context.getSharedPreferences("home", MODE_PRIVATE)
+            prefs.getString("original", null)?.let { return it }
+            val found = context.packageManager
+                .queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME), 0)
+                .map { it.activityInfo }
+                .firstOrNull { it.packageName != context.packageName && it.packageName != "com.android.settings" && it.packageName != "com.android.tv.settings" }
+                ?: return null
+            return "${found.packageName}/${found.name}".also { prefs.edit().putString("original", it).apply() }
+        }
 
         // באפליקציות האלה נגיעה אמיתית מדויקת יותר (אתרים, כפתורים קטנים)
         private val TOUCH_FIRST_APPS = setOf(

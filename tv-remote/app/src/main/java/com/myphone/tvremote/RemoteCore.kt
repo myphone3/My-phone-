@@ -35,6 +35,36 @@ object RemoteCore {
             Log.w("RemoteCore", "wifi lock", e)
         }
         ensureServer(app)
+        keepAlivePixel(app)
+    }
+
+    private var pixel: android.view.View? = null
+
+    /**
+     * נקודה שקופה בגודל פיקסל אחד, תמיד על המסך. אנדרואיד מחשיב אפליקציה שמציגה משהו על המסך
+     * כ"חשובה", ולא סוגר אותה כשנגמר הזיכרון (למשל בזמן סרטון ב-SmartTube).
+     */
+    fun keepAlivePixel(app: Context) {
+        if (pixel != null || !android.provider.Settings.canDrawOverlays(app)) return
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+            if (pixel != null) return@post
+            try {
+                val wm = app.getSystemService(android.view.WindowManager::class.java)
+                val params = android.view.WindowManager.LayoutParams(
+                    1, 1,
+                    android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                    android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                        android.view.WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                        android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                    android.graphics.PixelFormat.TRANSLUCENT,
+                ).apply { gravity = android.view.Gravity.TOP or android.view.Gravity.LEFT }
+                val view = android.view.View(app).apply { setBackgroundColor(0x01000000) }
+                wm.addView(view, params)
+                pixel = view
+            } catch (e: Exception) {
+                Log.w("RemoteCore", "pixel", e)
+            }
+        }
     }
 
     private fun ensureServer(app: Context) {

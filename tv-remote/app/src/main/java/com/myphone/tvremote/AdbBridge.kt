@@ -29,6 +29,7 @@ object AdbBridge {
     private var dadb: Dadb? = null
     private var packageName = ""
     private var prefs: android.content.SharedPreferences? = null
+    private var appContext: Context? = null
     private var previousKeyboard: String?
         get() = prefs?.getString("prev_ime", null)
         set(value) { prefs?.edit()?.putString("prev_ime", value)?.apply() }
@@ -46,6 +47,7 @@ object AdbBridge {
         if (keyPair != null) return
         packageName = context.packageName
         prefs = context.getSharedPreferences("adb", Context.MODE_PRIVATE)
+        appContext = context.applicationContext
         val priv = File(context.filesDir, "adbkey")
         val pub = File(context.filesDir, "adbkey.pub")
         if (!priv.exists() || !pub.exists()) AdbKeyPair.generate(priv, pub)
@@ -195,6 +197,11 @@ object AdbBridge {
         }
         enableAccessibility(dadb)
         fixKeyboard()
+        // מסך הבית שלנו נשאר מסך הבית הקבוע, גם אחרי כיבוי והדלקה
+        if (appContext?.let { RemoteAccessibility.homeTakeover(it) } == true) {
+            try { dadb.shell("cmd package set-home-activity $packageName/$packageName.HomeActivity") } catch (e: Exception) { }
+        }
+        appContext?.let { RemoteCore.keepAlivePixel(it) }
     }
 
     /** מחזיר מקלדת רגילה, כדי שהשלט הפיזי של הטלוויזיה תמיד יראה מקלדת על המסך. Gboard קודם, אם מותקן. */
