@@ -86,7 +86,8 @@ object Commands {
         "reconnect" -> { AdbBridge.reconnect(); ok() }
         "keyboard" -> { AdbBridge.useGboard(); ok() }
         "storage" -> ok(StorageReport.build(context))
-        "clear_downloads" -> ok(JSONObject().put("ok", true).put("freed", StorageReport.clearDownloads()))
+        "delete_download" -> if (StorageReport.deleteDownload(params["name"].orEmpty())) ok() else fail("not deleted")
+        "uninstall" -> if (StorageReport.uninstall(context, params["pkg"].orEmpty())) ok() else fail("not removed")
         "trim" -> ok(JSONObject().put("ok", true).put("freed", StorageReport.trimCaches(context)))
         "photos" -> {
             val list = JSONArray()

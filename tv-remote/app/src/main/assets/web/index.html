@@ -237,7 +237,7 @@
   .usage .mb { font-variant-numeric: tabular-nums; font-weight: 600; }
   .row-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
   .row-btns button { min-height: 46px; font-size: 14px; font-weight: 600; color: var(--text); }
-  .row-btns button.armed { background: var(--bad); color: #fff; }
+  .row-btns button.armed, .scan-actions button.armed { background: var(--bad); color: #fff; }
   .row-btns button:disabled { opacity: .45; }
   .empty { color: var(--muted); font-size: 13px; grid-column: 1 / -1; text-align: center; padding: 8px 0; }
 
@@ -272,6 +272,22 @@
   .sheet .panel button { font-weight: 600; color: var(--text); }
   @keyframes fade { from { opacity: 0; } }
   @keyframes up { from { transform: translateY(30px); opacity: 0; } }
+  .scan-panel { gap: 14px; }
+  .scan-top { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted); }
+  .scan-top button { min-height: 32px; width: 32px; padding: 0; border-radius: 50%; font-size: 14px; }
+  .scan-item { display: flex; gap: 12px; align-items: center; }
+  .scan-item .ico { width: 54px; height: 54px; border-radius: 15px; flex: none; background: var(--surface-strong); display: flex; align-items: center; justify-content: center; font-size: 26px; overflow: hidden; box-shadow: var(--shadow-sm); }
+  .scan-item .ico img { width: 100%; height: 100%; object-fit: cover; }
+  .scan-item h3 { margin: 0; font-size: 17px; text-align: start; word-break: break-word; }
+  .scan-item small { color: var(--muted); font-size: 12.5px; }
+  .scan-why { font-size: 14px; line-height: 1.6; color: var(--text); }
+  .pill-rec { display: inline-block; padding: 5px 11px; border-radius: 999px; font-size: 12.5px; font-weight: 600; }
+  .rec-delete { background: rgba(52, 211, 153, .18); color: #059669; }
+  .rec-ask { background: rgba(251, 191, 36, .2); color: #B45309; }
+  .rec-keep { background: rgba(96, 165, 250, .18); color: #2563EB; }
+  .scan-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .scan-actions button { font-weight: 700; color: var(--text); }
+  .scan-actions .danger { background: var(--bad); color: #fff; border: 0; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -413,6 +429,7 @@
       <h2>אחסון וזיכרון בטלוויזיה <button id="checkStorage">בדוק עכשיו</button></h2>
       <div id="storageBody"><div class="empty">לחצו "בדוק עכשיו" כדי לראות מה תופס מקום בטלוויזיה.</div></div>
       <div class="row-btns" id="storageBtns" hidden>
+        <button class="btn-accent" id="startScan" style="grid-column:1/-1;color:#fff">🔍 סריקה: לעבור על הכול אחד-אחד</button>
         <button id="trimCaches">🧹 ניקוי קבצים זמניים</button>
         <button id="copyReport">📋 העתק דוח ל-Claude</button>
       </div>
@@ -440,6 +457,17 @@
   </nav>
 
   <div class="toast glass" id="toast"></div>
+
+  <div class="sheet" id="scan" hidden>
+    <div class="panel glass scan-panel">
+      <div class="scan-top"><span id="scanStep"></span><button id="scanClose" aria-label="סגירה">✕</button></div>
+      <div id="scanBody"></div>
+      <div class="scan-actions" id="scanActions">
+        <button id="scanKeep">השאר</button>
+        <button id="scanDelete" class="danger">🗑 מחק</button>
+      </div>
+    </div>
+  </div>
 
   <div class="sheet" id="sheet" hidden>
     <div class="panel glass">
@@ -1114,7 +1142,7 @@
     const dl = r.downloads || { bytes: 0, files: [] };
     let html = meter('אחסון', r.storageTotal - r.storageFree, r.storageTotal) + meter('זיכרון (RAM)', r.ramTotal - r.ramFree, r.ramTotal);
     html += '<div class="meter" style="margin-top:12px"><b>הורדות</b> (קבצים שהורדו בכרום וב-Downloader): <bdi dir="ltr">' + fmt(dl.bytes) + '</bdi></div><ul class="usage" id="dlList"></ul>';
-    html += '<div class="row-btns" style="grid-template-columns:1fr"><button id="clearDownloads">🗑 מחיקת כל ההורדות</button></div>';
+
     html += '<div class="meter" style="margin-top:14px"><b>אפליקציות לפי גודל</b> (' + (r.apps || []).length + ' הגדולות מתוך ' + r.appsCount + '):</div><ul class="usage" id="usageList"></ul>';
     html += '<div class="row-btns" style="grid-template-columns:1fr"><button id="toggleAllApps"></button></div>';
     box.innerHTML = html;
@@ -1128,22 +1156,6 @@
       li.append(name, size);
       dlList.appendChild(li);
     });
-    const clearBtn = $('clearDownloads');
-    clearBtn.disabled = !dl.bytes;
-    let armed = null;
-    clearBtn.onclick = () => {
-      if (!clearBtn.classList.contains('armed')) {
-        clearBtn.classList.add('armed'); clearBtn.textContent = 'בטוח? הקבצים יימחקו לתמיד. לחצו שוב';
-        armed = setTimeout(() => { clearBtn.classList.remove('armed'); clearBtn.textContent = '🗑 מחיקת כל ההורדות'; }, 4000);
-        return;
-      }
-      clearTimeout(armed); buzz(); toast('מוחק…');
-      call('clear_downloads', {}, 30000).then((res) => {
-        toast(res.ok ? 'נמחק ✓ התפנו ' + fmt(res.body.freed || 0) : 'המחיקה לא הצליחה');
-        $('checkStorage').click();
-      });
-    };
-
     const list = $('usageList');
     const apps = r.apps || [];
     apps.slice(0, showAllApps ? apps.length : 15).forEach((a) => {
@@ -1210,6 +1222,98 @@
     try { document.execCommand('copy'); done(); } catch (e) { toast('לא הצלחתי להעתיק'); }
     t.remove();
   }
+
+
+  // ===== סריקה אחד-אחד: מה אפשר למחוק =====
+  const IMPORTANT = /smarttube|teamsmart|gboard|inputmethod|airscreen|netflix|apple|disney|youtube|spotify|kan|keshet|reshet|mako|13|12/i;
+  const INSTALLERS = /downloader|esaba|fdroid|f-droid|aptoide|activitylauncher|szalkowski|filecommander|files/i;
+  const fmtI = (b) => '\u2066' + fmt(b) + '\u2069';
+  const daysAgo = (t) => t ? Math.floor((Date.now() - t) / 86400000) : null;
+  function scanItems(r) {
+    const items = [];
+    const files = (r.downloads && r.downloads.files) || [];
+    const names = files.map((f) => f.name);
+    files.forEach((f) => {
+      const apk = /\.apk$/i.test(f.name);
+      const base = f.name.replace(/\s*\(\d+\)(?=\.[^.]+$)/, '');
+      const duplicate = base !== f.name && names.includes(base);
+      let rec, why;
+      if (apk && duplicate) { rec = 'delete'; why = 'עותק כפול של קובץ התקנה. יש קובץ זהה בשם "' + base + '", ואחרי שהאפליקציה מותקנת לא צריך אף אחד מהם.'; }
+      else if (apk) { rec = 'ask'; why = 'קובץ התקנה (APK). אם האפליקציה הזו כבר מותקנת - אפשר למחוק את הקובץ בבטחה, <b>האפליקציה עצמה לא תימחק</b>. תצטרכו אותו רק אם תרצו להתקין אותה שוב.'; }
+      else { rec = 'ask'; why = 'קובץ שהורד (לא אפליקציה). אם אתם לא צריכים אותו - אפשר למחוק.'; }
+      items.push({ kind: 'file', id: f.name, title: f.name, size: f.size, sub: 'בתיקיית ההורדות · ' + (f.date || ''), rec, why, icon: apk ? '📦' : '📄' });
+    });
+    (r.apps || []).filter((a) => !a.system && a.pkg !== 'com.myphone.tvremote').forEach((a) => {
+      const d = daysAgo(a.lastUsed);
+      const size = a.app + a.data;
+      let rec, why;
+      const used = d === null ? 'לא נפתחה בשנה האחרונה' : d === 0 ? 'נפתחה היום' : 'נפתחה לפני ' + d + ' ימים';
+      if (IMPORTANT.test(a.pkg + ' ' + a.label) && d !== null && d < 60) { rec = 'keep'; why = 'אפליקציה שאתם משתמשים בה (' + used + '). מומלץ להשאיר.'; }
+      else if (INSTALLERS.test(a.pkg + ' ' + a.label)) { rec = 'ask'; why = 'כלי להורדה והתקנה של אפליקציות (' + used + '). אם לא מתקינים דברים חדשים - אפשר להסיר, ולהתקין שוב כשצריך.'; }
+      else if (d === null || d > 60) { rec = 'delete'; why = 'לא בשימוש: ' + used + '. אם אתם לא צריכים אותה - הסרה תפנה ' + fmtI(size) + '.'; }
+      else { rec = 'keep'; why = 'בשימוש לאחרונה (' + used + ').'; }
+      items.push({ kind: 'app', id: a.pkg, title: a.label, size, sub: 'אפליקציה שהותקנה · ' + used, rec, why, icon: '' });
+    });
+    // קודם מה שהכי כדאי למחוק, ובתוך כל קבוצה - הגדול קודם
+    const order = { delete: 0, ask: 1, keep: 2 };
+    return items.sort((x, y) => order[x.rec] - order[y.rec] || y.size - x.size);
+  }
+
+  let scan = null;
+  function showScanItem() {
+    const it = scan.items[scan.i];
+    if (!it) return scanSummary();
+    $('scanStep').textContent = (scan.i + 1) + ' מתוך ' + scan.items.length;
+    const recText = { delete: 'מומלץ למחוק', ask: 'תחליטו אתם', keep: 'מומלץ להשאיר' }[it.rec];
+    const body = $('scanBody');
+    body.innerHTML = '';
+    const head = document.createElement('div'); head.className = 'scan-item';
+    const ico = document.createElement('div'); ico.className = 'ico'; ico.textContent = it.icon || '📱';
+    if (it.kind === 'app') tv.icon(it.id).then((src) => { if (src) { const img = document.createElement('img'); img.onload = () => { ico.textContent = ''; ico.appendChild(img); }; img.src = src; } });
+    const txt = document.createElement('div');
+    const h = document.createElement('h3'); h.textContent = it.title; h.dir = 'auto';
+    const sm = document.createElement('small'); sm.textContent = fmtI(it.size) + ' · ' + it.sub;
+    txt.append(h, sm);
+    head.append(ico, txt);
+    const pill = document.createElement('span'); pill.className = 'pill-rec rec-' + it.rec; pill.textContent = recText;
+    const why = document.createElement('div'); why.className = 'scan-why'; why.innerHTML = it.why;
+    body.append(head, pill, why);
+    $('scanDelete').textContent = it.kind === 'app' ? '🗑 הסר אפליקציה' : '🗑 מחק קובץ';
+    $('scanActions').hidden = false;
+  }
+  function scanSummary() {
+    $('scanStep').textContent = 'סיימנו ✓';
+    $('scanBody').innerHTML = '<div class="scan-why" style="text-align:center"><b style="font-size:20px">התפנו ' + fmtI(scan.freed) + '</b><br>' +
+      scan.deleted + ' פריטים נמחקו, ' + scan.kept + ' נשארו.</div>';
+    $('scanActions').hidden = true;
+    $('checkStorage').click();
+  }
+  $('startScan').onclick = () => {
+    if (!lastReport) return;
+    scan = { items: scanItems(lastReport), i: 0, freed: 0, deleted: 0, kept: 0 };
+    if (!scan.items.length) return toast('לא מצאתי מה לבדוק');
+    $('scan').hidden = false;
+    showScanItem();
+  };
+  $('scanClose').onclick = () => { $('scan').hidden = true; if (scan && scan.deleted) $('checkStorage').click(); };
+  $('scanKeep').onclick = () => { buzz(); scan.kept++; scan.i++; showScanItem(); };
+  $('scanDelete').onclick = () => {
+    const it = scan.items[scan.i];
+    const btn = $('scanDelete');
+    if (!btn.classList.contains('armed')) {
+      btn.classList.add('armed'); btn.textContent = 'בטוח? לחצו שוב';
+      setTimeout(() => { if (btn.classList.contains('armed')) { btn.classList.remove('armed'); showScanItem(); } }, 3000);
+      return;
+    }
+    btn.classList.remove('armed');
+    buzz(); btn.textContent = 'מוחק…';
+    const req = it.kind === 'app' ? call('uninstall', { pkg: it.id }, 30000) : call('delete_download', { name: it.id }, 20000);
+    req.then((r) => {
+      if (r.ok) { scan.freed += it.size; scan.deleted++; toast('נמחק ✓'); }
+      else toast(it.kind === 'app' ? 'לא הצלחתי להסיר את האפליקציה' : 'לא הצלחתי למחוק את הקובץ');
+      scan.i++; showScanItem();
+    });
+  };
 
   // ===== שם הטלוויזיה (לחיצה על השם משנה אותו, לכל הטלפונים) =====
   $('tvName').addEventListener('click', () => {

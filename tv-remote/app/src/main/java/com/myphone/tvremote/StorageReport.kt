@@ -2,6 +2,7 @@ package com.myphone.tvremote
 
 import android.app.ActivityManager
 import android.app.usage.StorageStatsManager
+import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.os.Environment
@@ -36,7 +37,10 @@ object StorageReport {
                 Row(info, 0, 0, 0)
             }
         }.sortedByDescending { it.app + it.data }
-        for (row in rows.take(100)) {
+        val lastUsed = lastUsed(context)
+        // 100 הגדולות + כל האפליקציות שהותקנו (גם אם קטנות), כדי שהסריקה תעבור על כולן
+        val chosen = (rows.take(100) + rows.filter { it.info.flags and ApplicationInfo.FLAG_SYSTEM == 0 }).distinctBy { it.info.packageName }
+        for (row in chosen) {
             apps.put(
                 JSONObject()
                     .put("pkg", row.info.packageName)
@@ -46,6 +50,8 @@ object StorageReport {
                     .put("app", row.app)
                     .put("data", row.data)
                     .put("cache", row.cache)
+                    .put("lastUsed", lastUsed[row.info.packageName] ?: 0L)
+                    .put("installed", try { pm.getPackageInfo(row.info.packageName, 0).firstInstallTime } catch (e: Exception) { 0L })
             )
         }
 
@@ -70,23 +76,33 @@ object StorageReport {
     private fun downloads(): JSONObject {
         val files = JSONArray()
         val listing = AdbBridge.shellSync("ls -lA $DOWNLOADS 2>/dev/null").orEmpty()
-        val row = Regex("""^\S+\s+\d+\s+\S+\s+\S+\s+(\d+)\s+\S+\s+\S+\s+(.+)$""")
+        val row = Regex("""^-\S*\s+\d+\s+\S+\s+\S+\s+(\d+)\s+(\S+)\s+(\S+)\s+(.+)$""")
         listing.lines().mapNotNull { row.find(it.trim()) }
-            .map { it.groupValues[2] to it.groupValues[1].toLong() }
-            .sortedByDescending { it.second }
-            .take(30)
-            .forEach { (name, size) -> files.put(JSONObject().put("name", name).put("size", size)) }
+            .sortedByDescending { it.groupValues[1].toLong() }
+            .take(60)
+            .forEach {
+                files.put(JSONObject().put("name", it.groupValues[4]).put("size", it.groupValues[1].toLong()).put("date", it.groupValues[2]))
+            }
         return JSONObject().put("bytes", duKb(DOWNLOADS) * 1024).put("files", files)
     }
 
-    /** מוחק את כל הקבצים בתיקיית ההורדות. מחזיר כמה מקום התפנה. */
-    fun clearDownloads(): Long {
-        val before = duKb(DOWNLOADS) * 1024
-        AdbBridge.shellSync("rm -rf $DOWNLOADS/* $DOWNLOADS/.[!.]* 2>/dev/null")
-        return (before - duKb(DOWNLOADS) * 1024).coerceAtLeast(0)
+    private val SAFE_NAME = Regex("^[^/\\u0000]+$")
+
+    /** מוחק קובץ אחד מתיקיית ההורדות (רק אחרי שהמשתמש אישר בטלפון). */
+    fun deleteDownload(name: String): Boolean {
+        if (!SAFE_NAME.matches(name) || name == "." || name == "..") return false
+        val quoted = "'" + name.replace("'", "'\\''") + "'"
+        AdbBridge.shellSync("rm -f $DOWNLOADS/$quoted")
+        return AdbBridge.shellSync("ls $DOWNLOADS/$quoted 2>/dev/null").isNullOrBlank()
     }
 
-    private class Row(val info: ApplicationInfo, val app: Long, val data: Long, val cache: Long)
+    /** מסיר אפליקציה שהמשתמש התקין (לא אפליקציות מערכת, ולא את השלט עצמו). */
+    fun uninstall(context: Context, pkg: String): Boolean {
+        if (!Regex("^[A-Za-z0-9_.]+$").matches(pkg) || pkg == context.packageName) return false
+        val info = try { context.packageManager.getApplicationInfo(pkg, 0) } catch (e: Exception) { return false }
+        if (info.flags and ApplicationInfo.FLAG_SYSTEM != 0) return false
+        return AdbBridge.shellSync("pm uninstall $pkg")?.contains("Success") == true
+    }
 
     /** התהליכים שתופסים הכי הרבה זיכרון עכשיו (מתוך dumpsys meminfo). */
     private fun processes(): JSONArray {
