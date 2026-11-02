@@ -104,6 +104,19 @@ object StorageReport {
         return AdbBridge.shellSync("pm uninstall $pkg")?.contains("Success") == true
     }
 
+    /** מתי השתמשו בכל אפליקציה בפעם האחרונה (בשנה האחרונה). */
+    private fun lastUsed(context: Context): Map<String, Long> = try {
+        val usm = context.getSystemService(UsageStatsManager::class.java)
+        val now = System.currentTimeMillis()
+        usm.queryAndAggregateUsageStats(now - 365L * 24 * 3600 * 1000, now)
+            .mapValues { it.value.lastTimeUsed }
+            .filterValues { it > 0 }
+    } catch (e: Exception) {
+        emptyMap()
+    }
+
+    private class Row(val info: ApplicationInfo, val app: Long, val data: Long, val cache: Long)
+
     /** התהליכים שתופסים הכי הרבה זיכרון עכשיו (מתוך dumpsys meminfo). */
     private fun processes(): JSONArray {
         val out = JSONArray()

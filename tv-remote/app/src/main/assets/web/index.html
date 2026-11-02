@@ -288,6 +288,8 @@
   .scan-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .scan-actions button { font-weight: 700; color: var(--text); }
   .scan-actions .danger { background: var(--bad); color: #fff; border: 0; }
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 15px; padding: 4px 2px; cursor: pointer; }
+  .toggle-row input { width: 46px; height: 26px; accent-color: var(--accent-b); }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -447,6 +449,11 @@
       <div class="apps" id="hiddenApps" hidden></div>
     </section>
     <p class="note" style="text-align:center">לחיצה ארוכה על אפליקציה: מועדפים או הסתרה</p>
+    <section class="card glass">
+      <h2>הגדרות השלט</h2>
+      <label class="toggle-row" for="hapticToggle"><span>רטט בכל לחיצה</span><input type="checkbox" id="hapticToggle" switch></label>
+      <p class="note">באייפון הרטט עובד מגרסה iOS 18 ומעלה.</p>
+    </section>
   </main>
   </div>
 
@@ -485,7 +492,27 @@
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpYXhpenJlemhjemd1dHFpamJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2MjgyMTMsImV4cCI6MjEwMzIwNDIxM30.vG58ldzdzTSU_bAU1pO8LHwB_jm-eOoy4EMbZWQrH18';
 
   const $ = (id) => document.getElementById(id);
-  const buzz = () => { if (navigator.vibrate) navigator.vibrate(10); };
+  // רטט קטן בכל לחיצה. באנדרואיד - vibrate. באייפון (iOS 18 ומעלה) אין vibrate לאתרים,
+  // אבל מתג (switch) שמחליף מצב נותן "קליק" של רטט - אז מחזיקים אחד מוסתר ומחליפים אותו.
+  let hapticLabel = null;
+  function iosHaptic() {
+    if (!hapticLabel) {
+      hapticLabel = document.createElement('label');
+      hapticLabel.setAttribute('aria-hidden', 'true');
+      hapticLabel.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden;left:0;top:0';
+      const input = document.createElement('input');
+      input.type = 'checkbox'; input.setAttribute('switch', '');
+      hapticLabel.appendChild(input);
+      document.body.appendChild(hapticLabel);
+    }
+    hapticLabel.click();
+  }
+  const buzz = () => {
+    if (!hapticOn()) return;
+    if (navigator.vibrate) navigator.vibrate(12);
+    else iosHaptic();
+  };
+  function hapticOn() { try { return localStorage.getItem('haptic') !== '0'; } catch (e) { return true; } }
   const store = {
     get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
@@ -1313,6 +1340,12 @@
       else toast(it.kind === 'app' ? 'לא הצלחתי להסיר את האפליקציה' : 'לא הצלחתי למחוק את הקובץ');
       scan.i++; showScanItem();
     });
+  };
+
+  $('hapticToggle').checked = hapticOn();
+  $('hapticToggle').onchange = () => {
+    try { localStorage.setItem('haptic', $('hapticToggle').checked ? '1' : '0'); } catch (e) {}
+    buzz();
   };
 
   // ===== שם הטלוויזיה (לחיצה על השם משנה אותו, לכל הטלפונים) =====
