@@ -37,8 +37,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp app/build/outputs/apk/release/app-release.apk tv-remote.apk
+          cp mirror/build/outputs/apk/release/mirror-release.apk mirror.apk
           gh release delete tv-remote-latest --cleanup-tag -y || true
-          gh release create tv-remote-latest tv-remote.apk \
+          gh release create tv-remote-latest tv-remote.apk mirror.apk \
             --title "שלט לטלוויזיה (גרסה אחרונה)" \
             --notes "בנייה ${{ github.run_number }} מתוך ${{ github.sha }}" \
             --prerelease \

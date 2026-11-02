@@ -24,6 +24,8 @@ object Commands {
                 .put("tv", TvIdentity.id(context))
                 .put("remoteUrl", Config.remoteUrl(TvIdentity.id(context)))
                 .put("cloud", CloudRelay.online)
+                .put("lan", RemoteService.address().removePrefix("http://").substringBefore(':'))
+                .put("mirrorPort", MirrorServer.PORT)
             )
         }
         "key" -> {
@@ -90,6 +92,7 @@ object Commands {
             for ((pkg, label) in Apps.recent(context)) array.put(JSONObject().put("pkg", pkg).put("label", label))
             ok(array)
         }
+        "mirror_stop" -> { MirrorServer.stop(); ok() }
         "storage" -> ok(StorageReport.build(context))
         "delete_download" -> if (StorageReport.deleteDownload(params["name"].orEmpty())) ok() else fail("not deleted")
         "uninstall" -> if (StorageReport.uninstall(context, params["pkg"].orEmpty())) ok() else fail("not removed")

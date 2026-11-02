@@ -470,26 +470,20 @@
     </section>
     <p class="note" style="text-align:center">לחיצה ארוכה על אפליקציה: מועדפים או הסתרה</p>
     <section class="card glass" id="mirrorCard">
-      <h2>שיקוף מסך לטלוויזיה <button id="openMirror">פתח בטלוויזיה</button></h2>
-      <ol class="steps" id="mirrorSteps"></ol>
-      <p class="note">השיקוף עובד דרך WiFi רגיל (האפליקציה AirScreen בטלוויזיה), כך שהשלט ממשיך לעבוד בזמן השיקוף.</p>
-    </section>
-
-    <section class="card glass" id="siriCard">
-      <h2>סירי ופקודות קוליות</h2>
-      <p class="note" style="margin-top:0">לוחצים על המיקרופון 🎤 למעלה ואומרים למשל: "תפתח נטפליקס", "חפש שירים של עומר אדם", "בית", "עצור". לסירי - מוסיפים קיצור באפליקציית <b>קיצורים</b>:</p>
-      <ol class="steps">
-        <li>לוחצים "העתק" ליד הפקודה הרצויה.</li>
-        <li>אפליקציית <b>קיצורים</b> ← ＋ ← <b>הוסף פעולה</b> ← <b>פתח כתובות URL</b>.</li>
-        <li>מדביקים את הכתובת, ונותנים לקיצור שם, למשל "נטפליקס בטלוויזיה".</li>
-        <li>אומרים: <b>"היי סירי, נטפליקס בטלוויזיה"</b>.</li>
-      </ol>
-      <div class="copy-list" id="siriList"></div>
-      <div class="search-row" style="margin-top:10px">
-        <input class="field" id="siriCustom" dir="auto" placeholder='פקודה משלכם, למשל "תפתח ערוץ 12"' autocomplete="off">
-        <button id="siriCopyCustom" style="min-width:76px">העתק</button>
+      <h2>שיקוף מסך לטלוויזיה</h2>
+      <div id="mirrorAndroid">
+        <button class="btn-accent" id="startMirror" style="width:100%;color:#fff;font-weight:700">📱 שקף את המסך של הטלפון</button>
+        <div class="row-btns" style="grid-template-columns:1fr 1fr">
+          <button id="stopMirror">⏹ עצור שיקוף</button>
+          <button id="getMirrorApp">⬇ התקנת אפליקציית השיקוף</button>
+        </div>
+        <p class="note">בפעם הראשונה מתקינים את אפליקציית השיקוף (פעם אחת). אחר כך - לחיצה אחת כאן, ואנדרואיד שואל "להתחיל לשתף?". עובד דרך ה-WiFi, בלי ניתוק, והשלט ממשיך לעבוד. הטלפון והטלוויזיה צריכים להיות על אותה רשת.</p>
+      </div>
+      <div id="mirrorIos" hidden>
+        <p class="note" style="margin-top:0">שיקוף מאייפון (AirPlay) - בבנייה, יגיע בעדכון הבא.</p>
       </div>
     </section>
+
 
     <section class="card glass">
       <h2>הגדרות השלט</h2>
@@ -1404,7 +1398,6 @@
     [/דיסני|disney/i, /disney/i],
     [/ספוטיפיי|spotify/i, /spotify/i],
     [/כרום|chrome/i, /chrome/i],
-    [/שיקוף|airscreen|אייר ?סקרין/i, /airscreen/i],
   ];
   function findApp(name) {
     const n = name.trim().toLowerCase();
@@ -1478,28 +1471,6 @@
     showHeard(result ? '✓ ' + result : 'לא הבנתי את הפקודה: "' + pendingDo + '"');
   }
 
-  // קיצורי סירי מוכנים להעתקה
-  const siriBase = () => { const u = new URL(location.href); u.search = ''; u.hash = ''; u.searchParams.set('tv', tvId || ''); return u.toString(); };
-  function copyText(text, msg) {
-    const done = () => toast(msg || 'הועתק ✓');
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
-    else fallbackCopy(text, done);
-  }
-  const siriUrl = (phrase) => siriBase() + '&do=' + encodeURIComponent(phrase);
-  [['נטפליקס בטלוויזיה', 'תפתח נטפליקס'], ['סמארטיוב בטלוויזיה', 'תפתח סמארטיוב'], ['ערוץ 12 בטלוויזיה', 'תפתח ערוץ 12'],
-   ['עצור בטלוויזיה', 'עצור'], ['כבה את הטלוויזיה', 'כבה'], ['מסך הבית בטלוויזיה', 'בית']].forEach(([name, phrase]) => {
-    const row = document.createElement('div'); row.className = 'copy-row';
-    const label = document.createElement('span'); label.textContent = '"' + name + '"';
-    const b = document.createElement('button'); b.textContent = 'העתק';
-    b.onclick = () => { buzz(); copyText(siriUrl(phrase), 'הכתובת הועתקה ✓ עכשיו הדביקו אותה בקיצורים'); };
-    row.append(label, b); $('siriList').appendChild(row);
-  });
-  $('siriCopyCustom').onclick = () => {
-    const v = $('siriCustom').value.trim();
-    if (!v) return toast('כתבו קודם פקודה');
-    buzz(); copyText(siriUrl(v), 'הכתובת הועתקה ✓ עכשיו הדביקו אותה בקיצורים');
-  };
-  if (local) $('siriCard').hidden = true;
 
   // ===== המשך מאיפה שעצרת =====
   function loadRecent() {
@@ -1513,15 +1484,20 @@
 
   // ===== שיקוף מסך =====
   const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-  $('mirrorSteps').innerHTML = isIOS
-    ? '<li>לוחצים למעלה על <b>"פתח בטלוויזיה"</b> (פותח את AirScreen).</li><li>באייפון: מושכים למטה מהפינה הימנית העליונה ← <b>שיקוף מסך</b>.</li><li>בוחרים את הטלוויזיה מהרשימה.</li>'
-    : '<li>לוחצים למעלה על <b>"פתח בטלוויזיה"</b> (פותח את AirScreen).</li><li>בגלקסי: מושכים את הלוח המהיר למטה ← <b>Smart View</b> (או באפליקציית Google Home ← <b>שידור המסך שלי</b>).</li><li>בוחרים את הטלוויזיה מהרשימה.</li>';
-  $('openMirror').onclick = () => {
+  const MIRROR_APK = 'https://github.com/myphone3/My-phone-/releases/download/tv-remote-latest/mirror.apk';
+  $('mirrorAndroid').hidden = isIOS;
+  $('mirrorIos').hidden = !isIOS;
+  let tvLan = null, tvMirrorPort = 8090;
+  $('startMirror').onclick = () => {
     buzz();
-    const a = apps.find((x) => /airscreen/i.test(x.pkg + x.label));
-    if (!a) return toast('AirScreen לא מותקנת בטלוויזיה');
-    call('launch', { pkg: a.pkg }).then((r) => toast(r.ok ? 'AirScreen נפתחת בטלוויזיה…' : 'לא הצלחתי לפתוח'));
+    if (!tvLan || !/^\d+\.\d+\.\d+\.\d+$/.test(tvLan)) return toast('הטלוויזיה לא מחוברת לרשת כרגע');
+    const name = encodeURIComponent($('tvName').textContent || 'הטלוויזיה');
+    // פותח את אפליקציית השיקוף עם כתובת הטלוויזיה. אם היא לא מותקנת - מוריד אותה.
+    location.href = 'intent://start?host=' + tvLan + '&port=' + tvMirrorPort + '&name=' + name +
+      '#Intent;scheme=tvmirror;package=com.myphone.tvremote.mirror;S.browser_fallback_url=' + encodeURIComponent(MIRROR_APK) + ';end';
   };
+  $('getMirrorApp').onclick = () => { buzz(); location.href = MIRROR_APK; };
+  $('stopMirror').onclick = () => { buzz(); call('mirror_stop').then((r) => toast(r.ok ? 'השיקוף הופסק' : 'לא הצלחתי לעצור')); };
 
   // ===== שם הטלוויזיה (לחיצה על השם משנה אותו, לכל הטלפונים) =====
   $('tvName').addEventListener('click', () => {
@@ -1555,6 +1531,7 @@
       setOnline(true);
       const s = r.body;
       if (s.name) $('tvName').textContent = s.name;
+      if (s.lan) { tvLan = s.lan; tvMirrorPort = s.mirrorPort || 8090; }
       setStatus(s.connected ? 'ok' : 'wait', s.connected ? 'מחובר' : 'ממתין…');
       if (!loadedOnce) { loadedOnce = true; loadApps(); loadRecent(); }
     });
