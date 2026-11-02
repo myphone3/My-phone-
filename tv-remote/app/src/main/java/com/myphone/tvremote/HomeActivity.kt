@@ -74,6 +74,7 @@ class HomeActivity : Activity() {
     private var frontBitmap: Bitmap? = null
     private var favWidth = 200
     private val wifiIcons = mutableListOf<ImageView>()
+    private var statusWifiIcon: ImageView? = null
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
     private val prefs by lazy { getSharedPreferences("home", Context.MODE_PRIVATE) }
@@ -197,6 +198,7 @@ class HomeActivity : Activity() {
 
         // סמל WiFi קטן בפינה העליונה, כמו בשורת המצב של אפל
         val statusWifi = ImageView(this).apply { setImageResource(R.drawable.ic_wifi_line); alpha = 0.95f }
+        statusWifiIcon = statusWifi
         wifiIcons += statusWifi
         root.addView(statusWifi, FrameLayout.LayoutParams(dp(26), dp(26), Gravity.TOP or Gravity.LEFT).apply {
             leftMargin = dp(SAFE_SIDE); topMargin = dp(32)
@@ -292,7 +294,7 @@ class HomeActivity : Activity() {
             caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) &&
             (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
         fun show(connected: Boolean) = main.post {
-            wifiIcons.forEach { it.setImageResource(if (connected) R.drawable.ic_wifi_line else R.drawable.ic_wifi_off_line) }
+            wifiIcons.forEach { it.setImageResource(wifiDrawable(it, connected)) }
         }
         show(online(cm.getNetworkCapabilities(cm.activeNetwork)))
         val callback = object : ConnectivityManager.NetworkCallback() {
@@ -310,6 +312,13 @@ class HomeActivity : Activity() {
         main.postDelayed(wifiCheck, 10_000)
     }
 
+    /** בפינה של מסך הבית: אפור בהיר עם איקס (שיראו גם על תמונה). בכפתור שברשימה: אפור רגיל. */
+    private fun wifiDrawable(view: ImageView, connected: Boolean) = when {
+        connected -> R.drawable.ic_wifi_line
+        view === statusWifiIcon -> R.drawable.ic_wifi_off_status
+        else -> R.drawable.ic_wifi_off_line
+    }
+
     private val wifiCheck = object : Runnable {
         override fun run() {
             val cm = getSystemService(ConnectivityManager::class.java) ?: return
@@ -317,7 +326,7 @@ class HomeActivity : Activity() {
             val connected = caps != null &&
                 caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) &&
                 (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
-            wifiIcons.forEach { it.setImageResource(if (connected) R.drawable.ic_wifi_line else R.drawable.ic_wifi_off_line) }
+            wifiIcons.forEach { it.setImageResource(wifiDrawable(it, connected)) }
             main.postDelayed(this, 10_000)
         }
     }
