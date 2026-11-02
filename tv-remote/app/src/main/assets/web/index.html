@@ -226,6 +226,17 @@
   .photo button.armed { width: auto; padding: 0 10px; border-radius: 999px; background: var(--bad); font-size: 12px; font-weight: 600; }
   .photo-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; font-size: 13px; color: var(--muted); }
   .photo-row select { font: inherit; font-size: 14px; color: var(--text); background: var(--surface-strong); border: 1px solid var(--border); border-radius: 12px; padding: 8px 10px; }
+  .bar { height: 10px; border-radius: 99px; background: var(--surface-strong); overflow: hidden; margin: 6px 0 4px; box-shadow: var(--shadow-sm); }
+  .bar i { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+  .meter { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+  .meter b { color: var(--text); }
+  .usage { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+  .usage li { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 8px 10px; border-radius: 12px; background: var(--surface-strong); }
+  .usage li span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .usage .tag { font-size: 11px; color: var(--muted); }
+  .usage .mb { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .row-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .row-btns button { min-height: 46px; font-size: 14px; font-weight: 600; color: var(--text); }
   .empty { color: var(--muted); font-size: 13px; grid-column: 1 / -1; text-align: center; padding: 8px 0; }
 
   .welcome { text-align: center; padding: 30px 18px; border-radius: 30px; margin-top: 30px; }
@@ -396,6 +407,14 @@
       </div>
       <p class="note" id="photoStatus" hidden></p>
     </section>
+    <section class="card glass" id="storageCard">
+      <h2>אחסון וזיכרון בטלוויזיה <button id="checkStorage">בדוק עכשיו</button></h2>
+      <div id="storageBody"><div class="empty">לחצו "בדוק עכשיו" כדי לראות מה תופס מקום בטלוויזיה.</div></div>
+      <div class="row-btns" id="storageBtns" hidden>
+        <button id="trimCaches">🧹 ניקוי קבצים זמניים</button>
+        <button id="copyReport">📋 העתק דוח ל-Claude</button>
+      </div>
+    </section>
     <section class="card glass" id="favCard">
       <h2>מועדפים</h2>
       <div class="apps" id="favApps"></div>
@@ -473,7 +492,7 @@
 
   function makeCloud(id) {
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { persistSession: false }, realtime: { params: { eventsPerSecond: 60 }, heartbeatIntervalMs: 15000 },
+      auth: { persistSession: false }, realtime: { params: { eventsPerSecond: 60 }, heartbeatIntervalMs: 5000, timeout: 5000 },
     });
     const pending = new Map();
     let ready = false;
@@ -512,7 +531,7 @@
     const iconCache = store.get('icons', {});
     return {
       mode: 'דרך האינטרנט',
-      call(cmd, args = {}, timeout = 4500) {
+      call(cmd, args = {}, timeout = 3500) {
         return new Promise((resolve) => {
           const id = Math.random().toString(36).slice(2) + Date.now().toString(36);
           const send = () => {
@@ -553,8 +572,8 @@
   const tv = local ? makeLocal() : makeCloud(tvId);
   $('modeText').textContent = tv.mode;
 
-  function call(cmd, args) {
-    return tv.call(cmd, args).then((r) => {
+  function call(cmd, args, timeout) {
+    return tv.call(cmd, args, timeout).then((r) => {
       if (!r.ok && r.body && r.body.error === 'offline') setOnline(false);
       return r;
     }).catch(() => { setOnline(false); return { ok: false, body: { error: 'offline' } }; });
@@ -1078,6 +1097,78 @@
     if (files.length) upload(files);
   };
 
+
+  // ===== אחסון וזיכרון =====
+  const mb = (b) => (b / 1048576);
+  const fmt = (b) => mb(b) >= 1024 ? (mb(b) / 1024).toFixed(1) + ' GB' : Math.round(mb(b)) + ' MB';
+  let lastReport = null;
+  function meter(title, used, total) {
+    const pct = total ? Math.round((used / total) * 100) : 0;
+    return `<div class="meter"><b>${title}:</b> פנוי <bdi dir="ltr">${fmt(total - used)}</bdi> מתוך <bdi dir="ltr">${fmt(total)}</bdi></div><div class="bar"><i style="width:${pct}%"></i></div>`;
+  }
+  function renderStorage(r) {
+    const box = $('storageBody');
+    let html = meter('אחסון', r.storageTotal - r.storageFree, r.storageTotal) + meter('זיכרון (RAM)', r.ramTotal - r.ramFree, r.ramTotal);
+    html += '<div class="meter" style="margin-top:12px"><b>מה תופס הכי הרבה מקום:</b></div><ul class="usage" id="usageList"></ul>';
+    box.innerHTML = html;
+    const list = $('usageList');
+    (r.apps || []).slice(0, 15).forEach((a) => {
+      const li = document.createElement('li');
+      const name = document.createElement('span'); name.textContent = a.label; name.dir = 'auto';
+      const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = a.system ? 'מערכת' : 'הותקן';
+      const size = document.createElement('span'); size.className = 'mb'; size.dir = 'ltr'; size.textContent = fmt(a.app + a.data);
+      li.append(name, tag, size);
+      list.appendChild(li);
+    });
+    $('storageBtns').hidden = false;
+  }
+  $('checkStorage').onclick = () => {
+    buzz();
+    $('storageBody').innerHTML = '<div class="empty">בודק… (כמה שניות)</div>';
+    call('storage', {}, 30000).then((r) => {
+      if (!r.ok) { $('storageBody').innerHTML = '<div class="empty">לא הצלחתי לבדוק. אולי צריך לעדכן את האפליקציה בטלוויזיה.</div>'; return; }
+      lastReport = r.body;
+      renderStorage(r.body);
+    });
+  };
+  $('trimCaches').onclick = () => {
+    buzz(); toast('מנקה…');
+    call('trim', {}, 30000).then((r) => {
+      toast(r.ok ? 'התפנו ' + fmt(r.body.freed || 0) + ' ✓' : 'הניקוי לא הצליח');
+      if (r.ok) $('checkStorage').click();
+    });
+  };
+  // דוח קצר בטקסט - להדבקה בצ'אט עם Claude
+  function reportText(r) {
+    const lines = [
+      'דוח טלוויזיה',
+      `אחסון: פנוי ${fmt(r.storageFree)} מתוך ${fmt(r.storageTotal)}`,
+      `RAM: פנוי ${fmt(r.ramFree)} מתוך ${fmt(r.ramTotal)}`,
+      `אפליקציות מותקנות: ${r.appsCount}`,
+      '',
+      'לפי גודל (שם | חבילה | מערכת? | פעיל? | אפליקציה+נתונים | זמני):',
+    ];
+    (r.apps || []).forEach((a) => lines.push(`${a.label} | ${a.pkg} | ${a.system ? 'מערכת' : 'הותקן'} | ${a.enabled ? 'פעיל' : 'כבוי'} | ${fmt(a.app + a.data)} | ${fmt(a.cache)}`));
+    lines.push('', 'זיכרון לפי תהליך:');
+    (r.processes || []).forEach((p) => lines.push(`${p.name}: ${Math.round(p.kb / 1024)} MB`));
+    return lines.join('\n');
+  }
+  $('copyReport').onclick = () => {
+    if (!lastReport) return;
+    const text = reportText(lastReport);
+    const done = () => toast('הדוח הועתק ✓ עכשיו הדביקו אותו בצ\'אט עם Claude');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+    } else fallbackCopy(text, done);
+  };
+  function fallbackCopy(text, done) {
+    const t = document.createElement('textarea');
+    t.value = text; t.style.position = 'fixed'; t.style.opacity = '0';
+    document.body.appendChild(t); t.select();
+    try { document.execCommand('copy'); done(); } catch (e) { toast('לא הצלחתי להעתיק'); }
+    t.remove();
+  }
+
   // ===== שם הטלוויזיה (לחיצה על השם משנה אותו, לכל הטלפונים) =====
   $('tvName').addEventListener('click', () => {
     const current = $('tvName').textContent;
@@ -1116,7 +1207,7 @@
   }
   window.poll = poll;
   poll();
-  setInterval(() => { if (!document.hidden) poll(); }, 5000);
+  setInterval(() => { if (!document.hidden) poll(); }, 3000);
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) return;
     if (tv.wake) tv.wake();

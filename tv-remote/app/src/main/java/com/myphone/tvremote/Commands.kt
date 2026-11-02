@@ -85,6 +85,8 @@ object Commands {
         "launch" -> if (Apps.launch(context, params["pkg"].orEmpty())) ok() else fail("not found")
         "reconnect" -> { AdbBridge.reconnect(); ok() }
         "keyboard" -> { AdbBridge.useGboard(); ok() }
+        "storage" -> ok(StorageReport.build(context))
+        "trim" -> ok(JSONObject().put("ok", true).put("freed", StorageReport.trimCaches(context)))
         "photos" -> {
             val list = JSONArray()
             for (file in PhotoStore.list(context)) {

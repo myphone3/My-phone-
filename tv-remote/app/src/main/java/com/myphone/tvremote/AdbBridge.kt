@@ -89,6 +89,13 @@ object AdbBridge {
 
     fun shell(command: String) = worker.execute { run(command) }
 
+    /** מריץ פקודה ומחכה לתשובה (עד 20 שניות). */
+    fun shellSync(command: String): String? = try {
+        worker.submit(Callable { run(command) }).get(20, TimeUnit.SECONDS)
+    } catch (e: Exception) {
+        null
+    }
+
     /**
      * כותב טקסט (כולל עברית) לשדה שנבחר בטלוויזיה, דרך המקלדת של האפליקציה.
      * מחזיר null אם הצליח, או קוד שגיאה.

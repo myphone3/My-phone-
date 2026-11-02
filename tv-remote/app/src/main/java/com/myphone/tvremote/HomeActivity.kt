@@ -197,11 +197,21 @@ class HomeActivity : Activity() {
         })
 
         // סמל WiFi קטן בפינה העליונה, כמו בשורת המצב של אפל
+        // הוא גם כפתור: לחיצה פותחת את הגדרות ה-WiFi
         val statusWifi = ImageView(this).apply { setImageResource(R.drawable.ic_wifi_line); alpha = 0.95f }
         statusWifiIcon = statusWifi
         wifiIcons += statusWifi
-        root.addView(statusWifi, FrameLayout.LayoutParams(dp(26), dp(26), Gravity.TOP or Gravity.LEFT).apply {
-            leftMargin = dp(SAFE_SIDE); topMargin = dp(32)
+        val wifiButton = FrameLayout(this).apply {
+            isFocusable = true
+            setOnClickListener { openWifi() }
+            onFocusChangeListener = View.OnFocusChangeListener { v, focused ->
+                v.animate().scaleX(if (focused) 1.2f else 1f).scaleY(if (focused) 1.2f else 1f).setDuration(160).start()
+                v.background = if (focused) rounded(Color.argb(70, 255, 255, 255), 999f, Color.argb(160, 255, 255, 255)) else null
+            }
+            addView(statusWifi, FrameLayout.LayoutParams(dp(26), dp(26), Gravity.CENTER))
+        }
+        root.addView(wifiButton, FrameLayout.LayoutParams(dp(46), dp(46), Gravity.TOP or Gravity.LEFT).apply {
+            leftMargin = dp(SAFE_SIDE - 10); topMargin = dp(22)
         })
 
         // שורת המועדפים - למטה

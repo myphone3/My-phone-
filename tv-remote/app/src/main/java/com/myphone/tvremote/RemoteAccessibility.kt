@@ -21,9 +21,16 @@ class RemoteAccessibility : AccessibilityService() {
         instance = this
         RemoteService.start(this)
         // בהדלקה: אם הטלוויזיה פתחה את מסך הבית של היצרן - מחליפים מיד לשלנו
-        android.os.Handler(mainLooper).postDelayed({
-            if (isOriginalHome(foregroundPackage(), rootInActiveWindow?.className?.toString(), allowAnyClass = true)) openOurHome()
-        }, 1500)
+        // אחרי הדלקה מלאה (גם מהשקע) הטלוויזיה עולה לאט - בודקים כמה פעמים ב-20 השניות הראשונות
+        val handler = android.os.Handler(mainLooper)
+        for (delay in listOf(800L, 2500L, 5000L, 9000L, 14000L, 20000L)) {
+            handler.postDelayed({
+                if (isOriginalHome(foregroundPackage(), rootInActiveWindow?.className?.toString(), allowAnyClass = true)) {
+                    lastHomeSwitch = 0
+                    openOurHome()
+                }
+            }, delay)
+        }
     }
 
     /**

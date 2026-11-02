@@ -24,7 +24,7 @@ object CloudRelay {
     private const val JOIN_REF = "1"
 
     private val client = OkHttpClient.Builder()
-        .pingInterval(20, TimeUnit.SECONDS)
+        .pingInterval(5, TimeUnit.SECONDS)
         .retryOnConnectionFailure(true)
         .build()
     private val timer = Executors.newSingleThreadScheduledExecutor()
@@ -36,7 +36,7 @@ object CloudRelay {
     private var socket: WebSocket? = null
     private var heartbeat: ScheduledFuture<*>? = null
     private var pendingRetry: ScheduledFuture<*>? = null
-    private var backoffSec = 2L
+    private var backoffSec = 1L
     private var started = false
     @Volatile private var lastMessageAt = 0L
 
@@ -51,7 +51,7 @@ object CloudRelay {
         topic = "realtime:tv-" + TvIdentity.id(appContext)
         connect()
         watchNetwork()
-        timer.scheduleAtFixedRate({ watchdog() }, 10, 10, TimeUnit.SECONDS)
+        timer.scheduleAtFixedRate({ watchdog() }, 3, 3, TimeUnit.SECONDS)
     }
 
     /**
@@ -65,7 +65,7 @@ object CloudRelay {
             if (pendingRetry?.isDone != false) connect()
             return
         }
-        if (lastMessageAt > 0 && System.currentTimeMillis() - lastMessageAt > 35_000) {
+        if (lastMessageAt > 0 && System.currentTimeMillis() - lastMessageAt > 12_000) {
             Log.w(TAG, "connection looks frozen, reconnecting")
             current.cancel()
         }
@@ -109,7 +109,7 @@ object CloudRelay {
 
     private val listener = object : WebSocketListener() {
         override fun onOpen(webSocket: WebSocket, response: Response) {
-            backoffSec = 2
+            backoffSec = 1
             lastMessageAt = System.currentTimeMillis()
             val config = JSONObject()
                 .put("broadcast", JSONObject().put("self", false).put("ack", false))
@@ -124,7 +124,7 @@ object CloudRelay {
             heartbeat?.cancel(false)
             heartbeat = timer.scheduleAtFixedRate({
                 send(webSocket, "phoenix", "heartbeat", JSONObject(), ref.incrementAndGet().toString())
-            }, 12, 12, TimeUnit.SECONDS)
+            }, 5, 5, TimeUnit.SECONDS)
         }
 
         override fun onMessage(webSocket: WebSocket, text: String) {
@@ -167,7 +167,7 @@ object CloudRelay {
         heartbeat?.cancel(false)
         socket = null
         val delay = backoffSec
-        backoffSec = (backoffSec * 2).coerceAtMost(8)
+        backoffSec = (backoffSec * 2).coerceAtMost(4)
         pendingRetry = timer.schedule({ connectIfIdle() }, delay, TimeUnit.SECONDS)
     }
 
