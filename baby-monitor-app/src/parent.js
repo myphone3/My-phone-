@@ -1,6 +1,6 @@
 import jsQR from 'jsqr';
 import {
-  ICE, LOST_MS, RELAY_AFTER_MS, native, Monitor, supabase, store, rid, time, timeSec, dayTime, esc, $, $$, app, toast,
+  getIce, LOST_MS, RELAY_RATE, RELAY_CHUNK_MS, muEncode, RELAY_AFTER_MS, native, Monitor, supabase, store, rid, time, timeSec, dayTime, esc, $, $$, app, toast,
   ticker, levelFrom, setMeter, nativeCall, muDecode, channelFor, views, go, setTeardown, toggleRow, batteryHint,
   blobToBase64, SOUNDS,
 } from './common.js';
@@ -361,6 +361,10 @@ function connectRoom(room, pane, { actx, S, notify }) {
       <div class="muted small soundState"></div>
     </div>`;
   q('.videoBox').appendChild(live);
+  const relayImg = document.createElement('img');
+  relayImg.className = 'relayImg'; relayImg.alt = 'תמונה מחדר התינוק'; relayImg.hidden = true;
+  q('.videoBox').appendChild(relayImg);
+  let lastFrame = 0;
   const pv = q('.pv');
 
   // ---------- תצוגה ----------
@@ -372,17 +376,20 @@ function connectRoom(room, pane, { actx, S, notify }) {
     relayGain.gain.value = listen && !talking ? 1 : 0;
   };
   function renderBaby() {
-    q('.videoBox').hidden = !(watch && baby.video && audioOn);
+    const frames = relayOn && !audioOn && Date.now() - lastFrame < 10000;
+    q('.videoBox').hidden = !(watch && baby.video && (audioOn || frames));
+    live.hidden = !audioOn;
+    relayImg.hidden = audioOn || !frames;
     q('.camBtn').textContent = baby.video ? '📷 כיבוי מצלמה' : '📷 הדלקת מצלמה';
     q('.camBtn').classList.toggle('on', baby.video);
     q('.flipBtn').hidden = !baby.video;
     q('.torchBtn').hidden = !(baby.video && baby.torchAvail);
     q('.torchBtn').classList.toggle('on', !!baby.torch);
-    q('.brightBtn').hidden = q('.snapBtn').hidden = !(baby.video && audioOn && watch);
+    q('.brightBtn').hidden = q('.snapBtn').hidden = q('.videoBox').hidden;
     q('.watchBtn').hidden = !baby.video;
     q('.watchBtn').classList.toggle('on', watch);
     q('.brightBtn').classList.toggle('on', bright);
-    q('.talk').disabled = !audioOn;
+    q('.talk').disabled = !audioOn && !relayOn;
     const st = baby.sound || { type: 'none' };
     qq('.sounds button').forEach((b) => b.classList.toggle('on', b.dataset.s === st.type));
     q('.soundState').textContent = st.type && st.type !== 'none' ? `${SOUNDS[st.type]} מתנגן${st.until ? ' עד ' + time(st.until) : ''}` : 'לא מתנגן כלום';
@@ -399,7 +406,8 @@ function connectRoom(room, pane, { actx, S, notify }) {
     } else if (now - babySeen > LOST_MS) {
       el.innerHTML = `<b style="color:var(--bad)"><span class="dot bad"></span>אין קשר עם מכשיר התינוק כבר ${Math.round((now - babySeen) / 1000)} שניות</b>`;
     } else {
-      const how = audioOn ? (baby.video && watch ? 'שמע ווידאו חיים' : 'שמע חי') : relayOn ? 'שמע דרך השרת (איכות טלפון)' : 'שמע חי מתחבר…';
+      const how = audioOn ? (baby.video && watch ? 'שמע ווידאו חיים' : 'שמע חי')
+        : relayOn ? (baby.video && watch ? 'שמע ותמונה דרך השרת' : 'שמע דרך השרת') : 'מתחבר…';
       el.innerHTML = `<div class="row"><span style="color:var(--ok)"><span class="dot ok"></span>מחובר לחדר</span>
         <span class="muted small">${how}</span></div>`;
     }
@@ -409,7 +417,12 @@ function connectRoom(room, pane, { actx, S, notify }) {
 
   // ---------- כפתורים ----------
   q('.listen').onclick = () => { listen = !listen; store.set(k('listen'), listen ? '1' : '0'); renderListen(); };
-  q('.watchBtn').onclick = () => { watch = !watch; store.set(k('watch'), watch ? '1' : '0'); send('prefs', { from: me, video: watch }); renderStatus(); };
+  q('.watchBtn').onclick = () => {
+    watch = !watch; store.set(k('watch'), watch ? '1' : '0');
+    send('prefs', { from: me, video: watch });
+    if (relayOn) send('relay', { from: me, on: true, video: watch });
+    renderStatus();
+  };
   q('.camBtn').onclick = () => {
     if (!baby.video && !baby.camAllowed) { toast('במכשיר התינוק לא אושרה הרשאת מצלמה'); return; }
     cmd('camera', { on: !baby.video });
@@ -421,7 +434,7 @@ function connectRoom(room, pane, { actx, S, notify }) {
   q('.brightBtn').onclick = () => {
     bright = !bright;
     const f = bright ? 'brightness(1.9) contrast(1.15)' : '';
-    live.style.filter = f; pv.style.filter = f;
+    live.style.filter = f; pv.style.filter = f; relayImg.style.filter = f;
     renderBaby();
   };
   q('.snapBtn').onclick = () => snapshot();
@@ -433,12 +446,14 @@ function connectRoom(room, pane, { actx, S, notify }) {
   };
 
   async function snapshot() {
-    if (!live.videoWidth) return;
+    const srcEl = audioOn ? live : relayImg;
+    const w = audioOn ? live.videoWidth : relayImg.naturalWidth, h = audioOn ? live.videoHeight : relayImg.naturalHeight;
+    if (!w) return;
     const c = document.createElement('canvas');
-    c.width = live.videoWidth; c.height = live.videoHeight;
+    c.width = w; c.height = h;
     const x = c.getContext('2d');
     if (bright) x.filter = 'brightness(1.9) contrast(1.15)';
-    x.drawImage(live, 0, 0);
+    x.drawImage(srcEl, 0, 0);
     const data = c.toDataURL('image/jpeg', 0.9).split(',')[1];
     if (!native) { toast('שמירת תמונה עובדת באפליקציה בטלפון'); return; }
     const ok = await Monitor.saveImage({ data, name: 'baby-' + new Date().toISOString().replace(/[:.]/g, '-') + '.jpg' }).then(() => true, () => false);
@@ -449,14 +464,15 @@ function connectRoom(room, pane, { actx, S, notify }) {
   const audioSender = () => pc?.getTransceivers().find((t) => t.receiver.track?.kind === 'audio')?.sender;
   async function talkStart(e) {
     e.preventDefault();
-    if (!audioOn) { toast('דיבור עובד רק כשיש חיבור ישיר'); return; }
+    if (!audioOn && !relayOn) { toast('עדיין מתחבר…'); return; }
     if (!micStream) {
       await nativeCall('requestAll', { mode: 'parent', mic: true });
       try { micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
       catch { toast('צריך לאשר הרשאת מיקרופון כדי לדבר'); return; }
     }
     talking = true;
-    audioSender()?.replaceTrack(micStream.getAudioTracks()[0]);
+    if (audioOn) audioSender()?.replaceTrack(micStream.getAudioTracks()[0]);
+    else startTalkRelay();
     q('.talk').classList.add('on'); q('.talk').textContent = '🎙️ מדברים…';
     renderListen();
   }
@@ -464,8 +480,31 @@ function connectRoom(room, pane, { actx, S, notify }) {
     if (!talking) return;
     talking = false;
     audioSender()?.replaceTrack(null);
+    stopTalkRelay();
     q('.talk').classList.remove('on'); q('.talk').textContent = '🎙️ דברו';
     renderListen();
+  }
+  // דיבור דרך השרת כשאין חיבור ישיר (איכות טלפון)
+  let talkProc = null, talkSrc = null;
+  function startTalkRelay() {
+    talkSrc = actx.createMediaStreamSource(micStream);
+    talkProc = actx.createScriptProcessor(4096, 1, 1);
+    const mute = actx.createGain(); mute.gain.value = 0;
+    talkSrc.connect(talkProc); talkProc.connect(mute); mute.connect(actx.destination);
+    const ratio = actx.sampleRate / RELAY_RATE, len = (RELAY_RATE * RELAY_CHUNK_MS) / 1000;
+    let out = new Uint8Array(len), pos = 0, frac = 0;
+    talkProc.onaudioprocess = (e) => {
+      const input = e.inputBuffer.getChannelData(0);
+      for (let i = frac; i < input.length; i += ratio) {
+        out[pos++] = muEncode(input[Math.floor(i)]);
+        if (pos === len) { send('talk-pcm', { from: me, rate: RELAY_RATE, d: b64.enc(out) }); out = new Uint8Array(len); pos = 0; }
+        frac = i + ratio - input.length;
+      }
+    };
+  }
+  function stopTalkRelay() {
+    if (talkProc) { talkProc.onaudioprocess = null; talkProc.disconnect(); talkSrc.disconnect(); }
+    talkProc = talkSrc = null;
   }
   q('.talk').addEventListener('pointerdown', talkStart);
   ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => q('.talk').addEventListener(ev, talkStop));
@@ -499,12 +538,21 @@ function connectRoom(room, pane, { actx, S, notify }) {
   window.addEventListener('resize', redraw);
 
   let playing = null; // {meta, url, blob}
+  const relayClips = new Map(), clipCache = new Map();
+  function requestClipRelay(at) {
+    for (const c of clipCache.values()) if (c.meta.s <= at && at < c.meta.e) return Promise.resolve(c);
+    return new Promise((resolve) => {
+      const id = rid();
+      relayClips.set(id, { parts: [], got: 0, meta: null, resolve });
+      send('clip-req', { from: me, id, at });
+      setTimeout(() => { if (relayClips.has(id)) { relayClips.delete(id); resolve(null); } }, 60000);
+    });
+  }
   async function playAt(at) {
     sel = at; redraw();
     q('.graph').scrollIntoView({ block: 'center', behavior: 'smooth' });
-    if (!clips.ready) { q('.histHint').textContent = 'צפייה בהקלטות עובדת רק כשיש חיבור ישיר למכשיר התינוק.'; return; }
-    q('.histHint').textContent = 'טוען הקלטה מ-' + timeSec(at) + '…';
-    const clip = await clips.request(at).catch(() => null);
+    q('.histHint').textContent = 'טוען הקלטה מ-' + timeSec(at) + (clips.ready ? '…' : ' דרך השרת…');
+    const clip = clips.ready ? await clips.request(at).catch(() => null) : await requestClipRelay(at);
     if (!clip) { q('.histHint').textContent = 'אין הקלטה מהזמן הזה.'; return; }
     if (playing) URL.revokeObjectURL(playing.url);
     playing = { meta: clip.meta, url: URL.createObjectURL(clip.blob), blob: clip.blob };
@@ -548,7 +596,8 @@ function connectRoom(room, pane, { actx, S, notify }) {
   function setRelay(on) {
     if (relayOn === on) return;
     relayOn = on;
-    send('relay', { from: me, on });
+    if (!on && talking) stopTalkRelay();
+    send('relay', { from: me, on, video: watch });
     relayPing = Date.now();
     relayNext = 0;
     renderStatus();
@@ -557,8 +606,9 @@ function connectRoom(room, pane, { actx, S, notify }) {
   ch.on('broadcast', { event: 'offer' }, async ({ payload }) => {
     if (payload.to !== me) return;
     baby.video = !!payload.video;
+    const ice = await getIce();
     pc?.close();
-    const p = (pc = new RTCPeerConnection(ICE));
+    const p = (pc = new RTCPeerConnection(ice));
     p.ontrack = (e) => {
       if (live.srcObject !== e.streams[0]) live.srcObject = e.streams[0];
       live.play().catch(() => {});
@@ -572,7 +622,9 @@ function connectRoom(room, pane, { actx, S, notify }) {
       if (p !== pc) return;
       audioOn = p.connectionState === 'connected';
       if (audioOn) { helloSince = 0; setRelay(false); }
-      if (p.connectionState === 'failed') setTimeout(hello, 1000);
+      if (p.connectionState === 'failed') setTimeout(hello, 500);
+      // ניתוק רגעי (מעבר בין WiFi לסלולר): אם לא חזר תוך 4 שניות, מתחברים מחדש
+      if (p.connectionState === 'disconnected') setTimeout(() => { if (p === pc && p.connectionState === 'disconnected') hello(); }, 4000);
       renderStatus();
     };
     await p.setRemoteDescription(payload.sdp);
@@ -618,6 +670,29 @@ function connectRoom(room, pane, { actx, S, notify }) {
         : 'לילה שקט, בלי בכי 🎉';
       notify(room, 'summary', '🌅 סיכום הלילה', text, payload.first ? payload.first - 10000 : undefined);
     })
+    .on('broadcast', { event: 'frame' }, ({ payload }) => {
+      if (!relayOn || audioOn || !watch) return;
+      lastFrame = Date.now();
+      relayImg.src = 'data:image/jpeg;base64,' + payload.d;
+      renderBaby();
+    })
+    .on('broadcast', { event: 'clip-part' }, ({ payload }) => {
+      if (payload.to !== me) return;
+      const r = relayClips.get(payload.id);
+      if (!r) return;
+      if (payload.none) { relayClips.delete(payload.id); r.resolve(null); return; }
+      if (payload.meta) r.meta = payload.meta;
+      if (!r.parts[payload.i]) { r.parts[payload.i] = b64.dec(payload.d); r.got++; }
+      const done = r.got === payload.n && r.meta;
+      q('.histHint').textContent = done ? '' : `טוען הקלטה דרך השרת… ${Math.round((r.got / payload.n) * 100)}%`;
+      if (done) {
+        relayClips.delete(payload.id);
+        const clip = { meta: r.meta, blob: new Blob(r.parts, { type: r.meta.mime }) };
+        clipCache.set(clip.meta.s, clip);
+        if (clipCache.size > 10) clipCache.delete(clipCache.keys().next().value);
+        r.resolve(clip);
+      }
+    })
     .on('broadcast', { event: 'baby-online' }, ({ payload }) => { babySeen = Date.now(); baby.video = !!payload.video; hello(); askHistory(); })
     .on('broadcast', { event: 'baby-offline' }, () => { babySeen = null; audioOn = false; setRelay(false); renderStatus(); })
     .on('broadcast', { event: 'pcm' }, ({ payload }) => {
@@ -649,7 +724,7 @@ function connectRoom(room, pane, { actx, S, notify }) {
       if (now - lastHello > 10000) hello();
       if (helloSince && now - helloSince > RELAY_AFTER_MS) setRelay(true);
     }
-    if (relayOn && now - relayPing > 10000) { relayPing = now; send('relay', { from: me, on: true }); }
+    if (relayOn && now - relayPing > 10000) { relayPing = now; send('relay', { from: me, on: true, video: watch }); }
     if (babySeen !== null && now - babySeen > LOST_MS && !lostNotified) {
       lostNotified = true;
       notify(room, 'lost', '⚠️ הקשר עם מכשיר התינוק נותק', 'בדקו את מכשיר התינוק ואת החיבור לאינטרנט');
@@ -658,6 +733,9 @@ function connectRoom(room, pane, { actx, S, notify }) {
     if (now - lastRender > 1000) { lastRender = now; renderStatus(); }
   });
   renderStatus();
+  // חזרה לרשת אחרי ניתוק: מתחברים מחדש מיד
+  const onOnline = () => { if (!audioOn || pc?.connectionState !== 'connected') { helloSince = 0; hello(); } };
+  window.addEventListener('online', onOnline);
 
   return {
     onShow() { redraw(); },
@@ -671,6 +749,8 @@ function connectRoom(room, pane, { actx, S, notify }) {
       pc?.close();
       supabase.removeChannel(ch);
       window.removeEventListener('resize', redraw);
+      window.removeEventListener('online', onOnline);
+      stopTalkRelay();
       live.srcObject = null;
       if (playing) URL.revokeObjectURL(playing.url);
     },

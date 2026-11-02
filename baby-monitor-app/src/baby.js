@@ -1,9 +1,9 @@
 import qrcode from 'qrcode-generator';
 import {
-  ICE, HEARTBEAT_MS, RELAY_RATE, RELAY_CHUNK_MS, supabase, store, time, $, toast, ticker, levelFrom, setMeter,
-  nativeCall, muEncode, channelFor, views, go, setTeardown, toggleRow, batteryHint, deviceInfo, soundPlayer, SOUNDS,
+  getIce, HEARTBEAT_MS, RELAY_RATE, RELAY_CHUNK_MS, supabase, store, time, $, toast, ticker, levelFrom, setMeter,
+  nativeCall, muEncode, muDecode, channelFor, views, go, setTeardown, toggleRow, batteryHint, deviceInfo, soundPlayer, SOUNDS,
 } from './common.js';
-import { LevelLog, Recorder, recordedSpans, storageInfo, sendClip, b64, STEP, HOUR } from './history.js';
+import { LevelLog, Recorder, recordedSpans, storageInfo, sendClip, findClip, clipBlob, b64, STEP, HOUR } from './history.js';
 
 const EPISODE_GAP_MS = 60000; // בכי שמתחיל אחרי דקה של שקט הוא בכי חדש (והתראה חדשה)
 const MOTION_COOLDOWN_MS = 60000;
@@ -231,8 +231,9 @@ views.baby = function baby({ auto = false } = {}) {
     async function connectParent(pid, wantVideo) {
       const old = peers.get(pid);
       old?.pc.close(); old?.talk?.remove();
-      const pc = new RTCPeerConnection(ICE);
+      const pc = new RTCPeerConnection(await getIce());
       const peer = { pc, video: !!wantVideo, videoSender: null, dc: null, talk: null };
+      peers.get(pid)?.pc?.close();
       peers.set(pid, peer);
       pc.addTrack(audioTrack, stream);
       if (videoTrack) {
@@ -296,13 +297,15 @@ views.baby = function baby({ auto = false } = {}) {
         p.videoSender?.replaceTrack(p.video ? videoTrack : null);
       })
       .on('broadcast', { event: 'relay' }, ({ payload }) => {
-        if (payload.on) relayListeners.set(payload.from, Date.now()); else relayListeners.delete(payload.from);
+        if (payload.on) relayListeners.set(payload.from, { seen: Date.now(), video: !!payload.video }); else relayListeners.delete(payload.from);
         showParents();
       })
       .on('broadcast', { event: 'hist-req' }, ({ payload }) => sendHistory(payload.from, payload.hours).catch(console.warn))
       .on('broadcast', { event: 'sum-req' }, ({ payload }) => {
         send('sum', { to: payload.from, since: payload.since, until: payload.until, ...summarize(log, payload.since, payload.until) });
       })
+      .on('broadcast', { event: 'clip-req' }, ({ payload }) => sendClipRelay(payload).catch(console.warn))
+      .on('broadcast', { event: 'talk-pcm' }, ({ payload }) => playTalk(payload))
       .on('broadcast', { event: 'cmd' }, async ({ payload }) => {
         const a = payload.action;
         if (a === 'camera') { if (!(await setCamera(!!payload.on)) && payload.on) sendStatus({ camError: true }); }
@@ -336,6 +339,40 @@ views.baby = function baby({ auto = false } = {}) {
         frac = i + ratio - input.length;
       }
     };
+
+    // ---- כשאין חיבור ישיר: תמונה כל 2 שניות, הקלטות ודיבור דרך השרת ----
+    const fc = document.createElement('canvas');
+    fc.width = 320; fc.height = 240;
+    const fctx = fc.getContext('2d');
+    function sendRelayFrame() {
+      if (!videoTrack || mv.readyState < 2 || ![...relayListeners.values()].some((l) => l.video)) return;
+      fc.height = Math.round((mv.videoHeight / mv.videoWidth) * 320) || 240;
+      fctx.drawImage(mv, 0, 0, fc.width, fc.height);
+      send('frame', { ts: Date.now(), d: fc.toDataURL('image/jpeg', 0.6).split(',')[1] });
+    }
+    async function sendClipRelay(req) {
+      const meta = await findClip(req.at);
+      const blob = meta && (await clipBlob(meta.s));
+      if (!meta || !blob) { send('clip-part', { to: req.from, id: req.id, none: true }); return; }
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      const size = 48 * 1024, n = Math.ceil(bytes.length / size);
+      for (let i = 0; i < n; i++) {
+        send('clip-part', { to: req.from, id: req.id, i, n, ...(i === 0 ? { meta } : {}), d: b64.enc(bytes.subarray(i * size, (i + 1) * size)) });
+        await new Promise((r) => setTimeout(r, 120)); // לא להציף את השרת
+      }
+    }
+    let talkNext = 0;
+    function playTalk(p) {
+      const bytes = b64.dec(p.d);
+      const ab = ctx.createBuffer(1, bytes.length, p.rate);
+      const data = ab.getChannelData(0);
+      for (let i = 0; i < bytes.length; i++) data[i] = muDecode(bytes[i]);
+      const s = ctx.createBufferSource();
+      s.buffer = ab; s.connect(ctx.destination);
+      const now = ctx.currentTime;
+      if (talkNext < now + 0.05 || talkNext > now + 2) talkNext = now + 0.3;
+      s.start(talkNext); talkNext += ab.duration;
+    }
 
     // ---- זיהוי תנועה בתמונה ----
     const mv = document.createElement('video');
@@ -390,13 +427,14 @@ views.baby = function baby({ auto = false } = {}) {
         logDirty = true;
       }
       if (tickN % 5 === 0) checkMotion(now);
+      if (tickN % 20 === 0) sendRelayFrame();
       recorder?.tick();
       sound.tick();
       if (now - lastDevAt > 60000) { lastDevAt = now; deviceInfo().then((d) => { lastDevice = d; }); }
       if (now - lastBeat > HEARTBEAT_MS) {
         lastBeat = now;
         sendStatus({ crying: isCrying, level: lv });
-        relayListeners.forEach((seen, pid) => now - seen > 30000 && relayListeners.delete(pid));
+        relayListeners.forEach((l, pid) => now - l.seen > 30000 && relayListeners.delete(pid));
         if (sound.state.type === 'none' && $('#soundNow') && !$('#soundNow').hidden) renderRunning();
       }
       if (now - lastFlush > 30000) {

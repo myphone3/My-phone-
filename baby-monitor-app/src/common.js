@@ -7,18 +7,29 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://iiaxizrezhczg
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_GlpxeLkaiEs9zbILs_oeUg_HU5xMKfu';
 const TURN_URLS = (import.meta.env.VITE_TURN_URLS || '').split(',').map((s) => s.trim()).filter(Boolean);
 
-export const ICE = {
-  iceServers: [
-    { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] },
-    ...(TURN_URLS.length
-      ? [{ urls: TURN_URLS, username: import.meta.env.VITE_TURN_USERNAME, credential: import.meta.env.VITE_TURN_CREDENTIAL }]
-      : []),
-  ],
-};
+const TURN_API = import.meta.env.VITE_TURN_API || ''; // למשל https://<app>.metered.live/api/v1/turn/credentials?apiKey=...
+const STUN = { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] };
+const STATIC_TURN = TURN_URLS.length
+  ? [{ urls: TURN_URLS, username: import.meta.env.VITE_TURN_USERNAME, credential: import.meta.env.VITE_TURN_CREDENTIAL }]
+  : [];
+export const hasTurn = () => !!(TURN_URLS.length || TURN_API);
+
+// שרתי חיבור: STUN תמיד, ושרת ממסר (TURN) אם הוגדר - כדי שוידאו יעבור גם ברשתות שחוסמות חיבור ישיר
+let iceCache = null;
+export async function getIce() {
+  if (TURN_API && (!iceCache || Date.now() - iceCache.at > 3600000)) {
+    try {
+      const r = await fetch(TURN_API, { cache: 'no-store' });
+      const list = await r.json();
+      if (Array.isArray(list) && list.length) iceCache = { at: Date.now(), servers: list };
+    } catch (e) { console.warn('turn', e); }
+  }
+  return { iceServers: [STUN, ...STATIC_TURN, ...(iceCache?.servers || [])] };
+}
 
 export const HEARTBEAT_MS = 5000; // מכשיר התינוק מדווח שהוא חי
 export const LOST_MS = 20000; // אחרי כמה זמן בלי דיווח ההורה מקבל התראה
-export const RELAY_AFTER_MS = 12000; // אם השמע הישיר לא התחבר עד אז, עוברים לשמע דרך השרת
+export const RELAY_AFTER_MS = 8000; // אם השמע הישיר לא התחבר עד אז, עוברים לשמע דרך השרת
 export const RELAY_RATE = 8000; // איכות טלפון
 export const RELAY_CHUNK_MS = 500;
 

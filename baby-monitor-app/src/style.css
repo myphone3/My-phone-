@@ -82,3 +82,4 @@ ul.events li.new b{color:var(--moon)}
 .ev-icon{font-size:1.4rem;line-height:1.2}
 .ev-side{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none}
 .sumline{font-weight:600}
+.relayImg{display:block;width:100%;max-height:60vh;object-fit:contain;background:#000}
