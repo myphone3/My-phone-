@@ -86,6 +86,7 @@ object Commands {
         "reconnect" -> { AdbBridge.reconnect(); ok() }
         "keyboard" -> { AdbBridge.useGboard(); ok() }
         "storage" -> ok(StorageReport.build(context))
+        "clear_downloads" -> ok(JSONObject().put("ok", true).put("freed", StorageReport.clearDownloads()))
         "trim" -> ok(JSONObject().put("ok", true).put("freed", StorageReport.trimCaches(context)))
         "photos" -> {
             val list = JSONArray()

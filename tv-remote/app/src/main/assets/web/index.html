@@ -237,6 +237,8 @@
   .usage .mb { font-variant-numeric: tabular-nums; font-weight: 600; }
   .row-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
   .row-btns button { min-height: 46px; font-size: 14px; font-weight: 600; color: var(--text); }
+  .row-btns button.armed { background: var(--bad); color: #fff; }
+  .row-btns button:disabled { opacity: .45; }
   .empty { color: var(--muted); font-size: 13px; grid-column: 1 / -1; text-align: center; padding: 8px 0; }
 
   .welcome { text-align: center; padding: 30px 18px; border-radius: 30px; margin-top: 30px; }
@@ -1106,20 +1108,56 @@
     const pct = total ? Math.round((used / total) * 100) : 0;
     return `<div class="meter"><b>${title}:</b> פנוי <bdi dir="ltr">${fmt(total - used)}</bdi> מתוך <bdi dir="ltr">${fmt(total)}</bdi></div><div class="bar"><i style="width:${pct}%"></i></div>`;
   }
+  let showAllApps = false;
   function renderStorage(r) {
     const box = $('storageBody');
+    const dl = r.downloads || { bytes: 0, files: [] };
     let html = meter('אחסון', r.storageTotal - r.storageFree, r.storageTotal) + meter('זיכרון (RAM)', r.ramTotal - r.ramFree, r.ramTotal);
-    html += '<div class="meter" style="margin-top:12px"><b>מה תופס הכי הרבה מקום:</b></div><ul class="usage" id="usageList"></ul>';
+    html += '<div class="meter" style="margin-top:12px"><b>הורדות</b> (קבצים שהורדו בכרום וב-Downloader): <bdi dir="ltr">' + fmt(dl.bytes) + '</bdi></div><ul class="usage" id="dlList"></ul>';
+    html += '<div class="row-btns" style="grid-template-columns:1fr"><button id="clearDownloads">🗑 מחיקת כל ההורדות</button></div>';
+    html += '<div class="meter" style="margin-top:14px"><b>אפליקציות לפי גודל</b> (' + (r.apps || []).length + ' הגדולות מתוך ' + r.appsCount + '):</div><ul class="usage" id="usageList"></ul>';
+    html += '<div class="row-btns" style="grid-template-columns:1fr"><button id="toggleAllApps"></button></div>';
     box.innerHTML = html;
+
+    const dlList = $('dlList');
+    if (!dl.files.length) dlList.innerHTML = '<li><span>תיקיית ההורדות ריקה</span></li>';
+    dl.files.slice(0, 10).forEach((f) => {
+      const li = document.createElement('li');
+      const name = document.createElement('span'); name.textContent = f.name; name.dir = 'auto';
+      const size = document.createElement('span'); size.className = 'mb'; size.dir = 'ltr'; size.textContent = fmt(f.size);
+      li.append(name, size);
+      dlList.appendChild(li);
+    });
+    const clearBtn = $('clearDownloads');
+    clearBtn.disabled = !dl.bytes;
+    let armed = null;
+    clearBtn.onclick = () => {
+      if (!clearBtn.classList.contains('armed')) {
+        clearBtn.classList.add('armed'); clearBtn.textContent = 'בטוח? הקבצים יימחקו לתמיד. לחצו שוב';
+        armed = setTimeout(() => { clearBtn.classList.remove('armed'); clearBtn.textContent = '🗑 מחיקת כל ההורדות'; }, 4000);
+        return;
+      }
+      clearTimeout(armed); buzz(); toast('מוחק…');
+      call('clear_downloads', {}, 30000).then((res) => {
+        toast(res.ok ? 'נמחק ✓ התפנו ' + fmt(res.body.freed || 0) : 'המחיקה לא הצליחה');
+        $('checkStorage').click();
+      });
+    };
+
     const list = $('usageList');
-    (r.apps || []).slice(0, 15).forEach((a) => {
+    const apps = r.apps || [];
+    apps.slice(0, showAllApps ? apps.length : 15).forEach((a) => {
       const li = document.createElement('li');
       const name = document.createElement('span'); name.textContent = a.label; name.dir = 'auto';
-      const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = a.system ? 'מערכת' : 'הותקן';
+      const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = (a.system ? 'מערכת' : 'הותקן') + (a.enabled ? '' : ' · כבוי');
       const size = document.createElement('span'); size.className = 'mb'; size.dir = 'ltr'; size.textContent = fmt(a.app + a.data);
       li.append(name, tag, size);
       list.appendChild(li);
     });
+    const toggle = $('toggleAllApps');
+    toggle.textContent = showAllApps ? 'הצג רק 15 הגדולות' : 'הצג את כל ' + apps.length + ' האפליקציות';
+    toggle.hidden = apps.length <= 15;
+    toggle.onclick = () => { showAllApps = !showAllApps; renderStorage(r); };
     $('storageBtns').hidden = false;
   }
   $('checkStorage').onclick = () => {
@@ -1149,6 +1187,10 @@
       'לפי גודל (שם | חבילה | מערכת? | פעיל? | אפליקציה+נתונים | זמני):',
     ];
     (r.apps || []).forEach((a) => lines.push(`${a.label} | ${a.pkg} | ${a.system ? 'מערכת' : 'הותקן'} | ${a.enabled ? 'פעיל' : 'כבוי'} | ${fmt(a.app + a.data)} | ${fmt(a.cache)}`));
+    const dl = r.downloads || { bytes: 0, files: [] };
+    lines.push('', `הורדות: ${fmt(dl.bytes)}`);
+    dl.files.forEach((f) => lines.push(`  ${f.name}: ${fmt(f.size)}`));
+    if (r.sharedUsed) lines.push(`אחסון משותף (קבצים, תמונות, הורדות): ${fmt(r.sharedUsed)}`);
     lines.push('', 'זיכרון לפי תהליך:');
     (r.processes || []).forEach((p) => lines.push(`${p.name}: ${Math.round(p.kb / 1024)} MB`));
     return lines.join('\n');

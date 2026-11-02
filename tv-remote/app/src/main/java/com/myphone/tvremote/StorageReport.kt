@@ -36,7 +36,7 @@ object StorageReport {
                 Row(info, 0, 0, 0)
             }
         }.sortedByDescending { it.app + it.data }
-        for (row in rows.take(70)) {
+        for (row in rows.take(100)) {
             apps.put(
                 JSONObject()
                     .put("pkg", row.info.packageName)
@@ -57,6 +57,33 @@ object StorageReport {
             .put("apps", apps)
             .put("appsCount", rows.size)
             .put("processes", processes())
+            .put("downloads", downloads())
+            .put("sharedUsed", duKb("/sdcard") * 1024)
+    }
+
+    private const val DOWNLOADS = "/sdcard/Download"
+
+    private fun duKb(path: String): Long =
+        AdbBridge.shellSync("du -sk $path 2>/dev/null")?.trim()?.split(Regex("\\s+"))?.firstOrNull()?.toLongOrNull() ?: 0
+
+    /** תיקיית ההורדות (כרום, Downloader וכו'): כמה מקום היא תופסת ואילו קבצים יש בה. */
+    private fun downloads(): JSONObject {
+        val files = JSONArray()
+        val listing = AdbBridge.shellSync("ls -lA $DOWNLOADS 2>/dev/null").orEmpty()
+        val row = Regex("""^\S+\s+\d+\s+\S+\s+\S+\s+(\d+)\s+\S+\s+\S+\s+(.+)$""")
+        listing.lines().mapNotNull { row.find(it.trim()) }
+            .map { it.groupValues[2] to it.groupValues[1].toLong() }
+            .sortedByDescending { it.second }
+            .take(30)
+            .forEach { (name, size) -> files.put(JSONObject().put("name", name).put("size", size)) }
+        return JSONObject().put("bytes", duKb(DOWNLOADS) * 1024).put("files", files)
+    }
+
+    /** מוחק את כל הקבצים בתיקיית ההורדות. מחזיר כמה מקום התפנה. */
+    fun clearDownloads(): Long {
+        val before = duKb(DOWNLOADS) * 1024
+        AdbBridge.shellSync("rm -rf $DOWNLOADS/* $DOWNLOADS/.[!.]* 2>/dev/null")
+        return (before - duKb(DOWNLOADS) * 1024).coerceAtLeast(0)
     }
 
     private class Row(val info: ApplicationInfo, val app: Long, val data: Long, val cache: Long)
