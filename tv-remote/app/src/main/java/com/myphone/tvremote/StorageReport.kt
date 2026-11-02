@@ -39,7 +39,7 @@ object StorageReport {
         }.sortedByDescending { it.app + it.data }
         val lastUsed = lastUsed(context)
         // 100 הגדולות + כל האפליקציות שהותקנו (גם אם קטנות), כדי שהסריקה תעבור על כולן
-        val chosen = (rows.take(100) + rows.filter { it.info.flags and ApplicationInfo.FLAG_SYSTEM == 0 }).distinctBy { it.info.packageName }
+        val chosen = rows
         for (row in chosen) {
             apps.put(
                 JSONObject()

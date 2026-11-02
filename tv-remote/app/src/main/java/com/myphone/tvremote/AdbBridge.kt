@@ -196,6 +196,7 @@ object AdbBridge {
             "appops set $packageName RUN_ANY_IN_BACKGROUND allow",
             "appops set $packageName RUN_IN_BACKGROUND allow",
             "appops set $packageName SYSTEM_ALERT_WINDOW allow",
+            "appops set $packageName GET_USAGE_STATS allow",
             "am set-standby-bucket $packageName active",
             "am set-inactive $packageName false",
             "ime enable $ourKeyboard",

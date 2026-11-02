@@ -65,6 +65,8 @@ class HomeActivity : Activity() {
     private lateinit var favRow: LinearLayout
     private lateinit var drawer: FrameLayout
     private lateinit var grid: GridLayout
+    private lateinit var recentRow: LinearLayout
+    private lateinit var recentTitle: TextView
     private lateinit var drawerScroll: ScrollView
 
     private var apps: List<App> = emptyList()
@@ -265,6 +267,12 @@ class HomeActivity : Activity() {
         header.addView(iconButton(R.drawable.ic_wifi_line) { openWifi() }.also { wifiIcons += (it as ViewGroup).getChildAt(0) as ImageView })
         header.addView(iconButton(R.drawable.ic_settings_line) { openSettings() })
         drawerPage.addView(header)
+        // "המשך מאיפה שעצרתם": האפליקציות שנפתחו לאחרונה
+        recentTitle = text("נפתחו לאחרונה", 18f, "#C9B8F0", weight = 600).apply { setPadding(0, dp(18), 0, dp(4)); visibility = View.GONE }
+        drawerPage.addView(recentTitle)
+        recentRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; clipChildren = false }
+        drawerPage.addView(recentRow)
+        drawerPage.addView(text("כל האפליקציות", 18f, "#C9B8F0", weight = 600).apply { setPadding(0, dp(14), 0, 0) })
         grid = GridLayout(this).apply {
             columnCount = GRID_COLUMNS
             clipChildren = false
@@ -599,8 +607,27 @@ class HomeActivity : Activity() {
         setMargins(dp(TILE_GAP), dp(TILE_GAP), dp(TILE_GAP), dp(TILE_GAP))
     }
 
+    private fun loadRecent() {
+        loader.execute {
+            val recent = Apps.recent(this, GRID_COLUMNS)
+            main.post {
+                val byPkg = apps.associateBy { it.pkg }
+                recentRow.removeAllViews()
+                val list = recent.mapNotNull { byPkg[it.first] }
+                recentTitle.visibility = if (list.isEmpty()) View.GONE else View.VISIBLE
+                for (app in list) {
+                    val tile = appTile(app, dimmed = false)
+                    val p = tileParams()
+                    tile.layoutParams = LinearLayout.LayoutParams(p.width, p.height).apply { setMargins(p.leftMargin, p.topMargin, p.rightMargin, p.bottomMargin) }
+                    recentRow.addView(tile)
+                }
+            }
+        }
+    }
+
     private fun openDrawer() {
         if (drawerOpen) return
+        loadRecent()
         drawerOpen = true
         drawer.visibility = View.VISIBLE
         drawer.alpha = 0f

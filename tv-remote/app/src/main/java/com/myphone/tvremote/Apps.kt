@@ -101,4 +101,26 @@ object Apps {
         }
         return "am start -a android.intent.action.VIEW -d '$url' -p $pkg"
     }
+
+    /**
+     * האפליקציות שנפתחו לאחרונה (בשבוע האחרון), מהחדשה לישנה - בלי מסך הבית, ההגדרות והשלט עצמו.
+     * פתיחה מחדש מחזירה לאפליקציה במקום שבו היא נעצרה (אם היא שומרת את זה).
+     */
+    fun recent(context: Context, limit: Int = 8): List<Pair<String, String>> = try {
+        val usm = context.getSystemService(android.app.usage.UsageStatsManager::class.java)
+        val now = System.currentTimeMillis()
+        val launchable = list(context).toMap()
+        val homes = context.packageManager
+            .queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME), 0)
+            .map { it.activityInfo.packageName }.toSet()
+        usm.queryAndAggregateUsageStats(now - 7L * 24 * 3600 * 1000, now)
+            .values
+            .filter { it.lastTimeUsed > 0 && it.packageName in launchable && it.packageName !in homes && it.packageName != context.packageName }
+            .filter { !it.packageName.contains("settings") }
+            .sortedByDescending { it.lastTimeUsed }
+            .take(limit)
+            .map { it.packageName to launchable.getValue(it.packageName) }
+    } catch (e: Exception) {
+        emptyList()
+    }
 }

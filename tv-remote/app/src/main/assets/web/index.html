@@ -290,6 +290,17 @@
   .scan-actions .danger { background: var(--bad); color: #fff; border: 0; }
   .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 15px; padding: 4px 2px; cursor: pointer; }
   .toggle-row input { width: 46px; height: 26px; accent-color: var(--accent-b); }
+  .head-actions { display: flex; align-items: center; gap: 10px; flex: none; }
+  .voice { width: 42px; height: 42px; min-height: 0; padding: 0; border-radius: 50%; border: 0; color: #fff; background: var(--accent); box-shadow: 0 6px 16px rgba(167, 139, 250, .4); }
+  .voice svg { width: 21px; height: 21px; }
+  .voice.listening { animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 10px rgba(255, 143, 163, .25); } }
+  .heard { font-size: 13px; color: var(--muted); text-align: center; margin: -6px 0 12px; min-height: 0; }
+  .steps { margin: 0; padding-inline-start: 20px; font-size: 13.5px; line-height: 1.75; color: var(--text); }
+  .copy-list { display: grid; gap: 8px; margin-top: 10px; }
+  .copy-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 14px; background: var(--surface-strong); font-size: 13.5px; }
+  .copy-row span { flex: 1; min-width: 0; }
+  .copy-row button { min-height: 34px; padding: 0 12px; font-size: 12.5px; border-radius: 999px; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -299,9 +310,13 @@
       <img src="logo.png" alt="">
       <div><h1 id="tvName">שלט מהפון</h1><small id="modeText"></small></div>
     </div>
-    <div class="chip glass" id="chip"><span class="dot" id="dot"></span><span id="statusText" hidden></span></div>
+    <div class="head-actions">
+      <button class="voice" id="voice" aria-label="פקודה קולית"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button>
+      <div class="chip glass" id="chip"><span class="dot" id="dot"></span><span id="statusText" hidden></span></div>
+    </div>
   </header>
 
+  <div class="heard" id="heard" hidden></div>
   <div class="banner glass" id="offline" hidden><b>אין קשר לטלוויזיה.</b> בדקו שהיא דולקת ומחוברת לאינטרנט. אם היא בדיוק נדלקה, חכו חצי דקה.</div>
 
   <!-- מסך פתיחה: עדיין לא סרקו קוד -->
@@ -374,6 +389,11 @@
       <button data-key="PLAY_PAUSE" aria-label="נגן/השהה"><svg viewBox="0 0 24 24"><path d="M6 6l7 6-7 6z"/><path d="M16.5 6v12M20 6v12"/></svg></button>
       <button data-key="FF" aria-label="קדימה"><svg viewBox="0 0 24 24"><path d="M5 7l6 5-6 5zM13 7l6 5-6 5z"/></svg></button>
     </div>
+
+    <section class="card glass" id="recentCard" hidden>
+      <h2>המשך מאיפה שעצרת <button id="reloadRecent">רענון</button></h2>
+      <div class="apps" id="recentApps"></div>
+    </section>
 
     <section class="card glass" id="quickCard" hidden>
       <h2>קיצורים</h2>
@@ -449,6 +469,28 @@
       <div class="apps" id="hiddenApps" hidden></div>
     </section>
     <p class="note" style="text-align:center">לחיצה ארוכה על אפליקציה: מועדפים או הסתרה</p>
+    <section class="card glass" id="mirrorCard">
+      <h2>שיקוף מסך לטלוויזיה <button id="openMirror">פתח בטלוויזיה</button></h2>
+      <ol class="steps" id="mirrorSteps"></ol>
+      <p class="note">השיקוף עובד דרך WiFi רגיל (האפליקציה AirScreen בטלוויזיה), כך שהשלט ממשיך לעבוד בזמן השיקוף.</p>
+    </section>
+
+    <section class="card glass" id="siriCard">
+      <h2>סירי ופקודות קוליות</h2>
+      <p class="note" style="margin-top:0">לוחצים על המיקרופון 🎤 למעלה ואומרים למשל: "תפתח נטפליקס", "חפש שירים של עומר אדם", "בית", "עצור". לסירי - מוסיפים קיצור באפליקציית <b>קיצורים</b>:</p>
+      <ol class="steps">
+        <li>לוחצים "העתק" ליד הפקודה הרצויה.</li>
+        <li>אפליקציית <b>קיצורים</b> ← ＋ ← <b>הוסף פעולה</b> ← <b>פתח כתובות URL</b>.</li>
+        <li>מדביקים את הכתובת, ונותנים לקיצור שם, למשל "נטפליקס בטלוויזיה".</li>
+        <li>אומרים: <b>"היי סירי, נטפליקס בטלוויזיה"</b>.</li>
+      </ol>
+      <div class="copy-list" id="siriList"></div>
+      <div class="search-row" style="margin-top:10px">
+        <input class="field" id="siriCustom" dir="auto" placeholder='פקודה משלכם, למשל "תפתח ערוץ 12"' autocomplete="off">
+        <button id="siriCopyCustom" style="min-width:76px">העתק</button>
+      </div>
+    </section>
+
     <section class="card glass">
       <h2>הגדרות השלט</h2>
       <label class="toggle-row" for="hapticToggle"><span>רטט בכל לחיצה</span><input type="checkbox" id="hapticToggle" switch></label>
@@ -1041,6 +1083,7 @@
       apps = r.body;
       store.set('apps', apps);
       renderApps();
+      runPendingDo();
     });
   }
   $('reloadApps').onclick = loadApps;
@@ -1348,6 +1391,138 @@
     buzz();
   };
 
+
+  // ===== פקודות קוליות (וגם מסירי) =====
+  const APP_ALIASES = [
+    [/נטפליקס|netflix/i, /netflix/i],
+    [/סמארט ?טיוב|smart ?tube/i, /smarttube|teamsmart/i],
+    [/יוטיוב|youtube/i, /smarttube|teamsmart|youtube/i],
+    [/ערוץ 12|קשת|12|מאקו/i, /12|keshet|mako/i],
+    [/ערוץ 13|רשת|13/i, /13|reshet/i],
+    [/כאן|ערוץ 11|11/i, /kan/i],
+    [/אפל|apple/i, /apple/i],
+    [/דיסני|disney/i, /disney/i],
+    [/ספוטיפיי|spotify/i, /spotify/i],
+    [/כרום|chrome/i, /chrome/i],
+    [/שיקוף|airscreen|אייר ?סקרין/i, /airscreen/i],
+  ];
+  function findApp(name) {
+    const n = name.trim().toLowerCase();
+    for (const [say, match] of APP_ALIASES) if (say.test(n)) {
+      const a = apps.find((x) => match.test(x.label + ' ' + x.pkg));
+      if (a) return a;
+    }
+    return apps.find((a) => a.label.toLowerCase().includes(n) || n.includes(a.label.toLowerCase()));
+  }
+  // מבין משפט בעברית ומבצע אותו. מחזיר תיאור של מה שנעשה, או null אם לא הבין.
+  function runPhrase(text) {
+    const t = text.trim().replace(/[.!?,]+$/g, '');
+    let m;
+    if ((m = t.match(/^(?:תחפש|חפש|חיפוש)\s+(?:ב?יוטיוב\s+|ב?סמארט ?טיוב\s+)?(.+)/))) {
+      call('youtube', { q: m[1] }); return 'מחפש: ' + m[1];
+    }
+    if ((m = t.match(/^(?:תפתח|פתח|תיכנס ל|תכנס ל|כנס ל|תעבור ל|עבור ל|תדליק את|תראה)\s*(.+)/))) {
+      const a = findApp(m[1]);
+      if (a) { call('launch', { pkg: a.pkg }); return 'פותח את ' + a.label; }
+      return null;
+    }
+    const keys = [
+      [/^(בית|מסך הבית|תחזור הביתה)$/, 'HOME', 'בית'], [/^(חזור|אחורה|תחזור)$/, 'BACK', 'חזור'],
+      [/^(עצור|הפסק|תעצור|נגן|המשך|תמשיך|פליי|pause|play)$/i, 'PLAY_PAUSE', 'נגן/עצור'],
+      [/^(השתק|תשתיק|שקט)$/, 'MUTE', 'השתקה'], [/^(כבה|תכבה|כבה את הטלוויזיה)$/, 'POWER', 'כיבוי'],
+      [/^(קדימה|הרץ קדימה)$/, 'FF', 'קדימה'], [/^(אחורה בסרטון|הרץ אחורה)$/, 'REW', 'אחורה'],
+      [/^(למעלה)$/, 'UP', 'למעלה'], [/^(למטה)$/, 'DOWN', 'למטה'], [/^(ימינה)$/, 'RIGHT', 'ימינה'], [/^(שמאלה)$/, 'LEFT', 'שמאלה'],
+      [/^(אישור|אוקיי|ok|בחר)$/i, 'OK', 'אישור'],
+    ];
+    for (const [re, k, label] of keys) if (re.test(t)) { call('key', { k }); return label; }
+    const a = findApp(t);
+    if (a) { call('launch', { pkg: a.pkg }); return 'פותח את ' + a.label; }
+    return null;
+  }
+  function showHeard(text) {
+    const h = $('heard');
+    h.textContent = text; h.hidden = false;
+    clearTimeout(showHeard.t); showHeard.t = setTimeout(() => { h.hidden = true; }, 4000);
+  }
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  $('voice').hidden = !(SpeechRec && window.isSecureContext);
+  $('voice').onclick = () => {
+    buzz();
+    const rec = new SpeechRec();
+    rec.lang = 'he-IL'; rec.interimResults = false; rec.maxAlternatives = 3;
+    $('voice').classList.add('listening');
+    showHeard('מקשיב… דברו עכשיו');
+    rec.onresult = (e) => {
+      const options = [...e.results[0]].map((x) => x.transcript);
+      for (const o of options) {
+        const done = runPhrase(o);
+        if (done) { showHeard('🎤 "' + o + '" ← ' + done); return; }
+      }
+      showHeard('לא הבנתי: "' + options[0] + '"');
+    };
+    rec.onend = () => $('voice').classList.remove('listening');
+    rec.onerror = () => { $('voice').classList.remove('listening'); showHeard('לא שמעתי, נסו שוב'); };
+    rec.start();
+  };
+
+  // פקודה מתוך הכתובת (?do=...) - כך סירי מפעיל את השלט
+  const pendingDo = params.get('do');
+  if (pendingDo) {
+    const clean = new URL(location.href); clean.searchParams.delete('do');
+    history.replaceState(null, '', clean.toString());
+  }
+  function runPendingDo() {
+    if (!pendingDo || runPendingDo.done) return;
+    runPendingDo.done = true;
+    const result = runPhrase(pendingDo);
+    showHeard(result ? '✓ ' + result : 'לא הבנתי את הפקודה: "' + pendingDo + '"');
+  }
+
+  // קיצורי סירי מוכנים להעתקה
+  const siriBase = () => { const u = new URL(location.href); u.search = ''; u.hash = ''; u.searchParams.set('tv', tvId || ''); return u.toString(); };
+  function copyText(text, msg) {
+    const done = () => toast(msg || 'הועתק ✓');
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+    else fallbackCopy(text, done);
+  }
+  const siriUrl = (phrase) => siriBase() + '&do=' + encodeURIComponent(phrase);
+  [['נטפליקס בטלוויזיה', 'תפתח נטפליקס'], ['סמארטיוב בטלוויזיה', 'תפתח סמארטיוב'], ['ערוץ 12 בטלוויזיה', 'תפתח ערוץ 12'],
+   ['עצור בטלוויזיה', 'עצור'], ['כבה את הטלוויזיה', 'כבה'], ['מסך הבית בטלוויזיה', 'בית']].forEach(([name, phrase]) => {
+    const row = document.createElement('div'); row.className = 'copy-row';
+    const label = document.createElement('span'); label.textContent = '"' + name + '"';
+    const b = document.createElement('button'); b.textContent = 'העתק';
+    b.onclick = () => { buzz(); copyText(siriUrl(phrase), 'הכתובת הועתקה ✓ עכשיו הדביקו אותה בקיצורים'); };
+    row.append(label, b); $('siriList').appendChild(row);
+  });
+  $('siriCopyCustom').onclick = () => {
+    const v = $('siriCustom').value.trim();
+    if (!v) return toast('כתבו קודם פקודה');
+    buzz(); copyText(siriUrl(v), 'הכתובת הועתקה ✓ עכשיו הדביקו אותה בקיצורים');
+  };
+  if (local) $('siriCard').hidden = true;
+
+  // ===== המשך מאיפה שעצרת =====
+  function loadRecent() {
+    call('recent').then((r) => {
+      if (!r.ok || !Array.isArray(r.body)) return;
+      $('recentCard').hidden = !r.body.length;
+      fill($('recentApps'), r.body.slice(0, 8), '');
+    });
+  }
+  $('reloadRecent').onclick = () => { buzz(); loadRecent(); };
+
+  // ===== שיקוף מסך =====
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  $('mirrorSteps').innerHTML = isIOS
+    ? '<li>לוחצים למעלה על <b>"פתח בטלוויזיה"</b> (פותח את AirScreen).</li><li>באייפון: מושכים למטה מהפינה הימנית העליונה ← <b>שיקוף מסך</b>.</li><li>בוחרים את הטלוויזיה מהרשימה.</li>'
+    : '<li>לוחצים למעלה על <b>"פתח בטלוויזיה"</b> (פותח את AirScreen).</li><li>בגלקסי: מושכים את הלוח המהיר למטה ← <b>Smart View</b> (או באפליקציית Google Home ← <b>שידור המסך שלי</b>).</li><li>בוחרים את הטלוויזיה מהרשימה.</li>';
+  $('openMirror').onclick = () => {
+    buzz();
+    const a = apps.find((x) => /airscreen/i.test(x.pkg + x.label));
+    if (!a) return toast('AirScreen לא מותקנת בטלוויזיה');
+    call('launch', { pkg: a.pkg }).then((r) => toast(r.ok ? 'AirScreen נפתחת בטלוויזיה…' : 'לא הצלחתי לפתוח'));
+  };
+
   // ===== שם הטלוויזיה (לחיצה על השם משנה אותו, לכל הטלפונים) =====
   $('tvName').addEventListener('click', () => {
     const current = $('tvName').textContent;
@@ -1381,7 +1556,7 @@
       const s = r.body;
       if (s.name) $('tvName').textContent = s.name;
       setStatus(s.connected ? 'ok' : 'wait', s.connected ? 'מחובר' : 'ממתין…');
-      if (!loadedOnce) { loadedOnce = true; loadApps(); }
+      if (!loadedOnce) { loadedOnce = true; loadApps(); loadRecent(); }
     });
   }
   window.poll = poll;

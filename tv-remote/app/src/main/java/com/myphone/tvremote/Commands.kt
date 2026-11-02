@@ -85,6 +85,11 @@ object Commands {
         "launch" -> if (Apps.launch(context, params["pkg"].orEmpty())) ok() else fail("not found")
         "reconnect" -> { AdbBridge.reconnect(); ok() }
         "keyboard" -> { AdbBridge.useGboard(); ok() }
+        "recent" -> {
+            val array = JSONArray()
+            for ((pkg, label) in Apps.recent(context)) array.put(JSONObject().put("pkg", pkg).put("label", label))
+            ok(array)
+        }
         "storage" -> ok(StorageReport.build(context))
         "delete_download" -> if (StorageReport.deleteDownload(params["name"].orEmpty())) ok() else fail("not deleted")
         "uninstall" -> if (StorageReport.uninstall(context, params["pkg"].orEmpty())) ok() else fail("not removed")
