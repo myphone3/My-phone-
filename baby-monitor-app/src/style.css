@@ -50,3 +50,15 @@ ul.tips{margin:0;padding-inline-start:18px;color:var(--muted);font-size:.85rem}
 .video video{display:block;width:100%;max-height:60vh;object-fit:contain;background:#000}
 body>video#live{display:none}
 .toast{position:fixed;z-index:60;top:calc(env(safe-area-inset-top,0px) + 12px);left:16px;right:16px;max-width:448px;margin:0 auto;background:#1d2840;border:1px solid var(--moon);color:var(--fg);border-radius:16px;padding:14px 16px;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.vctl{display:flex;gap:8px;flex-wrap:wrap}
+.vctl button{flex:1 1 auto;min-width:52px;font:inherit;font-weight:700;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:14px;padding:11px 10px;cursor:pointer}
+.vctl button.on{background:var(--moon);color:#111;border-color:var(--moon)}
+.talk.on{background:var(--bad);color:#fff}
+.talk{touch-action:none;user-select:none;-webkit-user-select:none}
+.graph{width:100%;height:150px;border-radius:12px;display:block;cursor:crosshair;touch-action:manipulation}
+.seg.small-seg{padding:3px}
+.seg.small-seg button{padding:6px 10px;font-size:.82rem}
+select,input[type=time]{font:inherit;color:var(--fg);background:#0e1626;border:1px solid var(--line);border-radius:10px;padding:7px 10px}
+button.toast{display:block;width:calc(100% - 32px);text-align:right;font:inherit;font-weight:700;cursor:pointer}
+#pv{display:block;width:100%;max-height:50vh;background:#000}
+[hidden]{display:none!important}

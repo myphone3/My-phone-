@@ -2,6 +2,17 @@ package com.newphone.babymonitor;
 
 import android.Manifest;
 import android.app.NotificationManager;
+import android.content.ContentResolver;
+import android.content.ContentValues;
+import android.content.IntentFilter;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+import android.os.BatteryManager;
+import android.provider.MediaStore;
+import android.util.Base64;
+import java.io.OutputStream;
 import android.content.Context;
 import android.content.Intent;
 import android.media.AudioAttributes;
@@ -32,12 +43,64 @@ import com.getcapacitor.annotation.PermissionCallback;
 )
 public class MonitorPlugin extends Plugin {
     private int alertId = 2000;
+    private float ambientTemp = Float.NaN;
+
+    @Override
+    public void load() {
+        // חיישן טמפרטורת חדר קיים רק בחלק מהטלפונים
+        SensorManager sm = (SensorManager) getContext().getSystemService(Context.SENSOR_SERVICE);
+        Sensor s = sm != null ? sm.getDefaultSensor(Sensor.TYPE_AMBIENT_TEMPERATURE) : null;
+        if (s != null) {
+            sm.registerListener(new SensorEventListener() {
+                @Override public void onSensorChanged(SensorEvent e) { ambientTemp = e.values[0]; }
+                @Override public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+            }, s, SensorManager.SENSOR_DELAY_NORMAL);
+        }
+    }
+
+    @PluginMethod
+    public void deviceInfo(PluginCall call) {
+        JSObject r = new JSObject();
+        Intent b = ContextCompat.registerReceiver(getContext(), null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED), ContextCompat.RECEIVER_NOT_EXPORTED);
+        if (b != null) {
+            int level = b.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+            int scale = b.getIntExtra(BatteryManager.EXTRA_SCALE, 100);
+            int status = b.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+            int plugged = b.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0);
+            if (level >= 0 && scale > 0) r.put("battery", Math.round(level * 100f / scale));
+            r.put("charging", plugged != 0 || status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL);
+        }
+        if (!Float.isNaN(ambientTemp)) r.put("temp", Math.round(ambientTemp * 10) / 10.0);
+        call.resolve(r);
+    }
+
+    /** שמירת תמונה מהשידור לגלריה (תיקייה BabyMonitor) */
+    @PluginMethod
+    public void saveImage(PluginCall call) {
+        String data = call.getString("data");
+        if (data == null) { call.reject("no_data"); return; }
+        try {
+            byte[] bytes = Base64.decode(data, Base64.DEFAULT);
+            ContentResolver cr = getContext().getContentResolver();
+            ContentValues v = new ContentValues();
+            v.put(MediaStore.Images.Media.DISPLAY_NAME, call.getString("name", "baby-" + System.currentTimeMillis() + ".jpg"));
+            v.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+            if (Build.VERSION.SDK_INT >= 29) v.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/BabyMonitor");
+            Uri uri = cr.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v);
+            if (uri == null) { call.reject("insert_failed"); return; }
+            try (OutputStream os = cr.openOutputStream(uri)) { os.write(bytes); }
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("save_failed: " + e.getMessage());
+        }
+    }
 
     @PluginMethod
     public void requestAll(PluginCall call) {
         boolean needNotif = Build.VERSION.SDK_INT >= 33 && getPermissionState("notifications") != PermissionState.GRANTED;
         boolean baby = "baby".equals(call.getString("mode"));
-        boolean needMic = baby && getPermissionState("microphone") != PermissionState.GRANTED;
+        boolean wantMic = baby || Boolean.TRUE.equals(call.getBoolean("mic", false));
+        boolean needMic = wantMic && getPermissionState("microphone") != PermissionState.GRANTED;
         boolean needCam = baby && Boolean.TRUE.equals(call.getBoolean("camera", false)) && getPermissionState("camera") != PermissionState.GRANTED;
         java.util.List<String> aliases = new java.util.ArrayList<>();
         if (needMic) aliases.add("microphone");

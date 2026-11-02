@@ -20,9 +20,9 @@ import androidx.core.app.ServiceCompat;
  */
 public class MonitorService extends Service {
     public static final String CH_RUN = "monitor_running";
-    public static final String CH_ALERT = "monitor_alert_ring";
-    public static final String CH_ALERT_VIBRATE = "monitor_alert_vibrate";
-    public static final String CH_ALERT_SILENT = "monitor_alert_silent";
+    public static final String CH_ALERT = "bm_ring";
+    public static final String CH_ALERT_VIBRATE = "bm_vibrate";
+    public static final String CH_ALERT_SILENT = "bm_silent";
     static final int RUN_ID = 1001;
 
     private PowerManager.WakeLock wakeLock;
@@ -33,23 +33,20 @@ public class MonitorService extends Service {
         NotificationChannel run = new NotificationChannel(CH_RUN, "פעילות המוניטור", NotificationManager.IMPORTANCE_LOW);
         run.setDescription("מוצג כל עוד המוניטור פועל");
         nm.createNotificationChannel(run);
-        NotificationChannel alert = new NotificationChannel(CH_ALERT, "התראות בכי", NotificationManager.IMPORTANCE_HIGH);
-        alert.setDescription("התראה כשהתינוק בוכה או כשהקשר נותק");
-        alert.enableVibration(true);
-        alert.setVibrationPattern(new long[] {0, 500, 200, 500, 200, 500});
-        alert.setBypassDnd(true);
-        android.media.AudioAttributes aa = new android.media.AudioAttributes.Builder()
-            .setUsage(android.media.AudioAttributes.USAGE_ALARM)
-            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .build();
-        alert.setSound(android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_ALARM), aa);
-        nm.createNotificationChannel(alert);
-        NotificationChannel vib = new NotificationChannel(CH_ALERT_VIBRATE, "התראות בכי ברטט", NotificationManager.IMPORTANCE_HIGH);
+        for (String old : new String[] { "monitor_alert", "monitor_alert_ring", "monitor_alert_vibrate", "monitor_alert_silent" }) {
+            nm.deleteNotificationChannel(old);
+        }
+        NotificationChannel ring = new NotificationChannel(CH_ALERT, "התראות עם צליל", NotificationManager.IMPORTANCE_HIGH);
+        ring.setDescription("צליל התראה רגיל ורטט");
+        ring.enableVibration(true);
+        ring.setVibrationPattern(new long[] {0, 300, 150, 300});
+        nm.createNotificationChannel(ring);
+        NotificationChannel vib = new NotificationChannel(CH_ALERT_VIBRATE, "התראות ברטט", NotificationManager.IMPORTANCE_HIGH);
         vib.setSound(null, null);
         vib.enableVibration(true);
-        vib.setVibrationPattern(new long[] {0, 500, 200, 500, 200, 500});
+        vib.setVibrationPattern(new long[] {0, 300, 150, 300});
         nm.createNotificationChannel(vib);
-        NotificationChannel silent = new NotificationChannel(CH_ALERT_SILENT, "התראות בכי שקטות", NotificationManager.IMPORTANCE_HIGH);
+        NotificationChannel silent = new NotificationChannel(CH_ALERT_SILENT, "התראות שקטות", NotificationManager.IMPORTANCE_HIGH);
         silent.setSound(null, null);
         silent.enableVibration(false);
         nm.createNotificationChannel(silent);
