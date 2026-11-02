@@ -19,7 +19,7 @@ import androidx.core.app.ServiceCompat;
  * במכשיר התינוק - מיקרופון, במכשיר ההורה - ניגון שמע.
  */
 public class MonitorService extends Service {
-    public static final String CH_RUN = "monitor_running";
+    public static final String CH_RUN = "bm_run";
     public static final String CH_ALERT = "bm_ring";
     public static final String CH_ALERT_VIBRATE = "bm_vibrate";
     public static final String CH_ALERT_SILENT = "bm_silent";
@@ -30,7 +30,10 @@ public class MonitorService extends Service {
     static void ensureChannels(Context ctx) {
         if (Build.VERSION.SDK_INT < 26) return;
         NotificationManager nm = ctx.getSystemService(NotificationManager.class);
-        NotificationChannel run = new NotificationChannel(CH_RUN, "פעילות המוניטור", NotificationManager.IMPORTANCE_LOW);
+        nm.deleteNotificationChannel("monitor_running");
+        // התראה קבועה שקטה ומוסתרת ככל האפשר (אנדרואיד מחייב אותה כדי לעבוד ברקע)
+        NotificationChannel run = new NotificationChannel(CH_RUN, "פעילות המוניטור", NotificationManager.IMPORTANCE_MIN);
+        run.setShowBadge(false);
         run.setDescription("מוצג כל עוד המוניטור פועל");
         nm.createNotificationChannel(run);
         for (String old : new String[] { "monitor_alert", "monitor_alert_ring", "monitor_alert_vibrate", "monitor_alert_silent" }) {
@@ -71,6 +74,8 @@ public class MonitorService extends Service {
             .setContentTitle(title)
             .setContentText(text)
             .setOngoing(true)
+            .setPriority(NotificationCompat.PRIORITY_MIN)
+            .setSilent(true)
             .setContentIntent(openApp(this))
             .build();
 

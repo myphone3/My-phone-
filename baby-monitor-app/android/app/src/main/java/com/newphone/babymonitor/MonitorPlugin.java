@@ -76,17 +76,23 @@ public class MonitorPlugin extends Plugin {
 
     /** שמירת תמונה מהשידור לגלריה (תיקייה BabyMonitor) */
     @PluginMethod
-    public void saveImage(PluginCall call) {
+    public void saveImage(PluginCall call) { saveMedia(call, false); }
+
+    /** שמירת קטע וידאו מההיסטוריה לגלריה */
+    @PluginMethod
+    public void saveVideo(PluginCall call) { saveMedia(call, true); }
+
+    private void saveMedia(PluginCall call, boolean video) {
         String data = call.getString("data");
         if (data == null) { call.reject("no_data"); return; }
         try {
             byte[] bytes = Base64.decode(data, Base64.DEFAULT);
             ContentResolver cr = getContext().getContentResolver();
             ContentValues v = new ContentValues();
-            v.put(MediaStore.Images.Media.DISPLAY_NAME, call.getString("name", "baby-" + System.currentTimeMillis() + ".jpg"));
-            v.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
-            if (Build.VERSION.SDK_INT >= 29) v.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/BabyMonitor");
-            Uri uri = cr.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v);
+            v.put(MediaStore.MediaColumns.DISPLAY_NAME, call.getString("name", "baby-" + System.currentTimeMillis() + (video ? ".webm" : ".jpg")));
+            v.put(MediaStore.MediaColumns.MIME_TYPE, call.getString("mime", video ? "video/webm" : "image/jpeg"));
+            if (Build.VERSION.SDK_INT >= 29) v.put(MediaStore.MediaColumns.RELATIVE_PATH, video ? "Movies/BabyMonitor" : "Pictures/BabyMonitor");
+            Uri uri = cr.insert(video ? MediaStore.Video.Media.EXTERNAL_CONTENT_URI : MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v);
             if (uri == null) { call.reject("insert_failed"); return; }
             try (OutputStream os = cr.openOutputStream(uri)) { os.write(bytes); }
             call.resolve();
@@ -101,7 +107,7 @@ public class MonitorPlugin extends Plugin {
         boolean baby = "baby".equals(call.getString("mode"));
         boolean wantMic = baby || Boolean.TRUE.equals(call.getBoolean("mic", false));
         boolean needMic = wantMic && getPermissionState("microphone") != PermissionState.GRANTED;
-        boolean needCam = baby && Boolean.TRUE.equals(call.getBoolean("camera", false)) && getPermissionState("camera") != PermissionState.GRANTED;
+        boolean needCam = Boolean.TRUE.equals(call.getBoolean("camera", false)) && getPermissionState("camera") != PermissionState.GRANTED;
         java.util.List<String> aliases = new java.util.ArrayList<>();
         if (needMic) aliases.add("microphone");
         if (needCam) aliases.add("camera");
@@ -127,6 +133,8 @@ public class MonitorPlugin extends Plugin {
         i.putExtra("title", call.getString("title", "ביבי-מוניטור"));
         i.putExtra("text", call.getString("text", ""));
         i.putExtra("camera", Boolean.TRUE.equals(call.getBoolean("camera", false)));
+        // זוכרים שהמוניטור פעיל, כדי להזכיר להפעיל אותו אחרי הפעלה מחדש של הטלפון
+        ctx.getSharedPreferences("bm", Context.MODE_PRIVATE).edit().putString("active_mode", call.getString("mode", "parent")).apply();
         try {
             ContextCompat.startForegroundService(ctx, i);
             call.resolve();
@@ -138,6 +146,7 @@ public class MonitorPlugin extends Plugin {
     @PluginMethod
     public void stop(PluginCall call) {
         getContext().stopService(new Intent(getContext(), MonitorService.class));
+        getContext().getSharedPreferences("bm", Context.MODE_PRIVATE).edit().remove("active_mode").apply();
         call.resolve();
     }
 
