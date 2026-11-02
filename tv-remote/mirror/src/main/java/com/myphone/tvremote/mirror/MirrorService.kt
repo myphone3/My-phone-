@@ -13,6 +13,7 @@ import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
 import android.media.AudioAttributes
 import android.media.AudioFormat
+import android.media.AudioManager
 import android.media.AudioPlaybackCaptureConfiguration
 import android.media.AudioRecord
 import android.media.MediaCodec
@@ -56,6 +57,7 @@ class MirrorService : Service() {
     private var height = 0
     private var dpi = 320
     private lateinit var worker: Handler
+    private var savedVolume = -1
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -221,6 +223,7 @@ class MirrorService : Service() {
                 .build()
             record.startRecording()
             audio = record
+            mutePhone()
             Thread({
                 val chunk = ByteArray(3840) // 20 מילישניות
                 while (running) {
@@ -231,6 +234,28 @@ class MirrorService : Service() {
         } catch (e: Exception) {
             Log.w(tag, "audio capture not available", e)
         }
+    }
+
+    /**
+     * משתיקים את הרמקול של הטלפון בזמן השיקוף - הקול יוצא רק מהטלוויזיה.
+     * (הקול שנשלח לטלוויזיה נלקח לפני עוצמת הטלפון, אז הוא לא נפגע.) בסוף מחזירים את העוצמה.
+     */
+    private fun mutePhone() {
+        try {
+            val am = getSystemService(AudioManager::class.java)
+            savedVolume = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+            am.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0)
+        } catch (e: Exception) {
+            Log.w(tag, "mute", e)
+        }
+    }
+
+    private fun restorePhoneVolume() {
+        if (savedVolume < 0) return
+        try {
+            getSystemService(AudioManager::class.java).setStreamVolume(AudioManager.STREAM_MUSIC, savedVolume, 0)
+        } catch (e: Exception) { }
+        savedVolume = -1
     }
 
     private fun send(type: Int, pts: Long, payload: ByteArray): Boolean {
@@ -260,6 +285,7 @@ class MirrorService : Service() {
         running = false
         generation++
         try { audio?.stop(); audio?.release() } catch (e: Exception) { }
+        restorePhoneVolume()
         try { display?.release() } catch (e: Exception) { }
         try { encoder?.stop(); encoder?.release() } catch (e: Exception) { }
         try { projection?.stop() } catch (e: Exception) { }
