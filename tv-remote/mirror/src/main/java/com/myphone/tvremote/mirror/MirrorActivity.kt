@@ -75,6 +75,15 @@ class MirrorActivity : Activity() {
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView, request: android.webkit.WebResourceRequest): Boolean {
                     val url = request.url
+                    // דף ישן (מהמטמון) שולח intent:// - מטפלים בו כאן, בתוך האפליקציה
+                    if (url.scheme == "intent") {
+                        try {
+                            val parsed = Intent.parseUri(url.toString(), Intent.URI_INTENT_SCHEME)
+                            if (parsed.data?.scheme == "tvmirror" || parsed.data?.scheme == "tvremote") handle(parsed)
+                            else startActivity(parsed)
+                        } catch (e: Exception) { }
+                        return true
+                    }
                     // קישורים חיצוניים (למשל הורדת קובץ) נפתחים בדפדפן
                     if (url.host != Uri.parse(REMOTE_BASE).host && url.scheme != "http") {
                         try { startActivity(Intent(Intent.ACTION_VIEW, url)) } catch (e: Exception) { }
@@ -156,7 +165,9 @@ class MirrorActivity : Activity() {
             return
         }
         hideSetup()
-        web.loadUrl("$REMOTE_BASE?tv=$tv&app=1")
+        // v= גורם לטעינת הדף העדכני אחרי כל עדכון של האפליקציה
+        val v = try { packageManager.getPackageInfo(packageName, 0).longVersionCode } catch (e: Exception) { 0L }
+        web.loadUrl("$REMOTE_BASE?tv=$tv&app=1&v=$v")
     }
 
     @Deprecated("Deprecated in Java")
@@ -171,6 +182,7 @@ class MirrorActivity : Activity() {
 
         @JavascriptInterface fun startMirror(host: String, port: Int) {
             main.post {
+                android.widget.Toast.makeText(this@MirrorActivity, "מתחיל שיקוף…", android.widget.Toast.LENGTH_SHORT).show()
                 val p = if (port > 0) port else Protocol.PORT
                 if (MirrorService.isRunning) {
                     // שיקוף קודם "תקוע" (למשל הטלוויזיה כבתה באמצע) - סוגרים אותו ומתחילים מחדש

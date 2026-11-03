@@ -162,6 +162,7 @@ object AirPlayServer {
     private var surface: Surface? = null
 
     fun attach(s: Surface?) = synchronized(lock) {
+        onLog("surface ${if (s != null) "ready" else "gone"} gop=${gop.size} sps=${sps != null}")
         surface = s
         releaseVideo()
         if (s != null) replay()
@@ -193,6 +194,7 @@ object AirPlayServer {
     }
 
     private fun endSession() {
+        frames = 0
         val wasActive = isActive
         isActive = false
         synchronized(lock) {
@@ -217,6 +219,8 @@ object AirPlayServer {
     private val gop = ArrayList<Pair<ByteArray, Long>>()
     private var gopBytes = 0
     private val info = MediaCodec.BufferInfo()
+    private var frames = 0L
+    private var rendered = 0L
 
     @JvmStatic
     fun onVideoSize(width: Int, height: Int, h265: Boolean) {
@@ -232,6 +236,9 @@ object AirPlayServer {
     fun onVideo(data: ByteArray, ptsUs: Long) {
         if (!isActive) openScreen()
         if (!isActive) return
+        if (frames == 0L) rendered = 0
+        frames++
+        if (frames <= 3 || frames % 300 == 0L) onLog("video frame #$frames ${data.size}B decoder=${decoder != null} surface=${surface != null}")
         synchronized(lock) {
             val idr = scanNals(data)
             if (idr) {
@@ -283,23 +290,32 @@ object AirPlayServer {
     }
 
     private fun startDecoder() {
-        val s = surface ?: return
-        val spsData = sps ?: return
-        val ppsData = pps ?: return
-        try {
-            val format = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, videoW, videoH)
-            format.setByteBuffer("csd-0", ByteBuffer.wrap(spsData))
-            format.setByteBuffer("csd-1", ByteBuffer.wrap(ppsData))
-            format.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 2 shl 20)
-            if (Build.VERSION.SDK_INT >= 30) format.setInteger(MediaFormat.KEY_LOW_LATENCY, 1)
-            format.setInteger(MediaFormat.KEY_PRIORITY, 0)
-            val codec = MediaCodec.createDecoderByType(MediaFormat.MIMETYPE_VIDEO_AVC)
-            codec.configure(format, s, null, 0)
-            codec.start()
-            decoder = codec
-        } catch (e: Exception) {
-            onLog("video decoder failed: $e")
-            decoder = null
+        val s = surface ?: return onLog("startDecoder: no surface")
+        val spsData = sps ?: return onLog("startDecoder: no sps")
+        val ppsData = pps ?: return onLog("startDecoder: no pps")
+        // קודם עם "השהיה נמוכה"; אם המפענח של הטלוויזיה לא מכיר את זה - בלי
+        for (lowLatency in listOf(true, false)) {
+            var codec: MediaCodec? = null
+            try {
+                val format = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, videoW, videoH)
+                format.setByteBuffer("csd-0", ByteBuffer.wrap(spsData))
+                format.setByteBuffer("csd-1", ByteBuffer.wrap(ppsData))
+                format.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 2 shl 20)
+                if (lowLatency) {
+                    if (Build.VERSION.SDK_INT >= 30) format.setInteger(MediaFormat.KEY_LOW_LATENCY, 1)
+                    format.setInteger(MediaFormat.KEY_PRIORITY, 0)
+                }
+                codec = MediaCodec.createDecoderByType(MediaFormat.MIMETYPE_VIDEO_AVC)
+                codec.configure(format, s, null, 0)
+                codec.start()
+                decoder = codec
+                onLog("decoder started ${videoW}x$videoH lowLatency=$lowLatency ${codec.name}")
+                return
+            } catch (e: Exception) {
+                onLog("video decoder failed lowLatency=$lowLatency: $e")
+                try { codec?.release() } catch (x: Exception) { }
+                decoder = null
+            }
         }
     }
 
@@ -328,7 +344,11 @@ object AirPlayServer {
             while (true) {
                 val out = codec.dequeueOutputBuffer(info, 0)
                 when {
-                    out >= 0 -> codec.releaseOutputBuffer(out, true)
+                    out >= 0 -> {
+                        codec.releaseOutputBuffer(out, true)
+                        rendered++
+                        if (rendered == 1L || rendered % 300 == 0L) onLog("rendered frame #$rendered")
+                    }
                     out == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> reportSize(codec.outputFormat)
                     out == MediaCodec.INFO_TRY_AGAIN_LATER -> break
                 }
@@ -362,13 +382,14 @@ object AirPlayServer {
 
     @JvmStatic
     fun onVideoReset() {
-        Log.i(TAG, "video reset")
+        onLog("video reset")
         endSession()
     }
 
     @JvmStatic
     fun onConnection(count: Int) {
-        if (count == 0 && isActive) endSession()
+        // לא סוגרים לפי מספר החיבורים - האייפון פותח וסוגר חיבורי עזר; הסגירה האמיתית מגיעה ב-onVideoReset
+        onLog("connections=$count")
     }
 
     // ===== קול =====
