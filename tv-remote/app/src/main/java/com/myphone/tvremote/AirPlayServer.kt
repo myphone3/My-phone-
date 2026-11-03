@@ -59,9 +59,24 @@ object AirPlayServer {
                 return
             }
         }
+        // הגנה: אם בפעמיים הקודמות האפליקציה קרסה באמצע הפעלת AirPlay - לא מפעילים, כדי שהטלוויזיה תמשיך לעבוד
+        val prefs = appContext.getSharedPreferences("airplay_guard", Context.MODE_PRIVATE)
+        val version = try { appContext.packageManager.getPackageInfo(appContext.packageName, 0).longVersionCode } catch (e: Exception) { 0L }
+        if (prefs.getLong("version", -1) != version) prefs.edit().clear().putLong("version", version).commit()
+        if (prefs.getBoolean("inflight", false)) {
+            prefs.edit().putInt("crashes", prefs.getInt("crashes", 0) + 1).putBoolean("inflight", false).commit()
+        }
+        if (prefs.getInt("crashes", 0) >= 2) {
+            lastError = "disabled after crash"
+            return
+        }
         started = true
-        multicastLock = appContext.getSystemService(WifiManager::class.java)
-            ?.createMulticastLock("airplay")?.apply { setReferenceCounted(false); acquire() }
+        try {
+            multicastLock = appContext.getSystemService(WifiManager::class.java)
+                ?.createMulticastLock("airplay")?.apply { setReferenceCounted(false); acquire() }
+        } catch (e: Exception) {
+            Log.w(TAG, "multicast lock", e)
+        }
         Thread({ launch() }, "airplay-start").start()
         watchNetwork()
     }
@@ -80,12 +95,15 @@ object AirPlayServer {
         val w = maxOf(dm.widthPixels, dm.heightPixels).coerceIn(1280, 1920)
         val h = minOf(dm.widthPixels, dm.heightPixels).coerceIn(720, 1080)
         val key = File(appContext.filesDir, "airplay_key.pem").absolutePath
+        val guard = appContext.getSharedPreferences("airplay_guard", Context.MODE_PRIVATE)
+        guard.edit().putBoolean("inflight", true).commit()
         val result = try {
             nativeStart(TvIdentity.name(appContext), mac(), key, w, h, 30)
         } catch (t: Throwable) {
             lastError = "start: $t"
             -100
         }
+        guard.edit().putBoolean("inflight", false).putInt("crashes", 0).commit()
         if (result > 0) {
             port = result
             lastError = ""
@@ -169,7 +187,7 @@ object AirPlayServer {
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
             )
         } catch (e: Exception) {
-            AdbBridge.shell("am start -n ${appContext.packageName}/${appContext.packageName}.MirrorActivity")
+            Log.w(TAG, "open screen", e)
         }
     }
 

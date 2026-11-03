@@ -24,8 +24,9 @@ object RemoteCore {
         AdbBridge.init(app)
         CursorOverlay.init(app)
         CloudRelay.start(app)
-        MirrorServer.start(app)
-        AirPlayServer.start(app)
+        // שום תקלה בשיקוף לא תפיל את מסך הבית ואת השלט
+        try { MirrorServer.start(app) } catch (t: Throwable) { Log.w("RemoteCore", "mirror", t) }
+        try { AirPlayServer.start(app) } catch (t: Throwable) { Log.w("RemoteCore", "airplay", t) }
         try { KeepAliveJob.schedule(app) } catch (e: Exception) { Log.w("RemoteCore", "job", e) }
         // מונע מה-WiFi "להירדם" כשהטלוויזיה לא בשימוש, כדי שהשלט יישאר מחובר
         try {
