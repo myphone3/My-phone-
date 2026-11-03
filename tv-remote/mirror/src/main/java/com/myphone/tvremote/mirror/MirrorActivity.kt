@@ -170,7 +170,14 @@ class MirrorActivity : Activity() {
         @JavascriptInterface fun isApp() = true
 
         @JavascriptInterface fun startMirror(host: String, port: Int) {
-            main.post { startMirror(host, if (port > 0) port else Protocol.PORT) }
+            main.post {
+                val p = if (port > 0) port else Protocol.PORT
+                if (MirrorService.isRunning) {
+                    // שיקוף קודם "תקוע" (למשל הטלוויזיה כבתה באמצע) - סוגרים אותו ומתחילים מחדש
+                    MirrorService.stop(this@MirrorActivity)
+                    main.postDelayed({ startMirror(host, p) }, 800)
+                } else startMirror(host, p)
+            }
         }
 
         @JavascriptInterface fun stopMirror() {
@@ -242,7 +249,7 @@ class MirrorActivity : Activity() {
     // ===== שיקוף מסך =====
 
     private fun startMirror(host: String, port: Int) {
-        if (MirrorService.isRunning) return
+        if (MirrorService.isRunning) MirrorService.status = ""
         mirrorHost = host
         mirrorPort = port
         val needed = mutableListOf<String>()

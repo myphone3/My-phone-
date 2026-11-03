@@ -94,6 +94,7 @@ object Commands {
             for ((pkg, label) in Apps.recent(context)) array.put(JSONObject().put("pkg", pkg).put("label", label))
             ok(array)
         }
+        "airplay_log" -> ok(JSONObject().put("ok", true).put("log", AirPlayServer.log()).put("port", AirPlayServer.port).put("error", AirPlayServer.lastError))
         "mirror_stop" -> { MirrorServer.stop(); AirPlayServer.stop(); ok() }
         "storage" -> ok(StorageReport.build(context))
         "delete_download" -> if (StorageReport.deleteDownload(params["name"].orEmpty())) ok() else fail("not deleted")

@@ -104,6 +104,7 @@ object AirPlayServer {
             -100
         }
         guard.edit().putBoolean("inflight", false).putInt("crashes", 0).commit()
+        onLog("start result=$result size=${w}x$h")
         if (result > 0) {
             port = result
             lastError = ""
@@ -219,7 +220,7 @@ object AirPlayServer {
 
     @JvmStatic
     fun onVideoSize(width: Int, height: Int, h265: Boolean) {
-        Log.i(TAG, "video size $width x $height h265=$h265")
+        onLog("video size $width x $height h265=$h265")
         if (width > 0 && height > 0) {
             videoW = width
             videoH = height
@@ -297,7 +298,7 @@ object AirPlayServer {
             codec.start()
             decoder = codec
         } catch (e: Exception) {
-            Log.w(TAG, "decoder", e)
+            onLog("video decoder failed: $e")
             decoder = null
         }
     }
@@ -381,7 +382,7 @@ object AirPlayServer {
 
     @JvmStatic
     fun onAudioFormat(ct: Int, spf: Int) {
-        Log.i(TAG, "audio ct=$ct spf=$spf")
+        onLog("audio ct=$ct spf=$spf")
         synchronized(audioLock) {
             releaseAudio()
             audioType = ct
@@ -455,7 +456,7 @@ object AirPlayServer {
                 start()
             }
         } catch (e: Exception) {
-            Log.w(TAG, "audio decoder ct=$ct", e)
+            onLog("audio decoder failed ct=$ct: $e")
             null
         }
     }
@@ -498,8 +499,18 @@ object AirPlayServer {
         synchronized(audioLock) { try { track?.setVolume(volume) } catch (e: Exception) { } }
     }
 
+    /** יומן קצר של AirPlay - אפשר להעתיק אותו מהשלט כשמשהו לא עובד */
+    private val logLines = ArrayDeque<String>()
+
+    fun log(): String = synchronized(logLines) { logLines.joinToString("\n") }
+
     @JvmStatic
     fun onLog(message: String) {
         Log.i(TAG, message)
+        val time = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date())
+        synchronized(logLines) {
+            logLines.addLast("$time ${message.trim().take(300)}")
+            while (logLines.size > 120) logLines.removeFirst()
+        }
     }
 }

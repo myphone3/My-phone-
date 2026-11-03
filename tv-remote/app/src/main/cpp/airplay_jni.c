@@ -197,6 +197,9 @@ static void cb_video_play(void *cls, const char *l, const float p) { (void) cls;
 static void cb_video_float(void *cls, const float p) { (void) cls; (void) p; }
 static void cb_playback_info(void *cls, playback_info_t *p) { (void) cls; (void) p; }
 static float cb_playlist_remove(void *cls) { (void) cls; return 0.0f; }
+/* עוצמת ההתחלה שמדווחים לאייפון (dB; 0 = מלא). חובה - הבקשה הראשונה של האייפון (/info) קוראת לזה */
+static double cb_client_volume(void *cls) { (void) cls; return 0.0; }
+static void cb_custom_profile(void *cls, const char **profile) { (void) cls; (void) profile; }
 
 static void cb_log(void *cls, int level, const char *msg) {
     (void) cls;
@@ -276,6 +279,8 @@ Java_com_myphone_tvremote_AirPlayServer_nativeStart(JNIEnv *env, jclass clazz, j
         cbs.audio_flush = cb_noop;
         cbs.video_flush = cb_noop;
         cbs.audio_set_volume = cb_volume;
+        cbs.audio_set_client_volume = cb_client_volume;
+        cbs.get_custom_profile = cb_custom_profile;
         cbs.audio_set_metadata = cb_buffer;
         cbs.audio_set_coverart = cb_buffer;
         cbs.audio_stop_coverart_rendering = cb_noop;

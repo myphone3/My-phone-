@@ -90,6 +90,7 @@ class MirrorService : Service() {
             s.sendBufferSize = 1 shl 20
             s.connect(InetSocketAddress(host, port), 5000)
             socket = s
+            startWatchdog()
             out = DataOutputStream(BufferedOutputStream(s.getOutputStream(), 1 shl 16)).also {
                 it.write(Protocol.MAGIC.toByteArray())
                 it.flush()
@@ -263,15 +264,34 @@ class MirrorService : Service() {
         savedVolume = -1
     }
 
+    /** אם כתיבה לטלוויזיה נתקעת (הטלוויזיה כבתה / יצאה מהרשת) - מנתקים, במקום להיתקע "משקף" לנצח */
+    @Volatile private var writeStarted = 0L
+
+    private fun startWatchdog() {
+        Thread({
+            while (running) {
+                try { Thread.sleep(1000) } catch (e: InterruptedException) { break }
+                val started = writeStarted
+                if (started != 0L && System.currentTimeMillis() - started > 6000) {
+                    try { socket?.close() } catch (e: Exception) { }
+                    worker.post { fail("החיבור לטלוויזיה נקטע") }
+                    break
+                }
+            }
+        }, "mirror-watchdog").start()
+    }
+
     private fun send(type: Int, pts: Long, payload: ByteArray): Boolean {
         val stream = out ?: return false
         return try {
             synchronized(writeLock) {
+                writeStarted = System.currentTimeMillis()
                 stream.writeByte(type)
                 stream.writeInt(payload.size)
                 stream.writeLong(pts)
                 stream.write(payload)
                 stream.flush()
+                writeStarted = 0L
             }
             true
         } catch (e: Exception) {

@@ -487,6 +487,7 @@
         </ol>
         <button id="stopMirrorIos" style="width:100%;margin-top:10px">⏹ עצור שיקוף</button>
         <p class="note" id="airplayState">בלי אפליקציה ובלי תשלום. עובד דרך ה-WiFi, בלי ניתוק, והשלט ממשיך לעבוד. הקול יוצא רק מהטלוויזיה, וכפתורי הווליום באייפון משנים אותו. האייפון והטלוויזיה צריכים להיות על אותה רשת WiFi.</p>
+        <button id="copyAirplayLog" style="width:100%;margin-top:8px;font-size:13px;opacity:.75">📋 העתק יומן AirPlay (אם משהו לא עובד)</button>
         <p class="note" id="airplayDown" hidden style="color:#d0607a">ה-AirPlay בטלוויזיה עוד לא עלה. אם זה נמשך - כבו והדליקו את הטלוויזיה.</p>
       </div>
     </section>
@@ -1536,6 +1537,18 @@
     // פותח את האפליקציה עם כתובת הטלוויזיה. אם היא לא מותקנת - מוריד אותה.
     location.href = appIntent('start?host=' + tvLan + '&port=' + tvMirrorPort + '&name=' + name);
   };
+  $('copyAirplayLog').onclick = () => {
+    buzz();
+    call('airplay_log').then((r) => {
+      if (!r.ok) return toast('לא הצלחתי לקבל את היומן');
+      const b = r.body || {};
+      const text = 'AirPlay port=' + b.port + ' error=' + (b.error || '-') + '\n' + (b.log || '(ריק)');
+      const done = () => toast('היומן הועתק ✓ הדביקו אותו בצ׳אט');
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => prompt('העתיקו:', text));
+      else prompt('העתיקו:', text);
+    });
+  };
+  $('startMirror').addEventListener('click', () => { if (tvLan) toast('פותח שיקוף…'); });
   $('getMirrorApp').onclick = () => { buzz(); location.href = appIntent('open'); };
   $('stopMirror').onclick = $('stopMirrorIos').onclick = () => {
     buzz();
