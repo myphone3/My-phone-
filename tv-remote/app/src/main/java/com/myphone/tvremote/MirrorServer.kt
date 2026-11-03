@@ -110,6 +110,9 @@ object MirrorServer {
 
     val isActive get() = session != null
 
+    /** גודל התמונה האחרון - המסך שנפתח באיחור קורא אותו מכאן */
+    @Volatile var lastSize: Pair<Int, Int>? = null
+
     private class Session(private val socket: Socket) {
         private var decoder: MediaCodec? = null
         private var surface: Surface? = null
@@ -142,6 +145,7 @@ object MirrorServer {
                             width = ((payload[0].toInt() and 0xff) shl 8) or (payload[1].toInt() and 0xff)
                             height = ((payload[2].toInt() and 0xff) shl 8) or (payload[3].toInt() and 0xff)
                             synchronized(lock) { restartDecoder() }
+                            lastSize = width to height
                             main.post { screen?.onVideoSize(width, height) }
                         }
                         VIDEO_CONFIG -> {
@@ -149,7 +153,10 @@ object MirrorServer {
                             synchronized(lock) { restartDecoder() }
                         }
                         VIDEO_KEYFRAME, VIDEO_FRAME -> synchronized(lock) {
-                            if (type == VIDEO_KEYFRAME) waitingForKeyframe = false
+                            if (type == VIDEO_KEYFRAME) {
+                                if (decoder == null) restartDecoder() // למשל אחרי תקלה במפענח
+                                waitingForKeyframe = false
+                            }
                             if (!waitingForKeyframe) feed(payload, pts, 0)
                         }
                         AUDIO_PCM -> playAudio(payload)
@@ -186,18 +193,27 @@ object MirrorServer {
             val s = surface ?: return
             val c = config ?: return
             if (width <= 0 || height <= 0) return
-            try {
-                val format = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, width, height)
-                if (Build.VERSION.SDK_INT >= 30) format.setInteger(MediaFormat.KEY_LOW_LATENCY, 1)
-                format.setInteger(MediaFormat.KEY_PRIORITY, 0)
-                val codec = MediaCodec.createDecoderByType(MediaFormat.MIMETYPE_VIDEO_AVC)
-                codec.configure(format, s, null, 0)
-                codec.start()
-                decoder = codec
-                feed(c, 0, MediaCodec.BUFFER_FLAG_CODEC_CONFIG)
-            } catch (e: Exception) {
-                Log.w(TAG, "decoder", e)
-                decoder = null
+            // קודם עם "השהיה נמוכה"; אם המפענח של הטלוויזיה לא מכיר את זה - בלי
+            for (lowLatency in listOf(true, false)) {
+                var codec: MediaCodec? = null
+                try {
+                    val format = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, width, height)
+                    format.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 2 shl 20)
+                    if (lowLatency) {
+                        if (Build.VERSION.SDK_INT >= 30) format.setInteger(MediaFormat.KEY_LOW_LATENCY, 1)
+                        format.setInteger(MediaFormat.KEY_PRIORITY, 0)
+                    }
+                    codec = MediaCodec.createDecoderByType(MediaFormat.MIMETYPE_VIDEO_AVC)
+                    codec.configure(format, s, null, 0)
+                    codec.start()
+                    decoder = codec
+                    feed(c, 0, MediaCodec.BUFFER_FLAG_CODEC_CONFIG)
+                    return
+                } catch (e: Exception) {
+                    Log.w(TAG, "decoder lowLatency=$lowLatency ${width}x$height", e)
+                    try { codec?.release() } catch (x: Exception) { }
+                    decoder = null
+                }
             }
         }
 
@@ -221,7 +237,9 @@ object MirrorServer {
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "feed", e)
-                restartDecoder()
+                try { codec.release() } catch (x: Exception) { }
+                decoder = null
+                waitingForKeyframe = true
             }
         }
 
@@ -250,7 +268,7 @@ object MirrorServer {
                 decoder = null
             }
             try { audio?.stop(); audio?.release() } catch (e: Exception) { }
-            if (session === this) session = null
+            if (session === this) { session = null; lastSize = null }
             main.post { screen?.onEnded() }
         }
     }

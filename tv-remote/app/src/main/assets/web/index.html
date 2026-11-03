@@ -475,9 +475,9 @@
         <button class="btn-accent" id="startMirror" style="width:100%;color:#fff;font-weight:700">📱 שקף את המסך של הטלפון</button>
         <div class="row-btns" style="grid-template-columns:1fr 1fr">
           <button id="stopMirror">⏹ עצור שיקוף</button>
-          <button id="getMirrorApp">⬇ התקנת אפליקציית השיקוף</button>
+          <button id="getMirrorApp">📲 פתח באפליקציה</button>
         </div>
-        <p class="note">בפעם הראשונה מתקינים את אפליקציית השיקוף (פעם אחת). אחר כך - לחיצה אחת כאן, ואנדרואיד שואל "להתחיל לשתף?". עובד דרך ה-WiFi, בלי ניתוק, והשלט ממשיך לעבוד. הטלפון והטלוויזיה צריכים להיות על אותה רשת.</p>
+        <p class="note" id="mirrorNote">השיקוף נמצא באפליקציית "שלט מהפון" לאנדרואיד - השלט עצמו + שיקוף, הכל במקום אחד. מתקינים פעם אחת (הכפתור "פתח באפליקציה" מוריד אותה אם היא עוד לא מותקנת), ואז אפשר למחוק את הקיצור הישן מהמסך. עובד דרך ה-WiFi, בלי ניתוק, והקול יוצא רק מהטלוויזיה. הטלפון והטלוויזיה צריכים להיות על אותה רשת.</p>
       </div>
       <div id="mirrorIos" hidden>
         <ol class="note" style="margin:0;padding-inline-start:20px;line-height:1.9">
@@ -552,7 +552,8 @@
   }
   const buzz = () => {
     if (!hapticOn()) return;
-    if (navigator.vibrate) navigator.vibrate(12);
+    if (window.TvApp) TvApp.vibrate(12);
+    else if (navigator.vibrate) navigator.vibrate(12);
     else iosHaptic();
   };
   function hapticOn() { try { return localStorage.getItem('haptic') !== '0'; } catch (e) { return true; } }
@@ -1444,7 +1445,26 @@
     h.textContent = text; h.hidden = false;
     clearTimeout(showHeard.t); showHeard.t = setTimeout(() => { h.hidden = true; }, 4000);
   }
-  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  // באפליקציה לאנדרואיד: הזיהוי של הטלפון עצמו (WebView לא יודע לזהות דיבור לבד)
+  class AppSpeech {
+    start() {
+      AppSpeech.cur = this;
+      TvApp.listen(this.lang || 'he-IL');
+    }
+  }
+  window.__speechResult = (list) => {
+    const r = AppSpeech.cur; if (!r) return;
+    const alts = list.map((t) => ({ transcript: t }));
+    if (alts.length && r.onresult) r.onresult({ results: [alts] });
+    else if (r.onerror) r.onerror({});
+    if (r.onend) r.onend();
+  };
+  window.__speechError = () => {
+    const r = AppSpeech.cur; if (!r) return;
+    if (r.onerror) r.onerror({});
+    if (r.onend) r.onend();
+  };
+  const SpeechRec = (window.TvApp && TvApp.canListen()) ? AppSpeech : (window.SpeechRecognition || window.webkitSpeechRecognition);
   $('voice').hidden = !(SpeechRec && window.isSecureContext);
   $('voice').onclick = () => {
     buzz();
@@ -1495,16 +1515,33 @@
   $('mirrorAndroid').hidden = isIOS;
   $('mirrorIos').hidden = !isIOS;
   let tvLan = null, tvMirrorPort = 8090;
+  const inApp = !!window.TvApp;
+  const appIntent = (path) => 'intent://' + path + (path.includes('?') ? '&' : '?') + 'tv=' + encodeURIComponent(tvId || '') +
+    '#Intent;scheme=' + (path.startsWith('start') ? 'tvmirror' : 'tvremote') + ';package=com.myphone.tvremote.mirror;S.browser_fallback_url=' + encodeURIComponent(MIRROR_APK) + ';end';
+  if (inApp) {
+    $('getMirrorApp').hidden = true;
+    document.querySelector('#mirrorAndroid .row-btns').style.gridTemplateColumns = '1fr';
+    $('mirrorNote').textContent = 'לחיצה אחת, ואנדרואיד שואל פעם אחת "שיתוף המסך" (זו הגנה של אנדרואיד שאי אפשר לדלג עליה). עובד דרך ה-WiFi, בלי ניתוק, והקול יוצא רק מהטלוויזיה. הטלפון והטלוויזיה צריכים להיות על אותה רשת.';
+  }
+  let lastMirrorText = '';
+  window.__mirrorState = (running, text) => {
+    $('startMirror').textContent = running ? '📱 משקף לטלוויזיה ✓' : '📱 שקף את המסך של הטלפון';
+    if (text && text !== lastMirrorText) { lastMirrorText = text; if (!/^משקף|^מתחבר/.test(text)) toast(text); }
+  };
   $('startMirror').onclick = () => {
     buzz();
     if (!tvLan || !/^\d+\.\d+\.\d+\.\d+$/.test(tvLan)) return toast('הטלוויזיה לא מחוברת לרשת כרגע');
+    if (inApp) return TvApp.startMirror(tvLan, tvMirrorPort);
     const name = encodeURIComponent($('tvName').textContent || 'הטלוויזיה');
-    // פותח את אפליקציית השיקוף עם כתובת הטלוויזיה. אם היא לא מותקנת - מוריד אותה.
-    location.href = 'intent://start?host=' + tvLan + '&port=' + tvMirrorPort + '&name=' + name +
-      '#Intent;scheme=tvmirror;package=com.myphone.tvremote.mirror;S.browser_fallback_url=' + encodeURIComponent(MIRROR_APK) + ';end';
+    // פותח את האפליקציה עם כתובת הטלוויזיה. אם היא לא מותקנת - מוריד אותה.
+    location.href = appIntent('start?host=' + tvLan + '&port=' + tvMirrorPort + '&name=' + name);
   };
-  $('getMirrorApp').onclick = () => { buzz(); location.href = MIRROR_APK; };
-  $('stopMirror').onclick = $('stopMirrorIos').onclick = () => { buzz(); call('mirror_stop').then((r) => toast(r.ok ? 'השיקוף הופסק' : 'לא הצלחתי לעצור')); };
+  $('getMirrorApp').onclick = () => { buzz(); location.href = appIntent('open'); };
+  $('stopMirror').onclick = $('stopMirrorIos').onclick = () => {
+    buzz();
+    if (inApp) TvApp.stopMirror();
+    call('mirror_stop').then((r) => toast(r.ok ? 'השיקוף הופסק' : 'לא הצלחתי לעצור'));
+  };
 
   // ===== שם הטלוויזיה (לחיצה על השם משנה אותו, לכל הטלפונים) =====
   $('tvName').addEventListener('click', () => {

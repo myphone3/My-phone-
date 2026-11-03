@@ -123,13 +123,18 @@ class MirrorService : Service() {
         onChange?.invoke()
     }
 
-    /** גודל המסך לשליחה: עד 1920 בצד הארוך (כמו Full HD), בכפולות של 16 בשביל המקודד. */
+    /**
+     * גודל התמונה לשליחה: נכנס במסגרת 1920x1080 כמו שהוא (טלפון עומד = עד 1080 גובה).
+     * זה בדיוק הגודל שבו הטלוויזיה מציגה אותו, ומפענחים של טלוויזיות לא תמיד מסכימים לתמונה "עומדת" של 1920 גובה.
+     */
     private fun measure() {
         val wm = getSystemService(WindowManager::class.java)
         val bounds = wm.maximumWindowMetrics.bounds
-        val scale = minOf(1f, 1920f / max(bounds.width(), bounds.height()))
-        width = ((bounds.width() * scale) / 16f).roundToInt() * 16
-        height = ((bounds.height() * scale) / 16f).roundToInt() * 16
+        val w = bounds.width().toFloat()
+        val h = bounds.height().toFloat()
+        val scale = minOf(1f, 1920f / w, 1080f / h)
+        width = maxOf(16, ((w * scale) / 16f).toInt() * 16)
+        height = maxOf(16, ((h * scale) / 16f).toInt() * 16)
         dpi = (resources.displayMetrics.densityDpi * scale).roundToInt().coerceAtLeast(120)
     }
 

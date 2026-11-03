@@ -53,6 +53,7 @@ class MirrorActivity : Activity(), MirrorServer.Screen {
         AirPlayServer.screen = this
         if (!MirrorServer.isActive && !AirPlayServer.isActive) finish()
         AirPlayServer.shownSize?.let { (w, h) -> onVideoSize(w, h) }
+        if (MirrorServer.isActive) MirrorServer.lastSize?.let { (w, h) -> onVideoSize(w, h) }
     }
 
     override fun onPause() {
