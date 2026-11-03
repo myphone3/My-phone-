@@ -76,6 +76,9 @@ jobs:
       - name: Prepare remote web page (gh-pages branch)
         run: |
           rm -rf /tmp/site && cp -r app/src/main/assets/web /tmp/site && touch /tmp/site/.nojekyll
+          # קישורים קצרים שקל להקליד בטלוויזיה/בטלפון: .../tv.apk ו-.../app.apk
+          cp tv-remote.apk /tmp/site/tv.apk
+          cp mirror.apk /tmp/site/app.apk
           # הענף הזה הוא רק דף השלט ל-GitHub Pages - Vercel (של החנות) לא צריך לבנות אותו
           echo '{"git":{"deploymentEnabled":false}}' > /tmp/site/vercel.json
           cd /tmp/site
