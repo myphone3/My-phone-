@@ -35,20 +35,29 @@ class MirrorActivity : Activity(), MirrorServer.Screen {
         root.addView(hint, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
         setContentView(root)
         surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
-            override fun surfaceCreated(holder: SurfaceHolder) = MirrorServer.attach(holder.surface)
+            override fun surfaceCreated(holder: SurfaceHolder) {
+                MirrorServer.attach(holder.surface)
+                AirPlayServer.attach(holder.surface)
+            }
             override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
-            override fun surfaceDestroyed(holder: SurfaceHolder) = MirrorServer.attach(null)
+            override fun surfaceDestroyed(holder: SurfaceHolder) {
+                MirrorServer.attach(null)
+                AirPlayServer.attach(null)
+            }
         })
     }
 
     override fun onResume() {
         super.onResume()
         MirrorServer.screen = this
-        if (!MirrorServer.isActive) finish()
+        AirPlayServer.screen = this
+        if (!MirrorServer.isActive && !AirPlayServer.isActive) finish()
+        AirPlayServer.shownSize?.let { (w, h) -> onVideoSize(w, h) }
     }
 
     override fun onPause() {
         if (MirrorServer.screen === this) MirrorServer.screen = null
+        if (AirPlayServer.screen === this) AirPlayServer.screen = null
         super.onPause()
     }
 
@@ -73,11 +82,13 @@ class MirrorActivity : Activity(), MirrorServer.Screen {
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         MirrorServer.stop()
+        AirPlayServer.stop()
         finish()
     }
 
     override fun onDestroy() {
         if (isFinishing && MirrorServer.isActive) MirrorServer.stop()
+        if (isFinishing && AirPlayServer.isActive) AirPlayServer.stop()
         super.onDestroy()
     }
 }

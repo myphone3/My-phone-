@@ -480,7 +480,14 @@
         <p class="note">בפעם הראשונה מתקינים את אפליקציית השיקוף (פעם אחת). אחר כך - לחיצה אחת כאן, ואנדרואיד שואל "להתחיל לשתף?". עובד דרך ה-WiFi, בלי ניתוק, והשלט ממשיך לעבוד. הטלפון והטלוויזיה צריכים להיות על אותה רשת.</p>
       </div>
       <div id="mirrorIos" hidden>
-        <p class="note" style="margin-top:0">שיקוף מאייפון (AirPlay) - בבנייה, יגיע בעדכון הבא.</p>
+        <ol class="note" style="margin:0;padding-inline-start:20px;line-height:1.9">
+          <li>מחליקים מהפינה הימנית העליונה למטה (מרכז הבקרה)</li>
+          <li>לוחצים על <b>שיקוף מסך</b> (שני המלבנים)</li>
+          <li>בוחרים <b id="airplayName">את הטלוויזיה</b></li>
+        </ol>
+        <button id="stopMirrorIos" style="width:100%;margin-top:10px">⏹ עצור שיקוף</button>
+        <p class="note" id="airplayState">בלי אפליקציה ובלי תשלום. עובד דרך ה-WiFi, בלי ניתוק, והשלט ממשיך לעבוד. הקול יוצא רק מהטלוויזיה, וכפתורי הווליום באייפון משנים אותו. האייפון והטלוויזיה צריכים להיות על אותה רשת WiFi.</p>
+        <p class="note" id="airplayDown" hidden style="color:#d0607a">ה-AirPlay בטלוויזיה עוד לא עלה. אם זה נמשך - כבו והדליקו את הטלוויזיה.</p>
       </div>
     </section>
 
@@ -1497,7 +1504,7 @@
       '#Intent;scheme=tvmirror;package=com.myphone.tvremote.mirror;S.browser_fallback_url=' + encodeURIComponent(MIRROR_APK) + ';end';
   };
   $('getMirrorApp').onclick = () => { buzz(); location.href = MIRROR_APK; };
-  $('stopMirror').onclick = () => { buzz(); call('mirror_stop').then((r) => toast(r.ok ? 'השיקוף הופסק' : 'לא הצלחתי לעצור')); };
+  $('stopMirror').onclick = $('stopMirrorIos').onclick = () => { buzz(); call('mirror_stop').then((r) => toast(r.ok ? 'השיקוף הופסק' : 'לא הצלחתי לעצור')); };
 
   // ===== שם הטלוויזיה (לחיצה על השם משנה אותו, לכל הטלפונים) =====
   $('tvName').addEventListener('click', () => {
@@ -1530,7 +1537,8 @@
       if (!r.ok) return;
       setOnline(true);
       const s = r.body;
-      if (s.name) $('tvName').textContent = s.name;
+      if (s.name) { $('tvName').textContent = s.name; $('airplayName').textContent = '"' + s.name + '"'; }
+      if (s.airplay !== undefined) $('airplayDown').hidden = !!s.airplay;
       if (s.lan) { tvLan = s.lan; tvMirrorPort = s.mirrorPort || 8090; }
       setStatus(s.connected ? 'ok' : 'wait', s.connected ? 'מחובר' : 'ממתין…');
       if (!loadedOnce) { loadedOnce = true; loadApps(); loadRecent(); }

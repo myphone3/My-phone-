@@ -25,6 +25,7 @@ object RemoteCore {
         CursorOverlay.init(app)
         CloudRelay.start(app)
         MirrorServer.start(app)
+        AirPlayServer.start(app)
         try { KeepAliveJob.schedule(app) } catch (e: Exception) { Log.w("RemoteCore", "job", e) }
         // מונע מה-WiFi "להירדם" כשהטלוויזיה לא בשימוש, כדי שהשלט יישאר מחובר
         try {

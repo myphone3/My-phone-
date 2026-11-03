@@ -26,6 +26,8 @@ object Commands {
                 .put("cloud", CloudRelay.online)
                 .put("lan", RemoteService.address().removePrefix("http://").substringBefore(':'))
                 .put("mirrorPort", MirrorServer.PORT)
+                .put("airplay", AirPlayServer.port > 0)
+                .put("airplayError", AirPlayServer.lastError)
             )
         }
         "key" -> {
@@ -92,7 +94,7 @@ object Commands {
             for ((pkg, label) in Apps.recent(context)) array.put(JSONObject().put("pkg", pkg).put("label", label))
             ok(array)
         }
-        "mirror_stop" -> { MirrorServer.stop(); ok() }
+        "mirror_stop" -> { MirrorServer.stop(); AirPlayServer.stop(); ok() }
         "storage" -> ok(StorageReport.build(context))
         "delete_download" -> if (StorageReport.deleteDownload(params["name"].orEmpty())) ok() else fail("not deleted")
         "uninstall" -> if (StorageReport.uninstall(context, params["pkg"].orEmpty())) ok() else fail("not removed")
@@ -120,6 +122,7 @@ object Commands {
             val name = params["name"].orEmpty().trim()
             if (name.isEmpty() || name.length > 30) fail("bad name") else {
                 TvIdentity.setName(context, name)
+                AirPlayServer.restart() // שהאייפון יראה את השם החדש
                 ok()
             }
         }

@@ -13,6 +13,15 @@ android {
         targetSdk = 34
         versionCode = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
         versionName = "1.0.${System.getenv("GITHUB_RUN_NUMBER") ?: "0"}"
+        // מקלט ה-AirPlay (שיקוף מאייפון) כתוב ב-C; בונים לשני סוגי המעבדים של טלוויזיות אנדרואיד
+        ndk { abiFilters += listOf("armeabi-v7a", "arm64-v8a") }
+        externalNativeBuild { cmake { arguments += listOf("-DANDROID_STL=none") } }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+        }
     }
 
     // מפתח חתימה קבוע, כדי שכל גרסה חדשה תתקין עדכון על הקודמת בלי להסיר אותה
