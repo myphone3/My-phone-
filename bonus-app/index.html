@@ -1061,13 +1061,16 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   // kosher phone models sold in the store, added once to every manager's list (shown with the rabbinical committee stamp)
   var KOSHER_MODELS = ["QLYX Q8", "פירסט פון Pro 30", "Escolls 5x5", "Q3", "F16", "Flip 2", "D30", "X30", "iTop", "4x4", "Q7", "King"];
   // product photos of the kosher models, from the store's own site kosher-phone.com (checked before the generic stamp)
+  var REPAIR_TYPES = ["מגע", "תיקון באחריות", "נגן", "פלאט", "נזקי מים", "רמקול", "מיקרופון", "אוזנייה", "כפתורים", "ויברציה", "מצלמה קדמית", "קליטה ואנטנה", "החלפת גב", "ניקוי שקע", "הדבקת מגן מסך", "שחזור מידע"];
   var NOKIA_MODELS = ["Nokia 235", "Nokia 225", "Nokia 3210", "Nokia 2660 Flip", "Xiaomi Qin F21 Pro"];
   BUILTIN_IMG.unshift(
     ["device", ["235"], "https://kosher-phone.com/uploads/1792872082309-xahtif.jpg"],
     ["device", ["225"], "https://kosher-phone.com/uploads/1792872092142-3jibwu.jpg"],
     ["device", ["3210"], "https://kosher-phone.com/uploads/1792872086443-v4l91v.jpg"],
     ["device", ["2660"], "https://kosher-phone.com/uploads/1792872093504-4aph0j.jpg"],
-    ["device", ["f21"], "https://kosher-phone.com/uploads/1792755860325-f44gbu.webp"]
+    ["device", ["f21"], "https://kosher-phone.com/uploads/1792755860325-f44gbu.webp"],
+    ["device", ["k25"], "https://kosher-phone.com/uploads/1792862293428-x5cr83.webp"],
+    ["device", ["f25"], "https://kosher-phone.com/uploads/1792861188024-gxo1sc.webp"]
   );
   BUILTIN_IMG.unshift(
     ["device", ["q8"], "https://kosher-phone.com/uploads/1785854033592-6eq9hh.webp"],
@@ -1353,6 +1356,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     checkProfileComplete();
     addKosherModels();
     addModelPack("pack-nokia-1", NOKIA_MODELS, null, "דגמי נוקיה ושיאומי");
+    addModelPack("pack-qin25-1", ["Xiaomi Qin K25", "Xiaomi Qin F25"], null, "דגמי שיאומי");
+    addModelPack("pack-repairs-1", REPAIR_TYPES, null, "סוגי תיקונים", "repair");
     fixBrandNames();
     offerNotesImport();
   }
@@ -1394,17 +1399,18 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   // one-time: add the kosher models after "כשר" (a hidden marker keeps them from coming back if deleted)
   function addKosherModels() { addModelPack("pack-kosher-1", KOSHER_MODELS, "כשר", "דגמי מכשירים כשרים"); }
   // a pack of device models is added once; its hidden marker keeps deleted models from coming back
-  function addModelPack(packId, models, afterName, what) {
+  function addModelPack(packId, models, afterName, what, kind) {
+    kind = kind || "device";
     if (!activeAcct() || isMember() || state.cfgTarget) return;
     var list = types();
     if (list.some(function (t) { return t.id === packId; })) return;
     var have = {}; list.forEach(function (t) { have[norm(t.name)] = 1; if (BRAND_FIX[t.name]) have[norm(BRAND_FIX[t.name])] = 1; });
     var base = uid(), add = models.filter(function (n) { return !have[norm(n)]; }).map(function (n, i) {
-      return { id: "k-" + base + "-" + i, kind: "device", name: n, ultra: false, amount: null };
+      return { id: "k-" + base + "-" + i, kind: kind, name: n, ultra: false, amount: null };
     });
     var next = list.map(function (t) { return Object.assign({}, t); });
-    var at = next.length - 1; next.forEach(function (t, i) { if (t.kind === "device") at = i; });
-    var k = afterName ? next.map(function (t) { return t.kind === "device" ? norm(t.name) : ""; }).indexOf(norm(afterName)) : -1;
+    var at = next.length - 1; next.forEach(function (t, i) { if (t.kind === kind) at = i; });
+    var k = afterName ? next.map(function (t) { return t.kind === kind ? norm(t.name) : ""; }).indexOf(norm(afterName)) : -1;
     if (k >= 0) at = k;
     Array.prototype.splice.apply(next, [at + 1, 0].concat(add));
     next.push({ id: packId, kind: "_pack", name: "" });
