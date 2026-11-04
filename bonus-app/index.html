@@ -189,6 +189,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 .field input[dir="ltr"] { text-align: left; }
 .inline { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-group { flex-basis: 100%; font-size: .78rem; font-weight: 800; color: var(--muted); margin-top: 6px; border-bottom: 1px solid var(--line); padding-bottom: 2px; }
+.chip-group:first-child { margin-top: 0; }
 .chip { border: 1.5px solid var(--line); background: var(--bg); border-radius: 999px; padding: 8px 14px; font-weight: 600; }
 .chip[aria-pressed="true"] { border-color: var(--accent); background: var(--soft); box-shadow: inset 0 0 0 1px var(--accent); }
 .chip .star { color: var(--gold); }
@@ -852,6 +854,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   <div class="sheet-inner">
     <div class="sheet-head"><h3 id="typeTitle">עריכת סוג</h3><button class="icon-btn" type="button" data-close>סגירה</button></div>
     <div class="field"><label class="lbl" for="tName">שם</label><input id="tName" type="text" placeholder="למשל: החלפת מסך, אייפון 16, פרטנר"></div>
+    <div class="field" id="tBrandBox"><label class="lbl" for="tBrand">חברה (לא חובה)</label><input id="tBrand" type="text" list="tBrandList" placeholder="למשל: QLYX, נוקיה, שיאומי"><datalist id="tBrandList"></datalist><span class="hint">מכשירים מוצגים בהוספה מקובצים לפי חברה.</span></div>
     <div class="field"><span class="lbl" id="tKindLbl">קטגוריה</span><div class="chips" id="tKinds" role="group" aria-labelledby="tKindLbl"></div></div>
     <div class="field">
       <span class="lbl">מחיר</span>
@@ -1087,6 +1090,32 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   );
   BUILTIN_IMG.push(["device", KOSHER_MODELS.concat(["qlyx", "qlx", "קיוליקס", "first phone", "פירסט פון", "escolls", "s-calls", "scalls"]), BUILTIN_IMG.filter(function (b) { return b[1][0] === "כשר"; })[0][2]]);
   var builtinCache = {};
+  // device makers, in the order their groups are shown when adding a device
+  var BRANDS = [
+    ["QLYX", ["qlyx", "qlx", "קיוליקס", "q3", "q7", "q8", "d30", "x30"]],
+    ["Escolls", ["escolls", "אסקולס", "s-calls", "scalls", "5x5", "4x4", "flip 2"]],
+    ["פירסט פון", ["first phone", "פירסט", "pro 30", "f16"]],
+    ["נוקיה", ["nokia", "נוקיה"]],
+    ["שיאומי", ["xiaomi", "שיאומי", "qin", "קין"]],
+    ["אייפון", ["אייפון", "איפון", "iphone", "apple"]],
+    ["סמסונג", ["סמסונג", "samsung", "galaxy", "גלקסי"]]
+  ];
+  function brandOf(t) {
+    if (t.brand) return t.brand;
+    var n = norm(t.name);
+    for (var i = 0; i < BRANDS.length; i++) if (BRANDS[i][1].some(function (w) { return n.indexOf(norm(w)) >= 0; })) return BRANDS[i][0];
+    return "עוד מכשירים";
+  }
+  // returns null when everything is from one maker (no point in headings)
+  function groupByBrand(list) {
+    var of = {}, order = BRANDS.map(function (b) { return b[0]; }), seen = {};
+    list.forEach(function (t) { if (t.id === "other") return; var b = brandOf(t); of[t.id] = b; seen[b] = 1; if (order.indexOf(b) < 0) order.push(b); });
+    if (Object.keys(seen).length < 2) return null;
+    order.splice(order.indexOf("עוד מכשירים") >= 0 ? order.indexOf("עוד מכשירים") : order.length, 1); order.push("עוד מכשירים");
+    var rank = function (t) { return t.id === "other" ? 1e6 : order.indexOf(of[t.id]); };
+    var sorted = list.map(function (t, i) { return [t, i]; }).sort(function (a, b) { return rank(a[0]) - rank(b[0]) || a[1] - b[1]; }).map(function (x) { return x[0]; });
+    return { list: sorted, of: of };
+  }
   function fitImg(im, onFail) { im.addEventListener("error", function () { if (onFail) onFail(); im.remove(); }); im.addEventListener("load", function () { if (im.naturalWidth > im.naturalHeight * 1.3) im.classList.add("wide"); else if (im.naturalHeight > im.naturalWidth * 1.1) im.style.objectFit = "contain"; }); return im; }
   function typeImg(t, kind) {
     if (t.img) return t.img;
@@ -2120,6 +2149,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     $("tFrom").value = (t && t.from) || todayStr(); $("tTo").value = (t && t.to) || "";
     editType.img = (t && t.img) || ""; paintTypeImg();
     paintTypeKinds();
+    $("tBrand").value = t ? (t.brand || (t.kind === "device" ? brandOf(t) : "")) : "";
+    if ($("tBrand").value === "עוד מכשירים") $("tBrand").value = "";
+    var bl = $("tBrandList"); bl.textContent = ""; BRANDS.forEach(function (b) { var o = el("option"); o.value = b[0]; bl.appendChild(o); });
+    $("tBrandBox").hidden = editType.kind !== "device";
     show($("typeSheet"));
     if (!t) setTimeout(function () { $("tName").focus(); }, 50);
   }
@@ -2127,7 +2160,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     var box = $("tKinds"); box.textContent = "";
     catsC(econf()).forEach(function (c) {
       var b = el("button", "chip", c.name); b.type = "button"; b.setAttribute("aria-pressed", String(c.id === editType.kind));
-      b.addEventListener("click", function () { editType.kind = c.id; if (!editType.id) $("typeTitle").textContent = "סוג חדש ב" + catPlural(c.id); paintTypeKinds(); });
+      b.addEventListener("click", function () { editType.kind = c.id; $("tBrandBox").hidden = c.id !== "device"; if (!editType.id) $("typeTitle").textContent = "סוג חדש ב" + catPlural(c.id); paintTypeKinds(); });
       box.appendChild(b);
     });
   }
@@ -2160,6 +2193,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     var extra = { name: name, amount: amt, ultra: ultra, from: from, to: to, img: editType.img || null };
     var list = typesC(econf()).map(function (x) { return Object.assign({}, x); });
     extra.kind = editType.kind;
+    var brand = editType.kind === "device" ? $("tBrand").value.trim() : "";
+    extra.brand = brand || null;
     if (editType.id) list.forEach(function (x) { if (x.id === editType.id) Object.assign(x, extra); });
     else list.push(Object.assign({ id: "t-" + uid() }, extra));
     saveConfig({ types: list }); hide(); toast("נשמר: " + name);
@@ -2852,8 +2887,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     var list = typesOf(kind).filter(function (t) { return typeActive(t, day) || (keepSub && t.name === keepSub); });
     var withOther = cfg().allowOther || (keepSub && !list.some(function (t) { return t.name === keepSub; }));
     if (withOther) list.push({ id: "other", name: "אחר", ultra: false, amount: null });
-    var matched = null;
+    var matched = null, groups = kind === "device" ? groupByBrand(list) : null, lastG = null;
+    if (groups) list = groups.list;
     list.forEach(function (t) {
+      if (groups && t.id !== "other" && groups.of[t.id] !== lastG) { lastG = groups.of[t.id]; box.appendChild(el("div", "chip-group", lastG)); }
+      if (groups && t.id === "other" && lastG !== null) { box.appendChild(el("div", "chip-group", "")); lastG = null; }
       var ch = el("button", "chip"); ch.type = "button"; ch.setAttribute("aria-pressed", "false");
       var tim = t.id === "other" ? "" : typeImg(t, kind); if (tim) { var im = fitImg(el("img", "t-img")); im.src = tim; im.alt = ""; ch.appendChild(im); }
       ch.appendChild(document.createTextNode(t.name));
