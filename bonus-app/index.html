@@ -191,6 +191,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip-group { flex-basis: 100%; font-size: .78rem; font-weight: 800; color: var(--muted); margin-top: 6px; border-bottom: 1px solid var(--line); padding-bottom: 2px; }
 .chip-group:first-child { margin-top: 0; }
+.brand-bar { display: flex; flex-wrap: wrap; gap: 8px; flex-basis: 100%; }
+.brand-chip { display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 999px; padding: 6px 12px; font-weight: 700; font-size: .9rem; }
+.brand-chip img { height: 20px; width: auto; max-width: 60px; object-fit: contain; border-radius: 4px; background: #fff; }
+.brand-chip[aria-expanded="true"] { border-color: var(--accent); background: var(--soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.brand-chip .cnt { color: var(--muted); font-size: .78rem; font-weight: 600; }
+.brand-models { display: flex; flex-wrap: wrap; gap: 8px; flex-basis: 100%; padding: 4px 0 2px; }
+#subSearch { margin-bottom: 8px; }
 .chip-group { display: flex; align-items: center; gap: 8px; }
 .chip-group .brand-logo { height: 22px; width: auto; max-width: 80px; object-fit: contain; border-radius: 4px; background: #fff; }
 .chip { border: 1.5px solid var(--line); background: var(--bg); border-radius: 999px; padding: 8px 14px; font-weight: 600; }
@@ -827,19 +834,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       <div class="chips" id="kindChips"></div>
     </div>
     <div class="field">
-      <span class="lbl" id="subLabel">סוג</span>
-      <div class="chips" id="subChips" role="group" aria-labelledby="subLabel"></div>
-    </div>
-    <div class="field" id="subOtherBox" hidden>
-      <label class="lbl" for="subOther" id="subOtherLbl">מה בדיוק? (לא חובה)</label>
-      <input id="subOther" type="text" placeholder="כתוב כאן…">
-    </div>
-    <div class="field">
       <span class="lbl">בונוס</span>
       <div class="bonus-toggle">
-        <button type="button" id="bReg" aria-pressed="true">רגיל<br><span class="num" id="bRegVal">10</span> ₪</button>
-        <button type="button" id="bBig" class="gold" aria-pressed="false">אולטרה<br><span class="num" id="bBigVal">50</span> ₪</button>
-        <button type="button" id="bCustom" aria-pressed="false">סכום<br>אחר</button>
+        <button type="button" id="bReg" aria-pressed="true">רגיל · <span class="num" id="bRegVal">10</span> ₪</button>
+        <button type="button" id="bBig" class="gold" aria-pressed="false">אולטרה · <span class="num" id="bBigVal">50</span> ₪</button>
+        <button type="button" id="bCustom" aria-pressed="false">סכום אחר</button>
       </div>
     </div>
     <div class="field" id="customBox" hidden>
@@ -849,6 +848,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     <div class="inline">
       <div class="field" id="qtyBox"><label class="lbl" for="addQty">כמות</label><div class="qty-step"><button type="button" id="qtyPlus" aria-label="עוד אחד">+</button><input id="addQty" type="number" min="1" max="99" value="1" inputmode="numeric"><button type="button" id="qtyMinus" aria-label="אחד פחות">−</button></div></div>
       <div class="field"><label class="lbl" for="addDate">תאריך</label><input id="addDate" type="date"></div>
+    </div>
+    <div class="field">
+      <span class="lbl" id="subLabel">סוג</span>
+      <input id="subSearch" type="search" placeholder="🔍 חיפוש דגם…" aria-label="חיפוש דגם" autocomplete="off" hidden>
+      <div class="chips" id="subChips" role="group" aria-labelledby="subLabel"></div>
+    </div>
+    <div class="field" id="subOtherBox" hidden>
+      <label class="lbl" for="subOther" id="subOtherLbl">מה בדיוק? (לא חובה)</label>
+      <input id="subOther" type="text" placeholder="כתוב כאן…">
     </div>
     <div class="field"><label class="lbl" for="addNote" id="addNoteLbl">הערה (לא חובה)</label><input id="addNote" type="text" placeholder="למשל: לקוח קבוע"></div>
     <button class="btn danger" type="button" id="entryDelete" hidden>מחיקת הרישום</button>
@@ -2918,20 +2926,20 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     var list = typesOf(kind).filter(function (t) { return typeActive(t, day) || (keepSub && t.name === keepSub); });
     var withOther = cfg().allowOther || (keepSub && !list.some(function (t) { return t.name === keepSub; }));
     if (withOther) list.push({ id: "other", name: "אחר", ultra: false, amount: null });
-    var matched = null, groups = kind === "device" ? groupByBrand(list) : null, lastG = null;
-    if (groups) list = groups.list;
-    list.forEach(function (t) {
-      if (groups && t.id !== "other" && groups.of[t.id] !== lastG) { lastG = groups.of[t.id]; box.appendChild(brandHeader(lastG)); }
-      if (groups && t.id === "other" && lastG !== null) { box.appendChild(el("div", "chip-group", "")); lastG = null; }
-      var ch = el("button", "chip"); ch.type = "button"; ch.setAttribute("aria-pressed", "false");
+    var matched = null, groups = kind === "device" ? groupByBrand(list) : null;
+    var mk = function (t) {
+      var ch = el("button", "chip"); ch.type = "button"; ch.setAttribute("aria-pressed", "false"); ch.dataset.name = norm(t.name);
       var tim = t.id === "other" ? "" : typeImg(t, kind); if (tim) { var im = fitImg(el("img", "t-img")); im.src = tim; im.alt = ""; ch.appendChild(im); }
       ch.appendChild(document.createTextNode(t.name));
       if (t.id !== "other" && (t.ultra || t.amount != null)) ch.appendChild(el("span", "pill", fmt(typeAmount(t)) + "₪"));
       if (t.to) ch.appendChild(el("span", "pill temp", "⏳"));
       ch.addEventListener("click", function () { pickType(ch, t); });
-      box.appendChild(ch);
-      if (keepSub && t.id !== "other" && t.name === keepSub) matched = ch;
-    });
+      if (keepSub && t.id !== "other" && t.name === keepSub && !matched) matched = ch;
+      return ch;
+    };
+    $("subSearch").value = ""; $("subSearch").hidden = !groups;
+    if (!groups) list.forEach(function (t) { box.appendChild(mk(t)); });
+    else buildBrandPicker(box, groups, kind, keepSub, mk);
     if (!list.length) box.appendChild(el("div", "empty-note", "אין סוגים בקטגוריה הזו."));
     if (keepSub) {
       var chip = matched || box.lastChild;
@@ -2945,18 +2953,70 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       if (real.length === 1 && !withOther) pickType(box.firstChild, real[0]);
     }
   }
+  // many devices: most used first, then one row of makers that open their models
+  var openBrand = null;
+  function buildBrandPicker(box, groups, kind, keepSub, mk) {
+    var list = groups.list, real = list.filter(function (t) { return t.id !== "other"; });
+    // popular = what was actually sold the most lately (last 3 months, or all time while that is still empty)
+    var since = shiftMonth(monthKey(new Date()), -3), use = {}, all = {};
+    for (var id in state.entries) {
+      var e = state.entries[id]; if (!e || e.kind !== kind) continue;
+      all[e.sub] = (all[e.sub] || 0) + 1;
+      if (e.month >= since) use[e.sub] = (use[e.sub] || 0) + 1;
+    }
+    if (!real.some(function (t) { return use[t.name]; })) use = all;
+    var top = real.filter(function (t) { return use[t.name]; }).sort(function (a, b) { return use[b.name] - use[a.name]; }).slice(0, 6);
+    if (top.length) {
+      var fs = el("div", "brand-models freq"); fs.appendChild(el("div", "chip-group", "🔥 פופולריים"));
+      top.forEach(function (t) { fs.appendChild(mk(t)); }); box.appendChild(fs);
+    }
+    var names = [], byB = {};
+    real.forEach(function (t) { var b = groups.of[t.id]; if (!byB[b]) { byB[b] = []; names.push(b); } byB[b].push(t); });
+    var keepT = keepSub ? real.filter(function (t) { return t.name === keepSub; })[0] : null;
+    if (keepT) openBrand = groups.of[keepT.id];
+    if (names.indexOf(openBrand) < 0) openBrand = null;
+    var title = el("div", "chip-group", "🏷 לפי חברה"); box.appendChild(title);
+    var bar = el("div", "brand-bar"); box.appendChild(bar);
+    var panes = {};
+    names.forEach(function (b) {
+      var bc = el("button", "brand-chip"); bc.type = "button";
+      var src = brandLogo(b); if (src) { var im = fitImg(el("img")); im.src = src; im.alt = ""; bc.appendChild(im); }
+      bc.appendChild(document.createTextNode(b)); bc.appendChild(el("span", "cnt", String(byB[b].length)));
+      var pane = el("div", "brand-models"); pane.dataset.brand = b;
+      byB[b].forEach(function (t) { pane.appendChild(mk(t)); });
+      panes[b] = [bc, pane];
+      bc.addEventListener("click", function () { openBrand = openBrand === b ? null : b; paint(); });
+      bar.appendChild(bc); box.appendChild(pane);
+    });
+    var other = list.filter(function (t) { return t.id === "other"; })[0];
+    function paint() {
+      var q = norm($("subSearch").value);
+      box.querySelectorAll(".freq").forEach(function (x) { x.hidden = !!q; });
+      bar.hidden = !!q; title.hidden = !!q;
+      names.forEach(function (b) {
+        var bc = panes[b][0], pane = panes[b][1], any = false;
+        bc.setAttribute("aria-expanded", String(openBrand === b));
+        pane.querySelectorAll(".chip").forEach(function (c) { var ok = !q || c.dataset.name.indexOf(q) >= 0 || norm(b).indexOf(q) >= 0; c.hidden = !ok; if (ok) any = true; });
+        pane.hidden = q ? !any : openBrand !== b;
+      });
+    }
+    $("subSearch").oninput = paint;
+    paint();
+    if (other) box.appendChild(mk(other));
+  }
   function pickType(chip, t) {
     if (chip.getAttribute("aria-pressed") === "true") { // tap again to clear: saved as "אחר"
-      chip.setAttribute("aria-pressed", "false");
+      $$("#subChips .chip").forEach(function (x) { x.setAttribute("aria-pressed", "false"); });
       draft.sub = null; draft.typeUltra = false; $("subOtherBox").hidden = true; $("subOther").value = "";
-      setBonus("reg"); return;
+      if (!draft.tierManual) setBonus("reg");
+      return;
     }
-    $$("#subChips .chip").forEach(function (x) { x.setAttribute("aria-pressed", "false"); });
-    chip.setAttribute("aria-pressed", "true");
+    $$("#subChips .chip").forEach(function (x) { x.setAttribute("aria-pressed", String(x === chip || (t.id !== "other" && x.dataset.name === chip.dataset.name))); });
     draft.sub = t.name; draft.typeUltra = !!t.ultra;
     $("subOtherBox").hidden = t.id !== "other";
     if (t.amount != null) { $("customAmt").value = t.amount; setBonus("custom"); }
-    else setBonus(t.ultra ? "big" : "reg");
+    else if (t.ultra) setBonus("big");
+    else if (!draft.tierManual) setBonus("reg");
     if (t.id === "other") $("subOther").focus();
   }
   function openAdd(kind, preSub) {
@@ -2989,9 +3049,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     show($("addSheet"));
   }
   $("addDate").addEventListener("change", function () { if (draft.mode === "add" && draft.kind) { var keep = draft.sub; fillKind(draft.kind, null); if (keep) { var c = $$("#subChips .chip").filter(function (x) { return x.textContent.indexOf(keep) === 0; })[0]; if (c) c.click(); } updateSave(); } });
-  $("bReg").addEventListener("click", function () { setBonus("reg"); });
-  $("bBig").addEventListener("click", function () { setBonus("big"); });
-  $("bCustom").addEventListener("click", function () { setBonus("custom"); $("customAmt").focus(); });
+  $("bReg").addEventListener("click", function () { draft.tierManual = true; setBonus("reg"); });
+  $("bBig").addEventListener("click", function () { draft.tierManual = true; setBonus("big"); });
+  $("bCustom").addEventListener("click", function () { draft.tierManual = true; setBonus("custom"); $("customAmt").focus(); });
   $("customAmt").addEventListener("input", updateSave);
   $("addQty").addEventListener("input", updateSave);
   function stepQty(d) { $("addQty").value = Math.max(1, Math.min(99, (parseInt($("addQty").value, 10) || 1) + d)); updateSave(); }
