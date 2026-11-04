@@ -1061,6 +1061,14 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   // kosher phone models sold in the store, added once to every manager's list (shown with the rabbinical committee stamp)
   var KOSHER_MODELS = ["QLYX Q8", "פירסט פון Pro 30", "Escolls 5x5", "Q3", "F16", "Flip 2", "D30", "X30", "iTop", "4x4", "Q7", "King"];
   // product photos of the kosher models, from the store's own site kosher-phone.com (checked before the generic stamp)
+  var NOKIA_MODELS = ["Nokia 235", "Nokia 225", "Nokia 3210", "Nokia 2660 Flip", "Xiaomi Qin F21 Pro"];
+  BUILTIN_IMG.unshift(
+    ["device", ["235"], "https://kosher-phone.com/uploads/1792872082309-xahtif.jpg"],
+    ["device", ["225"], "https://kosher-phone.com/uploads/1792872092142-3jibwu.jpg"],
+    ["device", ["3210"], "https://kosher-phone.com/uploads/1792872086443-v4l91v.jpg"],
+    ["device", ["2660"], "https://kosher-phone.com/uploads/1792872093504-4aph0j.jpg"],
+    ["device", ["f21"], "https://kosher-phone.com/uploads/1792755860325-f44gbu.webp"]
+  );
   BUILTIN_IMG.unshift(
     ["device", ["q8"], "https://kosher-phone.com/uploads/1785854033592-6eq9hh.webp"],
     ["device", ["pro 30", "פרו 30"], "https://kosher-phone.com/uploads/1792881148202-ybp5rv.webp"],
@@ -1344,6 +1352,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     saveCache(); render();
     checkProfileComplete();
     addKosherModels();
+    addModelPack("pack-nokia-1", NOKIA_MODELS, null, "דגמי נוקיה ושיאומי");
     fixBrandNames();
     offerNotesImport();
   }
@@ -1383,22 +1392,24 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     if (fix.length) putEntries(fix);
   }
   // one-time: add the kosher models after "כשר" (a hidden marker keeps them from coming back if deleted)
-  function addKosherModels() {
+  function addKosherModels() { addModelPack("pack-kosher-1", KOSHER_MODELS, "כשר", "דגמי מכשירים כשרים"); }
+  // a pack of device models is added once; its hidden marker keeps deleted models from coming back
+  function addModelPack(packId, models, afterName, what) {
     if (!activeAcct() || isMember() || state.cfgTarget) return;
     var list = types();
-    if (list.some(function (t) { return t.id === "pack-kosher-1"; })) return;
+    if (list.some(function (t) { return t.id === packId; })) return;
     var have = {}; list.forEach(function (t) { have[norm(t.name)] = 1; if (BRAND_FIX[t.name]) have[norm(BRAND_FIX[t.name])] = 1; });
-    var base = uid(), add = KOSHER_MODELS.filter(function (n) { return !have[norm(n)]; }).map(function (n, i) {
+    var base = uid(), add = models.filter(function (n) { return !have[norm(n)]; }).map(function (n, i) {
       return { id: "k-" + base + "-" + i, kind: "device", name: n, ultra: false, amount: null };
     });
     var next = list.map(function (t) { return Object.assign({}, t); });
     var at = next.length - 1; next.forEach(function (t, i) { if (t.kind === "device") at = i; });
-    var k = next.map(function (t) { return t.kind === "device" ? norm(t.name) : ""; }).indexOf(norm("כשר"));
+    var k = afterName ? next.map(function (t) { return t.kind === "device" ? norm(t.name) : ""; }).indexOf(norm(afterName)) : -1;
     if (k >= 0) at = k;
     Array.prototype.splice.apply(next, [at + 1, 0].concat(add));
-    next.push({ id: "pack-kosher-1", kind: "_pack", name: "" });
+    next.push({ id: packId, kind: "_pack", name: "" });
     saveConfig({ types: next });
-    if (add.length) toast("נוספו " + add.length + " דגמי מכשירים כשרים");
+    if (add.length) toast("נוספו " + add.length + " " + what);
   }
   // every account needs a name and a phone; ask once if missing
   function checkProfileComplete() {
@@ -3020,7 +3031,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     ["אייפון", "איפון", "iphone", "apple", "אפל"], ["סמסונג", "samsung", "galaxy", "גלקסי"], ["שיאומי", "xiaomi", "redmi", "רדמי"],
     ["מסך", "screen", "display", "תצוגה", "זכוכית קדמית"], ["סוללה", "battery", "בטריה", "בטרייה"], ["שקע", "טעינה", "charging", "port", "מטען"],
     ["מצלמה", "camera"], ["לוח אם", "motherboard", "board"], ["תוכנה", "software", "עדכון", "פריצה", "שחזור"], ["זכוכית", "glass", "גב"],
-    ["פלאפון", "pelephone"], ["סלקום", "cellcom"], ["פרטנר", "partner", "אורנג", "orange"], ["הוט", "hot"], ["גולן", "golan"], ["כשר", "kosher"], ["פיג", "fig"],
+    ["פלאפון", "pelephone"], ["סלקום", "cellcom"], ["פרטנר", "partner", "אורנג", "orange"], ["הוט", "hot"], ["גולן", "golan"], ["נוקיה", "nokia"], ["שיאומי קין", "קין", "qin"], ["כשר", "kosher"], ["פיג", "fig"],
     ["קו", "קווים", "line", "סים", "sim", "חיבור", "ניוד"], ["מכשיר", "מכשירים", "טלפון", "פלאפון חדש", "device", "phone"], ["תיקון", "תיקונים", "repair", "fix"]
   ];
   function norm(t) { return String(t || "").toLowerCase().replace(/[ךםןףץ]/g, function (c) { return "כמנפצ"["ךםןףץ".indexOf(c)]; }).replace(/["'׳״\-_.]/g, "").replace(/\s+/g, " ").trim(); }
