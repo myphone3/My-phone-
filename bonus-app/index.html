@@ -223,6 +223,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 .sheet-inner { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
 .sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .sheet h3 { font-size: 1.2rem; }
+/* add sheet: save sits in the header, which stays on top while the list scrolls */
+.add-head { position: sticky; top: -16px; z-index: 2; background: var(--surface); margin: -16px 0 0; padding: 16px 0 10px; border-bottom: 1px solid var(--line); }
+.add-head h3 { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.add-head .head-r { flex-shrink: 0; align-items: center; }
+.save.head-save { width: auto; flex: none; padding: 9px 14px; font-size: .95rem; border-radius: 12px; white-space: nowrap; }
 .icon-btn { background: transparent; border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; font-size: .9rem; color: var(--muted); }
 .acct-list { display: flex; flex-direction: column; gap: 8px; }
 .acct-item { display: flex; align-items: center; gap: 10px; border: 1.5px solid var(--line); background: var(--bg); border-radius: 14px; padding: 10px 12px; text-align: right; width: 100%; }
@@ -816,7 +821,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 <!-- add / edit entry -->
 <div class="sheet" id="addSheet" role="dialog" aria-modal="true" aria-labelledby="addTitle" hidden>
   <div class="sheet-inner">
-    <div class="sheet-head"><h3 id="addTitle">הוספה</h3><button class="icon-btn" type="button" data-close>סגירה</button></div>
+    <div class="sheet-head add-head"><h3 id="addTitle">הוספה</h3><div class="head-r"><button class="save head-save" type="button" id="saveBtn">שמירה</button><button class="icon-btn" type="button" data-close>סגירה</button></div></div>
     <div class="field" id="kindBox" hidden>
       <span class="lbl">קטגוריה</span>
       <div class="chips" id="kindChips"></div>
@@ -846,7 +851,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       <div class="field"><label class="lbl" for="addDate">תאריך</label><input id="addDate" type="date"></div>
     </div>
     <div class="field"><label class="lbl" for="addNote" id="addNoteLbl">הערה (לא חובה)</label><input id="addNote" type="text" placeholder="למשל: לקוח קבוע"></div>
-    <button class="save" type="button" id="saveBtn">שמירה</button>
     <button class="btn danger" type="button" id="entryDelete" hidden>מחיקת הרישום</button>
   </div>
 </div>
@@ -2889,7 +2893,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   function updateSave() {
     var qty = draftQty();
     $("saveBtn").disabled = false;
-    $("saveBtn").textContent = (draft.mode === "edit" ? "שמירת שינויים · " : "שמירה · ") + (qty > 1 ? qty + " × " : "") + draftSub() + " · " + (draft.mode === "edit" ? "" : "+") + fmt(bonusAmount() * qty) + " ₪";
+    $("saveBtn").textContent = "✓ שמירה · " + (qty > 1 ? qty + "× " : "") + (draft.mode === "edit" ? "" : "+") + fmt(bonusAmount() * qty) + " ₪";
+    $("saveBtn").setAttribute("aria-label", (draft.mode === "edit" ? "שמירת שינויים: " : "שמירה: ") + (qty > 1 ? qty + " × " : "") + draftSub() + ", " + fmt(bonusAmount() * qty) + " ₪");
   }
   function fillKindChips(kind) {
     var box = $("kindChips"); box.textContent = "";
