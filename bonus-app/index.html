@@ -1066,7 +1066,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   // kosher phone models sold in the store, added once to every manager's list (shown with the rabbinical committee stamp)
   var KOSHER_MODELS = ["QLYX Q8", "פירסט פון Pro 30", "Escolls 5x5", "Q3", "F16", "Flip 2", "D30", "X30", "iTop", "4x4", "Q7", "King"];
   // product photos of the kosher models, from the store's own site kosher-phone.com (checked before the generic stamp)
-  var REPAIR_TYPES = ["מגע", "תיקון באחריות", "נגן", "פלאט", "נזקי מים", "רמקול", "מיקרופון", "אוזנייה", "כפתורים", "ויברציה", "מצלמה קדמית", "קליטה ואנטנה", "החלפת גב", "ניקוי שקע", "הדבקת מגן מסך", "שחזור מידע"];
+  var REPAIR_TYPES = ["מגע", "תיקון באחריות", "נגן", "פלאט", "נזקי מים", "רמקול", "מיקרופון", "אוזנייה", "כפתורים", "מיילר", "מקשים"];
+  var REPAIR_DROPPED = ["ויברציה", "מצלמה קדמית", "קליטה ואנטנה", "החלפת גב", "ניקוי שקע", "הדבקת מגן מסך", "שחזור מידע"];
   var NOKIA_MODELS = ["Nokia 235", "Nokia 225", "Nokia 3210", "Nokia 2660 Flip", "Xiaomi Qin F21 Pro"];
   BUILTIN_IMG.unshift(
     ["device", ["235"], "https://kosher-phone.com/uploads/1792872082309-xahtif.jpg"],
@@ -1401,6 +1402,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     addModelPack("pack-nokia-1", NOKIA_MODELS, null, "דגמי נוקיה ושיאומי");
     addModelPack("pack-qin25-1", ["Xiaomi Qin K25", "Xiaomi Qin F25"], null, "דגמי שיאומי");
     addModelPack("pack-repairs-1", REPAIR_TYPES, null, "סוגי תיקונים", "repair");
+    dropRepairTypes();
+    addModelPack("pack-repairs-2", ["מיילר", "מקשים"], null, "סוגי תיקונים", "repair");
     fixBrandNames();
     offerNotesImport();
   }
@@ -1423,6 +1426,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     } catch (e) { $("notesErr").textContent = "לא הצלחתי להוריד את הקובץ. בדוק חיבור לאינטרנט ונסה שוב."; $("notesErr").hidden = false; }
     finally { $("notesYes").disabled = false; }
   });
+  // one-time: take back the repair types the store doesn't use (added by pack-repairs-1 before it was trimmed)
+  function dropRepairTypes() {
+    if (!activeAcct() || isMember() || state.cfgTarget) return;
+    var list = types();
+    if (list.some(function (t) { return t.id === "pack-repairs-drop-1"; })) return;
+    var next = list.filter(function (t) { return !(t.kind === "repair" && REPAIR_DROPPED.indexOf(t.name) >= 0); });
+    next.push({ id: "pack-repairs-drop-1", kind: "_pack", name: "" });
+    saveConfig({ types: next });
+  }
   // one-time: brand names as written on kosher-phone.com (QLX -> QLYX, S-Calls -> Escolls), also on past entries
   var BRAND_FIX = { "QLX Q8": "QLYX Q8", "S-Calls 5x5": "Escolls 5x5" };
   function fixBrandNames() {
@@ -3089,7 +3101,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     ["אייפון", "איפון", "iphone", "apple", "אפל"], ["סמסונג", "samsung", "galaxy", "גלקסי"], ["שיאומי", "xiaomi", "redmi", "רדמי"],
     ["מסך", "screen", "display", "תצוגה", "זכוכית קדמית"], ["סוללה", "battery", "בטריה", "בטרייה"], ["שקע", "טעינה", "charging", "port", "מטען"],
     ["מצלמה", "camera"], ["לוח אם", "motherboard", "board"], ["תוכנה", "software", "עדכון", "פריצה", "שחזור"], ["זכוכית", "glass", "גב"],
-    ["פלאפון", "pelephone"], ["סלקום", "cellcom"], ["פרטנר", "partner", "אורנג", "orange"], ["הוט", "hot"], ["גולן", "golan"], ["נוקיה", "nokia"], ["שיאומי קין", "קין", "qin"], ["כשר", "kosher"], ["פיג", "fig"],
+    ["פלאפון", "pelephone"], ["סלקום", "cellcom"], ["פרטנר", "partner", "אורנג", "orange"], ["הוט", "hot"], ["גולן", "golan"], ["נוקיה", "nokia"], ["שיאומי קין", "קין", "qin"], ["מיילר", "מדבקה", "מדבקת מקשים"], ["כשר", "kosher"], ["פיג", "fig"],
     ["קו", "קווים", "line", "סים", "sim", "חיבור", "ניוד"], ["מכשיר", "מכשירים", "טלפון", "פלאפון חדש", "device", "phone"], ["תיקון", "תיקונים", "repair", "fix"]
   ];
   function norm(t) { return String(t || "").toLowerCase().replace(/[ךםןףץ]/g, function (c) { return "כמנפצ"["ךםןףץ".indexOf(c)]; }).replace(/["'׳״\-_.]/g, "").replace(/\s+/g, " ").trim(); }
