@@ -47,8 +47,6 @@ export default function CartPage() {
   const [street, setStreet] = useState('');
   const [building, setBuilding] = useState('');
   const [notes, setNotes] = useState('');
-  // הסכמה לדיוור (חוק הספאם): לא מסומנת מראש, הלקוח בוחר בעצמו
-  const [marketingConsent, setMarketingConsent] = useState(false);
 
   // הצעות סינון חיות בזמן אמת
   const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
@@ -757,19 +755,6 @@ export default function CartPage() {
                 className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
               ></textarea>
             </div>
-
-            <label className="flex items-start gap-2.5 bg-orange-50/60 border border-orange-100 rounded-xl p-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={marketingConsent}
-                onChange={(e) => setMarketingConsent(e.target.checked)}
-                className="mt-0.5 w-4 h-4 accent-orange-600 shrink-0"
-              />
-              <span className="text-xs text-gray-700 leading-relaxed">
-                אני רוצה לקבל עדכונים ומבצעים מ-NEW PHONE במייל ובוואטסאפ.
-                <span className="block text-[11px] text-gray-500">לא חובה. אפשר להסיר את עצמך בכל עת.</span>
-              </span>
-            </label>
           </div>
 
           {/* 2. קוד קופון */}
