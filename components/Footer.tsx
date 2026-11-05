@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { BUSINESS } from '@/lib/business';
-import Fill from './Fill';
 
 const LINKS = [
   { href: '/terms', label: 'תקנון האתר' },
@@ -16,6 +15,18 @@ function WhatsAppIcon() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="#25D366">
       <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21c5.46 0 9.91-4.45 9.91-9.91C21.95 6.45 17.5 2 12.04 2Zm5.8 14.02c-.25.69-1.44 1.33-1.98 1.37-.53.05-1.03.24-3.47-.72-2.93-1.16-4.79-4.17-4.94-4.36-.14-.19-1.18-1.57-1.18-3s.75-2.13 1.02-2.42c.26-.29.57-.36.77-.36l.55.01c.18.01.42-.07.65.5.25.59.84 2.03.91 2.18.07.14.12.31.02.5-.1.19-.14.31-.29.48-.14.17-.3.38-.43.51-.14.14-.29.3-.13.59.17.29.74 1.22 1.58 1.97 1.09.97 2 1.27 2.29 1.42.29.14.46.12.62-.07.17-.19.72-.84.91-1.13.19-.29.38-.24.65-.14.26.1 1.68.79 1.97.94.29.14.48.21.55.33.07.12.07.69-.18 1.38Z" />
+    </svg>
+  );
+}
+
+function GmailIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+      <path fill="#4285F4" d="M1.64 21h3.82v-9.27L0 7.64v11.72C0 20.27.73 21 1.64 21Z" />
+      <path fill="#34A853" d="M18.55 21h3.81c.91 0 1.64-.73 1.64-1.64V7.64l-5.45 4.09Z" />
+      <path fill="#FBBC04" d="M18.55 4.64v7.09L24 7.64V5.45c0-2.02-2.31-3.18-3.93-1.96Z" />
+      <path fill="#EA4335" d="M5.45 11.73V4.64L12 9.55l6.55-4.91v7.09L12 16.64Z" />
+      <path fill="#C5221F" d="M0 5.45v2.19l5.45 4.09V4.64L3.93 3.49C2.31 2.28 0 3.43 0 5.45Z" />
     </svg>
   );
 }
@@ -66,14 +77,10 @@ export default function Footer() {
               </a>
             </li>
             <li>
-              ✉️{' '}
-              {BUSINESS.email ? (
-                <a href={`mailto:${BUSINESS.email}`} className="hover:text-orange-400">
-                  {BUSINESS.email}
-                </a>
-              ) : (
-                <Fill label="מייל" />
-              )}
+              <a href={`mailto:${BUSINESS.email}`} className="inline-flex items-center gap-1.5 hover:text-orange-400">
+                <GmailIcon />
+                <span>{BUSINESS.email}</span>
+              </a>
             </li>
           </ul>
         </div>
