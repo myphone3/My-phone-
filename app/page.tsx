@@ -725,11 +725,25 @@ function StoreContent() {
 
       </div>
 
-      <TrustBadges />
+      {/* אזור מידע נפרד מהמוצרים: למה לקנות אצלנו ושאלות נפוצות */}
+      <section className="mt-16 bg-gradient-to-b from-orange-50 to-white border-t-4 border-orange-500" dir="rtl">
+        <div className="max-w-5xl mx-auto px-4 py-12 space-y-12">
+          <div className="space-y-6">
+            <div className="text-center space-y-1">
+              <h2 className="text-xl sm:text-2xl font-black text-gray-900">קונים בראש שקט</h2>
+              <p className="text-sm text-gray-500">למה כדאי לקנות ב-NEW PHONE</p>
+            </div>
+            <TrustBadges />
+          </div>
 
-      <section className="max-w-3xl mx-auto px-4 py-6" dir="rtl">
-        <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3 mb-5">שאלות נפוצות</h2>
-        <FaqList />
+          <div className="max-w-3xl mx-auto space-y-6">
+            <div className="text-center space-y-1">
+              <h2 className="text-xl sm:text-2xl font-black text-gray-900">שאלות נפוצות</h2>
+              <p className="text-sm text-gray-500">לא מצאתם תשובה? כתבו לנו בוואטסאפ</p>
+            </div>
+            <FaqList />
+          </div>
+        </div>
       </section>
 
       {/* פופ-אפ מבצעים והמלצות חכם (Upsell) */}
