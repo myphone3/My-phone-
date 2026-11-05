@@ -38,9 +38,7 @@ export default function AccessibilityPage() {
       <Section title="רכז/ת נגישות ופניות">
         <p>נתקלתם בבעיית נגישות? נשמח לשמוע ולתקן. פרטי הקשר:</p>
         <ul className="list-disc pr-5 space-y-1">
-          <li>
-            שם: <Fill value={B.accessibility.name} label="שם רכז/ת הנגישות" />
-          </li>
+          {B.accessibility.name && <li>שם: {B.accessibility.name}</li>}
           <li>
             טלפון: <Fill value={B.accessibility.phone || B.phone} label="טלפון" />
           </li>

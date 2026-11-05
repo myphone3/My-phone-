@@ -10,9 +10,9 @@ export default function TermsPage() {
     <LegalPage title="תקנון האתר">
       <Section title="1. כללי">
         <p>
-          ברוכים הבאים לאתר NEW PHONE (להלן: &quot;האתר&quot;), המופעל על ידי <Fill value={B.legalName} label="שם העסק הרשום" />,{' '}
-          ח.פ./ע.מ. <Fill value={B.companyId} label="מספר עוסק / ח.פ." />, שכתובתו <Fill value={B.address} label="כתובת העסק" /> (להלן:
-          &quot;החנות&quot;).
+          ברוכים הבאים לאתר NEW PHONE (להלן: &quot;האתר&quot;), המופעל על ידי {B.legalName}
+          {B.companyId && <>, ח.פ./ע.מ. {B.companyId}</>}
+          {B.address && <>, שכתובתו {B.address}</>} (להלן: &quot;החנות&quot;).
         </p>
         <p>
           השימוש באתר וביצוע הזמנה בו מהווים הסכמה לתנאי תקנון זה. התקנון נכתב בלשון זכר מטעמי נוחות בלבד, והוא מתייחס לכל
@@ -104,8 +104,8 @@ export default function TermsPage() {
 
       <Section title="11. סמכות שיפוט">
         <p>
-          על תקנון זה יחולו דיני מדינת ישראל. סמכות השיפוט הבלעדית בכל עניין הנוגע לאתר נתונה לבתי המשפט המוסמכים בעיר{' '}
-          <Fill value={B.jurisdiction} label="עיר" />.
+          על תקנון זה יחולו דיני מדינת ישראל. סמכות השיפוט בכל עניין הנוגע לאתר נתונה לבתי המשפט המוסמכים{' '}
+          {B.jurisdiction ? `בעיר ${B.jurisdiction}` : 'בישראל'}.
         </p>
       </Section>
 

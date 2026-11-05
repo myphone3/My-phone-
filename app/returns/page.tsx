@@ -22,8 +22,9 @@ export default function ReturnsPage() {
             במייל: <Fill value={B.email} label="מייל" />, או בתשובה למייל אישור ההזמנה
           </li>
           <li>
-            בדואר או במסירה ידנית לכתובת: <Fill value={B.address} label="כתובת העסק" />
+            בוואטסאפ: <Fill value={B.phone} label="וואטסאפ" />
           </li>
+          {B.address && <li>בדואר או במסירה ידנית לכתובת: {B.address}</li>}
         </ul>
       </Section>
 
