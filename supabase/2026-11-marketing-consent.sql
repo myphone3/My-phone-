@@ -122,3 +122,62 @@ end;
 $$;
 revoke all on function public.admin_unsubscribe_marketing(uuid) from public;
 grant execute on function public.admin_unsubscribe_marketing(uuid) to authenticated;
+
+-- Customers screen in the admin panel: registered customers and customers who only ordered,
+-- with signup date, number of orders and mailing consent
+create or replace function public.admin_list_customers()
+returns table (
+  user_id uuid,
+  email text,
+  name text,
+  phone text,
+  registered boolean,
+  signed_up_at timestamptz,
+  first_order_at timestamptz,
+  orders_count bigint,
+  consent boolean,
+  consented_at timestamptz
+)
+language plpgsql
+stable
+security definer
+set search_path to 'public'
+as $$
+begin
+  if not public.is_admin() then
+    return;
+  end if;
+  return query
+  with reg as (
+    select u.id, lower(u.email) as email, u.raw_user_meta_data ->> 'full_name' as name, u.created_at
+      from auth.users u
+     where u.email is not null
+  ),
+  ord as (
+    select lower(o.email) as email,
+           (array_agg(o.customer_name order by o.created_at desc))[1] as name,
+           (array_agg(coalesce(o.phone, o.customer_phone) order by o.created_at desc))[1] as phone,
+           count(*) filter (where o.status is distinct from 'מבוטל') as orders_count,
+           min(o.created_at) as first_order_at
+      from public.orders o
+     where coalesce(o.email, '') <> ''
+     group by lower(o.email)
+  )
+  select reg.id,
+         coalesce(reg.email, ord.email),
+         coalesce(reg.name, ord.name),
+         ord.phone,
+         reg.id is not null,
+         reg.created_at,
+         ord.first_order_at,
+         coalesce(ord.orders_count, 0),
+         coalesce(m.consent, false),
+         m.consented_at
+    from reg
+    full join ord on ord.email = reg.email
+    left join public.marketing_consents m on m.user_id = reg.id
+   order by coalesce(reg.created_at, ord.first_order_at) desc;
+end;
+$$;
+revoke all on function public.admin_list_customers() from public;
+grant execute on function public.admin_list_customers() to authenticated;
