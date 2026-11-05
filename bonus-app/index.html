@@ -191,11 +191,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip-group { flex-basis: 100%; font-size: .78rem; font-weight: 800; color: var(--muted); margin-top: 6px; border-bottom: 1px solid var(--line); padding-bottom: 2px; }
 .chip-group:first-child { margin-top: 0; }
-.brand-bar { display: flex; flex-wrap: wrap; gap: 8px; flex-basis: 100%; }
-.brand-chip { display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 999px; padding: 6px 12px; font-weight: 700; font-size: .9rem; }
-.brand-chip img { height: 20px; width: auto; max-width: 60px; object-fit: contain; border-radius: 4px; background: #fff; }
-.brand-chip[aria-expanded="true"] { border-color: var(--accent); background: var(--soft); box-shadow: inset 0 0 0 1px var(--accent); }
-.brand-chip .cnt { color: var(--muted); font-size: .78rem; font-weight: 600; }
 .brand-models { display: flex; flex-wrap: wrap; gap: 8px; flex-basis: 100%; padding: 4px 0 2px; }
 #subSearch { margin-bottom: 8px; }
 .chip-group { display: flex; align-items: center; gap: 8px; }
@@ -859,6 +854,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       <input id="subOther" type="text" placeholder="כתוב כאן…">
     </div>
     <div class="field"><label class="lbl" for="addNote" id="addNoteLbl">הערה (לא חובה)</label><input id="addNote" type="text" placeholder="למשל: לקוח קבוע"></div>
+    <button class="save" type="button" id="saveBtn2">שמירה</button>
     <button class="btn danger" type="button" id="entryDelete" hidden>מחיקת הרישום</button>
   </div>
 </div>
@@ -2902,6 +2898,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     var qty = draftQty();
     $("saveBtn").disabled = false;
     $("saveBtn").textContent = "✓ שמירה · " + (qty > 1 ? qty + "× " : "") + (draft.mode === "edit" ? "" : "+") + fmt(bonusAmount() * qty) + " ₪";
+    $("saveBtn2").textContent = (draft.mode === "edit" ? "שמירת שינויים · " : "שמירה · ") + (qty > 1 ? qty + " × " : "") + draftSub() + " · " + (draft.mode === "edit" ? "" : "+") + fmt(bonusAmount() * qty) + " ₪";
     $("saveBtn").setAttribute("aria-label", (draft.mode === "edit" ? "שמירת שינויים: " : "שמירה: ") + (qty > 1 ? qty + " × " : "") + draftSub() + ", " + fmt(bonusAmount() * qty) + " ₪");
   }
   function fillKindChips(kind) {
@@ -2953,8 +2950,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       if (real.length === 1 && !withOther) pickType(box.firstChild, real[0]);
     }
   }
-  // many devices: most used first, then one row of makers that open their models
-  var openBrand = null;
+  // many devices: the most sold first, then every maker with its models
   function buildBrandPicker(box, groups, kind, keepSub, mk) {
     var list = groups.list, real = list.filter(function (t) { return t.id !== "other"; });
     // popular = what was actually sold the most lately (last 3 months, or all time while that is still empty)
@@ -2972,32 +2968,21 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     }
     var names = [], byB = {};
     real.forEach(function (t) { var b = groups.of[t.id]; if (!byB[b]) { byB[b] = []; names.push(b); } byB[b].push(t); });
-    var keepT = keepSub ? real.filter(function (t) { return t.name === keepSub; })[0] : null;
-    if (keepT) openBrand = groups.of[keepT.id];
-    if (names.indexOf(openBrand) < 0) openBrand = null;
-    var title = el("div", "chip-group", "🏷 לפי חברה"); box.appendChild(title);
-    var bar = el("div", "brand-bar"); box.appendChild(bar);
-    var panes = {};
+    var panes = [];
     names.forEach(function (b) {
-      var bc = el("button", "brand-chip"); bc.type = "button";
-      var src = brandLogo(b); if (src) { var im = fitImg(el("img")); im.src = src; im.alt = ""; bc.appendChild(im); }
-      bc.appendChild(document.createTextNode(b)); bc.appendChild(el("span", "cnt", String(byB[b].length)));
-      var pane = el("div", "brand-models"); pane.dataset.brand = b;
+      var head = brandHeader(b), pane = el("div", "brand-models");
       byB[b].forEach(function (t) { pane.appendChild(mk(t)); });
-      panes[b] = [bc, pane];
-      bc.addEventListener("click", function () { openBrand = openBrand === b ? null : b; paint(); });
-      bar.appendChild(bc); box.appendChild(pane);
+      panes.push([b, head, pane]);
+      box.appendChild(head); box.appendChild(pane);
     });
     var other = list.filter(function (t) { return t.id === "other"; })[0];
     function paint() {
       var q = norm($("subSearch").value);
       box.querySelectorAll(".freq").forEach(function (x) { x.hidden = !!q; });
-      bar.hidden = !!q; title.hidden = !!q;
-      names.forEach(function (b) {
-        var bc = panes[b][0], pane = panes[b][1], any = false;
-        bc.setAttribute("aria-expanded", String(openBrand === b));
-        pane.querySelectorAll(".chip").forEach(function (c) { var ok = !q || c.dataset.name.indexOf(q) >= 0 || norm(b).indexOf(q) >= 0; c.hidden = !ok; if (ok) any = true; });
-        pane.hidden = q ? !any : openBrand !== b;
+      panes.forEach(function (p) {
+        var any = false;
+        p[2].querySelectorAll(".chip").forEach(function (c) { var ok = !q || c.dataset.name.indexOf(q) >= 0 || norm(p[0]).indexOf(q) >= 0; c.hidden = !ok; if (ok) any = true; });
+        p[1].hidden = p[2].hidden = !any;
       });
     }
     $("subSearch").oninput = paint;
@@ -3058,6 +3043,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   $("qtyPlus").addEventListener("click", function () { stepQty(1); });
   $("qtyMinus").addEventListener("click", function () { stepQty(-1); });
   $("subOther").addEventListener("input", updateSave);
+  $("saveBtn2").addEventListener("click", function () { $("saveBtn").click(); });
   $("saveBtn").addEventListener("click", function () {
     var sub = draftSub(), qty = draftQty(), amount = bonusAmount(), kind = draft.kind;
     var ultra = draft.bonus === "big" || (draft.bonus === "custom" && draft.typeUltra);
