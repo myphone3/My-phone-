@@ -8,7 +8,6 @@ export const BUSINESS = {
   phone: '055-6771356',
   whatsapp: '972556771356', // מספר בפורמט בינלאומי, למשל 972501234567
   email: 'npnp1356@gmail.com',
-  hours: 'בין 11:00 ל-21:30', // למשל: א׳–ה׳ 10:00–19:00, ו׳ 9:00–13:00
   shippingDays: '3–6 ימי עסקים', // למשל: 3–5 ימי עסקים
   jurisdiction: '', // העיר שבה בית המשפט המוסמך
   accessibility: {
