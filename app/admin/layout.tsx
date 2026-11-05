@@ -56,6 +56,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'ספריית מדיה 🖼️', href: '/admin/media' },
     { name: 'מבצעים וקופונים 🎟️', href: '/admin/coupons' },
     { name: 'לקוחות 👥', href: '/admin/customers' },
+    { name: 'ביקורות ⭐', href: '/admin/reviews' },
+    { name: 'שאלות נפוצות ❓', href: '/admin/faq' },
     { name: 'ניהול ושליחת מייל ✉️', href: '/admin/email' },
     { name: 'SEO ומעקב 🔍', href: '/admin/seo' },
   ];

@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import TrustBadges from '@/components/TrustBadges';
 import FaqList from '@/components/FaqList';
+import Reviews from '@/components/Reviews';
 
 function StoreContent() {
   const [products, setProducts] = useState<any[]>([]);
@@ -735,6 +736,8 @@ function StoreContent() {
             </div>
             <TrustBadges />
           </div>
+
+          <Reviews />
 
           <div className="max-w-3xl mx-auto space-y-6">
             <div className="text-center space-y-1">
