@@ -19,6 +19,9 @@ export default function Header() {
   
   // ניהול הפופאפ המרכזי
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  // חלון ההרשמה (נפתח מכל כפתור "הרשמה"), עם אפשרות לאשר קבלת עדכונים ומבצעים
+  const [signupOpen, setSignupOpen] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
 
   // התראות שהלקוח סימן כנקראו (נשמר במכשיר שלו)
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
@@ -146,7 +149,19 @@ export default function Header() {
     }
   };
 
-  const handleGoogleLogin = async () => {
+  // כפתורי ההרשמה באתר פותחים את חלון ההרשמה
+  const handleGoogleLogin = () => {
+    setDropdownOpen(false);
+    setSignupOpen(true);
+  };
+
+  // ההרשמה עצמה (מתוך החלון). הבחירה בעדכונים נשמרת עד שהלקוח חוזר מגוגל
+  const startGoogleSignup = async () => {
+    try {
+      localStorage.setItem('np_marketing_consent', JSON.stringify({ consent: marketingConsent, at: Date.now() }));
+    } catch {
+      // ignore
+    }
     try {
       await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -171,6 +186,7 @@ export default function Header() {
 
   const handleCloseWelcomeModal = () => {
     setShowWelcomeModal(false);
+    setSignupOpen(false);
     sessionStorage.setItem('seenWelcomeModal', 'true');
   };
 
@@ -245,7 +261,7 @@ export default function Header() {
   return (
     <>
       {/* ===== פופאפ מרכזי קופץ באמצע המסך למשתמש לא מחובר ===== */}
-      {showWelcomeModal && promoConfig?.welcome_active && (
+      {!user && (signupOpen || (showWelcomeModal && promoConfig?.welcome_active)) && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200" dir="rtl">
           <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-sm w-full text-center shadow-2xl relative border border-gray-100 max-h-[95vh] overflow-y-auto">
             
@@ -257,9 +273,10 @@ export default function Header() {
               ✕
             </button>
 
-            <h3 className="text-xl font-black text-gray-900 pt-1.5 pb-3">מתנת הצטרפות</h3>
+            <img src="/Logo.JPG" alt="NEW PHONE" className="h-16 mx-auto object-contain" />
+            <h3 className="text-xl font-black text-gray-900 pt-1 pb-3">הצטרפות ל-NEW PHONE</h3>
 
-            {isGiftPromo ? (
+            {!promoConfig?.welcome_active ? null : isGiftPromo ? (
               <div className="space-y-3">
                 <div className="w-full h-44 sm:h-48 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-center overflow-hidden">
                   {getProductImage(giftProduct) ? (
@@ -297,9 +314,35 @@ export default function Header() {
               </div>
             )}
 
+            <ul className="mt-4 space-y-2 text-right">
+              {[
+                ['📦', 'מעקב אחרי ההזמנות שלך במקום אחד'],
+                ['⚡', 'קנייה מהירה יותר בפעם הבאה'],
+                ['🔔', 'עדכון כשההזמנה בדרך אליך'],
+              ].map(([icon, text]) => (
+                <li key={text} className="flex items-center gap-2.5 text-sm text-gray-700 font-medium">
+                  <span className="w-8 h-8 shrink-0 rounded-full bg-orange-50 flex items-center justify-center">{icon}</span>
+                  {text}
+                </li>
+              ))}
+            </ul>
+
+            <label className="mt-4 flex items-start gap-2.5 text-right bg-gray-50 border border-gray-200 rounded-2xl p-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={marketingConsent}
+                onChange={(e) => setMarketingConsent(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-orange-600 shrink-0"
+              />
+              <span className="text-xs text-gray-700 leading-relaxed">
+                אני רוצה לקבל מבצעים והטבות במייל ובוואטסאפ
+                <span className="block text-[11px] text-gray-500">לא חובה. אפשר להסיר את עצמך בכל עת.</span>
+              </span>
+            </label>
+
             <div className="pt-4">
               <button
-                onClick={handleGoogleLogin}
+                onClick={startGoogleSignup}
                 className="w-full bg-orange-600 hover:bg-orange-700 text-white font-black py-3.5 rounded-2xl text-sm transition shadow-md flex items-center justify-center gap-2.5 cursor-pointer"
               >
                 <span className="bg-white p-1 rounded-full flex items-center justify-center w-5 h-5">
@@ -310,9 +353,12 @@ export default function Header() {
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                   </svg>
                 </span>
-                <span>{isGiftPromo ? 'קבלו את המתנה שלכם' : 'קבלו את ההנחה שלכם'}</span>
+                <span>{!promoConfig?.welcome_active ? 'הרשמה עם Google' : isGiftPromo ? 'קבלו את המתנה שלכם' : 'קבלו את ההנחה שלכם'}</span>
               </button>
               <p className="text-xs text-gray-500 font-medium mt-1.5">ההרשמה לוקחת שניות, עם חשבון Google</p>
+              <p className="text-[11px] text-gray-400 mt-1">
+                בהרשמה את/ה מסכים/ה ל<Link href="/terms" onClick={handleCloseWelcomeModal} className="underline">תקנון</Link> ול<Link href="/privacy" onClick={handleCloseWelcomeModal} className="underline">מדיניות הפרטיות</Link>
+              </p>
 
               <button
                 onClick={handleCloseWelcomeModal}
