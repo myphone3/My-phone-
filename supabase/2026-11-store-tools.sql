@@ -56,6 +56,8 @@ begin
   if not exists (select 1 from public.campaigns c where c.code = v_code) then
     return;
   end if;
+  -- serialize per code so concurrent calls can't exceed the limit
+  perform pg_advisory_xact_lock(hashtext('campaign_visit:' || v_code));
   if (select count(*) from public.campaign_visits v
        where v.code = v_code and v.visited_at > now() - interval '1 minute') >= 30 then
     return;
