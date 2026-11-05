@@ -23,7 +23,10 @@ export default function ProductCard({ product }: { product: any }) {
   const colors = asArray(product.product_colors || product.colors);
   const versions = asArray(product.product_variants || product.versions || product.product_versions || product.variants);
   const onSale = product.sale_price && Number(product.sale_price) < Number(product.price);
-  const price = Number(onSale ? product.sale_price : product.price) || 0;
+  // תוספת המחיר של הגרסה היחידה, אם יש, כדי שהמחיר בכרטיס יהיה המחיר שנכנס לעגלה
+  const versionExtra = versions.length === 1 && typeof versions[0] === 'object' ? Number(versions[0].price_add || versions[0].price || 0) : 0;
+  const price = (Number(onSale ? product.sale_price : product.price) || 0) + versionExtra;
+  const regularPrice = (Number(product.price) || 0) + versionExtra;
   // מוצר עם כמה צבעים או גרסאות: הלקוח בוחר בעמוד המוצר
   const needsChoice = colors.length > 1 || versions.length > 1;
 
@@ -33,7 +36,6 @@ export default function ProductCard({ product }: { product: any }) {
     try {
       const color = colors[0] ? (typeof colors[0] === 'object' ? colors[0].name : colors[0]) || '' : '';
       const version = versions[0] ? (typeof versions[0] === 'object' ? versions[0].name : versions[0]) || '' : '';
-      const versionExtra = typeof versions[0] === 'object' ? Number(versions[0].price_add || versions[0].price || 0) : 0;
       const id = `${product.id}-${color}-${version}`;
 
       const cart = JSON.parse(localStorage.getItem('cart') || '[]');
@@ -41,7 +43,7 @@ export default function ProductCard({ product }: { product: any }) {
       if (existing) {
         existing.quantity = (Number(existing.quantity) || 1) + 1;
       } else {
-        cart.push({ id, productId: product.id, name: product.name, price: price + versionExtra, image, color, version, quantity: 1 });
+        cart.push({ id, productId: product.id, name: product.name, price, image, color, version, quantity: 1 });
       }
       localStorage.setItem('cart', JSON.stringify(cart));
       window.dispatchEvent(new Event('cartUpdated'));
@@ -52,36 +54,40 @@ export default function ProductCard({ product }: { product: any }) {
   };
 
   return (
-    <Link
-      href={`/product/${product.id}`}
-      className="bg-white p-3 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition flex flex-col justify-between group"
-      dir="rtl"
-    >
-      <div className="h-40 w-full bg-gray-50 rounded-xl flex items-center justify-center p-2 relative overflow-hidden">
-        {onSale && (
-          <span className="absolute top-1.5 left-1.5 bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-lg z-10">
-            מבצע 🔥
-          </span>
-        )}
-        {image ? (
-          <img src={image} alt={product.name} className="h-full object-contain group-hover:scale-105 transition" />
-        ) : (
-          <span className="text-xs text-gray-400">אין תמונה</span>
-        )}
-      </div>
-
-      <div className="mt-3 space-y-2">
-        <h3 className="font-bold text-sm text-gray-900 group-hover:text-orange-600 transition line-clamp-2" dir="auto">
-          {product.name}
-        </h3>
-        <div className="flex items-baseline gap-1.5">
-          <span className="text-base font-black text-orange-600">₪{price}</span>
-          {onSale && <span className="text-xs text-gray-400 line-through">₪{product.price}</span>}
+    <div className="bg-white p-3 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition flex flex-col justify-between group" dir="rtl">
+      <Link href={`/product/${product.id}`} className="block">
+        <div className="h-40 w-full bg-gray-50 rounded-xl flex items-center justify-center p-2 relative overflow-hidden">
+          {onSale && (
+            <span className="absolute top-1.5 left-1.5 bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-lg z-10">
+              מבצע 🔥
+            </span>
+          )}
+          {image ? (
+            <img src={image} alt={product.name} className="h-full object-contain group-hover:scale-105 transition" />
+          ) : (
+            <span className="text-xs text-gray-400">אין תמונה</span>
+          )}
         </div>
+
+        <div className="mt-3 space-y-2">
+          <h3 className="font-bold text-sm text-gray-900 group-hover:text-orange-600 transition line-clamp-2" dir="auto">
+            {product.name}
+          </h3>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-base font-black text-orange-600">₪{price}</span>
+            {onSale && <span className="text-xs text-gray-400 line-through">₪{regularPrice}</span>}
+          </div>
+        </div>
+      </Link>
+
+      <div className="mt-2">
         {needsChoice ? (
-          <span className="block w-full text-center bg-orange-50 text-orange-600 border border-orange-200 py-2 rounded-xl text-xs font-black">
+          <Link
+            href={`/product/${product.id}`}
+            className="block w-full text-center bg-orange-50 text-orange-600 border border-orange-200 py-2 rounded-xl text-xs font-black"
+          >
             לבחירת צבע וגרסה
-          </span>
+          </Link>
         ) : (
           <button
             onClick={handleAddToCart}
@@ -91,6 +97,6 @@ export default function ProductCard({ product }: { product: any }) {
           </button>
         )}
       </div>
-    </Link>
+    </div>
   );
 }

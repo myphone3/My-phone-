@@ -190,6 +190,10 @@ export default function AdminProductsPage() {
   };
 
   const handleAiAssistant = async () => {
+    if (!name.trim()) {
+      alert('נא למלא שם מוצר לפני הפעלת ה-AI');
+      return;
+    }
     try {
       setAiGenerating(true);
       
