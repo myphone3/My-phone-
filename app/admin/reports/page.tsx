@@ -2,8 +2,11 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { downloadCsv } from '@/lib/csv';
 import { Order, orderTotals } from '@/lib/orders';
-import { isCountedOrder, orderDate, productSales, revenueOf, startOfDay, withCosts } from '@/lib/stats';
+import { addDays, isCountedOrder, orderDate, productSales, revenueOf, startOfDay, withCosts } from '@/lib/stats';
+import { fetchAll } from '@/lib/fetchAll';
+import { showToast } from '@/lib/toast';
 
 const PERIODS = [
   { key: 'week', label: 'שבוע', days: 7 },
@@ -16,18 +19,6 @@ type PeriodKey = (typeof PERIODS)[number]['key'];
 
 const money = (n: number) => `₪${Math.round(n).toLocaleString()}`;
 
-// הורדת טבלה כקובץ CSV שנפתח באקסל (עם BOM כדי שהעברית תוצג נכון)
-function downloadCsv(filename: string, rows: (string | number)[][]) {
-  const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 export default function ReportsPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<any[]>([]);
@@ -37,12 +28,13 @@ export default function ReportsPage() {
   useEffect(() => {
     (async () => {
       const [o, p, c] = await Promise.all([
-        supabase.from('orders').select('*').order('created_at', { ascending: true }),
-        supabase.from('products').select('*'),
-        supabase.from('product_costs').select('product_id, cost'),
+        fetchAll((a, b) => supabase.from('orders').select('*').order('created_at', { ascending: true }).order('id').range(a, b)),
+        fetchAll((a, b) => supabase.from('products').select('*').order('id').range(a, b)),
+        fetchAll((a, b) => supabase.from('product_costs').select('product_id, cost').order('product_id').range(a, b)),
       ]);
-      if (o.data) setOrders(o.data as Order[]);
-      if (p.data) setProducts(withCosts(p.data, c.data));
+      if (o.error || p.error) showToast('חלק מהנתונים לא נטענו, נסו לרענן', { kind: 'error' });
+      setOrders(o.data as Order[]);
+      setProducts(withCosts(p.data, c.data));
       setLoading(false);
     })();
   }, []);
@@ -50,7 +42,7 @@ export default function ReportsPage() {
   const report = useMemo(() => {
     const days = PERIODS.find((p) => p.key === period)!.days;
     const to = new Date();
-    const from = startOfDay(new Date(to.getTime() - (days - 1) * 86400000));
+    const from = addDays(startOfDay(to), -(days - 1));
     const inPeriod = orders.filter((o) => {
       const d = orderDate(o);
       return !!d && d >= from && d <= to;
@@ -71,8 +63,8 @@ export default function ReportsPage() {
     // גרף יומי
     const daily: { label: string; value: number }[] = [];
     for (let i = 0; i < days; i++) {
-      const dayStart = new Date(from.getTime() + i * 86400000);
-      const dayEnd = new Date(dayStart.getTime() + 86400000);
+      const dayStart = addDays(from, i);
+      const dayEnd = addDays(from, i + 1);
       const value = counted
         .filter((o) => {
           const d = orderDate(o)!;
@@ -93,7 +85,7 @@ export default function ReportsPage() {
       average: counted.length ? revenue / counted.length : 0,
       newCustomers,
       daily,
-      top: sales.slice(0, 10),
+      top: sales.filter((r) => r.qty > 0).slice(0, 10),
       profit: costed.reduce((s, r) => s + r.revenue - r.cost, 0),
       hasCosts: costed.length > 0,
     };

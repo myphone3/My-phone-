@@ -2,6 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { downloadCsv } from '@/lib/csv';
+import { fetchAll } from '@/lib/fetchAll';
 import { Order, orderTotals } from '@/lib/orders';
 import { isCountedOrder } from '@/lib/stats';
 import { showToast } from '@/lib/toast';
@@ -18,17 +20,6 @@ type Campaign = {
 const EMPTY = { code: '', name: '', start_date: '', end_date: '', budget: '' };
 const money = (n: number) => `₪${Math.round(n).toLocaleString()}`;
 
-function downloadCsv(filename: string, rows: (string | number)[][]) {
-  const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [visits, setVisits] = useState<Record<string, number>>({});
@@ -43,7 +34,7 @@ export default function CampaignsPage() {
     const [c, v, o] = await Promise.all([
       supabase.from('campaigns').select('*').order('created_at', { ascending: false }),
       supabase.rpc('campaign_visit_counts'),
-      supabase.from('orders').select('*').not('ref', 'is', null),
+      fetchAll((from, to) => supabase.from('orders').select('*').not('ref', 'is', null).order('id').range(from, to)),
     ]);
     setMissingTables(!!c.error);
     if (c.data) setCampaigns(c.data as Campaign[]);
@@ -52,7 +43,7 @@ export default function CampaignsPage() {
       (v.data as any[]).forEach((row) => (counts[row.code] = Number(row.visits) || 0));
       setVisits(counts);
     }
-    if (o.data) setOrders(o.data as any);
+    setOrders(o.data as any);
     setLoading(false);
   };
 

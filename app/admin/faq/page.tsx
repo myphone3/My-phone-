@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { showToast } from '@/lib/toast';
 import { FAQ } from '@/lib/storeInfo';
+import { LoadErrorBox, isMissingTable } from '@/components/admin/LoadErrorBox';
 
 type Faq = { id: string; question: string; answer: string; product_id: string | null; sort_order: number; is_active: boolean };
 
@@ -15,7 +16,7 @@ export default function FaqAdmin() {
   const [products, setProducts] = useState<{ id: string; name: string }[]>([]);
   const [form, setForm] = useState(EMPTY);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [missing, setMissing] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
@@ -23,7 +24,7 @@ export default function FaqAdmin() {
       supabase.from('faqs').select('*').order('sort_order'),
       supabase.from('products').select('id, name').order('name'),
     ]);
-    setMissing(!!f.error);
+    setLoadError(f.error ? (isMissingTable(f.error) ? 'missing' : f.error.message) : '');
     setFaqs((f.data as Faq[]) || []);
     setProducts((p.data as any[]) || []);
     setLoading(false);
@@ -44,6 +45,7 @@ export default function FaqAdmin() {
       sort_order: Number(form.sort_order) || 0,
       is_active: form.is_active,
     };
+    if (!payload.question || !payload.answer) return showToast('צריך למלא שאלה ותשובה', { kind: 'error' });
     const { error } = editingId
       ? await supabase.from('faqs').update(payload).eq('id', editingId)
       : await supabase.from('faqs').insert(payload);
@@ -63,18 +65,13 @@ export default function FaqAdmin() {
 
   const remove = async (f: Faq) => {
     if (!confirm('למחוק את השאלה?')) return;
-    await supabase.from('faqs').delete().eq('id', f.id);
+    const { error } = await supabase.from('faqs').delete().eq('id', f.id);
+    if (error) return showToast('שגיאה במחיקה: ' + error.message, { kind: 'error' });
     load();
   };
 
   if (loading) return <div className="text-center py-20 text-gray-500" dir="rtl">טוען...</div>;
-  if (missing) {
-    return (
-      <div className="bg-amber-50 border border-amber-200 rounded-3xl p-6 text-sm text-amber-900 font-bold" dir="rtl">
-        מסך השאלות הנפוצות יעבוד אחרי שתתווסף לבסיס הנתונים הטבלה שלו (קובץ ה-SQL שהוכן).
-      </div>
-    );
-  }
+  if (loadError) return <LoadErrorBox error={loadError} what="השאלות הנפוצות" onRetry={() => { setLoading(true); load(); }} />;
 
   const input = 'w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600';
 

@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import { inRange, productSales, revenueOf, startOfDay, startOfMonth, withCosts } from '@/lib/stats';
+import { inRange, isCountedOrder, productSales, revenueOf, startOfDay, startOfMonth, withCosts } from '@/lib/stats';
+import { fetchAll } from '@/lib/fetchAll';
 
 export default function AdminDashboard() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -17,12 +18,14 @@ export default function AdminDashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const { data: ordersData } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
-      const { data: productsData } = await supabase.from('products').select('*');
-      const { data: costRows } = await supabase.from('product_costs').select('product_id, cost');
-
-      if (ordersData) setOrders(ordersData);
-      if (productsData) setProducts(withCosts(productsData, costRows));
+      const [o, p, c] = await Promise.all([
+        fetchAll((a, b) => supabase.from('orders').select('*').order('created_at', { ascending: false }).order('id').range(a, b)),
+        fetchAll((a, b) => supabase.from('products').select('*').order('id').range(a, b)),
+        fetchAll((a, b) => supabase.from('product_costs').select('product_id, cost').order('product_id').range(a, b)),
+      ]);
+      if (o.error || p.error) console.error('Error fetching admin data:', o.error || p.error);
+      setOrders(o.data);
+      setProducts(withCosts(p.data, c.data));
     } catch (err) {
       console.error('Error fetching admin data:', err);
     } finally {
@@ -44,14 +47,15 @@ export default function AdminDashboard() {
   };
 
   const now = new Date();
-  const monthOrders = orders.filter((o) => inRange(o, startOfMonth(now), new Date(8640000000000000)));
-  const todayOrders = orders.filter((o) => inRange(o, startOfDay(now), new Date(8640000000000000)));
+  const counted = orders.filter(isCountedOrder);
+  const monthOrders = counted.filter((o) => inRange(o, startOfMonth(now), new Date(8640000000000000)));
+  const todayOrders = counted.filter((o) => inRange(o, startOfDay(now), new Date(8640000000000000)));
   const monthlyRevenue = revenueOf(monthOrders);
   const todayRevenue = revenueOf(todayOrders);
   const monthSales = productSales(monthOrders, products);
   const monthCost = monthSales.reduce((sum, r) => sum + r.cost, 0);
   const monthCostedRevenue = monthSales.filter((r) => r.hasCost).reduce((sum, r) => sum + r.revenue, 0);
-  const topSellers = productSales(orders, products).slice(0, 5);
+  const topSellers = productSales(orders, products).filter((r) => r.qty > 0).slice(0, 5);
 
   // מלאי נמוך: רק מוצרים שהוגדר להם מלאי
   const lowStockProducts = products

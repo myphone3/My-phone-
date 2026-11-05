@@ -1,4 +1,5 @@
-// הגדרות SEO ומעקב מהפאנל (טבלת settings, שורה 1), נקראות בשרת ומתרעננות כל 5 דקות
+// הגדרות SEO ומעקב מהפאנל (טבלת settings, שורה 1), נקראות בשרת ומתרעננות כל 5 דקות.
+// אם בסיס הנתונים לא עונה תוך 3 שניות, האתר ממשיך עם ברירות המחדל.
 export type SiteSettings = {
   meta_title?: string | null;
   meta_description?: string | null;
@@ -15,7 +16,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
   try {
     const res = await fetch(
       `${url}/rest/v1/settings?id=eq.1&select=meta_title,meta_description,favicon_url,google_analytics_id,facebook_pixel_id,google_site_verification`,
-      { headers: { apikey: key, Authorization: `Bearer ${key}` }, next: { revalidate: 300 } }
+      { headers: { apikey: key, Authorization: `Bearer ${key}` }, next: { revalidate: 300 }, signal: AbortSignal.timeout(3000) }
     );
     if (!res.ok) return {};
     const rows = await res.json();

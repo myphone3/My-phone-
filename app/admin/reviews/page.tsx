@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { showToast } from '@/lib/toast';
+import { LoadErrorBox, isMissingTable } from '@/components/admin/LoadErrorBox';
 
 type Review = { id: string; name: string; rating: number; text: string; image_url: string | null; sort_order: number; is_active: boolean };
 
@@ -13,12 +14,12 @@ export default function ReviewsAdmin() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [form, setForm] = useState(EMPTY);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [missing, setMissing] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     const { data, error } = await supabase.from('reviews').select('*').order('sort_order').order('created_at', { ascending: false });
-    setMissing(!!error);
+    setLoadError(error ? (isMissingTable(error) ? 'missing' : error.message) : '');
     setReviews((data as Review[]) || []);
     setLoading(false);
   };
@@ -37,6 +38,7 @@ export default function ReviewsAdmin() {
       sort_order: Number(form.sort_order) || 0,
       is_active: form.is_active,
     };
+    if (!payload.name || !payload.text) return showToast('צריך למלא שם וביקורת', { kind: 'error' });
     const { error } = editingId
       ? await supabase.from('reviews').update(payload).eq('id', editingId)
       : await supabase.from('reviews').insert(payload);
@@ -48,24 +50,20 @@ export default function ReviewsAdmin() {
   };
 
   const toggle = async (r: Review) => {
-    await supabase.from('reviews').update({ is_active: !r.is_active }).eq('id', r.id);
+    const { error } = await supabase.from('reviews').update({ is_active: !r.is_active }).eq('id', r.id);
+    if (error) return showToast('שגיאה בעדכון: ' + error.message, { kind: 'error' });
     load();
   };
 
   const remove = async (r: Review) => {
     if (!confirm(`למחוק את הביקורת של ${r.name}?`)) return;
-    await supabase.from('reviews').delete().eq('id', r.id);
+    const { error } = await supabase.from('reviews').delete().eq('id', r.id);
+    if (error) return showToast('שגיאה במחיקה: ' + error.message, { kind: 'error' });
     load();
   };
 
   if (loading) return <div className="text-center py-20 text-gray-500" dir="rtl">טוען...</div>;
-  if (missing) {
-    return (
-      <div className="bg-amber-50 border border-amber-200 rounded-3xl p-6 text-sm text-amber-900 font-bold" dir="rtl">
-        מסך הביקורות יעבוד אחרי שתתווסף לבסיס הנתונים הטבלה שלו (קובץ ה-SQL שהוכן).
-      </div>
-    );
-  }
+  if (loadError) return <LoadErrorBox error={loadError} what="הביקורות" onRetry={() => { setLoading(true); load(); }} />;
 
   const input = 'w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600';
 

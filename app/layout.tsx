@@ -7,6 +7,8 @@ import Script from 'next/script';
 import type { Metadata } from 'next';
 import Analytics from '../components/Analytics';
 import CampaignTracker from '../components/CampaignTracker';
+import AnalyticsGate from '../components/AnalyticsGate';
+import { Suspense } from 'react';
 import { getSiteSettings } from '@/lib/siteSettings';
 
 // מטא-דאטה: שם האפליקציה והלוגו, וכותרת/תיאור/אימות גוגל מהגדרות ה-SEO בפאנל
@@ -55,8 +57,12 @@ export default function RootLayout({
         <Footer />
         <ToastHost />
         <WhatsAppFloat />
-        <Analytics />
-        <CampaignTracker />
+        <AnalyticsGate>
+          <Analytics />
+        </AnalyticsGate>
+        <Suspense fallback={null}>
+          <CampaignTracker />
+        </Suspense>
 
       </body>
     </html>
