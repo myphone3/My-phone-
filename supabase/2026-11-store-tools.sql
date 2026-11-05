@@ -33,6 +33,7 @@ create table if not exists public.campaign_visits (
   visited_at timestamptz not null default now()
 );
 create index if not exists campaign_visits_code_idx on public.campaign_visits (code);
+create index if not exists campaign_visits_code_time_idx on public.campaign_visits (code, visited_at);
 alter table public.campaign_visits enable row level security;
 drop policy if exists "admins read campaign visits" on public.campaign_visits;
 create policy "admins read campaign visits" on public.campaign_visits
@@ -41,17 +42,25 @@ create policy "admins read campaign visits" on public.campaign_visits
 alter table public.orders add column if not exists ref text;
 create index if not exists orders_ref_idx on public.orders (ref) where ref is not null;
 
--- Count a visit, only for a code that exists
+-- Count a visit, only for a code that exists.
+-- Rate limit: at most 30 visits per code per minute, so repeated direct calls can't inflate the numbers.
 create or replace function public.track_campaign_visit(p_code text)
 returns void
 language plpgsql
 security definer
 set search_path to 'public'
 as $$
+declare
+  v_code text := lower(p_code);
 begin
-  if exists (select 1 from public.campaigns c where c.code = lower(p_code)) then
-    insert into public.campaign_visits (code) values (lower(p_code));
+  if not exists (select 1 from public.campaigns c where c.code = v_code) then
+    return;
   end if;
+  if (select count(*) from public.campaign_visits v
+       where v.code = v_code and v.visited_at > now() - interval '1 minute') >= 30 then
+    return;
+  end if;
+  insert into public.campaign_visits (code) values (v_code);
 end;
 $$;
 revoke all on function public.track_campaign_visit(text) from public;
