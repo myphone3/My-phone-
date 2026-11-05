@@ -24,6 +24,7 @@ export default function Header() {
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
   
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [categories, setCategories] = useState<{ name: string }[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -52,6 +53,9 @@ export default function Header() {
         }
 
         fetchPromoSettings();
+        supabase.from('categories').select('name').then(({ data }) => {
+          if (data) setCategories(data.filter((c: any) => c?.name));
+        });
       } catch (err) {
         console.error('Header init error:', err);
       }
@@ -594,6 +598,33 @@ export default function Header() {
               </svg>
             </button>
           </form>
+
+          {/* תפריט קטגוריות */}
+          {categories.length > 0 && (
+            <nav className="no-scrollbar flex gap-2 overflow-x-auto -mx-4 px-4 pt-1" aria-label="קטגוריות">
+              <Link
+                href="/categories"
+                className="shrink-0 bg-orange-600 text-white px-3.5 py-1.5 rounded-full text-xs font-black transition hover:bg-orange-700"
+              >
+                כל הקטגוריות
+              </Link>
+              {categories.map((cat) => {
+                const href = `/category/${encodeURIComponent(cat.name)}`;
+                const active = pathname === href || decodeURIComponent(pathname || '') === `/category/${cat.name}`;
+                return (
+                  <Link
+                    key={cat.name}
+                    href={href}
+                    className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold border transition ${
+                      active ? 'bg-orange-50 border-orange-400 text-orange-700' : 'bg-white border-gray-200 text-gray-700 hover:border-orange-300 hover:text-orange-700'
+                    }`}
+                  >
+                    {cat.name}
+                  </Link>
+                );
+              })}
+            </nav>
+          )}
 
         </div>
       </header>

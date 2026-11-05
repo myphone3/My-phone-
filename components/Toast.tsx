@@ -33,7 +33,7 @@ export default function ToastHost() {
   if (!toast) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-5 z-[100] flex justify-center px-4 pointer-events-none" dir="rtl">
+    <div className="fixed inset-x-0 bottom-24 sm:bottom-5 z-[100] flex justify-center px-4 pointer-events-none" dir="rtl">
       <div
         key={toast.id}
         role="status"

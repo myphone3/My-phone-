@@ -2,6 +2,8 @@ import './globals.css';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ToastHost from '../components/Toast';
+import AnnouncementBar from '../components/AnnouncementBar';
+import WhatsAppFloat from '../components/WhatsAppFloat';
 import Script from 'next/script';
 
 // הגדרת מטא-דאטה לשם האפליקציה והלוגו בהוספה למסך הבית
@@ -35,6 +37,8 @@ export default function RootLayout({
       </head>
       <body className="bg-gray-50 text-gray-900 font-sans antialiased">
         
+        <AnnouncementBar />
+
         {/* הדר ראשי */}
         <Header />
 
@@ -44,6 +48,7 @@ export default function RootLayout({
 
         <Footer />
         <ToastHost />
+        <WhatsAppFloat />
 
       </body>
     </html>
