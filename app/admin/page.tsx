@@ -146,10 +146,10 @@ export default function AdminDashboard() {
                     <span className="text-base font-black text-orange-600">₪{ord?.total_price || ord?.price || 0}</span>
                     <div className="flex gap-2">
                       <button 
-                        onClick={() => handleStatusChange(ord.id, 'טופל')}
+                        onClick={() => handleStatusChange(ord.id, 'הושלם')}
                         className="bg-green-600 hover:bg-green-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer shadow-xs"
                       >
-                        סמן כטופל ✓
+                        סמן כהושלם ✓
                       </button>
                       <button 
                         onClick={() => handleStatusChange(ord.id, 'בטיפול')}

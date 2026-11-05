@@ -1,6 +1,7 @@
 import './globals.css';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import ToastHost from '../components/Toast';
 import Script from 'next/script';
 
 // הגדרת מטא-דאטה לשם האפליקציה והלוגו בהוספה למסך הבית
@@ -42,6 +43,7 @@ export default function RootLayout({
         </main>
 
         <Footer />
+        <ToastHost />
 
       </body>
     </html>
