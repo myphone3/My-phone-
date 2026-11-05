@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { showToast } from '@/lib/toast';
 import { fetchAll } from '@/lib/fetchAll';
@@ -147,7 +148,15 @@ export default function AdminCustomersPage() {
                     <td className="p-4 text-gray-600 whitespace-nowrap">
                       {formatDate(c.signed_up_at || undefined)}
                     </td>
-                    <td className="p-4">{c.orders_count}</td>
+                    <td className="p-4">
+                      {c.orders_count > 0 ? (
+                        <Link href={`/admin/orders?q=${encodeURIComponent(c.email)}`} className="text-orange-700 font-bold hover:underline">
+                          {c.orders_count} הזמנות ←
+                        </Link>
+                      ) : (
+                        <span className="text-gray-400">0</span>
+                      )}
+                    </td>
                     <td className="p-4 whitespace-nowrap">
                       {c.consent ? (
                         <span className="flex items-center gap-2">

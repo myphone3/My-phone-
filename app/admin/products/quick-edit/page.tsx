@@ -1,0 +1,161 @@
+'use client';
+
+import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
+import { showToast } from '@/lib/toast';
+import { fetchAll } from '@/lib/fetchAll';
+import { LoadErrorBox } from '@/components/admin/LoadErrorBox';
+
+type Product = { id: string; name: string; price: number | null; sale_price: number | null; stock: number | null; image_url?: string | null; images?: any };
+type Draft = { price: string; sale_price: string; stock: string };
+
+const toDraft = (p: Product): Draft => ({
+  price: p.price == null ? '' : String(p.price),
+  sale_price: p.sale_price == null ? '' : String(p.sale_price),
+  stock: p.stock == null ? '' : String(p.stock),
+});
+
+const imageOf = (p: Product) => p.image_url || (Array.isArray(p.images) ? p.images[0] : '') || '';
+
+// עריכה מהירה: מחיר, מחיר מבצע ומלאי של הרבה מוצרים במסך אחד
+export default function QuickEditProducts() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [drafts, setDrafts] = useState<Record<string, Draft>>({});
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const load = async () => {
+    setLoading(true);
+    const { data, error } = await fetchAll<Product>((a, b) =>
+      supabase.from('products').select('id, name, price, sale_price, stock, image_url, images').order('name').order('id').range(a, b)
+    );
+    setLoadError(error ? error.message || 'שגיאה בטעינה' : '');
+    if (!error) {
+      setProducts(data);
+      setDrafts(Object.fromEntries(data.map((p) => [p.id, toDraft(p)])));
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const changedIds = useMemo(
+    () =>
+      products
+        .filter((p) => {
+          const d = drafts[p.id];
+          const o = toDraft(p);
+          return d && (d.price !== o.price || d.sale_price !== o.sale_price || d.stock !== o.stock);
+        })
+        .map((p) => p.id),
+    [products, drafts]
+  );
+
+  const shown = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return q ? products.filter((p) => p.name.toLowerCase().includes(q)) : products;
+  }, [products, search]);
+
+  const setField = (id: string, field: keyof Draft, value: string) => setDrafts((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
+
+  const save = async () => {
+    // בדיקה לפני שמירה: מחיר חובה וחיובי, מחיר מבצע נמוך מהמחיר, מלאי מספר שלם
+    for (const id of changedIds) {
+      const d = drafts[id];
+      const name = products.find((p) => p.id === id)?.name;
+      const price = Number(d.price);
+      if (d.price === '' || !(price > 0)) return showToast(`מחיר לא תקין: ${name}`, { kind: 'error' });
+      if (d.sale_price !== '' && !(Number(d.sale_price) > 0 && Number(d.sale_price) < price)) return showToast(`מחיר המבצע צריך להיות נמוך מהמחיר: ${name}`, { kind: 'error' });
+      if (d.stock !== '' && !(Number.isInteger(Number(d.stock)) && Number(d.stock) >= 0)) return showToast(`מלאי לא תקין: ${name}`, { kind: 'error' });
+    }
+    setSaving(true);
+    const failed: string[] = [];
+    for (const id of changedIds) {
+      const d = drafts[id];
+      const { error } = await supabase
+        .from('products')
+        .update({ price: Number(d.price), sale_price: d.sale_price === '' ? null : Number(d.sale_price), stock: d.stock === '' ? null : Number(d.stock) })
+        .eq('id', id);
+      if (error) failed.push(products.find((p) => p.id === id)?.name || id);
+    }
+    setSaving(false);
+    if (failed.length) showToast(`לא נשמרו: ${failed.join(', ')}`, { kind: 'error' });
+    else showToast(`נשמרו ${changedIds.length} מוצרים`, { kind: 'success' });
+    load();
+  };
+
+  if (loading) return <div className="text-center py-20 text-gray-500" dir="rtl">טוען מוצרים...</div>;
+  if (loadError) return <LoadErrorBox error={loadError} what="המוצרים" onRetry={load} />;
+
+  const input = 'w-full bg-gray-50 border rounded-lg px-2 py-2 text-sm outline-none focus:border-orange-600';
+
+  return (
+    <div className="space-y-4 pb-24" dir="rtl">
+      <div className="bg-white p-5 rounded-3xl border shadow-sm space-y-1">
+        <Link href="/admin/products" className="text-xs font-bold text-orange-700 hover:underline">→ חזרה לניהול מוצרים</Link>
+        <h1 className="text-xl font-black text-gray-900">⚡ עריכה מהירה</h1>
+        <p className="text-xs text-gray-500">משנים מחיר, מחיר מבצע ומלאי, ושומרים את כל השינויים בלחיצה אחת. מחיר מבצע ריק = אין מבצע.</p>
+      </div>
+
+      <input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="חיפוש מוצר..."
+        className="w-full bg-white border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
+      />
+
+      <div className="bg-white rounded-3xl border shadow-sm divide-y">
+        {shown.map((p) => {
+          const d = drafts[p.id];
+          const changed = changedIds.includes(p.id);
+          return (
+            <div key={p.id} className={`p-3 space-y-2 ${changed ? 'bg-orange-50' : ''}`}>
+              <div className="flex items-center gap-2">
+                {imageOf(p) ? <img src={imageOf(p)} alt="" className="w-9 h-9 object-contain bg-gray-50 rounded-lg border shrink-0" /> : null}
+                <span className="font-bold text-gray-900 text-sm">{p.name}</span>
+                {changed && <span className="text-[10px] font-bold text-orange-700 mr-auto">שונה</span>}
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  ['price', 'מחיר ₪', '0.01'],
+                  ['sale_price', 'מבצע ₪', '0.01'],
+                  ['stock', 'מלאי', '1'],
+                ] as const).map(([field, label, step]) => (
+                  <label key={field} className="block">
+                    <span className="block text-[10px] font-bold text-gray-500 mb-0.5">{label}</span>
+                    <input
+                      type="number"
+                      inputMode={field === 'stock' ? 'numeric' : 'decimal'}
+                      min="0"
+                      step={step}
+                      value={d[field]}
+                      onChange={(e) => setField(p.id, field, e.target.value)}
+                      className={input}
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {changedIds.length > 0 && (
+        <div className="fixed bottom-4 inset-x-4 sm:inset-x-auto sm:left-6 z-40 bg-gray-900 text-white rounded-2xl shadow-2xl p-3 flex items-center justify-between gap-3">
+          <span className="text-xs font-bold">{changedIds.length} מוצרים שונו</span>
+          <div className="flex gap-2">
+            <button onClick={() => setDrafts(Object.fromEntries(products.map((p) => [p.id, toDraft(p)])))} className="bg-white/10 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer">ביטול</button>
+            <button onClick={save} disabled={saving} className="bg-orange-600 hover:bg-orange-700 px-4 py-2 rounded-xl text-xs font-black cursor-pointer">
+              {saving ? 'שומר...' : 'שמירת השינויים'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

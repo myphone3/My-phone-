@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { fetchAll } from '@/lib/fetchAll';
 
@@ -430,6 +431,9 @@ export default function AdminProductsPage() {
               ניהול מוצרי החנות
             </h2>
             <p className="text-xs text-gray-500 mt-1">סה"כ מוצרים במערכת: {products.length}</p>
+            <Link href="/admin/products/quick-edit" className="inline-block mt-2 text-xs font-bold text-orange-700 hover:underline">
+              ⚡ עריכה מהירה של מחירים ומלאי ←
+            </Link>
           </div>
           <button
             type="button"
