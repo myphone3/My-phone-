@@ -22,6 +22,8 @@ export default function Header() {
   // חלון ההרשמה (נפתח מכל כפתור "הרשמה"), עם אפשרות לאשר קבלת עדכונים ומבצעים
   const [signupOpen, setSignupOpen] = useState(false);
   const [marketingConsent, setMarketingConsent] = useState(false);
+  // הבחירה הנוכחית של לקוח מחובר (null = עוד לא נטען / לא זמין)
+  const [mySubscribed, setMySubscribed] = useState<boolean | null>(null);
 
   // התראות שהלקוח סימן כנקראו (נשמר במכשיר שלו)
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
@@ -46,6 +48,7 @@ export default function Header() {
         if (currentUser) {
           checkAdmin();
           checkUserOrders(currentUser.email);
+          syncMarketingConsent();
         } else {
           // אם המשתמש לא מחובר, נבדוק אם כבר ראה את הפופאפ בסשן הנוכחי
           const hasSeenWelcome = sessionStorage.getItem('seenWelcomeModal');
@@ -68,6 +71,7 @@ export default function Header() {
       if (currentUser) {
         checkAdmin();
         checkUserOrders(currentUser.email);
+        syncMarketingConsent();
         setShowWelcomeModal(false); // סגירת הפופאפ אם התחבר
       } else {
         setIsAdmin(false);
@@ -147,6 +151,31 @@ export default function Header() {
     } catch {
       // fallback
     }
+  };
+
+  // אחרי חזרה מגוגל: אם הלקוח סימן בחלון ההרשמה שהוא רוצה מבצעים, שומרים את זה.
+  // (תיבה לא מסומנת לא מבטלת הסכמה קיימת, כי גם לקוח ותיק נכנס דרך אותו חלון)
+  const syncMarketingConsent = async () => {
+    try {
+      const pending = JSON.parse(localStorage.getItem('np_marketing_consent') || 'null');
+      localStorage.removeItem('np_marketing_consent');
+      if (pending?.consent === true && Date.now() - Number(pending.at) < 60 * 60 * 1000) {
+        await supabase.rpc('set_my_marketing_consent', { p_consent: true, p_source: 'signup' });
+      }
+    } catch {
+      // ignore
+    }
+    const { data, error } = await supabase.rpc('get_my_marketing_consent');
+    setMySubscribed(error ? null : !!data);
+  };
+
+  // מתג "מבצעים במייל" בתפריט האישי
+  const toggleMySubscription = async () => {
+    if (mySubscribed === null) return;
+    const next = !mySubscribed;
+    setMySubscribed(next);
+    const { error } = await supabase.rpc('set_my_marketing_consent', { p_consent: next, p_source: 'menu' });
+    if (error) setMySubscribed(!next);
   };
 
   // כפתורי ההרשמה באתר פותחים את חלון ההרשמה
@@ -335,8 +364,8 @@ export default function Header() {
                 className="mt-0.5 w-4 h-4 accent-orange-600 shrink-0"
               />
               <span className="text-xs text-gray-700 leading-relaxed">
-                אני רוצה לקבל מבצעים והטבות במייל ובוואטסאפ
-                <span className="block text-[11px] text-gray-500">לא חובה. אפשר להסיר את עצמך בכל עת.</span>
+                אני רוצה לקבל מבצעים והטבות במייל
+                <span className="block text-[11px] text-gray-500">לא חובה. אפשר להסיר את עצמך בכל עת מהתפריט האישי באתר או מהקישור שבכל מייל.</span>
               </span>
             </label>
 
@@ -466,6 +495,23 @@ export default function Header() {
                         <span className="text-gray-400 block truncate">{user.email}</span>
                       </div>
                     </div>
+                  )}
+
+                  {/* לקוח מחובר: הרשמה / הסרה ממבצעים במייל */}
+                  {user && mySubscribed !== null && (
+                    <label className="flex items-center justify-between gap-3 bg-white border rounded-2xl p-3 cursor-pointer">
+                      <span className="text-xs">
+                        <span className="font-bold text-gray-900 block">📧 מבצעים והטבות במייל</span>
+                        <span className="text-gray-500">{mySubscribed ? 'את/ה ברשימה. אפשר לבטל בכל עת.' : 'לא נשלח לך מבצעים במייל.'}</span>
+                      </span>
+                      <input
+                        type="checkbox"
+                        role="switch"
+                        checked={mySubscribed}
+                        onChange={toggleMySubscription}
+                        className="w-5 h-5 accent-orange-600 shrink-0"
+                      />
+                    </label>
                   )}
 
                   {/* ===== רשימת התראות ===== */}

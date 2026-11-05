@@ -58,6 +58,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'לקוחות 👥', href: '/admin/customers' },
     { name: 'ביקורות ⭐', href: '/admin/reviews' },
     { name: 'שאלות נפוצות ❓', href: '/admin/faq' },
+    { name: 'רשימת דיוור 📧', href: '/admin/subscribers' },
     { name: 'ניהול ושליחת מייל ✉️', href: '/admin/email' },
     { name: 'SEO ומעקב 🔍', href: '/admin/seo' },
   ];
