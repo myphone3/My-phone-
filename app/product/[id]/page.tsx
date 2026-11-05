@@ -4,6 +4,7 @@ import React, { useEffect, useState, Suspense, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { showAddedToCart, showToast } from '@/lib/toast';
 
 function ProductDetailContent() {
   const params = useParams();
@@ -149,10 +150,20 @@ function ProductDetailContent() {
   const basePrice = Number(product.sale_price || product.price || 0);
   const versionExtra = selectedVersion && typeof selectedVersion === 'object' ? Number(selectedVersion.price_add || selectedVersion.price || 0) : 0;
   const finalPrice = (basePrice + versionExtra) * quantity;
+  const regularPrice = (Number(product.price || 0) + versionExtra) * quantity;
+
+  // מחיר ההצעה המיוחדת אחרי ההנחה
+  const upsellRegular = Number(upsellTargetProduct?.sale_price || upsellTargetProduct?.price || 0);
+  const upsellDiscount = product.upsell_discount_item;
+  const upsellPrice = !upsellDiscount
+    ? upsellRegular
+    : upsellDiscount.discountType === 'percent'
+      ? upsellRegular * (1 - (Number(upsellDiscount.discountValue) || 0) / 100)
+      : Math.max(0, upsellRegular - (Number(upsellDiscount.discountValue) || 0));
 
   const validateSelections = () => {
     if (colors.length > 1 && !selectedColor) {
-      alert('נא לבחור צבע ממגוון הצבעים הזמינים');
+      showToast('נא לבחור צבע ממגוון הצבעים הזמינים', { kind: 'error' });
       return false;
     }
     if (colors.length === 1 && !selectedColor) {
@@ -160,7 +171,7 @@ function ProductDetailContent() {
     }
 
     if (versions.length > 1 && !selectedVersion) {
-      alert('נא לבחור גרסה');
+      showToast('נא לבחור גרסה', { kind: 'error' });
       return false;
     }
     if (versions.length === 1 && !selectedVersion) {
@@ -170,7 +181,7 @@ function ProductDetailContent() {
     return true;
   };
 
-  const handleAddToCart = (skipUpsell = false) => {
+  const handleAddToCart = (skipUpsell = false, silent = false) => {
     if (!validateSelections()) return;
 
     try {
@@ -201,19 +212,26 @@ function ProductDetailContent() {
         cart.push(cartItem);
       }
 
-      selectedBundles.forEach((bundle, idx) => {
-        cart.push({
-          id: `${product.id}-bundle-${idx}`,
-          name: bundle.name,
-          price: Number(bundle.price),
-          image: activeImage,
-          quantity: 1
-        });
+      selectedBundles.forEach((bundle) => {
+        // המזהה לפי מיקום המוצר ברשימה של המוצר, כדי שאותו מוצר נלווה לא ייכנס פעמיים
+        const bundleId = `${product.id}-bundle-${bundledList.findIndex((b: any) => b.name === bundle.name)}`;
+        const existing = cart.find((item: any) => item.id === bundleId);
+        if (existing) {
+          existing.quantity = (Number(existing.quantity) || 1) + 1;
+        } else {
+          cart.push({
+            id: bundleId,
+            name: bundle.name,
+            price: Number(bundle.price),
+            image: activeImage,
+            quantity: 1
+          });
+        }
       });
 
       localStorage.setItem('cart', JSON.stringify(cart));
       window.dispatchEvent(new Event('cartUpdated'));
-      alert('המוצר נוסף בהצלחה לעגלה! 🛒');
+      if (!silent) showAddedToCart();
       setShowUpsellModal(false);
     } catch (err) {
       console.error('Add to cart error:', err);
@@ -222,7 +240,7 @@ function ProductDetailContent() {
 
   const handleBuyNow = () => {
     if (!validateSelections()) return;
-    handleAddToCart(true);
+    handleAddToCart(true, true);
     router.push('/cart');
   };
 
@@ -230,25 +248,19 @@ function ProductDetailContent() {
     if (!upsellTargetProduct) return;
     try {
       const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-      const discountItem = product.upsell_discount_item;
-      let upsellPrice = upsellTargetProduct.sale_price || upsellTargetProduct.price || 0;
+      const upsellId = `${upsellTargetProduct.id}-upsell`;
 
-      if (discountItem) {
-        if (discountItem.discountType === 'percent') {
-          upsellPrice = upsellPrice * (1 - (Number(discountItem.discountValue) || 0) / 100);
-        } else {
-          upsellPrice = Math.max(0, upsellPrice - (Number(discountItem.discountValue) || 0));
-        }
+      // ההטבה ניתנת ליחידה אחת, ולכן לא מוסיפים אותה שוב אם היא כבר בעגלה
+      if (!cart.some((item: any) => item.id === upsellId)) {
+        cart.push({
+          id: upsellId,
+          productId: upsellTargetProduct.id,
+          name: `${upsellTargetProduct.name} (הטבת מבצע)`,
+          price: upsellPrice,
+          image: upsellTargetProduct.image_url || '',
+          quantity: 1
+        });
       }
-
-      cart.push({
-        id: `${upsellTargetProduct.id}-upsell`,
-        productId: upsellTargetProduct.id,
-        name: `${upsellTargetProduct.name} (הטבת מבצע)`,
-        price: upsellPrice,
-        image: upsellTargetProduct.image_url || '',
-        quantity: 1
-      });
 
       localStorage.setItem('cart', JSON.stringify(cart));
       window.dispatchEvent(new Event('cartUpdated'));
@@ -265,7 +277,7 @@ function ProductDetailContent() {
       window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text + ' ' + url)}`, '_blank');
     } else {
       navigator.clipboard.writeText(url);
-      alert('קישור הועתק בהצלחה ללוח! 📋');
+      showToast('הקישור הועתק 📋', { kind: 'success' });
     }
   };
 
@@ -362,7 +374,7 @@ function ProductDetailContent() {
           <div className="flex items-baseline gap-3">
             <span className="text-3xl font-black text-orange-600">₪{finalPrice}</span>
             {product.sale_price && (
-              <span className="text-sm text-gray-400 line-through">₪{product.price * quantity}</span>
+              <span className="text-sm text-gray-400 line-through">₪{regularPrice}</span>
             )}
           </div>
 
@@ -635,9 +647,12 @@ function ProductDetailContent() {
               <img src={upsellTargetProduct.image_url} alt="" className="w-16 h-16 object-contain bg-white rounded-xl border p-1" />
               <div>
                 <h4 className="font-bold text-xs text-gray-900">{upsellTargetProduct.name}</h4>
-                <span className="text-xs font-black text-orange-600">
-                  ₪{upsellTargetProduct.sale_price || upsellTargetProduct.price}
-                </span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-sm font-black text-orange-600">₪{Math.round(upsellPrice * 100) / 100}</span>
+                  {upsellPrice < upsellRegular && (
+                    <span className="text-xs text-gray-400 line-through">₪{upsellRegular}</span>
+                  )}
+                </div>
               </div>
             </div>
 

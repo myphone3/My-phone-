@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { showAddedToCart } from '@/lib/toast';
 
 export default function BrandPage() {
   const params = useParams();
@@ -129,7 +130,7 @@ export default function BrandPage() {
 
       localStorage.setItem('cart', JSON.stringify(cart));
       window.dispatchEvent(new Event('cartUpdated'));
-      alert('המוצר נוסף בהצלחה לעגלה! 🛒');
+      showAddedToCart();
     } catch (err) {
       console.error('Add to cart error:', err);
     }

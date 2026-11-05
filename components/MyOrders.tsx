@@ -14,6 +14,7 @@ import {
   orderTotals,
   statusBadge,
 } from '@/lib/orders';
+import { showToast } from '@/lib/toast';
 
 // תמונה של המוצר הראשון בהזמנה
 function firstImage(order: Order) {
@@ -76,7 +77,7 @@ function OrderDetails({ order, onClose }: { order: Order; onClose: () => void })
       await downloadOrderPdf(order);
     } catch (err) {
       console.error(err);
-      alert('לא הצלחנו ליצור את קובץ ה-PDF, נסו שוב.');
+      showToast('לא הצלחנו ליצור את קובץ ה-PDF, נסו שוב.', { kind: 'error' });
     }
     setDownloading(false);
   };

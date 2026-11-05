@@ -55,11 +55,6 @@ export default function Footer() {
                 </Link>
               </li>
             ))}
-            <li>
-              <Link href="/cart?tab=orders" className="hover:text-orange-400 transition">
-                ההזמנות שלי
-              </Link>
-            </li>
           </ul>
         </div>
 

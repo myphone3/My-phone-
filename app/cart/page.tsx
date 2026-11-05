@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import MyOrders from '@/components/MyOrders';
 import { Order, formatMoney, newUuid, orderItems, orderNumber, orderTotals, toOrderLine } from '@/lib/orders';
+import { showToast } from '@/lib/toast';
 
 // מאגר ערים רחב להצעות חכמות (לא חובה לבחור מתוכו, אפשר להקליד חופשי)
 const ISRAEL_CITIES = [
@@ -215,7 +216,7 @@ export default function CartPage() {
     } else {
       setAppliedCoupon(data);
       setCouponError('');
-      alert(`הקופון "${data.code}" הופעל בהצלחה! 🎉`);
+      showToast(`הקופון "${data.code}" הופעל בהצלחה! 🎉`, { kind: 'success' });
     }
   };
 
@@ -284,12 +285,12 @@ export default function CartPage() {
     
     // בדיקת שדות חובה רגילים (ללא הגבלה על תוכן הכתובת)
     if (!name || !phone || !email || !city.trim() || !street.trim() || !building.trim()) {
-      alert('נא למלא את כל שדות החובה (שם, טלפון, אימייל, עיר, רחוב ומספר בניין)');
+      showToast('נא למלא את כל שדות החובה (שם, טלפון, אימייל, עיר, רחוב ומספר בניין)', { kind: 'error' });
       return;
     }
 
     if (!cardNumber || cardNumber.length < 12 || !cardExpiry || !cardCvv || !cardHolderId) {
-      alert('נא למלא את כל פרטי האשראי ותעודת הזהות להשלמת התשלום');
+      showToast('נא למלא את כל פרטי האשראי ותעודת הזהות להשלמת התשלום', { kind: 'error' });
       return;
     }
 
@@ -318,7 +319,7 @@ export default function CartPage() {
 
     if (error || !savedOrder) {
       console.error('Supabase error:', error);
-      alert('שגיאה בשליחת ההזמנה לשרת: ' + (error?.message || 'נסו שוב'));
+      showToast('שגיאה בשליחת ההזמנה: ' + (error?.message || 'נסו שוב'), { kind: 'error' });
     } else {
       const orderId = (savedOrder as Order).id;
       setPlacedOrder(savedOrder as Order);

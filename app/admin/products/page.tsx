@@ -193,66 +193,23 @@ export default function AdminProductsPage() {
     try {
       setAiGenerating(true);
       
-      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-      if (!apiKey) {
-        alert('נא להגדיר את מפתח ה-API תחת NEXT_PUBLIC_GEMINI_API_KEY ב-Vercel');
-        setAiGenerating(false);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        alert('נא להתחבר מחדש כדי להשתמש בעוזר ה-AI');
         return;
       }
 
-      const rawInfoText = `שם המוצר: ${name || ''}\nתיאור קצר: ${shortDesc || ''}\nתיאור מלא: ${description || ''}\nמפרט: ${specs || ''}`;
-
-      const prompt = `אתה מומחה ניסוח, עריכה ועיצוב תוכן לחנות הסלולר והמכשירים הכשרים "NEW PHONE".
-המשתמש סיפק נתונים טכניים ותיאור אמיתי על המוצר: "${name || 'מוצר'}".
-המידע הגולמי שהוזן:
-"""
-${rawInfoText}
-"""
-
-הנחיות קריטיות לעבודה:
-1. אל תמציא נתונים, תכונות או פיצ'רים שלא קיימים במידע הגולמי שהוזן. התבסס אך ורק על העובדות והנתונים האמיתיים שנמסרו.
-2. התפקיד שלך הוא לקחת את הנתונים האמיתיים האלו ולערוך, לסדר ולעצב אותם בצורה מקצועית, נקייה ומשכנעת בפורמט Markdown עבור חנות "NEW PHONE".
-3. החזר אך ורק אובייקט JSON תקין לחלוטין (ללא שום טקסט או מעטפת מסביב) במבנה הבא בדיוק:
-{
-  "shortDesc": "תיאור קצר ומדויק המבוסס על הנתונים עם אימוג'י ב-Markdown",
-  "description": "סקירה מקצועית ומסודרת המבוססת אך ורק על הנתונים עם כותרות ## ב-Markdown",
-  "specs": "מפרט טכני מסודר ומדויק לפי הנתונים עם נקודות • ב-Markdown",
-  "seoTitle": "כותרת SEO מדויקת ומקצועית ל-NEW PHONE",
-  "seoDescription": "תיאור SEO מדויק ל-NEW PHONE",
-  "seoKeywords": "מילות מפתח רלוונטיות פסיק, פסיק"
-}`;
-
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-3.8-flash:generateContent?key=${apiKey}`, {
+      const response = await fetch('/api/gemini-product', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            responseMimeType: "application/json"
-          }
-        })
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ name, shortDesc, description, specs }),
       });
 
-      const data = await response.json();
-      
+      const parsedData = await response.json();
       if (!response.ok) {
-        throw new Error(data.error?.message || 'שגיאה בתקשורת מול ג׳מיני');
+        throw new Error(parsedData.error || 'שגיאה בתקשורת מול ג׳מיני');
       }
 
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!text) {
-        throw new Error('לא התקבלה תשובה מהמודל');
-      }
-
-      let jsonStr = text.trim();
-      jsonStr = jsonStr.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
-      const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        jsonStr = jsonMatch[0];
-      }
-
-      const parsedData = JSON.parse(jsonStr);
-      
       if (parsedData.shortDesc) setShortDesc(parsedData.shortDesc);
       if (parsedData.description) setDescription(parsedData.description);
       if (parsedData.specs) setSpecs(parsedData.specs);
