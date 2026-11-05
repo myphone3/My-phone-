@@ -30,6 +30,10 @@ export default function AdminProductsPage() {
   const [warranty, setWarranty] = useState('');
   const [selectedVersions, setSelectedVersions] = useState<string[]>([]);
   const [stock, setStock] = useState('10');
+  // עלות למוצר נשמרת בטבלה נפרדת שרק מנהל רואה (טבלת המוצרים גלויה לכולם)
+  const [cost, setCost] = useState('');
+  const [costs, setCosts] = useState<Record<string, number>>({});
+  const [costAvailable, setCostAvailable] = useState(false);
   const [isDraft, setIsDraft] = useState(false);
 
   const [shortDesc, setShortDesc] = useState('');
@@ -83,6 +87,9 @@ export default function AdminProductsPage() {
     const kosherRes = await supabase.from('kosher_options').select('*');
     const catRes = await supabase.from('categories').select('*');
     const versionRes = await supabase.from('versions').select('*');
+    const costRes = await supabase.from('product_costs').select('product_id, cost');
+    setCostAvailable(!costRes.error);
+    if (costRes.data) setCosts(Object.fromEntries(costRes.data.map((c: any) => [c.product_id, Number(c.cost)])));
 
     if (prodRes.data) setProducts(prodRes.data);
     if (brandRes.data) setBrandsList(brandRes.data);
@@ -268,18 +275,28 @@ export default function AdminProductsPage() {
       seo_keywords: seoKeywords
     };
 
+    const saveCost = async (productId: string) => {
+      if (!costAvailable) return;
+      const { error } = cost === ''
+        ? await supabase.from('product_costs').delete().eq('product_id', productId)
+        : await supabase.from('product_costs').upsert({ product_id: productId, cost: Number(cost) });
+      if (error) alert('המוצר נשמר, אבל שמירת העלות נכשלה: ' + error.message);
+    };
+
     if (editingId) {
       const { error } = await supabase.from('products').update(payload).eq('id', editingId);
       if (error) alert('שגיאה בעדכון המוצר: ' + error.message);
       else {
+        await saveCost(editingId);
         alert('המוצר עודכן בהצלחה!');
         resetForm();
         fetchData();
       }
     } else {
-      const { error } = await supabase.from('products').insert([payload]);
+      const { data: created, error } = await supabase.from('products').insert([payload]).select('id').single();
       if (error) alert('שגיאה בהוספת מוצר: ' + error.message);
       else {
+        if (created?.id) await saveCost(created.id);
         alert('המוצר נוסף בהצלחה!');
         resetForm();
         fetchData();
@@ -293,6 +310,7 @@ export default function AdminProductsPage() {
     setSlug('');
     setPrice('');
     setSalePrice('');
+    setCost('');
     setCategory('');
     setBrand('');
     setKosher('');
@@ -328,6 +346,7 @@ export default function AdminProductsPage() {
     setSlug(prod.slug || '');
     setPrice(prod.price || '');
     setSalePrice(prod.sale_price || '');
+    setCost(costs[prod.id] !== undefined ? String(costs[prod.id]) : '');
     setCategory(prod.category || '');
     setBrand(prod.brand || '');
     setKosher(prod.kosher || '');
@@ -459,6 +478,22 @@ export default function AdminProductsPage() {
                 <input type="number" value={stock} onChange={(e) => setStock(e.target.value)} placeholder="10" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
               </div>
             </div>
+
+            {costAvailable && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">עלות (₪) <span className="text-gray-400 font-normal">· רק אתה רואה</span></label>
+                  <input type="number" value={cost} onChange={(e) => setCost(e.target.value)} placeholder="כמה המוצר עלה לך" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
+                </div>
+                {cost !== '' && Number(salePrice || price) > 0 && (
+                  <div className="sm:col-span-2 flex items-end">
+                    <span className="text-xs font-bold text-green-700 bg-green-50 border border-green-200 rounded-xl px-3 py-3">
+                      רווח ליחידה: ₪{Math.round(Number(salePrice || price) - Number(cost)).toLocaleString()}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
