@@ -1,5 +1,6 @@
 import './globals.css';
 import Header from '../components/Header';
+import Footer from '../components/Footer';
 import Script from 'next/script';
 
 // הגדרת מטא-דאטה לשם האפליקציה והלוגו בהוספה למסך הבית
@@ -40,10 +41,7 @@ export default function RootLayout({
           {children}
         </main>
 
-        <footer className="bg-gray-900 text-white py-8 px-4 text-center text-xs space-y-2 mt-16">
-          <p className="font-bold text-orange-400">NEW PHONE - כל הזכויות שמורות © 2026</p>
-          <p className="text-gray-400">החנות המובילה למכשירים כשרים, סלולר ונגנים באיכות הגבוהה ביותר.</p>
-        </footer>
+        <Footer />
 
       </body>
     </html>
