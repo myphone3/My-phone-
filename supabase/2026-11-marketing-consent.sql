@@ -123,8 +123,8 @@ $$;
 revoke all on function public.admin_unsubscribe_marketing(uuid) from public;
 grant execute on function public.admin_unsubscribe_marketing(uuid) to authenticated;
 
--- Customers screen in the admin panel: registered customers and customers who only ordered,
--- with signup date, number of orders and mailing consent
+-- Customers screen in the admin panel: customers who signed up to the site,
+-- with signup date, number of orders and mailing consent (guests who only ordered appear under orders)
 create or replace function public.admin_list_customers()
 returns table (
   user_id uuid,
@@ -164,7 +164,7 @@ begin
      group by lower(o.email)
   )
   select reg.id,
-         coalesce(reg.email, ord.email),
+         reg.email,
          coalesce(reg.name, ord.name),
          ord.phone,
          reg.id is not null,
@@ -174,9 +174,9 @@ begin
          coalesce(m.consent, false),
          m.consented_at
     from reg
-    full join ord on ord.email = reg.email
+    left join ord on ord.email = reg.email
     left join public.marketing_consents m on m.user_id = reg.id
-   order by coalesce(reg.created_at, ord.first_order_at) desc;
+   order by reg.created_at desc;
 end;
 $$;
 revoke all on function public.admin_list_customers() from public;

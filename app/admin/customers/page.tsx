@@ -21,9 +21,10 @@ type Customer = {
   consented_at: string | null;
 };
 
-type Filter = 'all' | 'registered' | 'consent';
+type Filter = 'all' | 'consent' | 'no_consent';
 
-// לקוחות: מי שנרשם לאתר ומי שרק הזמין, כמה הזמנות, ואם אישר/ה קבלת מבצעים במייל
+// לקוחות שנרשמו לאתר: מתי נרשמו, כמה הזמנות, ואם אישרו קבלת מבצעים במייל.
+// מי שהזמין בלי להירשם מופיע במסך ההזמנות.
 export default function AdminCustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,7 +55,6 @@ export default function AdminCustomersPage() {
   const counts = useMemo(
     () => ({
       all: customers.length,
-      registered: customers.filter((c) => c.registered).length,
       consent: customers.filter((c) => c.consent).length,
     }),
     [customers]
@@ -64,7 +64,7 @@ export default function AdminCustomersPage() {
     const q = search.trim().toLowerCase();
     return customers.filter(
       (c) =>
-        (filter === 'all' || (filter === 'registered' ? c.registered : c.consent)) &&
+        (filter === 'all' || (filter === 'consent' ? c.consent : !c.consent)) &&
         (!q || [c.name, c.email, c.phone].some((v) => (v || '').toLowerCase().includes(q)))
     );
   }, [customers, filter, search]);
@@ -80,9 +80,9 @@ export default function AdminCustomersPage() {
     ]);
 
   const cards: { key: Filter; label: string; value: number; color: string }[] = [
-    { key: 'all', label: 'סה"כ לקוחות', value: counts.all, color: 'text-gray-900' },
-    { key: 'registered', label: 'נרשמו לאתר', value: counts.registered, color: 'text-blue-600' },
+    { key: 'all', label: 'לקוחות רשומים', value: counts.all, color: 'text-gray-900' },
     { key: 'consent', label: 'אישרו מבצעים במייל', value: counts.consent, color: 'text-green-600' },
+    { key: 'no_consent', label: 'לא אישרו', value: counts.all - counts.consent, color: 'text-gray-500' },
   ];
 
   return (
@@ -114,7 +114,7 @@ export default function AdminCustomersPage() {
       </div>
 
       <p className="text-[11px] text-gray-500">
-        מותר לשלוח מבצעים במייל רק ללקוחות שאישרו, ובכל מייל כזה צריך להופיע קישור הסרה. עדכונים על הזמנות נשלחים לכל מי שהזמין.
+        מוצגים כאן לקוחות שנרשמו לאתר. מי שהזמין בלי להירשם מופיע במסך ההזמנות. מותר לשלוח מבצעים במייל רק למי שאישר.
       </p>
 
       <input
@@ -132,7 +132,7 @@ export default function AdminCustomersPage() {
                 <th className="p-4">שם</th>
                 <th className="p-4">מייל</th>
                 <th className="p-4">טלפון</th>
-                <th className="p-4">נרשם/ה לאתר</th>
+                <th className="p-4">תאריך הרשמה</th>
                 <th className="p-4">הזמנות</th>
                 <th className="p-4">מבצעים במייל</th>
               </tr>
@@ -145,7 +145,7 @@ export default function AdminCustomersPage() {
                     <td className="p-4 text-blue-600 font-bold" dir="ltr">{c.email}</td>
                     <td className="p-4" dir="ltr">{c.phone || '—'}</td>
                     <td className="p-4 text-gray-600 whitespace-nowrap">
-                      {c.registered ? formatDate(c.signed_up_at || undefined) : <span className="text-gray-400">לא נרשם (הזמין כאורח)</span>}
+                      {formatDate(c.signed_up_at || undefined)}
                     </td>
                     <td className="p-4">{c.orders_count}</td>
                     <td className="p-4 whitespace-nowrap">
@@ -163,7 +163,7 @@ export default function AdminCustomersPage() {
               ) : (
                 <tr>
                   <td colSpan={6} className="text-center py-12 text-gray-400">
-                    אין לקוחות להצגה.
+                    עדיין אין לקוחות רשומים.
                   </td>
                 </tr>
               )}
