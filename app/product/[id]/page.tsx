@@ -5,6 +5,9 @@ import { supabase } from '@/lib/supabase';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { showAddedToCart, showToast } from '@/lib/toast';
+import TrustBadges from '@/components/TrustBadges';
+import FaqList from '@/components/FaqList';
+import SimpleMarkdown from '@/components/SimpleMarkdown';
 
 function ProductDetailContent() {
   const params = useParams();
@@ -28,7 +31,7 @@ function ProductDetailContent() {
   const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
 
   // ניהול לשוניות ותצוגה
-  const [activeTab, setActiveTab] = useState<'desc' | 'specs'>('desc');
+  const [activeTab, setActiveTab] = useState<'desc' | 'specs' | 'faq'>('desc');
   const detailsRef = useRef<HTMLDivElement>(null);
 
   // פופאפ מבצע Upsell
@@ -72,6 +75,7 @@ function ProductDetailContent() {
 
       const data = prodRes.data;
       setProduct(data);
+      setActiveTab(data.description ? 'desc' : data.specs ? 'specs' : 'faq');
       if (brandRes.data) setBrandsList(brandRes.data);
       if (kosherRes.data) setKosherList(kosherRes.data);
 
@@ -380,6 +384,11 @@ function ProductDetailContent() {
             {product.sale_price && (
               <span className="text-sm text-gray-400 line-through">₪{regularPrice}</span>
             )}
+            {product.sale_price && regularPrice > finalPrice && (
+              <span className="text-xs font-black bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-lg">
+                חיסכון ₪{Math.round((regularPrice - finalPrice) * 100) / 100}
+              </span>
+            )}
           </div>
 
           {/* בחירת צבע (חובה רק אם יש יותר מאפשרות אחת) */}
@@ -518,6 +527,8 @@ function ProductDetailContent() {
             <span>🛒</span>
           </button>
 
+          <TrustBadges compact />
+
           {/* שיתוף */}
           <div className="flex items-center justify-between pt-4 border-t text-xs font-bold text-gray-600">
             <span>שיתוף מוצר:</span>
@@ -544,9 +555,9 @@ function ProductDetailContent() {
           {/* תיאור קצר */}
           <div className="space-y-4 pt-4 border-t">
             {product.short_description && (
-              <p className="text-xs sm:text-sm text-gray-600 leading-relaxed bg-gray-50 p-4 rounded-2xl border border-gray-100" dir="auto">
-                {product.short_description}
-              </p>
+              <div className="text-xs sm:text-sm text-gray-600 leading-relaxed bg-gray-50 p-4 rounded-2xl border border-gray-100" dir="auto">
+                <SimpleMarkdown text={product.short_description} />
+              </div>
             )}
 
             {(product.description || product.specs) && (
@@ -600,42 +611,49 @@ function ProductDetailContent() {
         </div>
       )}
 
-      {/* אזור לשוניות (תיאור מלא / מפרט מלא) */}
-      {(product.description || product.specs) && (
-        <div ref={detailsRef} className="bg-white p-6 sm:p-8 rounded-3xl border shadow-sm space-y-6 scroll-mt-6">
-          <div className="flex border-b gap-4">
-            {product.description && (
-              <button
-                onClick={() => setActiveTab('desc')}
-                className={`pb-3 text-sm font-black transition cursor-pointer border-b-2 ${
-                  activeTab === 'desc' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-400 hover:text-gray-700'
-                }`}
-              >
-                תיאור מלא
-              </button>
-            )}
-            {product.specs && (
-              <button
-                onClick={() => setActiveTab('specs')}
-                className={`pb-3 text-sm font-black transition cursor-pointer border-b-2 ${
-                  activeTab === 'specs' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-400 hover:text-gray-700'
-                }`}
-              >
-                מפרט טכני מלא
-              </button>
-            )}
-          </div>
-
-          <div className="text-xs sm:text-sm text-gray-700 leading-relaxed" dir="auto">
-            {activeTab === 'desc' && product.description && (
-              <div className="whitespace-pre-line">{product.description}</div>
-            )}
-            {activeTab === 'specs' && product.specs && (
-              <div className="whitespace-pre-line">{product.specs}</div>
-            )}
-          </div>
+      {/* אזור לשוניות (תיאור מלא / מפרט מלא / שאלות נפוצות) */}
+      <div ref={detailsRef} className="bg-white p-6 sm:p-8 rounded-3xl border shadow-sm space-y-6 scroll-mt-6">
+        <div className="flex border-b gap-4">
+          {product.description && (
+            <button
+              onClick={() => setActiveTab('desc')}
+              className={`pb-3 text-sm font-black transition cursor-pointer border-b-2 ${
+                activeTab === 'desc' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-400 hover:text-gray-700'
+              }`}
+            >
+              תיאור מלא
+            </button>
+          )}
+          {product.specs && (
+            <button
+              onClick={() => setActiveTab('specs')}
+              className={`pb-3 text-sm font-black transition cursor-pointer border-b-2 ${
+                activeTab === 'specs' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-400 hover:text-gray-700'
+              }`}
+            >
+              מפרט טכני מלא
+            </button>
+          )}
+          <button
+            onClick={() => setActiveTab('faq')}
+            className={`pb-3 text-sm font-black transition cursor-pointer border-b-2 ${
+              activeTab === 'faq' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-400 hover:text-gray-700'
+            }`}
+          >
+            שאלות נפוצות
+          </button>
         </div>
-      )}
+
+        <div className="text-xs sm:text-sm text-gray-700 leading-relaxed" dir="auto">
+          {activeTab === 'desc' && product.description && (
+            <SimpleMarkdown text={product.description} />
+          )}
+          {activeTab === 'specs' && product.specs && (
+            <SimpleMarkdown text={product.specs} />
+          )}
+          {activeTab === 'faq' && <FaqList />}
+        </div>
+      </div>
 
       {/* פופאפ Upsell */}
       {showUpsellModal && upsellTargetProduct && (

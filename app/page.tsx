@@ -3,6 +3,8 @@
 import React, { useEffect, useState, useRef, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import TrustBadges from '@/components/TrustBadges';
+import FaqList from '@/components/FaqList';
 
 function StoreContent() {
   const [products, setProducts] = useState<any[]>([]);
@@ -722,6 +724,13 @@ function StoreContent() {
         </section>
 
       </div>
+
+      <TrustBadges />
+
+      <section className="max-w-3xl mx-auto px-4 py-6" dir="rtl">
+        <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3 mb-5">שאלות נפוצות</h2>
+        <FaqList />
+      </section>
 
       {/* פופ-אפ מבצעים והמלצות חכם (Upsell) */}
       {upsellModalOpen && (
