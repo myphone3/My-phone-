@@ -46,6 +46,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'ראשי 🏠', href: '/admin' },
     { name: 'ניהול מוצרים 📦', href: '/admin/products' },
     { name: 'ניהול הזמנות 📋', href: '/admin/orders' },
+    { name: 'דוחות 📊', href: '/admin/reports' },
+    { name: 'קישורי פרסום 📣', href: '/admin/campaigns' },
     { name: 'ניהול קטגוריות 📁', href: '/admin/categories' },
     { name: 'ניהול מותגים 🏷️', href: '/admin/brands' },
     { name: 'ניהול כשרות ⭐', href: '/admin/kosher' },
@@ -54,6 +56,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'ספריית מדיה 🖼️', href: '/admin/media' },
     { name: 'מבצעים וקופונים 🎟️', href: '/admin/coupons' },
     { name: 'לקוחות 👥', href: '/admin/customers' },
+    { name: 'ביקורות ⭐', href: '/admin/reviews' },
+    { name: 'שאלות נפוצות ❓', href: '/admin/faq' },
     { name: 'ניהול ושליחת מייל ✉️', href: '/admin/email' },
     { name: 'SEO ומעקב 🔍', href: '/admin/seo' },
   ];

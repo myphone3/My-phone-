@@ -651,7 +651,7 @@ function ProductDetailContent() {
           {activeTab === 'specs' && product.specs && (
             <SimpleMarkdown text={product.specs} />
           )}
-          {activeTab === 'faq' && <FaqList />}
+          {activeTab === 'faq' && <FaqList productId={product.id} />}
         </div>
       </div>
 

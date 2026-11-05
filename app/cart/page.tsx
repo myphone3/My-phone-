@@ -6,6 +6,7 @@ import Link from 'next/link';
 import MyOrders from '@/components/MyOrders';
 import { Order, formatMoney, newUuid, orderItems, orderNumber, orderTotals, toOrderLine } from '@/lib/orders';
 import { showToast } from '@/lib/toast';
+import { attachCampaignToOrder } from '@/lib/campaign';
 
 // מאגר ערים רחב להצעות חכמות (לא חובה לבחור מתוכו, אפשר להקליד חופשי)
 const ISRAEL_CITIES = [
@@ -323,6 +324,7 @@ export default function CartPage() {
     } else {
       const orderId = (savedOrder as Order).id;
       setPlacedOrder(savedOrder as Order);
+      attachCampaignToOrder(orderId, confirmationToken);
       localStorage.removeItem('cart');
       setCartItems([]);
       setStep('cart');

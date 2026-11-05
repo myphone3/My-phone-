@@ -4,22 +4,32 @@ import Footer from '../components/Footer';
 import ToastHost from '../components/Toast';
 import WhatsAppFloat from '../components/WhatsAppFloat';
 import Script from 'next/script';
+import type { Metadata } from 'next';
+import Analytics from '../components/Analytics';
+import CampaignTracker from '../components/CampaignTracker';
+import { Suspense } from 'react';
+import { getSiteSettings } from '@/lib/siteSettings';
 
-// הגדרת מטא-דאטה לשם האפליקציה והלוגו בהוספה למסך הבית
-export const metadata = {
-  title: 'NEW PHONE - הפלאפון החדש שלך',
-  description: 'החנות המובילה למכשירים כשרים, סלולר ונגנים',
-  manifest: '/manifest.json',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'default',
-    title: 'NEW PHONE',
-  },
-  icons: {
-    icon: '/Logo.JPG',
-    apple: '/Logo.JPG',
-  },
-};
+// מטא-דאטה: שם האפליקציה והלוגו, וכותרת/תיאור/אימות גוגל מהגדרות ה-SEO בפאנל
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  const icon = settings.favicon_url || '/Logo.JPG';
+  return {
+    title: settings.meta_title?.trim() || 'NEW PHONE - הפלאפון החדש שלך',
+    description: settings.meta_description?.trim() || 'החנות המובילה למכשירים כשרים, סלולר ונגנים',
+    manifest: '/manifest.json',
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'default',
+      title: 'NEW PHONE',
+    },
+    icons: {
+      icon,
+      apple: '/Logo.JPG',
+    },
+    verification: settings.google_site_verification ? { google: settings.google_site_verification } : undefined,
+  };
+}
 
 export default function RootLayout({
   children,
@@ -46,6 +56,10 @@ export default function RootLayout({
         <Footer />
         <ToastHost />
         <WhatsAppFloat />
+        <Analytics />
+        <Suspense fallback={null}>
+          <CampaignTracker />
+        </Suspense>
 
       </body>
     </html>

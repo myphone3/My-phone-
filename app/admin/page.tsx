@@ -3,11 +3,15 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import { inRange, isCountedOrder, productSales, revenueOf, startOfDay, startOfMonth, withCosts } from '@/lib/stats';
+import { fetchAll } from '@/lib/fetchAll';
+import { LoadErrorBox } from '@/components/admin/LoadErrorBox';
 
 export default function AdminDashboard() {
   const [orders, setOrders] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     fetchDashboardData();
@@ -16,11 +20,18 @@ export default function AdminDashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const { data: ordersData } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
-      const { data: productsData } = await supabase.from('products').select('*');
-      
-      if (ordersData) setOrders(ordersData);
-      if (productsData) setProducts(productsData);
+      const [o, p, c] = await Promise.all([
+        fetchAll((a, b) => supabase.from('orders').select('*').order('created_at', { ascending: false }).order('id').range(a, b)),
+        fetchAll((a, b) => supabase.from('products').select('*').order('id').range(a, b)),
+        fetchAll((a, b) => supabase.from('product_costs').select('product_id, cost').order('product_id').range(a, b)),
+      ]);
+      // נתונים חלקיים יציגו סכומים נמוכים מהאמת, ולכן במקרה של שגיאה לא מציגים אותם
+      const failed = o.error || p.error || c.error;
+      setLoadError(failed ? failed.message || 'שגיאה בטעינה' : '');
+      if (!failed) {
+        setOrders(o.data);
+        setProducts(withCosts(p.data, c.data));
+      }
     } catch (err) {
       console.error('Error fetching admin data:', err);
     } finally {
@@ -41,23 +52,24 @@ export default function AdminDashboard() {
     }
   };
 
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
-  
-  const monthlyRevenue = orders
-    .filter(o => {
-      try {
-        if (!o || (!o.created_at && !o.date)) return false;
-        const orderDate = new Date(o.created_at || o.date);
-        return orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear;
-      } catch {
-        return false;
-      }
-    })
-    .reduce((sum, o) => sum + (Number(o.total_price || o.price || o.amount) || 0), 0);
+  const now = new Date();
+  const counted = orders.filter(isCountedOrder);
+  const monthOrders = counted.filter((o) => inRange(o, startOfMonth(now), new Date(8640000000000000)));
+  const todayOrders = counted.filter((o) => inRange(o, startOfDay(now), new Date(8640000000000000)));
+  const monthlyRevenue = revenueOf(monthOrders);
+  const todayRevenue = revenueOf(todayOrders);
+  const monthSales = productSales(monthOrders, products);
+  const monthCost = monthSales.reduce((sum, r) => sum + r.cost, 0);
+  const monthCostedRevenue = monthSales.filter((r) => r.hasCost).reduce((sum, r) => sum + r.revenue, 0);
+  const topSellers = productSales(orders, products).filter((r) => r.qty > 0).slice(0, 5);
 
-  const lowStockProducts = products.filter(p => p && (Number(p.stock) || 0) <= 3);
+  // מלאי נמוך: רק מוצרים שהוגדר להם מלאי
+  const lowStockProducts = products
+    .filter((p) => p && p.stock !== null && p.stock !== undefined && p.stock !== '' && Number(p.stock) <= 3)
+    .sort((a, b) => Number(a.stock) - Number(b.stock));
   const newOrders = orders.filter(o => o && (o.status === 'חדש' || !o.status || o.status === 'pending'));
+
+  if (!loading && loadError) return <LoadErrorBox error={loadError} what="נתוני פאנל הניהול" onRetry={fetchDashboardData} />;
 
   if (loading) {
     return (
@@ -84,7 +96,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* קוביות נתונים */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-2 border-r-4 border-r-orange-600">
           <span className="text-xs font-bold text-gray-500 block">הזמנות חדשות לטיפול</span>
           <div className="flex items-baseline gap-2">
@@ -93,12 +105,25 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-2 border-r-4 border-r-blue-600">
+          <span className="text-xs font-bold text-gray-500 block">הכנסות היום</span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-black text-blue-600">₪{todayRevenue.toLocaleString()}</span>
+            <span className="text-xs text-gray-400">{todayOrders.length} הזמנות</span>
+          </div>
+        </div>
+
         <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-2 border-r-4 border-r-green-600">
-          <span className="text-xs font-bold text-gray-500 block">הכנסות החודש (₪)</span>
+          <span className="text-xs font-bold text-gray-500 block">הכנסות החודש</span>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-black text-green-600">₪{monthlyRevenue.toLocaleString()}</span>
-            <span className="text-xs text-gray-400">החודש הנוכחי</span>
+            <span className="text-xs text-gray-400">{monthOrders.length} הזמנות</span>
           </div>
+          {monthCostedRevenue > 0 && (
+            <span className="text-[11px] font-bold text-gray-500 block">
+              רווח גולמי (מוצרים עם עלות): ₪{Math.round(monthCostedRevenue - monthCost).toLocaleString()}
+            </span>
+          )}
         </div>
 
         <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-2 border-r-4 border-r-red-500">
@@ -107,6 +132,51 @@ export default function AdminDashboard() {
             <span className="text-3xl font-black text-red-500">{lowStockProducts.length}</span>
             <span className="text-xs text-gray-400">דורש עדכון</span>
           </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-3">
+          <div className="flex justify-between items-center border-b pb-3">
+            <h3 className="font-black text-base text-gray-900">🏆 הנמכרים ביותר</h3>
+            <Link href="/admin/reports" className="text-xs font-bold text-orange-600 hover:underline">לדוחות ➔</Link>
+          </div>
+          {topSellers.length ? (
+            <ol className="space-y-2">
+              {topSellers.map((row, i) => (
+                <li key={row.name + i} className="flex items-center justify-between gap-3 text-sm">
+                  <span className="flex items-center gap-2 min-w-0">
+                    <span className="w-6 h-6 shrink-0 rounded-full bg-orange-50 text-orange-700 text-xs font-black flex items-center justify-center">{i + 1}</span>
+                    <span className="font-bold text-gray-800 truncate">{row.name}</span>
+                  </span>
+                  <span className="text-xs text-gray-500 shrink-0">{row.qty} יח׳ · ₪{Math.round(row.revenue).toLocaleString()}</span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="text-xs text-gray-500">עדיין אין מכירות.</p>
+          )}
+        </div>
+
+        <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-3">
+          <div className="flex justify-between items-center border-b pb-3">
+            <h3 className="font-black text-base text-gray-900">📉 מלאי נמוך</h3>
+            <Link href="/admin/products" className="text-xs font-bold text-orange-600 hover:underline">לניהול מוצרים ➔</Link>
+          </div>
+          {lowStockProducts.length ? (
+            <ul className="space-y-2">
+              {lowStockProducts.slice(0, 8).map((p) => (
+                <li key={p.id} className="flex items-center justify-between gap-3 text-sm">
+                  <span className="font-bold text-gray-800 truncate">{p.name}</span>
+                  <span className={`text-xs font-black shrink-0 px-2 py-0.5 rounded-full ${Number(p.stock) <= 0 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}`}>
+                    {Number(p.stock) <= 0 ? 'אזל' : `נשארו ${p.stock}`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-gray-500">כל המוצרים במלאי תקין.</p>
+          )}
         </div>
       </div>
 
