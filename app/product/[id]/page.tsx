@@ -155,11 +155,12 @@ function ProductDetailContent() {
   // מחיר ההצעה המיוחדת אחרי ההנחה
   const upsellRegular = Number(upsellTargetProduct?.sale_price || upsellTargetProduct?.price || 0);
   const upsellDiscount = product.upsell_discount_item;
-  const upsellPrice = !upsellDiscount
+  const upsellRaw = !upsellDiscount
     ? upsellRegular
     : upsellDiscount.discountType === 'percent'
       ? upsellRegular * (1 - (Number(upsellDiscount.discountValue) || 0) / 100)
       : Math.max(0, upsellRegular - (Number(upsellDiscount.discountValue) || 0));
+  const upsellPrice = Math.round(upsellRaw * 100) / 100;
 
   const validateSelections = () => {
     if (colors.length > 1 && !selectedColor) {
@@ -185,12 +186,15 @@ function ProductDetailContent() {
     if (!validateSelections()) return;
 
     try {
-      if (!skipUpsell && product.upsell_discount_item && upsellTargetProduct) {
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+
+      // ההצעה המיוחדת לא מוצגת שוב אם ההטבה כבר בעגלה
+      const upsellInCart = upsellTargetProduct && cart.some((item: any) => item.id === `${upsellTargetProduct.id}-upsell`);
+      if (!skipUpsell && product.upsell_discount_item && upsellTargetProduct && !upsellInCart) {
         setShowUpsellModal(true);
         return;
       }
 
-      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
       const colorName = typeof selectedColor === 'object' ? selectedColor?.name : selectedColor || '';
       const versionName = typeof selectedVersion === 'object' ? selectedVersion?.name : selectedVersion || '';
 
@@ -648,7 +652,7 @@ function ProductDetailContent() {
               <div>
                 <h4 className="font-bold text-xs text-gray-900">{upsellTargetProduct.name}</h4>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-sm font-black text-orange-600">₪{Math.round(upsellPrice * 100) / 100}</span>
+                  <span className="text-sm font-black text-orange-600">₪{upsellPrice}</span>
                   {upsellPrice < upsellRegular && (
                     <span className="text-xs text-gray-400 line-through">₪{upsellRegular}</span>
                   )}
