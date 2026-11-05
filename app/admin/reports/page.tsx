@@ -6,7 +6,7 @@ import { downloadCsv } from '@/lib/csv';
 import { Order, orderTotals } from '@/lib/orders';
 import { addDays, isCountedOrder, orderDate, productSales, revenueOf, startOfDay, withCosts } from '@/lib/stats';
 import { fetchAll } from '@/lib/fetchAll';
-import { showToast } from '@/lib/toast';
+import { LoadErrorBox } from '@/components/admin/LoadErrorBox';
 
 const PERIODS = [
   { key: 'week', label: 'שבוע', days: 7 },
@@ -23,6 +23,8 @@ export default function ReportsPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
   const [period, setPeriod] = useState<PeriodKey>('month');
 
   useEffect(() => {
@@ -32,12 +34,16 @@ export default function ReportsPage() {
         fetchAll((a, b) => supabase.from('products').select('*').order('id').range(a, b)),
         fetchAll((a, b) => supabase.from('product_costs').select('product_id, cost').order('product_id').range(a, b)),
       ]);
-      if (o.error || p.error) showToast('חלק מהנתונים לא נטענו, נסו לרענן', { kind: 'error' });
-      setOrders(o.data as Order[]);
-      setProducts(withCosts(p.data, c.data));
+      // דוח מנתונים חלקיים יציג מספרים נמוכים מהאמת, ולכן במקרה של שגיאה לא מציגים דוח
+      const failed = o.error || p.error || c.error;
+      setLoadError(failed ? failed.message || 'שגיאה בטעינה' : '');
+      if (!failed) {
+        setOrders(o.data as Order[]);
+        setProducts(withCosts(p.data, c.data));
+      }
       setLoading(false);
     })();
-  }, []);
+  }, [reloadKey]);
 
   const report = useMemo(() => {
     const days = PERIODS.find((p) => p.key === period)!.days;
@@ -90,6 +96,10 @@ export default function ReportsPage() {
       hasCosts: costed.length > 0,
     };
   }, [orders, products, period]);
+
+  if (!loading && loadError) {
+    return <LoadErrorBox error={loadError} what="הדוחות" onRetry={() => { setLoading(true); setReloadKey((k) => k + 1); }} />;
+  }
 
   if (loading) {
     return <div className="text-center py-20 text-gray-500 font-medium" dir="rtl">טוען דוחות...</div>;

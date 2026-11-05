@@ -19,7 +19,7 @@ export default function ReviewsAdmin() {
 
   const load = async () => {
     const { data, error } = await supabase.from('reviews').select('*').order('sort_order').order('created_at', { ascending: false });
-    setLoadError(error ? (isMissingTable(error) ? 'missing' : error.message) : '');
+    setLoadError(error ? (isMissingTable(error) ? 'missing' : error.message || 'שגיאה בטעינה') : '');
     setReviews((data as Review[]) || []);
     setLoading(false);
   };

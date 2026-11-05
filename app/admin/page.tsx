@@ -5,11 +5,13 @@ import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { inRange, isCountedOrder, productSales, revenueOf, startOfDay, startOfMonth, withCosts } from '@/lib/stats';
 import { fetchAll } from '@/lib/fetchAll';
+import { LoadErrorBox } from '@/components/admin/LoadErrorBox';
 
 export default function AdminDashboard() {
   const [orders, setOrders] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     fetchDashboardData();
@@ -23,9 +25,13 @@ export default function AdminDashboard() {
         fetchAll((a, b) => supabase.from('products').select('*').order('id').range(a, b)),
         fetchAll((a, b) => supabase.from('product_costs').select('product_id, cost').order('product_id').range(a, b)),
       ]);
-      if (o.error || p.error) console.error('Error fetching admin data:', o.error || p.error);
-      setOrders(o.data);
-      setProducts(withCosts(p.data, c.data));
+      // נתונים חלקיים יציגו סכומים נמוכים מהאמת, ולכן במקרה של שגיאה לא מציגים אותם
+      const failed = o.error || p.error || c.error;
+      setLoadError(failed ? failed.message || 'שגיאה בטעינה' : '');
+      if (!failed) {
+        setOrders(o.data);
+        setProducts(withCosts(p.data, c.data));
+      }
     } catch (err) {
       console.error('Error fetching admin data:', err);
     } finally {
@@ -62,6 +68,8 @@ export default function AdminDashboard() {
     .filter((p) => p && p.stock !== null && p.stock !== undefined && p.stock !== '' && Number(p.stock) <= 3)
     .sort((a, b) => Number(a.stock) - Number(b.stock));
   const newOrders = orders.filter(o => o && (o.status === 'חדש' || !o.status || o.status === 'pending'));
+
+  if (!loading && loadError) return <LoadErrorBox error={loadError} what="נתוני פאנל הניהול" onRetry={fetchDashboardData} />;
 
   if (loading) {
     return (

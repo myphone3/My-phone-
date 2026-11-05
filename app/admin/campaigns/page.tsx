@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { downloadCsv } from '@/lib/csv';
 import { fetchAll } from '@/lib/fetchAll';
+import { LoadErrorBox } from '@/components/admin/LoadErrorBox';
 import { Order, orderTotals } from '@/lib/orders';
 import { isCountedOrder } from '@/lib/stats';
 import { showToast } from '@/lib/toast';
@@ -28,6 +29,7 @@ export default function CampaignsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [missingTables, setMissingTables] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -38,12 +40,15 @@ export default function CampaignsPage() {
     ]);
     setMissingTables(!!c.error);
     if (c.data) setCampaigns(c.data as Campaign[]);
-    if (v.data) {
+    // בלי נתונים מלאים לא מציגים מדדים ולא מייצאים (כדי לא להציג מספרים חסרים)
+    const failed = v.error || o.error;
+    setLoadError(failed ? failed.message || 'שגיאה בטעינה' : '');
+    if (!failed) {
       const counts: Record<string, number> = {};
-      (v.data as any[]).forEach((row) => (counts[row.code] = Number(row.visits) || 0));
+      ((v.data as any[]) || []).forEach((row) => (counts[row.code] = Number(row.visits) || 0));
       setVisits(counts);
+      setOrders(o.data as any);
     }
-    setOrders(o.data as any);
     setLoading(false);
   };
 
@@ -122,6 +127,7 @@ export default function CampaignsPage() {
 
   if (loading) return <div className="text-center py-20 text-gray-500 font-medium" dir="rtl">טוען קמפיינים...</div>;
 
+  if (!missingTables && loadError) return <LoadErrorBox error={loadError} what="נתוני הקמפיינים" onRetry={load} />;
   if (missingTables) {
     return (
       <div className="bg-amber-50 border border-amber-200 rounded-3xl p-6 text-sm text-amber-900 font-bold" dir="rtl">

@@ -24,7 +24,7 @@ export default function FaqAdmin() {
       supabase.from('faqs').select('*').order('sort_order'),
       supabase.from('products').select('id, name').order('name'),
     ]);
-    setLoadError(f.error ? (isMissingTable(f.error) ? 'missing' : f.error.message) : '');
+    setLoadError(f.error ? (isMissingTable(f.error) ? 'missing' : f.error.message || 'שגיאה בטעינה') : '');
     setFaqs((f.data as Faq[]) || []);
     setProducts((p.data as any[]) || []);
     setLoading(false);

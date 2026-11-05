@@ -41,11 +41,13 @@ export function captureCampaignFromUrl() {
 // משייך הזמנה שנוצרה עכשיו לקמפיין (בסיס הנתונים מוודא שזו ההזמנה של הלקוח הזה ושהקוד קיים)
 export async function attachCampaignToOrder(orderId: string, token: string) {
   // מהחדש לישן: בסיס הנתונים משייך רק קוד שקיים ורק פעם אחת, כך שהקוד התקין האחרון הוא שנקבע
+  // אם בקשה נכשלה (למשל בעיית רשת) עוצרים, כדי שקמפיין ישן יותר לא יקבל את ההזמנה במקום החדש
   for (const { code } of savedCampaigns()) {
     try {
-      await supabase.rpc('attach_order_ref', { p_id: orderId, p_token: token, p_ref: code });
+      const { error } = await supabase.rpc('attach_order_ref', { p_id: orderId, p_token: token, p_ref: code });
+      if (error) return;
     } catch {
-      // השיוך הוא תוספת; ההזמנה עצמה כבר נשמרה
+      return; // השיוך הוא תוספת; ההזמנה עצמה כבר נשמרה
     }
   }
 }
