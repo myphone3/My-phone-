@@ -10,6 +10,7 @@ export default function AnnouncementBar() {
   const [paused, setPaused] = useState(false);
   if (pathname?.startsWith('/admin')) return null;
 
+  // ההודעות כפולות כדי למלא את רוחב המסך; קוראי מסך מקבלים כל הודעה פעם אחת
   const items = [...ANNOUNCEMENTS, ...ANNOUNCEMENTS];
   return (
     <div className="bg-gray-900 text-white text-xs font-bold flex items-center" dir="rtl" aria-label="הודעות החנות">
@@ -21,7 +22,7 @@ export default function AnnouncementBar() {
           {[0, 1].map((half) => (
             <div key={half} className="flex shrink-0" aria-hidden={half === 1}>
               {items.map((text, i) => (
-                <span key={i} className="px-6 whitespace-nowrap">
+                <span key={i} className="px-6 whitespace-nowrap" aria-hidden={i >= ANNOUNCEMENTS.length || undefined}>
                   {text}
                   <span className="text-orange-400 pr-6">•</span>
                 </span>
