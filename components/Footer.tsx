@@ -39,8 +39,8 @@ export default function Footer() {
     <footer className="bg-gray-900 text-gray-300 mt-16 text-xs" dir="rtl">
       <div className="max-w-6xl mx-auto px-4 py-10 grid gap-8 sm:grid-cols-3 text-center sm:text-right">
         <div className="space-y-3">
-          <Link href="/" className="inline-block bg-white rounded-2xl p-1.5 hover:scale-105 transition">
-            <img src="/Logo.JPG" alt="NEW PHONE" className="w-20 h-20 object-contain" />
+          <Link href="/" className="inline-block hover:scale-105 transition">
+            <img src="/logo-transparent.png" alt="NEW PHONE" className="w-24 h-24 object-contain" />
           </Link>
           <p className="text-gray-400 leading-6">החנות המובילה למכשירים כשרים, סלולר ונגנים באיכות הגבוהה ביותר.</p>
         </div>
