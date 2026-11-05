@@ -47,6 +47,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'ניהול מוצרים 📦', href: '/admin/products' },
     { name: 'ניהול הזמנות 📋', href: '/admin/orders' },
     { name: 'דוחות 📊', href: '/admin/reports' },
+    { name: 'קישורי פרסום 📣', href: '/admin/campaigns' },
     { name: 'ניהול קטגוריות 📁', href: '/admin/categories' },
     { name: 'ניהול מותגים 🏷️', href: '/admin/brands' },
     { name: 'ניהול כשרות ⭐', href: '/admin/kosher' },

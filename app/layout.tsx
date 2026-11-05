@@ -6,6 +6,7 @@ import WhatsAppFloat from '../components/WhatsAppFloat';
 import Script from 'next/script';
 import type { Metadata } from 'next';
 import Analytics from '../components/Analytics';
+import CampaignTracker from '../components/CampaignTracker';
 import { getSiteSettings } from '@/lib/siteSettings';
 
 // מטא-דאטה: שם האפליקציה והלוגו, וכותרת/תיאור/אימות גוגל מהגדרות ה-SEO בפאנל
@@ -55,6 +56,7 @@ export default function RootLayout({
         <ToastHost />
         <WhatsAppFloat />
         <Analytics />
+        <CampaignTracker />
 
       </body>
     </html>
