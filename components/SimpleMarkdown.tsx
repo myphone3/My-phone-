@@ -16,15 +16,21 @@ function inline(text: string) {
 export default function SimpleMarkdown({ text }: { text: string }) {
   const blocks: React.ReactNode[] = [];
   let list: string[] = [];
+  let ordered = false;
 
   const flushList = () => {
     if (list.length) {
+      const items = list.map((item, i) => <li key={i}>{inline(item)}</li>);
       blocks.push(
-        <ul key={`l${blocks.length}`} className="list-disc pr-5 space-y-1">
-          {list.map((item, i) => (
-            <li key={i}>{inline(item)}</li>
-          ))}
-        </ul>
+        ordered ? (
+          <ol key={`l${blocks.length}`} className="list-decimal pr-5 space-y-1">
+            {items}
+          </ol>
+        ) : (
+          <ul key={`l${blocks.length}`} className="list-disc pr-5 space-y-1">
+            {items}
+          </ul>
+        )
       );
       list = [];
     }
@@ -33,7 +39,8 @@ export default function SimpleMarkdown({ text }: { text: string }) {
   for (const raw of String(text).split('\n')) {
     const line = raw.trim();
     const heading = line.match(/^#{1,6}\s+(.*)$/);
-    const bullet = line.match(/^(?:[*\-•]|\d+[.)])\s+(.*)$/);
+    const bullet = line.match(/^[*\-•]\s+(.*)$/);
+    const numbered = line.match(/^\d+[.)]\s+(.*)$/);
     if (heading) {
       flushList();
       blocks.push(
@@ -41,8 +48,11 @@ export default function SimpleMarkdown({ text }: { text: string }) {
           {inline(heading[1])}
         </h3>
       );
-    } else if (bullet) {
-      list.push(bullet[1]);
+    } else if (bullet || numbered) {
+      // רשימה ממוספרת ורשימת נקודות לא מתערבבות
+      if (list.length && ordered !== !!numbered) flushList();
+      ordered = !!numbered;
+      list.push((bullet || numbered)![1]);
     } else if (line) {
       flushList();
       blocks.push(<p key={`p${blocks.length}`}>{inline(line)}</p>);
