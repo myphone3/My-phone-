@@ -24,7 +24,7 @@ export default function ProductCard({ product }: { product: any }) {
   const versions = asArray(product.product_variants || product.versions || product.product_versions || product.variants);
   const onSale = product.sale_price && Number(product.sale_price) < Number(product.price);
   // תוספת המחיר של הגרסה היחידה, אם יש, כדי שהמחיר בכרטיס יהיה המחיר שנכנס לעגלה
-  const versionExtra = typeof versions[0] === 'object' ? Number(versions[0].price_add || versions[0].price || 0) : 0;
+  const versionExtra = versions.length === 1 && typeof versions[0] === 'object' ? Number(versions[0].price_add || versions[0].price || 0) : 0;
   const price = (Number(onSale ? product.sale_price : product.price) || 0) + versionExtra;
   const regularPrice = (Number(product.price) || 0) + versionExtra;
   // מוצר עם כמה צבעים או גרסאות: הלקוח בוחר בעמוד המוצר
