@@ -9,6 +9,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname() || '';
   const router = useRouter();
   const [access, setAccess] = useState<'checking' | 'allowed' | 'denied'>('checking');
+  const [role, setRole] = useState<'owner' | 'staff'>('owner');
 
   // שער כניסה: שואלים את בסיס הנתונים (הפונקציה is_admin) האם המשתמש המחובר מנהל
   useEffect(() => {
@@ -21,8 +22,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           if (!cancelled) setAccess('denied');
           return;
         }
-        const { data, error } = await supabase.rpc('is_admin');
-        if (!cancelled) setAccess(!error && data === true ? 'allowed' : 'denied');
+        const [{ data, error }, roleRes] = await Promise.all([supabase.rpc('is_admin'), supabase.rpc('my_admin_role')]);
+        if (cancelled) return;
+        // עובד (staff) רואה רק את המסכים של העבודה השוטפת; בעלים רואה הכל
+        setRole(!roleRes.error && roleRes.data === 'staff' ? 'staff' : 'owner');
+        setAccess(!error && data === true ? 'allowed' : 'denied');
       } catch {
         if (!cancelled) setAccess('denied');
       }
@@ -67,8 +71,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       { name: 'כשרויות', icon: '✡️', href: '/admin/kosher' },
       { name: 'גרסאות', icon: '⚙️', href: '/admin/versions' },
       { name: 'מדיה', icon: '🖼️', href: '/admin/media' },
+      { name: 'צוות והרשאות', icon: '🔐', href: '/admin/staff' },
     ],
   ];
+  // המסכים שעובד רשאי לראות (בלי הכנסות, לקוחות, דוחות והגדרות)
+  const STAFF_PAGES = ['/admin/orders', '/admin/products', '/admin/reviews', '/admin/faq'];
+  const staffAllowed = (href: string) => STAFF_PAGES.some((p) => href === p || href.startsWith(p + '/'));
+  const visibleGroups = role === 'staff' ? groups.map((g) => g.filter((i) => staffAllowed(i.href))).filter((g) => g.length) : groups;
   const isActive = (href: string) => (href === '/admin' ? pathname === '/admin' : pathname === href || pathname.startsWith(href + '/'));
   const activeRef = useRef<HTMLAnchorElement | null>(null);
 
@@ -80,10 +89,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // מי שאינו מנהל מוחזר לדף הבית בשקט
   useEffect(() => {
     if (access === 'denied') router.replace('/');
-  }, [access, router]);
+    else if (access === 'allowed' && role === 'staff' && !staffAllowed(pathname)) router.replace('/admin/orders');
+  }, [access, role, pathname, router]);
 
   // עד שהבדיקה מסתיימת (או בזמן ההעברה לדף הבית) לא מציגים כלום
   if (access !== 'allowed') return null;
+  if (role === 'staff' && !staffAllowed(pathname)) return null;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-4 space-y-4" dir="rtl">
@@ -94,7 +105,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <img src="/Logo.JPG" alt="" className="w-5 h-5 object-contain rounded" />
             לחנות
           </Link>
-          {groups.map((items, gi) => (
+          {visibleGroups.map((items, gi) => (
             <React.Fragment key={gi}>
               <span className="shrink-0 w-px h-6 bg-orange-200 mx-1" aria-hidden="true" />
               {items.map((item) => {

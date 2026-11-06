@@ -552,10 +552,10 @@ function ProductDetailContent() {
               href={whatsappLink(`שלום, יש לי שאלה על ${product.name}: ${typeof window !== 'undefined' ? window.location.href : ''}`)}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition"
+              className="flex-[1.3] flex items-center justify-center gap-1 px-1 py-2.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition"
             >
               <span>💬</span>
-              <span>שאלה בוואטסאפ</span>
+              <span className="whitespace-nowrap">שאלה בוואטסאפ</span>
             </a>
             <FavoriteButton productId={product.id} variant="pill" />
             <CompareButton productId={product.id} />

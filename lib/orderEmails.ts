@@ -175,3 +175,35 @@ export function adminNewOrderEmail(order: Order, adminUrl: string) {
     text: `הזמנה חדשה #${number} – ${total}. ${order.customer_name || ''} ${order.phone || order.customer_phone || ''}. לפתיחה: ${adminUrl}`,
   };
 }
+
+export type DailySummary = {
+  date: string;
+  orders: number;
+  revenue: number;
+  month_revenue: number;
+  pending: number;
+  top: { name: string; qty: number }[];
+  low_stock: { name: string; stock: number }[];
+};
+
+// סיכום יומי לחנות: מה היה אתמול ומה מחכה לטיפול
+export function dailySummaryEmail(s: DailySummary, adminUrl: string) {
+  const box = (label: string, value: string, color: string) =>
+    `<td style="width:50%; padding:4px;"><div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:12px; padding:10px; text-align:center;"><div style="font-size:11px; color:#9a3412;">${label}</div><div style="font-size:20px; font-weight:900; color:${color};">${value}</div></div></td>`;
+  const list = (title: string, rows: string[]) =>
+    rows.length ? `<p style="margin:14px 0 4px; font-weight:900;">${title}</p><ul style="margin:0; padding-right:18px;">${rows.map((r) => `<li>${r}</li>`).join('')}</ul>` : '';
+  return {
+    subject: `📊 סיכום יומי ${s.date}: ${s.orders} הזמנות, ${formatMoney(s.revenue)}`,
+    html: layout({
+      title: '📊 הסיכום היומי שלך',
+      subtitle: `יום ${s.date}`,
+      body: `
+        <table style="width:100%; border-collapse:collapse;"><tr>${box('הזמנות אתמול', String(s.orders), '#1d4ed8')}${box('הכנסות אתמול', formatMoney(s.revenue), '#15803d')}</tr>
+        <tr>${box('הכנסות החודש', formatMoney(s.month_revenue), '#7e22ce')}${box('ממתינות לטיפול', String(s.pending), '#dc2626')}</tr></table>
+        ${list('🏆 הנמכרים אתמול', (s.top || []).map((t) => `${escapeHtml(t.name)} × ${t.qty}`))}
+        ${list('📉 מלאי נמוך', (s.low_stock || []).map((p) => `${escapeHtml(p.name)}: נשארו ${p.stock}`))}
+        ${button(adminUrl, 'ללוח הבקרה')}`,
+    }),
+    text: `סיכום ${s.date}: ${s.orders} הזמנות, ${formatMoney(s.revenue)}. ממתינות לטיפול: ${s.pending}. ${adminUrl}`,
+  };
+}

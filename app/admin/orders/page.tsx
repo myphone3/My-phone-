@@ -3,8 +3,10 @@
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { orderNumber } from '@/lib/orders';
+import { orderItems, orderNumber, orderTotals } from '@/lib/orders';
 import { fetchAll } from '@/lib/fetchAll';
+import InternalNote from '@/components/admin/InternalNote';
+import { downloadCsv } from '@/lib/csv';
 import { escapeHtml, shippingLabelsHtml, waNumber } from '@/lib/shippingLabels';
 
 const STATUSES = ['חדש', 'בטיפול', 'מחכה למשלוח', 'מוכן לאיסוף', 'נשלח', 'הושלם', 'מבוטל'];
@@ -128,6 +130,30 @@ function AdminOrders() {
     if (!chosen.length) return;
     const blob = new Blob([shippingLabelsHtml(chosen)], { type: 'text/html;charset=utf-8;' });
     window.open(URL.createObjectURL(blob), '_blank');
+  };
+
+  // ייצוא ההזמנות שמוצגות (לפי החיפוש והסינון) לקובץ שנפתח באקסל
+  const exportExcel = () => {
+    const head = ['מספר הזמנה', 'תאריך', 'סטטוס', 'שם', 'טלפון', 'מייל', 'כתובת', 'מוצרים', 'משלוח', 'הנחה', 'סה"כ', 'הערות לקוח', 'הערה פנימית'];
+    const rows = filtered.map((o: any) => {
+      const t = orderTotals(o);
+      return [
+        orderNumber(o.id),
+        o.created_at ? new Date(o.created_at).toLocaleString('he-IL') : '',
+        o.status || 'חדש',
+        o.customer_name || '',
+        o.phone || o.customer_phone || '',
+        o.email || '',
+        o.address || o.customer_address || [o.city, o.street, o.building].filter(Boolean).join(' '),
+        orderItems(o).map((i) => `${i.name} ×${i.qty}`).join(' | '),
+        t.shipping,
+        t.discount,
+        t.total,
+        o.notes || '',
+        o.admin_notes || '',
+      ];
+    });
+    downloadCsv(`orders-${new Date().toISOString().slice(0, 10)}.csv`, [head, ...rows]);
   };
 
   const hasFilters = !!(search || statusFilter || fromDate || toDate);
@@ -295,11 +321,16 @@ function AdminOrders() {
           <span>ניהול הזמנות</span>
           <span className="text-sm font-normal text-gray-500">({orders.length})</span>
         </h1>
+        <div className="flex gap-2">
+        <button onClick={exportExcel} disabled={!filtered.length} className="bg-white border border-green-300 text-green-700 hover:bg-green-50 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer disabled:opacity-50">
+          📥 ייצוא לאקסל
+        </button>
         {checked.size > 0 && (
           <button onClick={printLabels} className="bg-gray-900 hover:bg-black text-white px-4 py-2 rounded-xl text-xs font-bold cursor-pointer">
             🏷️ הדפסת מדבקות משלוח ({checked.size})
           </button>
         )}
+        </div>
       </div>
 
       {/* חיפוש וסינון */}
@@ -473,6 +504,17 @@ function AdminOrders() {
                   </p>
                 )}
               </div>
+
+              <InternalNote
+                value={selectedOrder.admin_notes || ''}
+                onSave={async (text) => {
+                  const { error } = await supabase.from('orders').update({ admin_notes: text || null }).eq('id', selectedOrder.id);
+                  if (error) return false;
+                  setOrders((prev: any[]) => prev.map((o) => (o.id === selectedOrder.id ? { ...o, admin_notes: text || null } : o)));
+                  setSelectedOrder((prev: any) => (prev ? { ...prev, admin_notes: text || null } : prev));
+                  return true;
+                }}
+              />
 
               <div className="space-y-2">
                 <div className="font-bold text-gray-900 text-sm pt-1">📦 מוצרים בהזמנה</div>
