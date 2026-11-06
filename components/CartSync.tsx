@@ -39,7 +39,10 @@ export default function CartSync() {
       }, 1500);
     };
 
+    let silentWrite = false;
+
     const onCartChanged = () => {
+      if (silentWrite) return; // ניקוי שלנו: מעדכן את התצוגה בלי לשמור עגלה ריקה בחשבון
       changeCounter++;
       if (userId && !localStorage.getItem(OWNER_KEY)) localStorage.setItem(OWNER_KEY, userId);
       save();
@@ -59,10 +62,14 @@ export default function CartSync() {
       }
 
       // עגלה של חשבון אחר: מנקים אותה מיד, כדי שלא תתערבב עם העגלה של החשבון הזה
-      // (בלי אירוע, כדי שעגלה ריקה לא תישמר בחשבון לפני שהעגלה השמורה נטענה)
       localStorage.setItem(OWNER_KEY, uid);
       const cleared = !!owner && owner !== uid && local.length > 0;
-      if (cleared) localStorage.setItem('cart', '[]');
+      if (cleared) {
+        localStorage.setItem('cart', '[]');
+        silentWrite = true;
+        window.dispatchEvent(new Event('cartUpdated')); // דף העגלה מתעדכן מיד ולא מחזיק את הפריטים הקודמים
+        silentWrite = false;
+      }
 
       // טוענים את העגלה השמורה של החשבון הזה
       const before = changeCounter;
