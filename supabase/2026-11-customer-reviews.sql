@@ -32,3 +32,12 @@ end;
 $$;
 revoke all on function public.submit_review(text, int, text) from public;
 grant execute on function public.submit_review(text, int, text) to authenticated;
+
+-- Supabase grants new functions to anon by default; these are for signed-in users only
+revoke execute on function public.submit_review(text, int, text) from anon;
+revoke execute on function public.set_my_marketing_consent(boolean, text) from anon;
+revoke execute on function public.get_my_marketing_consent() from anon;
+revoke execute on function public.admin_unsubscribe_marketing(uuid) from anon;
+revoke execute on function public.admin_list_customers() from anon;
+revoke execute on function public.save_my_cart(jsonb) from anon;
+revoke execute on function public.get_my_cart() from anon;
