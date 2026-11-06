@@ -176,7 +176,7 @@ begin
     from reg
     left join ord on ord.email = reg.email
     left join public.marketing_consents m on m.user_id = reg.id
-   order by reg.created_at desc;
+   order by reg.created_at desc, reg.id;
 end;
 $$;
 revoke all on function public.admin_list_customers() from public;

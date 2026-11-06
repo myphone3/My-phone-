@@ -27,7 +27,8 @@ export default function QuickEditProducts() {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
 
-  const load = async () => {
+  // keep: טיוטות שלא נשמרו (למשל שמירה שנכשלה) נשארות אחרי הטעינה מחדש
+  const load = async (keep: Record<string, Draft> = {}) => {
     setLoading(true);
     const { data, error } = await fetchAll<Product>((a, b) =>
       supabase.from('products').select('id, name, price, sale_price, stock, image_url, images').order('name').order('id').range(a, b)
@@ -35,7 +36,7 @@ export default function QuickEditProducts() {
     setLoadError(error ? error.message || 'שגיאה בטעינה' : '');
     if (!error) {
       setProducts(data);
-      setDrafts(Object.fromEntries(data.map((p) => [p.id, toDraft(p)])));
+      setDrafts(Object.fromEntries(data.map((p) => [p.id, keep[p.id] || toDraft(p)])));
     }
     setLoading(false);
   };
@@ -75,22 +76,30 @@ export default function QuickEditProducts() {
     }
     setSaving(true);
     const failed: string[] = [];
+    const keep: Record<string, Draft> = {};
     for (const id of changedIds) {
       const d = drafts[id];
-      const { error } = await supabase
-        .from('products')
-        .update({ price: Number(d.price), sale_price: d.sale_price === '' ? null : Number(d.sale_price), stock: d.stock === '' ? null : Number(d.stock) })
-        .eq('id', id);
-      if (error) failed.push(products.find((p) => p.id === id)?.name || id);
+      const product = products.find((p) => p.id === id)!;
+      const o = toDraft(product);
+      // נשמרים רק השדות ששונו, כדי לא לדרוס שינוי שמישהו אחר עשה בינתיים בשדה אחר
+      const update: Record<string, number | null> = {};
+      if (d.price !== o.price) update.price = Number(d.price);
+      if (d.sale_price !== o.sale_price) update.sale_price = d.sale_price === '' ? null : Number(d.sale_price);
+      if (d.stock !== o.stock) update.stock = d.stock === '' ? null : Number(d.stock);
+      const { error } = await supabase.from('products').update(update).eq('id', id);
+      if (error) {
+        failed.push(product.name || id);
+        keep[id] = d;
+      }
     }
-    setSaving(false);
-    if (failed.length) showToast(`לא נשמרו: ${failed.join(', ')}`, { kind: 'error' });
+    if (failed.length) showToast(`לא נשמרו: ${failed.join(', ')}. השינויים שלהם נשארו, אפשר לנסות שוב.`, { kind: 'error' });
     else showToast(`נשמרו ${changedIds.length} מוצרים`, { kind: 'success' });
-    load();
+    await load(keep);
+    setSaving(false);
   };
 
   if (loading) return <div className="text-center py-20 text-gray-500" dir="rtl">טוען מוצרים...</div>;
-  if (loadError) return <LoadErrorBox error={loadError} what="המוצרים" onRetry={load} />;
+  if (loadError) return <LoadErrorBox error={loadError} what="המוצרים" onRetry={() => load()} />;
 
   const input = 'w-full bg-gray-50 border rounded-lg px-2 py-2 text-sm outline-none focus:border-orange-600';
 
@@ -134,6 +143,7 @@ export default function QuickEditProducts() {
                       min="0"
                       step={step}
                       value={d[field]}
+                      disabled={saving}
                       onChange={(e) => setField(p.id, field, e.target.value)}
                       className={input}
                     />
@@ -149,7 +159,7 @@ export default function QuickEditProducts() {
         <div className="fixed bottom-4 inset-x-4 sm:inset-x-auto sm:left-6 z-40 bg-gray-900 text-white rounded-2xl shadow-2xl p-3 flex items-center justify-between gap-3">
           <span className="text-xs font-bold">{changedIds.length} מוצרים שונו</span>
           <div className="flex gap-2">
-            <button onClick={() => setDrafts(Object.fromEntries(products.map((p) => [p.id, toDraft(p)])))} className="bg-white/10 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer">ביטול</button>
+            <button disabled={saving} onClick={() => setDrafts(Object.fromEntries(products.map((p) => [p.id, toDraft(p)])))} className="bg-white/10 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer">ביטול</button>
             <button onClick={save} disabled={saving} className="bg-orange-600 hover:bg-orange-700 px-4 py-2 rounded-xl text-xs font-black cursor-pointer">
               {saving ? 'שומר...' : 'שמירת השינויים'}
             </button>

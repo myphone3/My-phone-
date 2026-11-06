@@ -9,6 +9,7 @@ export const escapeHtml = (v: unknown) =>
 export function waNumber(phone?: string | null) {
   const digits = String(phone || '').replace(/\D/g, '');
   if (!digits) return '';
+  if (digits.startsWith('00972')) return digits.slice(2);
   if (digits.startsWith('972')) return digits;
   if (digits.startsWith('0')) return '972' + digits.slice(1);
   return digits;

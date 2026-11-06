@@ -46,6 +46,11 @@ function AdminOrders() {
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   // חיפוש וסינון (אפשר להגיע עם ?q=מייל ממסך הלקוחות)
   const [search, setSearch] = useState(params?.get('q') || '');
+  // מעבר לאותו מסך עם חיפוש אחר (למשל מהדשבורד) מעדכן את החיפוש
+  const qParam = params?.get('q') || '';
+  useEffect(() => {
+    if (qParam) setSearch(qParam);
+  }, [qParam]);
   const [statusFilter, setStatusFilter] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
@@ -68,14 +73,17 @@ function AdminOrders() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase().replace(/^#/, '');
-    const qDigits = q.replace(/\D/g, '');
+    // התאמה לפי ספרות רק כשהחיפוש הוא מספר (טלפון או מספר הזמנה), לא כשיש בו אותיות
+    const numericQuery = /^[\d\s\-+]+$/.test(q);
+    const qDigits = numericQuery ? q.replace(/\D/g, '') : '';
     const from = fromDate ? new Date(fromDate + 'T00:00:00') : null;
-    const to = toDate ? new Date(toDate + 'T23:59:59') : null;
+    // עד סוף היום שנבחר: עד תחילת היום שאחריו (לא כולל)
+    const to = toDate ? (([y, m, d]) => new Date(y, m - 1, d + 1))(toDate.split('-').map(Number)) : null;
     return orders.filter((o) => {
       if (statusFilter && (o.status || 'חדש') !== statusFilter) return false;
       const d = o.created_at ? new Date(o.created_at) : null;
       if (from && (!d || d < from)) return false;
-      if (to && (!d || d > to)) return false;
+      if (to && (!d || d >= to)) return false;
       if (!q) return true;
       const phone = String(o.phone || o.customer_phone || '').replace(/\D/g, '');
       return (
@@ -87,12 +95,12 @@ function AdminOrders() {
   }, [orders, search, statusFilter, fromDate, toDate]);
 
   // הגעה מהדשבורד עם מספר הזמנה: פותחים ישר את פרטי ההזמנה
-  const [autoOpened, setAutoOpened] = useState(false);
+  const [autoOpenedFor, setAutoOpenedFor] = useState('');
   useEffect(() => {
-    if (autoOpened || loading || !params?.get('q')) return;
-    setAutoOpened(true);
+    if (loading || !qParam || autoOpenedFor === qParam || search !== qParam) return;
+    setAutoOpenedFor(qParam);
     if (filtered.length === 1) setSelectedOrder(filtered[0]);
-  }, [autoOpened, loading, filtered, params]);
+  }, [autoOpenedFor, loading, filtered, qParam, search]);
 
   const statusCounts = useMemo(() => {
     const c: Record<string, number> = {};

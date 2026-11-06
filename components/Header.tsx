@@ -24,6 +24,7 @@ export default function Header() {
   const [marketingConsent, setMarketingConsent] = useState(false);
   // הבחירה הנוכחית של לקוח מחובר (null = עוד לא נטען / לא זמין)
   const [mySubscribed, setMySubscribed] = useState<boolean | null>(null);
+  const [subscriptionSaving, setSubscriptionSaving] = useState(false);
 
   // התראות שהלקוח סימן כנקראו (נשמר במכשיר שלו)
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
@@ -162,9 +163,12 @@ export default function Header() {
   const syncMarketingConsent = async () => {
     try {
       const pending = JSON.parse(localStorage.getItem('np_marketing_consent') || 'null');
-      localStorage.removeItem('np_marketing_consent');
-      if (pending?.consent === true && Date.now() - Number(pending.at) < 60 * 60 * 1000) {
-        await supabase.rpc('set_my_marketing_consent', { p_consent: true, p_source: 'signup' });
+      if (!pending || pending.consent !== true || Date.now() - Number(pending.at) >= 60 * 60 * 1000) {
+        localStorage.removeItem('np_marketing_consent');
+      } else {
+        // הבחירה נמחקת רק אחרי שנשמרה, כדי שתקלה רגעית לא תאבד אותה (ננסה שוב בכניסה הבאה)
+        const { error } = await supabase.rpc('set_my_marketing_consent', { p_consent: true, p_source: 'signup' });
+        if (!error) localStorage.removeItem('np_marketing_consent');
       }
     } catch {
       // ignore
@@ -174,12 +178,15 @@ export default function Header() {
   };
 
   // מתג "מבצעים במייל" בתפריט האישי
+  // שינוי אחד בכל פעם: עד שהשמירה מסתיימת המתג נעול, כדי שבקשות לא יגיעו בסדר הפוך
   const toggleMySubscription = async () => {
-    if (mySubscribed === null) return;
+    if (mySubscribed === null || subscriptionSaving) return;
     const next = !mySubscribed;
+    setSubscriptionSaving(true);
     setMySubscribed(next);
     const { error } = await supabase.rpc('set_my_marketing_consent', { p_consent: next, p_source: 'menu' });
     if (error) setMySubscribed(!next);
+    setSubscriptionSaving(false);
   };
 
   // כפתורי ההרשמה באתר פותחים את חלון ההרשמה
@@ -512,6 +519,7 @@ export default function Header() {
                         type="checkbox"
                         role="switch"
                         checked={mySubscribed}
+                        disabled={subscriptionSaving}
                         onChange={toggleMySubscription}
                         className="w-5 h-5 accent-orange-600 shrink-0"
                       />

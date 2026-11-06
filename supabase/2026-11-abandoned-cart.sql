@@ -39,7 +39,8 @@ begin
   if v_uid is null or v_email = '' then
     return;
   end if;
-  if jsonb_typeof(v_items) <> 'array' or jsonb_array_length(v_items) > 50 or octet_length(v_items::text) > 50000 then
+  if jsonb_typeof(v_items) <> 'array' or jsonb_array_length(v_items) > 100 or octet_length(v_items::text) > 100000
+     or exists (select 1 from jsonb_array_elements(v_items) e where jsonb_typeof(e) <> 'object') then
     raise exception 'invalid cart';
   end if;
   insert into public.saved_carts as c (user_id, email, name, items, updated_at)
@@ -48,7 +49,8 @@ begin
     set items = excluded.items,
         email = excluded.email,
         name = coalesce(excluded.name, c.name),
-        updated_at = now();
+        -- the reminder clock restarts only when the cart actually changed
+        updated_at = case when c.items is distinct from excluded.items then now() else c.updated_at end;
 end;
 $$;
 revoke all on function public.save_my_cart(jsonb) from public;
@@ -76,7 +78,8 @@ security definer
 set search_path to 'public'
 as $$
 begin
-  if p_secret is null or p_secret <> (select s.value from public.app_secrets s where s.name = 'cron') then
+  -- null-safe: a missing secret row (or a missing argument) must never let the call through
+  if p_secret is null or p_secret is distinct from (select s.value from public.app_secrets s where s.name = 'cron') then
     return;
   end if;
   return query

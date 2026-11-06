@@ -130,7 +130,6 @@ export function abandonedCartEmail(opts: { name?: string | null; items: SavedCar
   const cell = 'padding:10px 0; border-bottom:1px solid #f3f4f6; vertical-align:middle;';
   const total = opts.items.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.quantity) || 1), 0);
   const rows = opts.items
-    .slice(0, 6)
     .map((i) => {
       const img = i.image_url
         ? `<img src="${escapeHtml(i.image_url)}" alt="" width="52" height="52" style="width:52px; height:52px; object-fit:contain; border-radius:10px; border:1px solid #f3f4f6; background:#f9fafb;" />`
