@@ -110,8 +110,10 @@ security definer
 set search_path to 'public'
 as $$
 declare
-  v_from timestamptz := date_trunc('day', now() at time zone 'Asia/Jerusalem') at time zone 'Asia/Jerusalem' - interval '1 day';
-  v_to timestamptz := v_from + interval '1 day';
+  -- גבולות "אתמול" לפי שעון ישראל (כולל מעבר שעון קיץ/חורף)
+  v_today date := (now() at time zone 'Asia/Jerusalem')::date;
+  v_from timestamptz := (v_today - 1)::timestamp at time zone 'Asia/Jerusalem';
+  v_to timestamptz := v_today::timestamp at time zone 'Asia/Jerusalem';
 begin
   if p_secret is null or p_secret is distinct from (select s.value from public.app_secrets s where s.name = 'cron') then
     return null;

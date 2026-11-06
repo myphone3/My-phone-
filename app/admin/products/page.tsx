@@ -95,8 +95,8 @@ export default function AdminProductsPage() {
     // אם טעינת העלויות נכשלה (או לא הושלמה), לא מציגים את השדה, כדי ששמירה לא תמחק עלות קיימת
     const costRes = await fetchAll((a, b) => supabase.from('product_costs').select('product_id, cost').order('product_id').range(a, b));
     // עובד (לא בעלים) לא רואה ולא שומר עלויות
-    const { data: myRole } = await supabase.rpc('my_admin_role');
-    setCostAvailable(!costRes.error && myRole !== 'staff');
+    const roleRes = await supabase.rpc('my_admin_role');
+    setCostAvailable(!costRes.error && !roleRes.error && roleRes.data === 'owner');
     if (!costRes.error) setCosts(Object.fromEntries(costRes.data.map((c: any) => [c.product_id, Number(c.cost)])));
 
     if (!prodRes.error) setProducts(prodRes.data);

@@ -24,9 +24,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
         const [{ data, error }, roleRes] = await Promise.all([supabase.rpc('is_admin'), supabase.rpc('my_admin_role')]);
         if (cancelled) return;
-        // עובד (staff) רואה רק את המסכים של העבודה השוטפת; בעלים רואה הכל
-        setRole(!roleRes.error && roleRes.data === 'staff' ? 'staff' : 'owner');
-        setAccess(!error && data === true ? 'allowed' : 'denied');
+        // עובד (staff) רואה רק את המסכים של העבודה השוטפת; בעלים רואה הכל.
+        // נכנסים רק כשהתפקיד מאושר (owner או staff); תקלה בבדיקה = אין גישה.
+        const r = roleRes.error ? null : roleRes.data;
+        if (r === 'owner' || r === 'staff') setRole(r);
+        setAccess(!error && data === true && (r === 'owner' || r === 'staff') ? 'allowed' : 'denied');
       } catch {
         if (!cancelled) setAccess('denied');
       }

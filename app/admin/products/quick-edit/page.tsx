@@ -81,21 +81,35 @@ export default function QuickEditProducts() {
       const r = bulkMode === 'up%' ? n * (1 + v / 100) : bulkMode === 'down%' ? n * (1 - v / 100) : bulkMode === 'up' ? n + v : n - v;
       return Math.max(1, Math.round(r));
     };
-    setDrafts((prev) => {
-      const next = { ...prev };
-      for (const p of shown) {
-        const d = next[p.id];
-        if (!d || d.price === '' || !(Number(d.price) > 0)) continue;
-        const price = calc(Number(d.price));
-        // מחיר מבצע זז באותו יחס, וגם נשאר נמוך מהמחיר
-        const sale = d.sale_price !== '' && Number(d.sale_price) > 0 ? Math.min(calc(Number(d.sale_price)), price - 1) : null;
-        next[p.id] = { ...d, price: String(price), sale_price: sale && sale > 0 ? String(sale) : '' };
+    if (!Number.isFinite(v)) return showToast('מספר לא תקין', { kind: 'error' });
+    const next = { ...drafts };
+    let changed = 0;
+    let skipped = 0;
+    for (const p of shown) {
+      const d = next[p.id];
+      const base = Number(d?.price);
+      if (!d || d.price === '' || !Number.isFinite(base) || !(base > 0)) {
+        skipped++;
+        continue;
       }
-      return next;
-    });
+      const price = calc(base);
+      if (!Number.isFinite(price)) {
+        skipped++;
+        continue;
+      }
+      // מחיר מבצע זז באותו יחס, וגם נשאר נמוך מהמחיר
+      const saleBase = Number(d.sale_price);
+      const sale = d.sale_price !== '' && Number.isFinite(saleBase) && saleBase > 0 ? Math.min(calc(saleBase), price - 1) : null;
+      next[p.id] = { ...d, price: String(price), sale_price: sale && sale > 0 ? String(sale) : '' };
+      changed++;
+    }
+    setDrafts(next);
     setBulkOpen(false);
     setBulkValue('');
-    showToast(`המחירים עודכנו ב-${shown.length} מוצרים. בדקו ולחצו "שמירה".`, { kind: 'success' });
+    showToast(
+      `המחיר עודכן ב-${changed} מוצרים${skipped ? ` (${skipped} דולגו כי אין להם מחיר)` : ''}. בדקו ולחצו "שמירה".`,
+      { kind: changed ? 'success' : 'error' }
+    );
   };
 
   const setField = (id: string, field: keyof Draft, value: string) => setDrafts((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
@@ -106,7 +120,7 @@ export default function QuickEditProducts() {
       const d = drafts[id];
       const name = products.find((p) => p.id === id)?.name;
       const price = Number(d.price);
-      if (d.price === '' || !(price > 0)) return showToast(`מחיר לא תקין: ${name}`, { kind: 'error' });
+      if (d.price === '' || !Number.isFinite(price) || !(price > 0)) return showToast(`מחיר לא תקין: ${name}`, { kind: 'error' });
       if (d.sale_price !== '' && !(Number(d.sale_price) > 0 && Number(d.sale_price) < price)) return showToast(`מחיר המבצע צריך להיות נמוך מהמחיר: ${name}`, { kind: 'error' });
       if (d.stock !== '' && !(Number.isInteger(Number(d.stock)) && Number(d.stock) >= 0)) return showToast(`מלאי לא תקין: ${name}`, { kind: 'error' });
     }

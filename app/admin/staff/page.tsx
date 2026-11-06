@@ -23,11 +23,18 @@ export default function StaffPage() {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<'staff' | 'owner'>('staff');
   const [busy, setBusy] = useState(false);
+  const [state, setState] = useState<'loading' | 'error' | 'ready'>('loading');
 
   const load = async () => {
-    const [{ data }, { data: session }] = await Promise.all([supabase.rpc('admin_list_staff'), supabase.auth.getSession()]);
+    setState('loading');
+    const [{ data, error }, { data: session }] = await Promise.all([supabase.rpc('admin_list_staff'), supabase.auth.getSession()]);
+    if (error) {
+      setState('error');
+      return;
+    }
     setMembers((data as Member[]) || []);
     setMe(session.session?.user.id || '');
+    setState('ready');
   };
 
   useEffect(() => {
@@ -104,7 +111,14 @@ export default function StaffPage() {
             )}
           </div>
         ))}
-        {!members.length && <div className="p-6 text-center text-xs text-gray-400">טוען...</div>}
+        {state === 'loading' && !members.length && <div className="p-6 text-center text-xs text-gray-400">טוען...</div>}
+        {state === 'error' && (
+          <div className="p-6 text-center space-y-2">
+            <p className="text-xs text-red-600 font-bold">לא הצלחנו לטעון את רשימת הצוות.</p>
+            <button onClick={load} className="bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-black cursor-pointer">נסו שוב</button>
+          </div>
+        )}
+        {state === 'ready' && !members.length && <div className="p-6 text-center text-xs text-gray-400">אין עדיין אנשי צוות.</div>}
       </div>
     </div>
   );

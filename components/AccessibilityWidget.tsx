@@ -5,6 +5,21 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { A11Y_DEFAULT, A11Y_KEY, A11ySettings, applyA11y, readA11y } from '@/lib/a11y';
 
+function Option({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      onClick={onClick}
+      className={`w-full text-right px-3 py-2.5 rounded-xl border text-sm font-bold transition cursor-pointer ${
+        on ? 'bg-blue-700 text-white border-blue-700' : 'bg-white text-gray-800 border-gray-200 hover:border-blue-400'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
 // כפתור נגישות צף: הגדלת טקסט, ניגודיות, הדגשת קישורים ועצירת אנימציות
 export default function AccessibilityWidget() {
   const [open, setOpen] = useState(false);
@@ -35,19 +50,6 @@ export default function AccessibilityWidget() {
   };
 
   if (pathname?.startsWith('/admin')) return null;
-
-  const Option = ({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) => (
-    <button
-      type="button"
-      aria-pressed={on}
-      onClick={onClick}
-      className={`w-full text-right px-3 py-2.5 rounded-xl border text-sm font-bold transition cursor-pointer ${
-        on ? 'bg-blue-700 text-white border-blue-700' : 'bg-white text-gray-800 border-gray-200 hover:border-blue-400'
-      }`}
-    >
-      {children}
-    </button>
-  );
 
   return (
     <div className={`fixed bottom-5 right-5 ${open ? 'z-[70]' : 'z-40'}`} dir="rtl">
