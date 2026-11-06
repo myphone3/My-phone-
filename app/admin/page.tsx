@@ -74,7 +74,7 @@ export default function AdminDashboard() {
         <h1 className="text-lg font-black text-gray-900">לוח בקרה</h1>
         <button
           onClick={fetchDashboardData}
-          className="text-xs font-bold text-gray-500 hover:text-gray-800 bg-white border px-3 py-1.5 rounded-xl cursor-pointer"
+          className="text-xs font-bold text-orange-700 bg-white border border-orange-200 hover:bg-orange-50 px-3 py-1.5 rounded-xl cursor-pointer"
         >
           🔄 רענון
         </button>
@@ -83,27 +83,27 @@ export default function AdminDashboard() {
       {/* קוביות נתונים */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: 'הכנסות היום', value: `₪${Math.round(todayRevenue).toLocaleString()}`, sub: `${todayOrders.length} הזמנות`, href: '/admin/reports' },
-          { label: 'הכנסות החודש', value: `₪${Math.round(monthlyRevenue).toLocaleString()}`, sub: monthCostedRevenue > 0 ? `רווח גולמי ₪${Math.round(monthCostedRevenue - monthCost).toLocaleString()}` : `${monthOrders.length} הזמנות`, href: '/admin/reports' },
-          { label: 'ממתינות לטיפול', value: String(newOrders.length), sub: `מתוך ${orders.length} הזמנות`, href: '/admin/orders' },
-          { label: 'מלאי נמוך', value: String(lowStockProducts.length), sub: lowStockProducts.length ? 'מוצרים לעדכון' : 'הכל תקין', href: '/admin/products/quick-edit' },
+          { label: 'הכנסות היום', value: `₪${Math.round(todayRevenue).toLocaleString()}`, sub: `${todayOrders.length} הזמנות`, href: '/admin/reports', color: 'text-blue-700' },
+          { label: 'הכנסות החודש', value: `₪${Math.round(monthlyRevenue).toLocaleString()}`, sub: monthCostedRevenue > 0 ? `רווח גולמי ₪${Math.round(monthCostedRevenue - monthCost).toLocaleString()}` : `${monthOrders.length} הזמנות`, href: '/admin/reports', color: 'text-green-700' },
+          { label: 'ממתינות לטיפול', value: String(newOrders.length), sub: `מתוך ${orders.length} הזמנות`, href: '/admin/orders', color: 'text-purple-700' },
+          { label: 'מלאי נמוך', value: String(lowStockProducts.length), sub: lowStockProducts.length ? 'מוצרים לעדכון' : 'הכל תקין', href: '/admin/products/quick-edit', color: 'text-red-600' },
         ].map((c) => (
-          <Link key={c.label} href={c.href} className="bg-white rounded-2xl border border-orange-100 shadow-sm p-4 min-w-0 hover:border-orange-300 transition">
-            <span className="block text-[11px] font-bold text-gray-500 truncate">{c.label}</span>
-            <span className="block text-2xl font-black text-orange-600 mt-1 truncate tabular-nums">{c.value}</span>
-            <span className="block text-[11px] text-gray-400 mt-0.5 truncate">{c.sub}</span>
+          <Link key={c.label} href={c.href} className="bg-orange-100 rounded-2xl border-2 border-orange-300 shadow-sm p-4 min-w-0 hover:bg-orange-200/70 transition">
+            <span className="block text-[11px] font-bold text-orange-900 truncate">{c.label}</span>
+            <span className={`block text-2xl font-black mt-1 truncate tabular-nums ${c.color}`}>{c.value}</span>
+            <span className="block text-[11px] text-orange-800/80 mt-0.5 truncate">{c.sub}</span>
           </Link>
         ))}
       </div>
 
       {/* הזמנות חדשות: רשימה קצרה, לחיצה פותחת את ההזמנה במסך ההזמנות */}
-      <div className="bg-white p-5 rounded-3xl border shadow-sm space-y-3">
+      <div className="bg-white p-5 rounded-3xl border-2 border-orange-200 shadow-sm space-y-3">
         <div className="flex justify-between items-center">
           <h3 className="font-black text-base text-gray-900">🆕 הזמנות חדשות ({newOrders.length})</h3>
           <Link href="/admin/orders" className="text-xs font-bold text-orange-600 hover:underline">כל ההזמנות ←</Link>
         </div>
         {newOrders.length > 0 ? (
-          <ul className="divide-y">
+          <ul className="divide-y divide-orange-100">
             {newOrders.map((ord) => (
               <li key={ord.id}>
                 <Link
@@ -130,8 +130,8 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-3">
-          <div className="flex justify-between items-center border-b pb-3">
+        <div className="bg-white p-6 rounded-3xl border-2 border-orange-200 shadow-sm space-y-3">
+          <div className="flex justify-between items-center border-b border-orange-100 pb-3">
             <h3 className="font-black text-base text-gray-900">🏆 הנמכרים ביותר</h3>
             <Link href="/admin/reports" className="text-xs font-bold text-orange-600 hover:underline">לדוחות ➔</Link>
           </div>
@@ -152,8 +152,8 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-3">
-          <div className="flex justify-between items-center border-b pb-3">
+        <div className="bg-white p-6 rounded-3xl border-2 border-orange-200 shadow-sm space-y-3">
+          <div className="flex justify-between items-center border-b border-orange-100 pb-3">
             <h3 className="font-black text-base text-gray-900">📉 מלאי נמוך</h3>
             <Link href="/admin/products" className="text-xs font-bold text-orange-600 hover:underline">לניהול מוצרים ➔</Link>
           </div>
