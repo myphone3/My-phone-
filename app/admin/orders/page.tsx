@@ -49,7 +49,7 @@ function AdminOrders() {
   // מעבר לאותו מסך עם חיפוש אחר (למשל מהדשבורד) מעדכן את החיפוש
   const qParam = params?.get('q') || '';
   useEffect(() => {
-    if (qParam) setSearch(qParam);
+    setSearch(qParam);
   }, [qParam]);
   const [statusFilter, setStatusFilter] = useState('');
   const [fromDate, setFromDate] = useState('');

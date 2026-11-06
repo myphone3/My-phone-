@@ -163,10 +163,10 @@ export default function Header() {
   const syncMarketingConsent = async () => {
     try {
       const pending = JSON.parse(localStorage.getItem('np_marketing_consent') || 'null');
-      if (!pending || pending.consent !== true || Date.now() - Number(pending.at) >= 60 * 60 * 1000) {
+      if (!pending || pending.consent !== true || Date.now() - Number(pending.at) >= 10 * 60 * 1000) {
         localStorage.removeItem('np_marketing_consent');
       } else {
-        // הבחירה נמחקת רק אחרי שנשמרה, כדי שתקלה רגעית לא תאבד אותה (ננסה שוב בכניסה הבאה)
+        // הבחירה תקפה 10 דקות בלבד (זמן ההתחברות עם גוגל), ונמחקת רק אחרי שנשמרה
         const { error } = await supabase.rpc('set_my_marketing_consent', { p_consent: true, p_source: 'signup' });
         if (!error) localStorage.removeItem('np_marketing_consent');
       }

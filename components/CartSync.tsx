@@ -33,7 +33,8 @@ export default function CartSync() {
       clearTimeout(timer);
       const uid = userId;
       timer = setTimeout(() => {
-        if (localStorage.getItem(OWNER_KEY) !== uid) return;
+        // שומרים רק אם עדיין מחובר אותו חשבון והעגלה שלו
+        if (userId !== uid || localStorage.getItem(OWNER_KEY) !== uid) return;
         supabase.rpc('save_my_cart', { p_items: readCart() }).then(() => undefined, () => undefined);
       }, 1500);
     };
@@ -46,6 +47,7 @@ export default function CartSync() {
 
     const onLogin = async (uid: string) => {
       if (userId === uid) return;
+      clearTimeout(timer); // שמירה ממתינה של חשבון קודם לא תגיע לחשבון החדש
       userId = uid;
       const owner = localStorage.getItem(OWNER_KEY);
       const local = readCart();
@@ -56,18 +58,21 @@ export default function CartSync() {
         return save();
       }
 
-      // עגלה ריקה, או עגלה של חשבון אחר: טוענים את העגלה השמורה של החשבון הזה
+      // עגלה של חשבון אחר: מנקים אותה מיד, כדי שלא תתערבב עם העגלה של החשבון הזה
+      // (בלי אירוע, כדי שעגלה ריקה לא תישמר בחשבון לפני שהעגלה השמורה נטענה)
+      localStorage.setItem(OWNER_KEY, uid);
+      const cleared = !!owner && owner !== uid && local.length > 0;
+      if (cleared) localStorage.setItem('cart', '[]');
+
+      // טוענים את העגלה השמורה של החשבון הזה
       const before = changeCounter;
+      const rawBefore = localStorage.getItem('cart');
       const { data, error } = await supabase.rpc('get_my_cart');
       if (error || userId !== uid) return;
-      // אם הלקוח שינה את העגלה בזמן הטעינה, לא דורסים את השינוי
-      if (changeCounter !== before) {
-        localStorage.setItem(OWNER_KEY, uid);
-        return save();
-      }
+      // אם הלקוח שינה את העגלה בזמן הטעינה (גם בלשונית אחרת), לא דורסים את השינוי
+      if (changeCounter !== before || localStorage.getItem('cart') !== rawBefore) return save();
       const saved = Array.isArray(data) ? data.filter((i: any) => i && typeof i === 'object') : [];
-      localStorage.setItem(OWNER_KEY, uid);
-      if (saved.length || (owner && owner !== uid)) writeCart(saved);
+      if (saved.length || cleared) writeCart(saved);
     };
 
     supabase.auth.getSession().then(({ data }) => {
@@ -75,7 +80,10 @@ export default function CartSync() {
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
       if (session?.user) onLogin(session.user.id);
-      else userId = null;
+      else {
+        userId = null;
+        clearTimeout(timer);
+      }
     });
     window.addEventListener('cartUpdated', onCartChanged);
     return () => {
