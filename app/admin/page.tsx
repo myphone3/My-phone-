@@ -81,43 +81,19 @@ export default function AdminDashboard() {
       </div>
 
       {/* קוביות נתונים */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-2 border-r-4 border-r-orange-600">
-          <span className="text-xs font-bold text-gray-500 block">הזמנות חדשות לטיפול</span>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-black text-gray-900">{newOrders.length}</span>
-            <span className="text-xs text-orange-600 font-bold">מתוך {orders.length} סה"כ</span>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-2 border-r-4 border-r-blue-600">
-          <span className="text-xs font-bold text-gray-500 block">הכנסות היום</span>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-black text-blue-600">₪{todayRevenue.toLocaleString()}</span>
-            <span className="text-xs text-gray-400">{todayOrders.length} הזמנות</span>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-2 border-r-4 border-r-green-600">
-          <span className="text-xs font-bold text-gray-500 block">הכנסות החודש</span>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-black text-green-600">₪{monthlyRevenue.toLocaleString()}</span>
-            <span className="text-xs text-gray-400">{monthOrders.length} הזמנות</span>
-          </div>
-          {monthCostedRevenue > 0 && (
-            <span className="text-[11px] font-bold text-gray-500 block">
-              רווח גולמי (מוצרים עם עלות): ₪{Math.round(monthCostedRevenue - monthCost).toLocaleString()}
-            </span>
-          )}
-        </div>
-
-        <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-2 border-r-4 border-r-red-500">
-          <span className="text-xs font-bold text-gray-500 block">מוצרים במלאי נמוך (≤ 3)</span>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-black text-red-500">{lowStockProducts.length}</span>
-            <span className="text-xs text-gray-400">דורש עדכון</span>
-          </div>
-        </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: 'הכנסות היום', value: `₪${Math.round(todayRevenue).toLocaleString()}`, sub: `${todayOrders.length} הזמנות`, href: '/admin/reports' },
+          { label: 'הכנסות החודש', value: `₪${Math.round(monthlyRevenue).toLocaleString()}`, sub: monthCostedRevenue > 0 ? `רווח גולמי ₪${Math.round(monthCostedRevenue - monthCost).toLocaleString()}` : `${monthOrders.length} הזמנות`, href: '/admin/reports' },
+          { label: 'ממתינות לטיפול', value: String(newOrders.length), sub: `מתוך ${orders.length} הזמנות`, href: '/admin/orders' },
+          { label: 'מלאי נמוך', value: String(lowStockProducts.length), sub: lowStockProducts.length ? 'מוצרים לעדכון' : 'הכל תקין', href: '/admin/products/quick-edit' },
+        ].map((c) => (
+          <Link key={c.label} href={c.href} className="bg-white rounded-2xl border border-orange-100 shadow-sm p-4 min-w-0 hover:border-orange-300 transition">
+            <span className="block text-[11px] font-bold text-gray-500 truncate">{c.label}</span>
+            <span className="block text-2xl font-black text-orange-600 mt-1 truncate tabular-nums">{c.value}</span>
+            <span className="block text-[11px] text-gray-400 mt-0.5 truncate">{c.sub}</span>
+          </Link>
+        ))}
       </div>
 
       {/* הזמנות חדשות: רשימה קצרה, לחיצה פותחת את ההזמנה במסך ההזמנות */}

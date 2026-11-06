@@ -92,6 +92,9 @@ export default function Header() {
     updateCartCount();
     window.addEventListener('storage', updateCartCount);
     window.addEventListener('cartUpdated', updateCartCount);
+    // כפתורים אחרים באתר (למשל "כתבו ביקורת") יכולים לפתוח את חלון ההרשמה
+    const openSignup = () => setSignupOpen(true);
+    window.addEventListener('open-signup', openSignup);
 
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -104,6 +107,7 @@ export default function Header() {
       subscription.unsubscribe();
       window.removeEventListener('storage', updateCartCount);
       window.removeEventListener('cartUpdated', updateCartCount);
+      window.removeEventListener('open-signup', openSignup);
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);

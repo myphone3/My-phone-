@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { showToast } from '@/lib/toast';
 import { LoadErrorBox, isMissingTable } from '@/components/admin/LoadErrorBox';
 
-type Review = { id: string; name: string; rating: number; text: string; image_url: string | null; sort_order: number; is_active: boolean };
+type Review = { id: string; name: string; rating: number; text: string; image_url: string | null; sort_order: number; is_active: boolean; source?: string | null; created_at?: string };
 
 const EMPTY = { name: '', rating: '5', text: '', image_url: '', sort_order: '0', is_active: true };
 
@@ -115,16 +115,28 @@ export default function ReviewsAdmin() {
       </form>
 
       <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-3">
+        {reviews.some((r) => r.source === 'customer' && !r.is_active) && (
+          <div className="bg-orange-50 border border-orange-200 rounded-2xl p-3 text-xs font-bold text-orange-800">
+            יש ביקורות חדשות מלקוחות שמחכות לאישור. לחיצה על "אישור והצגה" מפרסמת אותן באתר.
+          </div>
+        )}
         <h3 className="font-black text-base text-gray-900">כל הביקורות ({reviews.length})</h3>
         {reviews.length === 0 && <p className="text-xs text-gray-500">עדיין אין ביקורות.</p>}
-        {reviews.map((r) => (
-          <div key={r.id} className={`border rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${r.is_active ? '' : 'opacity-50'}`}>
+        {[...reviews].sort((a, b) => Number(b.source === 'customer' && !b.is_active) - Number(a.source === 'customer' && !a.is_active)).map((r) => (
+          <div key={r.id} className={`border rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${r.is_active || r.source === 'customer' ? '' : 'opacity-50'}`}>
             <div className="min-w-0">
-              <div className="text-sm font-black text-gray-900">{r.name} <span className="text-amber-400">{'★'.repeat(r.rating)}</span></div>
+              <div className="text-sm font-black text-gray-900">
+                {r.name} <span className="text-amber-400">{'★'.repeat(r.rating)}</span>
+                {r.source === 'customer' && (
+                  <span className={`mr-2 text-[10px] font-bold px-2 py-0.5 rounded-full ${r.is_active ? 'bg-gray-100 text-gray-600' : 'bg-orange-100 text-orange-700'}`}>
+                    {r.is_active ? 'נכתבה ע"י לקוח' : 'מחכה לאישור'}
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-gray-600 line-clamp-2">{r.text}</p>
             </div>
             <div className="flex gap-2 shrink-0">
-              <button onClick={() => toggle(r)} className="bg-gray-100 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer">{r.is_active ? 'הסתרה' : 'הצגה'}</button>
+              <button onClick={() => toggle(r)} className="bg-gray-100 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer">{r.is_active ? 'הסתרה' : r.source === 'customer' ? 'אישור והצגה ✓' : 'הצגה'}</button>
               <button
                 onClick={() => {
                   setEditingId(r.id);

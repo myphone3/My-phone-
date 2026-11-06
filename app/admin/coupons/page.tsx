@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase';
 
 export default function AdminCouponsPage() {
   const [coupons, setCoupons] = useState<any[]>([]);
+  // שלושה סוגי מבצעים, כל אחד בלשונית משלו
+  const [tab, setTab] = useState<'coupons' | 'threshold' | 'welcome'>('coupons');
   const [productsList, setProductsList] = useState<any[]>([]);
   const [productSearch, setProductSearch] = useState('');
   const [isGiftDropdownOpen, setIsGiftDropdownOpen] = useState(false);
@@ -185,14 +187,39 @@ export default function AdminCouponsPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-8" dir="rtl">
+    <div className="max-w-4xl mx-auto space-y-5" dir="rtl">
       
-      <div className="mb-2">
-        <h1 className="text-2xl font-black text-gray-900">🎁 ניהול מבצעים וקופונים</h1>
+      <div className="space-y-3">
+        <h1 className="text-xl font-black text-gray-900">🎟️ מבצעים וקופונים</h1>
+        <div className="grid grid-cols-3 gap-2">
+          {([
+            ['coupons', '🎟️', 'קופוני הנחה', `${coupons.length} קופונים`],
+            ['threshold', '🚚', 'מבצע מעל סכום', thresholdActive ? 'פעיל' : 'כבוי'],
+            ['welcome', '🎁', 'מתנת הצטרפות', welcomeActive ? 'פעיל' : 'כבוי'],
+          ] as const).map(([key, icon, label, status]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTab(key)}
+              className={`rounded-2xl border p-3 text-center cursor-pointer transition ${
+                tab === key ? 'bg-orange-600 border-orange-600 text-white shadow-md' : 'bg-white text-gray-800 hover:border-orange-300'
+              }`}
+            >
+              <span className="block text-xl">{icon}</span>
+              <span className="block text-xs font-black mt-1">{label}</span>
+              <span className={`block text-[10px] font-bold mt-0.5 ${tab === key ? 'text-orange-100' : status === 'פעיל' ? 'text-green-600' : 'text-gray-400'}`}>{status}</span>
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-gray-600 bg-orange-50 border border-orange-100 rounded-xl p-3">
+          {tab === 'coupons' && 'קוד שהלקוח מקליד בקופה ומקבל הנחה. למשל: הקוד SALE10 נותן 10% הנחה.'}
+          {tab === 'threshold' && 'מבצע אוטומטי לכל הלקוחות: מי שקונה מעל סכום מסוים מקבל משלוח חינם, והמבצע מוצג בפס בראש האתר.'}
+          {tab === 'welcome' && 'מתנה או הנחה ללקוח שנרשם לאתר, על ההזמנה הראשונה שלו. מוצג בחלון ההרשמה.'}
+        </p>
       </div>
 
       {/* 1. מבצע קנייה מעל סכום מסוים */}
-      <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border space-y-4">
+      <div hidden={tab !== 'threshold'} className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border space-y-4">
         <h2 className="text-base sm:text-lg font-black text-gray-900 border-b pb-2">📢 מבצע קנייה מעל סכום מסוים (שורה עליונה)</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -263,7 +290,7 @@ export default function AdminCouponsPage() {
       </div>
 
       {/* 2. מבצע הצטרפות */}
-      <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border space-y-4">
+      <div hidden={tab !== 'welcome'} className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border space-y-4">
         <h2 className="text-base sm:text-lg font-black text-gray-900 border-b pb-2">🎁 מבצע הצטרפות</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -408,7 +435,7 @@ export default function AdminCouponsPage() {
       </div>
 
       {/* 3. הוספת קופון רגיל */}
-      <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border">
+      <div hidden={tab !== 'coupons'} className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border">
         <h2 className="text-base sm:text-lg font-black text-gray-900 mb-4 border-b pb-2">➕ הוספת קופון חדש</h2>
         <form onSubmit={handleAddCoupon} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -457,14 +484,14 @@ export default function AdminCouponsPage() {
             </div>
           </div>
 
-          <button type="submit" className="bg-black text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-gray-800 transition cursor-pointer">
+          <button type="submit" className="bg-orange-600 text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-orange-700 transition cursor-pointer">
             צור קופון חדש ✨
           </button>
         </form>
       </div>
 
       {/* רשימת קופונים קיימים */}
-      <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
+      <div hidden={tab !== 'coupons'} className="bg-white rounded-3xl shadow-sm border overflow-hidden">
         <div className="p-4 border-b bg-gray-50 font-bold text-sm">קופונים קיימים במערכת ({coupons.length})</div>
         {coupons.length === 0 ? (
           <p className="p-6 text-center text-gray-500">אין קופונים פעילים כרגע.</p>

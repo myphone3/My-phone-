@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -41,59 +41,41 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     };
   }, []);
 
-  // התפריט מסודר בקבוצות. ארבעת המסכים הנפוצים מופיעים תמיד למעלה, השאר בתפריט "כל המסכים"
-  const quickItems = [
-    { name: 'ראשי', icon: '🏠', href: '/admin' },
-    { name: 'הזמנות', icon: '📋', href: '/admin/orders' },
-    { name: 'מוצרים', icon: '📦', href: '/admin/products' },
-    { name: 'לקוחות', icon: '👥', href: '/admin/customers' },
-  ];
+  // כל המסכים בסרגל אחד, בלחיצה אחת, מסודרים לפי כמה משתמשים בהם (קבוצות מופרדות בקו)
   const groups = [
-    {
-      title: 'מכירות',
-      items: [
-        { name: 'הזמנות', icon: '📋', href: '/admin/orders' },
-        { name: 'לקוחות', icon: '👥', href: '/admin/customers' },
-        { name: 'דוחות מכירות', icon: '📊', href: '/admin/reports' },
-      ],
-    },
-    {
-      title: 'מוצרים וקטלוג',
-      items: [
-        { name: 'מוצרים', icon: '📦', href: '/admin/products' },
-        { name: 'קטגוריות', icon: '📁', href: '/admin/categories' },
-        { name: 'מותגים', icon: '🏷️', href: '/admin/brands' },
-        { name: 'כשרויות', icon: '✡️', href: '/admin/kosher' },
-        { name: 'גרסאות', icon: '⚙️', href: '/admin/versions' },
-        { name: 'ספריית מדיה', icon: '🖼️', href: '/admin/media' },
-      ],
-    },
-    {
-      title: 'שיווק ומבצעים',
-      items: [
-        { name: 'מבצעים וקופונים', icon: '🎟️', href: '/admin/coupons' },
-        { name: 'באנרים בעמוד הבית', icon: '🪧', href: '/admin/banners' },
-        { name: 'קישורי פרסום', icon: '📣', href: '/admin/campaigns' },
-        { name: 'מיילים ללקוחות', icon: '✉️', href: '/admin/email' },
-      ],
-    },
-    {
-      title: 'תוכן האתר והגדרות',
-      items: [
-        { name: 'ביקורות לקוחות', icon: '⭐', href: '/admin/reviews' },
-        { name: 'שאלות נפוצות', icon: '❓', href: '/admin/faq' },
-        { name: 'גוגל ומעקב (SEO)', icon: '🔍', href: '/admin/seo' },
-      ],
-    },
+    [
+      { name: 'ראשי', icon: '🏠', href: '/admin' },
+      { name: 'הזמנות', icon: '📋', href: '/admin/orders' },
+      { name: 'מוצרים', icon: '📦', href: '/admin/products' },
+      { name: 'לקוחות', icon: '👥', href: '/admin/customers' },
+      { name: 'דוחות', icon: '📊', href: '/admin/reports' },
+    ],
+    [
+      { name: 'מבצעים וקופונים', icon: '🎟️', href: '/admin/coupons' },
+      { name: 'קישורי פרסום', icon: '📣', href: '/admin/campaigns' },
+      { name: 'באנרים', icon: '🪧', href: '/admin/banners' },
+      { name: 'מיילים', icon: '✉️', href: '/admin/email' },
+    ],
+    [
+      { name: 'ביקורות', icon: '⭐', href: '/admin/reviews' },
+      { name: 'שאלות נפוצות', icon: '❓', href: '/admin/faq' },
+      { name: 'גוגל (SEO)', icon: '🔍', href: '/admin/seo' },
+    ],
+    [
+      { name: 'קטגוריות', icon: '📁', href: '/admin/categories' },
+      { name: 'מותגים', icon: '🏷️', href: '/admin/brands' },
+      { name: 'כשרויות', icon: '✡️', href: '/admin/kosher' },
+      { name: 'גרסאות', icon: '⚙️', href: '/admin/versions' },
+      { name: 'מדיה', icon: '🖼️', href: '/admin/media' },
+    ],
   ];
-  const [menuOpen, setMenuOpen] = useState(false);
   const isActive = (href: string) => (href === '/admin' ? pathname === '/admin' : pathname === href || pathname.startsWith(href + '/'));
-  const current = groups.flatMap((g) => g.items.map((i) => ({ ...i, group: g.title }))).find((i) => isActive(i.href));
+  const activeRef = useRef<HTMLAnchorElement | null>(null);
 
-  // סוגר את התפריט במעבר בין מסכים
+  // הלשונית הפעילה תמיד נראית בסרגל
   useEffect(() => {
-    setMenuOpen(false);
-  }, [pathname]);
+    activeRef.current?.scrollIntoView({ block: 'nearest', inline: 'center' });
+  }, [pathname, access]);
 
   // מי שאינו מנהל מוחזר לדף הבית בשקט
   useEffect(() => {
@@ -105,74 +87,37 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-4 space-y-4" dir="rtl">
-      {/* תפריט ניהול עליון */}
-      <div className="bg-white border rounded-2xl shadow-sm p-2 space-y-2">
-        <div className="flex items-center gap-1.5">
-          <Link
-            href="/"
-            className="shrink-0 flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-[11px] font-bold text-gray-600 hover:bg-gray-100"
-            title="מעבר לחנות"
-          >
-            <img src="/Logo.JPG" alt="" className="w-6 h-6 object-contain rounded-md" />
-            <span className="hidden sm:inline">לחנות</span>
+      {/* תפריט ניהול: כל המסכים בלחיצה אחת. בטלפון גוללים את הסרגל הצידה */}
+      <nav className="-mx-4 px-4 pb-3 border-b border-orange-100">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar lg:flex-wrap">
+          <Link href="/" className="shrink-0 flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-bold text-orange-700 bg-white border border-orange-200" title="מעבר לחנות">
+            <img src="/Logo.JPG" alt="" className="w-5 h-5 object-contain rounded" />
+            לחנות
           </Link>
-          <div className="h-6 w-px bg-gray-200 shrink-0" />
-          <nav className="flex-1 grid grid-cols-4 gap-1">
-            {quickItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold transition ${
-                  isActive(item.href) ? 'bg-orange-600 text-white' : 'text-gray-700 hover:bg-orange-50'
-                }`}
-              >
-                <span className="text-base sm:text-sm leading-none">{item.icon}</span>
-                {item.name}
-              </Link>
-            ))}
-          </nav>
-          <button
-            type="button"
-            onClick={() => setMenuOpen((o) => !o)}
-            aria-expanded={menuOpen}
-            className={`shrink-0 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1.5 px-2.5 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold cursor-pointer ${
-              menuOpen ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-800'
-            }`}
-          >
-            <span className="text-base sm:text-sm leading-none">{menuOpen ? '✕' : '☰'}</span>
-            עוד
-          </button>
-        </div>
-
-        {menuOpen && (
-          <div className="border-t pt-3 pb-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {groups.map((g) => (
-              <div key={g.title} className="space-y-1">
-                <div className="text-[11px] font-black text-gray-400 tracking-wide px-2">{g.title}</div>
-                {g.items.map((item) => (
+          {groups.map((items, gi) => (
+            <React.Fragment key={gi}>
+              <span className="shrink-0 w-px h-6 bg-orange-200 mx-1" aria-hidden="true" />
+              {items.map((item) => {
+                const active = isActive(item.href);
+                return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center gap-2.5 px-2 py-2 rounded-xl text-sm font-bold ${
-                      isActive(item.href) ? 'bg-orange-50 text-orange-700' : 'text-gray-800 hover:bg-gray-50'
+                    ref={active ? activeRef : null}
+                    aria-current={active ? 'page' : undefined}
+                    className={`shrink-0 flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition ${
+                      active ? 'bg-orange-600 text-white shadow-sm' : 'bg-white text-gray-700 border border-orange-100 hover:border-orange-300 hover:text-orange-700'
                     }`}
                   >
-                    <span className="w-7 text-center">{item.icon}</span>
+                    <span aria-hidden="true">{item.icon}</span>
                     {item.name}
                   </Link>
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* איפה אני עכשיו */}
-      {current && current.href !== '/admin' && (
-        <div className="text-[11px] text-gray-400 font-bold px-1">
-          {current.group} · <span className="text-gray-700">{current.name}</span>
+                );
+              })}
+            </React.Fragment>
+          ))}
         </div>
-      )}
+      </nav>
 
       <main>{children}</main>
     </div>
