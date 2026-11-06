@@ -667,7 +667,8 @@ export default function Header() {
               <img src="/Logo.JPG" alt="NEW PHONE" className="w-20 h-20 object-contain shadow-xs group-hover:scale-105 transition" />
             </Link>
 
-            {/* צד ימין: כפתור עגלה */}
+            {/* צד ימין: עגלה ומועדפים */}
+            <div className="flex items-center gap-2 shrink-0">
             <Link 
               href="/cart" 
               className="relative p-2 bg-orange-50/40 hover:bg-orange-50 border-2 border-orange-200 text-orange-700 rounded-xl transition shadow-2xs flex items-center justify-center shrink-0 font-bold ml-2 cursor-pointer"
@@ -680,6 +681,15 @@ export default function Header() {
                 </span>
               )}
             </Link>
+            <Link
+              href="/favorites"
+              className="p-2 bg-rose-50/40 hover:bg-rose-50 border-2 border-rose-200 rounded-xl transition shadow-2xs flex items-center justify-center"
+              title="המועדפים שלי"
+              aria-label="המועדפים שלי"
+            >
+              <span className="text-lg">❤️</span>
+            </Link>
+            </div>
 
           </div>
 

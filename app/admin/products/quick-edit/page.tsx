@@ -7,7 +7,7 @@ import { showToast } from '@/lib/toast';
 import { fetchAll } from '@/lib/fetchAll';
 import { LoadErrorBox } from '@/components/admin/LoadErrorBox';
 
-type Product = { id: string; name: string; price: number | null; sale_price: number | null; stock: number | null; image_url?: string | null; images?: any };
+type Product = { id: string; name: string; price: number | null; sale_price: number | null; stock: number | null; image_url?: string | null; images?: any; brand?: string | null; category?: string | null };
 type Draft = { price: string; sale_price: string; stock: string };
 
 const toDraft = (p: Product): Draft => ({
@@ -26,12 +26,17 @@ export default function QuickEditProducts() {
   const [loadError, setLoadError] = useState('');
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
+  const [brand, setBrand] = useState('');
+  const [category, setCategory] = useState('');
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkMode, setBulkMode] = useState<'up%' | 'down%' | 'up' | 'down'>('up%');
+  const [bulkValue, setBulkValue] = useState('');
 
   // keep: טיוטות שלא נשמרו (למשל שמירה שנכשלה) נשארות אחרי הטעינה מחדש
   const load = async (keep: Record<string, Draft> = {}) => {
     setLoading(true);
     const { data, error } = await fetchAll<Product>((a, b) =>
-      supabase.from('products').select('id, name, price, sale_price, stock, image_url, images').order('name').order('id').range(a, b)
+      supabase.from('products').select('id, name, price, sale_price, stock, image_url, images, brand, category').order('name').order('id').range(a, b)
     );
     setLoadError(error ? error.message || 'שגיאה בטעינה' : '');
     if (!error) {
@@ -59,8 +64,53 @@ export default function QuickEditProducts() {
 
   const shown = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return q ? products.filter((p) => p.name.toLowerCase().includes(q)) : products;
-  }, [products, search]);
+    return products.filter(
+      (p) => (!q || p.name.toLowerCase().includes(q)) && (!brand || p.brand === brand) && (!category || p.category === category)
+    );
+  }, [products, search, brand, category]);
+
+  const brands = useMemo(() => Array.from(new Set(products.map((p) => p.brand).filter(Boolean))).sort() as string[], [products]);
+  const categories = useMemo(() => Array.from(new Set(products.map((p) => p.category).filter(Boolean))).sort() as string[], [products]);
+
+  // שינוי מחיר לכל המוצרים שמוצגים כרגע (לפי החיפוש והסינון). נכנס כטיוטה, ונשמר רק בלחיצה על "שמירה".
+  const applyBulk = () => {
+    const v = Number(bulkValue);
+    if (!(v > 0)) return showToast('צריך לכתוב מספר גדול מ-0', { kind: 'error' });
+    if (bulkMode === 'down%' && v >= 100) return showToast('אי אפשר להוריד 100% או יותר', { kind: 'error' });
+    const calc = (n: number) => {
+      const r = bulkMode === 'up%' ? n * (1 + v / 100) : bulkMode === 'down%' ? n * (1 - v / 100) : bulkMode === 'up' ? n + v : n - v;
+      return Math.max(1, Math.round(r));
+    };
+    if (!Number.isFinite(v)) return showToast('מספר לא תקין', { kind: 'error' });
+    const next = { ...drafts };
+    let changed = 0;
+    let skipped = 0;
+    for (const p of shown) {
+      const d = next[p.id];
+      const base = Number(d?.price);
+      if (!d || d.price === '' || !Number.isFinite(base) || !(base > 0)) {
+        skipped++;
+        continue;
+      }
+      const price = calc(base);
+      if (!Number.isFinite(price)) {
+        skipped++;
+        continue;
+      }
+      // מחיר מבצע זז באותו יחס, וגם נשאר נמוך מהמחיר
+      const saleBase = Number(d.sale_price);
+      const sale = d.sale_price !== '' && Number.isFinite(saleBase) && saleBase > 0 ? Math.min(calc(saleBase), price - 1) : null;
+      next[p.id] = { ...d, price: String(price), sale_price: sale && sale > 0 ? String(sale) : '' };
+      changed++;
+    }
+    setDrafts(next);
+    setBulkOpen(false);
+    setBulkValue('');
+    showToast(
+      `המחיר עודכן ב-${changed} מוצרים${skipped ? ` (${skipped} דולגו כי אין להם מחיר)` : ''}. בדקו ולחצו "שמירה".`,
+      { kind: changed ? 'success' : 'error' }
+    );
+  };
 
   const setField = (id: string, field: keyof Draft, value: string) => setDrafts((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
 
@@ -70,7 +120,7 @@ export default function QuickEditProducts() {
       const d = drafts[id];
       const name = products.find((p) => p.id === id)?.name;
       const price = Number(d.price);
-      if (d.price === '' || !(price > 0)) return showToast(`מחיר לא תקין: ${name}`, { kind: 'error' });
+      if (d.price === '' || !Number.isFinite(price) || !(price > 0)) return showToast(`מחיר לא תקין: ${name}`, { kind: 'error' });
       if (d.sale_price !== '' && !(Number(d.sale_price) > 0 && Number(d.sale_price) < price)) return showToast(`מחיר המבצע צריך להיות נמוך מהמחיר: ${name}`, { kind: 'error' });
       if (d.stock !== '' && !(Number.isInteger(Number(d.stock)) && Number(d.stock) >= 0)) return showToast(`מלאי לא תקין: ${name}`, { kind: 'error' });
     }
@@ -111,12 +161,56 @@ export default function QuickEditProducts() {
         <p className="text-xs text-gray-500">משנים מחיר, מחיר מבצע ומלאי, ושומרים את כל השינויים בלחיצה אחת. מחיר מבצע ריק = אין מבצע.</p>
       </div>
 
-      <input
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="חיפוש מוצר..."
-        className="w-full bg-white border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
-      />
+      <div className="bg-white p-3 rounded-2xl border space-y-2">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="חיפוש מוצר..."
+          className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
+        />
+        <div className="grid grid-cols-2 gap-2">
+          <select value={brand} onChange={(e) => setBrand(e.target.value)} className="bg-gray-50 border rounded-xl p-2.5 text-xs">
+            <option value="">כל המותגים</option>
+            {brands.map((b) => <option key={b} value={b}>{b}</option>)}
+          </select>
+          <select value={category} onChange={(e) => setCategory(e.target.value)} className="bg-gray-50 border rounded-xl p-2.5 text-xs">
+            <option value="">כל הקטגוריות</option>
+            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <button
+          type="button"
+          onClick={() => setBulkOpen((o) => !o)}
+          className="w-full bg-orange-50 border border-orange-200 text-orange-700 rounded-xl py-2.5 text-xs font-black cursor-pointer"
+        >
+          💸 שינוי מחיר ל-{shown.length} המוצרים שמוצגים
+        </button>
+        {bulkOpen && (
+          <div className="bg-orange-50/60 border border-orange-200 rounded-xl p-3 space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <select value={bulkMode} onChange={(e) => setBulkMode(e.target.value as any)} className="bg-white border rounded-xl p-2.5 text-xs">
+                <option value="up%">העלאה באחוזים (%)</option>
+                <option value="down%">הורדה באחוזים (%)</option>
+                <option value="up">העלאה בשקלים (₪)</option>
+                <option value="down">הורדה בשקלים (₪)</option>
+              </select>
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                value={bulkValue}
+                onChange={(e) => setBulkValue(e.target.value)}
+                placeholder={bulkMode.endsWith('%') ? 'למשל 5' : 'למשל 20'}
+                className="bg-white border rounded-xl p-2.5 text-xs outline-none focus:border-orange-600"
+              />
+            </div>
+            <p className="text-[11px] text-gray-500">המחיר ומחיר המבצע ישתנו בכל המוצרים שברשימה למטה, מעוגל לשקל שלם. שום דבר לא נשמר עד שלוחצים "שמירה".</p>
+            <button type="button" onClick={applyBulk} className="w-full bg-orange-600 text-white rounded-xl py-2.5 text-xs font-black cursor-pointer">
+              החלה על {shown.length} מוצרים
+            </button>
+          </div>
+        )}
+      </div>
 
       <div className="bg-white rounded-3xl border shadow-sm divide-y">
         {shown.map((p) => {

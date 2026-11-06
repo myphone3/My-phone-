@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { showAddedToCart } from '@/lib/toast';
 import { versionExtra as getVersionExtra } from '@/lib/versionPrice';
+import FavoriteButton from './FavoriteButton';
 
 const asArray = (val: any): any[] => {
   if (Array.isArray(val)) return val;
@@ -63,6 +64,7 @@ export default function ProductCard({ product }: { product: any }) {
               מבצע 🔥
             </span>
           )}
+          <FavoriteButton productId={product.id} />
           {image ? (
             <img src={image} alt={product.name} className="h-full object-contain group-hover:scale-105 transition" />
           ) : (
@@ -78,6 +80,9 @@ export default function ProductCard({ product }: { product: any }) {
             <span className="text-base font-black text-orange-600">₪{price}</span>
             {onSale && <span className="text-xs text-gray-400 line-through">₪{regularPrice}</span>}
           </div>
+          {product.stock != null && Number(product.stock) > 0 && Number(product.stock) <= 3 && (
+            <p className="text-[11px] font-bold text-red-600">🔥 נשארו רק {Number(product.stock)}</p>
+          )}
         </div>
       </Link>
 

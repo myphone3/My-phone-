@@ -1,6 +1,11 @@
 'use client';
 
 import React, { useEffect, useState, Suspense, useRef } from 'react';
+import { addRecentlyViewed } from '@/lib/recentlyViewed';
+import ProductSuggestions from '@/components/ProductSuggestions';
+import FavoriteButton from '@/components/FavoriteButton';
+import CompareButton from '@/components/CompareButton';
+import { whatsappLink } from '@/lib/storeInfo';
 import { supabase } from '@/lib/supabase';
 import { versionExtra as getVersionExtra } from '@/lib/versionPrice';
 import { useParams, useRouter } from 'next/navigation';
@@ -76,6 +81,7 @@ function ProductDetailContent() {
 
       const data = prodRes.data;
       setProduct(data);
+      addRecentlyViewed(data.id);
       setActiveTab(data.description ? 'desc' : data.specs ? 'specs' : 'faq');
       if (brandRes.data) setBrandsList(brandRes.data);
       if (kosherRes.data) setKosherList(kosherRes.data);
@@ -392,6 +398,16 @@ function ProductDetailContent() {
             )}
           </div>
 
+          {/* מלאי נמוך */}
+          {product.stock != null && Number(product.stock) <= 0 && (
+            <div className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-600 text-xs font-black px-3 py-1.5 rounded-xl">אזל מהמלאי</div>
+          )}
+          {product.stock != null && Number(product.stock) > 0 && Number(product.stock) <= 3 && (
+            <div className="inline-flex items-center gap-1.5 bg-red-50 text-red-600 border border-red-100 text-xs font-black px-3 py-1.5 rounded-xl">
+              🔥 נשארו רק {Number(product.stock)} במלאי
+            </div>
+          )}
+
           {/* בחירת צבע (חובה רק אם יש יותר מאפשרות אחת) */}
           {colors.length > 0 && (
             <div className="space-y-2">
@@ -530,6 +546,21 @@ function ProductDetailContent() {
             <span>🛒</span>
           </button>
 
+          {/* פעולות נוספות: שאלה בוואטסאפ, מועדפים, השוואה */}
+          <div className="flex gap-2">
+            <a
+              href={whatsappLink(`שלום, יש לי שאלה על ${product.name}: ${typeof window !== 'undefined' ? window.location.href : ''}`)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-[1.3] flex items-center justify-center gap-1 px-1 py-2.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition"
+            >
+              <span>💬</span>
+              <span className="whitespace-nowrap">שאלה בוואטסאפ</span>
+            </a>
+            <FavoriteButton productId={product.id} variant="pill" />
+            <CompareButton productId={product.id} />
+          </div>
+
           <TrustBadges compact />
 
           {/* שיתוף */}
@@ -577,43 +608,6 @@ function ProductDetailContent() {
         </div>
       </div>
 
-      {/* מוצרים אולי יעניינו אותך עם תגית מבצע ומחיר כתום */}
-      {relatedProducts.length > 0 && (
-        <div className="bg-white p-6 sm:p-8 rounded-3xl border shadow-sm space-y-6">
-          <h3 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">מוצרים שאולי יעניינו אותך</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {relatedProducts.map((relProd) => {
-              const relPrice = relProd.sale_price || relProd.price;
-              return (
-                <Link 
-                  key={relProd.id} 
-                  href={`/product/${relProd.id}`}
-                  className="bg-gray-50 p-3 rounded-2xl border border-gray-100 hover:shadow-md transition flex flex-col justify-between group"
-                >
-                  <div className="h-32 w-full bg-white rounded-xl flex items-center justify-center p-2 relative overflow-hidden">
-                    {relProd.sale_price && (
-                      <span className="absolute top-1 left-1 bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-lg shadow-xs z-10">
-                        מבצע 🔥
-                      </span>
-                    )}
-                    <img src={relProd.image_url || relProd.images?.[0]} alt="" className="h-full object-contain group-hover:scale-105 transition" />
-                  </div>
-                  <div className="mt-2 space-y-1">
-                    <h4 className="font-bold text-xs text-gray-900 text-right group-hover:text-orange-600 transition" dir="auto">{relProd.name}</h4>
-                    <div className="flex items-center justify-end gap-1.5">
-                      <span className="text-xs font-black text-orange-600">₪{relPrice}</span>
-                      {relProd.sale_price && (
-                        <span className="text-[10px] text-gray-400 line-through">₪{relProd.price}</span>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       {/* אזור לשוניות (תיאור מלא / מפרט מלא / שאלות נפוצות) */}
       <div ref={detailsRef} className="bg-white p-6 sm:p-8 rounded-3xl border shadow-sm space-y-6 scroll-mt-6">
         <div className="flex border-b gap-4">
@@ -657,6 +651,8 @@ function ProductDetailContent() {
           {activeTab === 'faq' && <FaqList productId={product.id} />}
         </div>
       </div>
+
+      <ProductSuggestions product={product} related={relatedProducts} />
 
       {/* פופאפ Upsell */}
       {showUpsellModal && upsellTargetProduct && (

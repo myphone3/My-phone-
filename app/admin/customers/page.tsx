@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import InternalNote from '@/components/admin/InternalNote';
 import { supabase } from '@/lib/supabase';
 import { showToast } from '@/lib/toast';
 import { fetchAll } from '@/lib/fetchAll';
@@ -32,6 +33,8 @@ export default function AdminCustomersPage() {
   const [loadError, setLoadError] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState('');
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const [openNote, setOpenNote] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -39,6 +42,16 @@ export default function AdminCustomersPage() {
     setLoadError(error ? error.message || 'שגיאה בטעינה' : '');
     if (!error) setCustomers(data);
     setLoading(false);
+    // הערות פנימיות על לקוחות (אם הטבלה עוד לא קיימת, פשוט אין הערות)
+    const { data: n } = await supabase.from('customer_notes').select('email, note');
+    setNotes(Object.fromEntries((n || []).map((r: any) => [r.email, r.note])));
+  };
+
+  const saveNote = async (email: string, text: string) => {
+    const { error } = await supabase.from('customer_notes').upsert({ email, note: text, updated_at: new Date().toISOString() });
+    if (error) return false;
+    setNotes((prev) => ({ ...prev, [email]: text }));
+    return true;
   };
 
   useEffect(() => {
@@ -141,8 +154,24 @@ export default function AdminCustomersPage() {
             <tbody className="divide-y text-gray-800">
               {shown.length > 0 ? (
                 shown.map((c) => (
-                  <tr key={c.user_id || c.email} className="hover:bg-gray-50 transition">
-                    <td className="p-4 font-black text-gray-900">{c.name || '—'}</td>
+                  <React.Fragment key={c.user_id || c.email}>
+                  <tr className="hover:bg-gray-50 transition">
+                    <td className="p-4 font-black text-gray-900">
+                      <span className="flex items-center gap-2">
+                        {c.name || '—'}
+                        <button
+                          type="button"
+                          onClick={() => setOpenNote(openNote === c.email ? '' : c.email)}
+                          title="הערה פנימית"
+                          className={`text-xs px-1.5 py-0.5 rounded-lg cursor-pointer ${notes[c.email] ? 'bg-yellow-100' : 'opacity-50 hover:opacity-100'}`}
+                        >
+                          📝
+                        </button>
+                      </span>
+                      {notes[c.email] && openNote !== c.email && (
+                        <span className="block text-[11px] font-normal text-yellow-800 mt-1 max-w-[220px] truncate">{notes[c.email]}</span>
+                      )}
+                    </td>
                     <td className="p-4 text-blue-600 font-bold" dir="ltr">{c.email}</td>
                     <td className="p-4" dir="ltr">{c.phone || '—'}</td>
                     <td className="p-4 text-gray-600 whitespace-nowrap">
@@ -168,6 +197,14 @@ export default function AdminCustomersPage() {
                       )}
                     </td>
                   </tr>
+                  {openNote === c.email && (
+                    <tr>
+                      <td colSpan={6} className="px-4 pb-4">
+                        <InternalNote value={notes[c.email] || ''} onSave={(text) => saveNote(c.email, text)} />
+                      </td>
+                    </tr>
+                  )}
+                  </React.Fragment>
                 ))
               ) : (
                 <tr>

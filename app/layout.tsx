@@ -8,6 +8,9 @@ import type { Metadata } from 'next';
 import Analytics from '../components/Analytics';
 import CampaignTracker from '../components/CampaignTracker';
 import CartSync from '../components/CartSync';
+import AccessibilityWidget from '../components/AccessibilityWidget';
+import CompareBar from '../components/CompareBar';
+import { A11Y_BOOT_SCRIPT } from '@/lib/a11y';
 import { Suspense } from 'react';
 import { getSiteSettings } from '@/lib/siteSettings';
 
@@ -40,6 +43,7 @@ export default function RootLayout({
   return (
     <html lang="he" dir="rtl">
       <head>
+        <script dangerouslySetInnerHTML={{ __html: A11Y_BOOT_SCRIPT }} />
         <Script
           src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-fzkOn_MnGATKsLfCbQC3KaRgQmVlcso&libraries=places&language=he"
           strategy="beforeInteractive"
@@ -62,6 +66,8 @@ export default function RootLayout({
           <CampaignTracker />
         </Suspense>
         <CartSync />
+        <AccessibilityWidget />
+        <CompareBar />
 
       </body>
     </html>

@@ -4,12 +4,12 @@ import path from 'path';
 import { supabase } from '@/lib/supabase';
 import { mailTransport } from '@/lib/mailer';
 import { buildOrderPdf, PDF_ASSET_PATHS } from '@/lib/orderPdf';
-import { orderConfirmationEmail } from '@/lib/orderEmails';
+import { adminNewOrderEmail, orderConfirmationEmail } from '@/lib/orderEmails';
 import { Order, orderNumber } from '@/lib/orders';
 
 export const runtime = 'nodejs';
 
-// מייל אישור הזמנה עם PDF, ללקוח ועותק לחנות.
+// מייל אישור הזמנה עם PDF ללקוח, ומייל התראה נפרד לחנות על כל הזמנה.
 // הבסיס נתונים מחזיר את ההזמנה רק עם המפתח החד-פעמי שנוצר בעגלה, ורק פעם אחת.
 export async function POST(request: Request) {
   try {
@@ -23,6 +23,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
     const order = data as Order;
+    const origin = new URL(request.url).origin;
+
+    // התראה לחנות (גם אם ללקוח אין מייל). תקלה כאן לא עוצרת את המייל ללקוח.
+    try {
+      const alert = adminNewOrderEmail(order, `${origin}/admin/orders?q=${orderNumber(order.id)}`);
+      await mailTransport().sendMail({
+        from: `"NEW PHONE" <${process.env.GMAIL_USER}>`,
+        to: process.env.GMAIL_USER,
+        replyTo: order.email || undefined,
+        subject: alert.subject,
+        text: alert.text,
+        html: alert.html,
+      });
+    } catch (err) {
+      console.error('Admin order alert failed:', err);
+    }
+
     if (!order.email) {
       return NextResponse.json({ success: true, skipped: 'no email' });
     }
@@ -36,13 +53,12 @@ export async function POST(request: Request) {
     ]);
     const pdf = await buildOrderPdf(order, { regular, bold, logo });
 
-    const ordersUrl = `${new URL(request.url).origin}/cart?tab=orders`;
+    const ordersUrl = `${origin}/cart?tab=orders`;
     const email = orderConfirmationEmail(order, ordersUrl);
 
     await mailTransport().sendMail({
       from: `"NEW PHONE" <${process.env.GMAIL_USER}>`,
       to: order.email,
-      bcc: process.env.GMAIL_USER,
       subject: email.subject,
       text: email.text,
       html: email.html,
