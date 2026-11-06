@@ -71,6 +71,7 @@ export default function AdminProductsPage() {
 
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [duplicatedFrom, setDuplicatedFrom] = useState('');
   
   const [showPreviewShort, setShowPreviewShort] = useState(false);
   const [showPreviewFull, setShowPreviewFull] = useState(false);
@@ -351,11 +352,13 @@ export default function AdminProductsPage() {
     setSeoDescription('');
     setSeoKeywords('');
     setEditingId(null);
+    setDuplicatedFrom('');
     setShowForm(false);
   };
 
   const handleEdit = (prod: any) => {
     setEditingId(prod.id);
+    setDuplicatedFrom('');
     setName(prod.name || '');
     setSku(prod.sku || '');
     setSlug(prod.slug || '');
@@ -392,6 +395,17 @@ export default function AdminProductsPage() {
     setSeoKeywords(prod.seo_keywords || '');
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // שכפול: טופס חדש עם כל הפרטים והתמונות של המוצר, בלי מק"ט וכתובת (שחייבים להיות ייחודיים)
+  const handleDuplicate = (prod: any) => {
+    handleEdit(prod);
+    setEditingId(null);
+    setName(`${prod.name || ''} (עותק)`);
+    setSku('');
+    setSlug('');
+    setIsDraft(true);
+    setDuplicatedFrom(prod.name || '');
   };
 
   const handleDelete = async (id: string) => {
@@ -456,7 +470,7 @@ export default function AdminProductsPage() {
         <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-6">
           <div className="flex justify-between items-center border-b pb-4">
             <h2 className="text-base font-black text-gray-900 border-r-4 border-orange-600 pr-3">
-              {editingId ? 'עריכת מוצר קיים' : 'הוספת מוצר חדש לחנות'}
+              {editingId ? 'עריכת מוצר קיים' : duplicatedFrom ? `שכפול של: ${duplicatedFrom}` : 'הוספת מוצר חדש לחנות'}
             </h2>
             <button
               type="button"
@@ -1069,6 +1083,7 @@ export default function AdminProductsPage() {
               </div>
               <div className="flex gap-2 text-xs">
                 <button type="button" onClick={() => handleEdit(p)} className="text-blue-600 font-bold hover:underline cursor-pointer">עריכה</button>
+                <button type="button" onClick={() => handleDuplicate(p)} className="text-orange-600 font-bold hover:underline cursor-pointer">שכפול</button>
                 <button type="button" onClick={() => handleDelete(p.id)} className="text-red-500 font-bold hover:underline cursor-pointer">מחיקה</button>
               </div>
             </div>

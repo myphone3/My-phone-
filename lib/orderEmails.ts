@@ -154,3 +154,24 @@ export function abandonedCartEmail(opts: { name?: string | null; items: SavedCar
   });
   return { subject: 'שכחת משהו בעגלה? המוצרים שלך מחכים 🛒', html };
 }
+
+// התראה לחנות על כל הזמנה חדשה (נשלחת גם כשהלקוח לא השאיר מייל)
+export function adminNewOrderEmail(order: Order, adminUrl: string) {
+  const number = orderNumber(order.id);
+  const total = formatMoney(orderTotals(order).total);
+  const notes = order.notes ? `<p style="margin:8px 0; font-size:13px;"><b>הערות הלקוח:</b> ${escapeHtml(order.notes)}</p>` : '';
+  return {
+    subject: `🛒 הזמנה חדשה #${number} – ${total}`,
+    html: layout({
+      title: '🛒 הזמנה חדשה!',
+      subtitle: `מספר הזמנה #${number} · ${total}`,
+      body: `
+        ${addressBox(order)}
+        ${order.email ? `<p style="margin:0; font-size:13px;">מייל: ${escapeHtml(order.email)}</p>` : '<p style="margin:0; font-size:12px; color:#6b7280;">הלקוח לא השאיר מייל.</p>'}
+        ${notes}
+        ${itemsTable(order)}
+        ${button(adminUrl, 'פתיחת ההזמנה בניהול')}`,
+    }),
+    text: `הזמנה חדשה #${number} – ${total}. ${order.customer_name || ''} ${order.phone || order.customer_phone || ''}. לפתיחה: ${adminUrl}`,
+  };
+}

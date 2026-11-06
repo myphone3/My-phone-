@@ -1,4 +1,5 @@
 'use client';
+import RecentlyViewed from '@/components/RecentlyViewed';
 
 import React, { useEffect, useState, useRef, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -589,6 +590,8 @@ function StoreContent() {
             </div>
           </section>
         )}
+
+        <RecentlyViewed />
 
         {/* כל המוצרים */}
         <section className="space-y-6 pt-4 border-t">

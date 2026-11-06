@@ -1,6 +1,9 @@
 'use client';
 
 import React, { useEffect, useState, Suspense, useRef } from 'react';
+import { addRecentlyViewed } from '@/lib/recentlyViewed';
+import RecentlyViewed from '@/components/RecentlyViewed';
+import AlsoBought from '@/components/AlsoBought';
 import { supabase } from '@/lib/supabase';
 import { versionExtra as getVersionExtra } from '@/lib/versionPrice';
 import { useParams, useRouter } from 'next/navigation';
@@ -76,6 +79,7 @@ function ProductDetailContent() {
 
       const data = prodRes.data;
       setProduct(data);
+      addRecentlyViewed(data.id);
       setActiveTab(data.description ? 'desc' : data.specs ? 'specs' : 'faq');
       if (brandRes.data) setBrandsList(brandRes.data);
       if (kosherRes.data) setKosherList(kosherRes.data);
@@ -614,6 +618,8 @@ function ProductDetailContent() {
         </div>
       )}
 
+      <AlsoBought product={product} />
+
       {/* אזור לשוניות (תיאור מלא / מפרט מלא / שאלות נפוצות) */}
       <div ref={detailsRef} className="bg-white p-6 sm:p-8 rounded-3xl border shadow-sm space-y-6 scroll-mt-6">
         <div className="flex border-b gap-4">
@@ -657,6 +663,8 @@ function ProductDetailContent() {
           {activeTab === 'faq' && <FaqList productId={product.id} />}
         </div>
       </div>
+
+      <RecentlyViewed excludeId={product.id} />
 
       {/* פופאפ Upsell */}
       {showUpsellModal && upsellTargetProduct && (

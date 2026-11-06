@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { showAddedToCart } from '@/lib/toast';
+import { showAddedToCart, showToast } from '@/lib/toast';
+import { COMPARE_EVENT, COMPARE_MAX, getCompare, toggleCompare } from '@/lib/compare';
 import { versionExtra as getVersionExtra } from '@/lib/versionPrice';
 
 const asArray = (val: any): any[] => {
@@ -30,6 +31,22 @@ export default function ProductCard({ product }: { product: any }) {
   const regularPrice = (Number(product.price) || 0) + versionExtra;
   // מוצר עם כמה צבעים או גרסאות: הלקוח בוחר בעמוד המוצר
   const needsChoice = colors.length > 1 || versions.length > 1;
+
+  const [inCompare, setInCompare] = useState(false);
+  useEffect(() => {
+    const update = () => setInCompare(getCompare().includes(product.id));
+    update();
+    window.addEventListener(COMPARE_EVENT, update);
+    return () => window.removeEventListener(COMPARE_EVENT, update);
+  }, [product.id]);
+
+  const handleCompare = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!toggleCompare(product.id)) {
+      showToast(`אפשר להשוות עד ${COMPARE_MAX} מכשירים. הסירו אחד ונסו שוב.`, { kind: 'error' });
+    }
+  };
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -81,7 +98,7 @@ export default function ProductCard({ product }: { product: any }) {
         </div>
       </Link>
 
-      <div className="mt-2">
+      <div className="mt-2 space-y-1.5">
         {needsChoice ? (
           <Link
             href={`/product/${product.id}`}
@@ -97,6 +114,16 @@ export default function ProductCard({ product }: { product: any }) {
             הוספה לעגלה 🛒
           </button>
         )}
+        <button
+          type="button"
+          onClick={handleCompare}
+          aria-pressed={inCompare}
+          className={`w-full py-1.5 rounded-xl text-[11px] font-bold border transition cursor-pointer ${
+            inCompare ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-gray-200 hover:border-orange-300 hover:text-orange-700'
+          }`}
+        >
+          {inCompare ? '✓ בהשוואה' : '⚖️ השוואה'}
+        </button>
       </div>
     </div>
   );
