@@ -121,3 +121,36 @@ export function orderStatusEmail(order: Order, status: string, ordersUrl: string
     text: `שלום ${order.customer_name || ''}, ${copy.text} (הזמנה #${number}). למעקב: ${ordersUrl}`,
   };
 }
+
+export type SavedCartItem = { name: string; price: number; quantity: number; image_url?: string | null };
+
+// תזכורת לעגלה שלא הושלמה. נשלחת רק ללקוח רשום שאישר קבלת מבצעים במייל, ותמיד עם קישור הסרה
+export function abandonedCartEmail(opts: { name?: string | null; items: SavedCartItem[]; cartUrl: string; unsubscribeUrl: string }) {
+  const first = escapeHtml((opts.name || '').trim().split(/\s+/)[0] || 'לקוח יקר');
+  const cell = 'padding:10px 0; border-bottom:1px solid #f3f4f6; vertical-align:middle;';
+  const total = opts.items.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.quantity) || 1), 0);
+  const rows = opts.items
+    .map((i) => {
+      const img = i.image_url
+        ? `<img src="${escapeHtml(i.image_url)}" alt="" width="52" height="52" style="width:52px; height:52px; object-fit:contain; border-radius:10px; border:1px solid #f3f4f6; background:#f9fafb;" />`
+        : '';
+      return `<tr><td style="${cell} width:60px;">${img}</td><td style="${cell}">${escapeHtml(i.name)}${(Number(i.quantity) || 1) > 1 ? ` × ${Number(i.quantity)}` : ''}</td><td style="${cell} text-align:left; white-space:nowrap; font-weight:bold;">${formatMoney((Number(i.price) || 0) * (Number(i.quantity) || 1))}</td></tr>`;
+    })
+    .join('');
+  const html = layout({
+    title: 'שכחת משהו בעגלה? 🛒',
+    subtitle: 'המוצרים שבחרת עדיין מחכים לך',
+    body: `
+      <p style="margin:0 0 8px;">שלום ${first},</p>
+      <p style="margin:0;">ראינו שהשארת מוצרים בעגלה ולא השלמת את ההזמנה. שמרנו לך אותם:</p>
+      <table dir="rtl" style="width:100%; border-collapse:collapse; font-size:13px; margin:14px 0;">${rows}
+        <tr><td></td><td style="padding:10px 0 0; font-weight:900; color:${ORANGE};">סה״כ</td><td style="padding:10px 0 0; font-weight:900; color:${ORANGE}; text-align:left;">${formatMoney(total)}</td></tr>
+      </table>
+      ${button(opts.cartUrl, 'להשלמת ההזמנה')}
+      <p style="margin:14px 0 0; font-size:11px; color:#9ca3af; text-align:center;">
+        קיבלת את המייל כי אישרת לקבל מאיתנו מבצעים ועדכונים.
+        <a href="${opts.unsubscribeUrl}" style="color:#9ca3af;">להסרה מרשימת הדיוור</a>
+      </p>`,
+  });
+  return { subject: 'שכחת משהו בעגלה? המוצרים שלך מחכים 🛒', html };
+}

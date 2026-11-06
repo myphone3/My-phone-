@@ -27,6 +27,7 @@ export default function CampaignsPage() {
   const [orders, setOrders] = useState<(Order & { ref?: string | null })[]>([]);
   const [form, setForm] = useState(EMPTY);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showMore, setShowMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [missingTables, setMissingTables] = useState(false);
   const [loadError, setLoadError] = useState('');
@@ -67,6 +68,24 @@ export default function CampaignsPage() {
       }),
     [campaigns, orders, visits]
   );
+
+  // לחיצה על מקום הפרסום ממלאת שם וקוד לבד (למשל facebook-11-26)
+  const SOURCES = [
+    { key: 'facebook', label: 'פייסבוק', icon: '📘' },
+    { key: 'instagram', label: 'אינסטגרם', icon: '📸' },
+    { key: 'whatsapp', label: 'וואטסאפ', icon: '💬' },
+    { key: 'google', label: 'גוגל', icon: '🔎' },
+    { key: 'tiktok', label: 'טיקטוק', icon: '🎵' },
+    { key: 'flyer', label: 'פלאייר / שלט', icon: '📄' },
+  ];
+  const pickSource = (src: { key: string; label: string }) => {
+    const d = new Date();
+    const month = d.toLocaleDateString('he-IL', { month: 'long' });
+    let code = `${src.key}-${d.getMonth() + 1}-${String(d.getFullYear()).slice(2)}`;
+    const taken = new Set(campaigns.map((c) => c.code));
+    for (let n = 2; taken.has(code); n++) code = `${src.key}-${d.getMonth() + 1}-${String(d.getFullYear()).slice(2)}-${n}`;
+    setForm({ ...form, code, name: `${src.label} ${month}` });
+  };
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,92 +159,124 @@ export default function CampaignsPage() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-1">
+      <div className="space-y-1">
         <h1 className="text-xl font-black text-gray-900">📣 קישורי פרסום</h1>
         <p className="text-xs text-gray-500">
-          לכל פרסום יוצרים קוד, ומשתמשים בקישור שלו. כל מי שנכנס דרכו נספר, וכל הזמנה שלו בתוך 30 יום משויכת לקמפיין.
+          קישור מיוחד לכל פרסום. כך רואים כמה אנשים נכנסו מכל פרסום וכמה מהם קנו.
         </p>
       </div>
 
-      <form onSubmit={save} className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
-        <h3 className="font-black text-base text-gray-900">{editingId ? 'עריכת קמפיין' : 'קמפיין חדש'}</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">קוד (באנגלית) *</label>
-            <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="facebook-nov" className={input} dir="ltr" required />
+      <form onSubmit={save} className="bg-white p-5 rounded-3xl border shadow-sm space-y-4">
+        <h3 className="font-black text-base text-gray-900">{editingId ? 'עריכת קישור' : 'קישור חדש: איפה מפרסמים?'}</h3>
+        {!editingId && (
+          <div className="grid grid-cols-3 gap-2">
+            {SOURCES.map((src) => (
+              <button
+                key={src.key}
+                type="button"
+                onClick={() => pickSource(src)}
+                className={`rounded-2xl border p-3 text-center cursor-pointer transition ${
+                  form.code.startsWith(src.key + '-') ? 'bg-orange-600 border-orange-600 text-white' : 'bg-white hover:border-orange-300 text-gray-800'
+                }`}
+              >
+                <span className="block text-xl">{src.icon}</span>
+                <span className="block text-[11px] font-bold mt-0.5">{src.label}</span>
+              </button>
+            ))}
           </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">שם הקמפיין</label>
-            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="פייסבוק נובמבר" className={input} />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">מתאריך</label>
-            <input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} className={input} />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">עד תאריך</label>
-            <input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} className={input} />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">תקציב (₪)</label>
-            <input type="number" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} placeholder="500" className={input} />
-          </div>
+        )}
+        <div>
+          <label className="block text-xs font-bold text-gray-700 mb-1">שם (בשבילך)</label>
+          <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="למשל: פייסבוק נובמבר" className={input} />
         </div>
+
+        <button type="button" onClick={() => setShowMore((v) => !v)} className="text-xs font-bold text-gray-500 cursor-pointer">
+          {showMore ? '▾' : '◂'} אפשרויות נוספות (קוד, תאריכים, תקציב)
+        </button>
+        {(showMore || editingId) && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">קוד בקישור (אותיות באנגלית)</label>
+              <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="facebook-nov" className={input} dir="ltr" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">תקציב הפרסום (₪)</label>
+              <input type="number" inputMode="numeric" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} placeholder="500" className={input} />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">מתאריך</label>
+              <input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} className={input} />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">עד תאריך</label>
+              <input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} className={input} />
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-2">
-          <button type="submit" className="bg-orange-600 hover:bg-orange-700 text-white px-5 py-2.5 rounded-xl text-xs font-black cursor-pointer">
-            {editingId ? 'שמירת שינויים' : 'יצירת קמפיין'}
+          <button type="submit" disabled={!form.code} className="flex-1 sm:flex-none bg-orange-600 hover:bg-orange-700 disabled:opacity-40 text-white px-6 py-3 rounded-xl text-sm font-black cursor-pointer">
+            {editingId ? 'שמירת שינויים' : 'יצירת הקישור'}
           </button>
           {editingId && (
-            <button type="button" onClick={() => { setEditingId(null); setForm(EMPTY); }} className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-5 py-2.5 rounded-xl text-xs font-bold cursor-pointer">
+            <button type="button" onClick={() => { setEditingId(null); setForm(EMPTY); }} className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-5 py-3 rounded-xl text-sm font-bold cursor-pointer">
               ביטול
             </button>
           )}
         </div>
+        {!form.code && !editingId && <p className="text-[11px] text-gray-400">בוחרים למעלה איפה מפרסמים, והקישור מוכן.</p>}
       </form>
 
       <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
         <div className="flex justify-between items-center">
-          <h3 className="font-black text-base text-gray-900">הקמפיינים שלך</h3>
+          <h3 className="font-black text-base text-gray-900">הקישורים שלך</h3>
           {rows.length > 0 && (
-            <button onClick={exportCsv} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-xs font-bold cursor-pointer">
+            <button onClick={exportCsv} className="bg-white border border-orange-200 text-orange-700 hover:bg-orange-50 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer">
               ייצוא לאקסל ⬇
             </button>
           )}
         </div>
         {rows.length === 0 ? (
-          <p className="text-xs text-gray-500">עדיין אין קמפיינים. צור את הראשון למעלה.</p>
+          <p className="text-xs text-gray-500">עדיין אין קישורים. בוחרים למעלה איפה מפרסמים.</p>
         ) : (
           <div className="space-y-3">
             {rows.map((r) => (
               <div key={r.id} className="border rounded-2xl p-4 space-y-3">
-                <div className="flex flex-wrap justify-between gap-2 items-start">
-                  <div>
+                <div className="flex justify-between gap-2 items-start">
+                  <div className="min-w-0">
                     <div className="font-black text-sm text-gray-900">{r.name}</div>
-                    <div className="text-[11px] text-gray-500" dir="ltr">{linkFor(r.code)}</div>
                     {(r.start_date || r.end_date) && (
                       <div className="text-[11px] text-gray-400">{r.start_date || '…'} – {r.end_date || '…'}</div>
                     )}
                   </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => copy(r.code)} className="bg-orange-50 text-orange-700 border border-orange-200 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer">העתקת קישור</button>
-                    <button onClick={() => edit(r)} className="bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer">עריכה</button>
-                    <button onClick={() => remove(r)} className="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer">מחיקה</button>
+                  <div className="flex gap-1.5 shrink-0">
+                    <button onClick={() => edit(r)} className="text-gray-500 hover:text-gray-800 px-2 py-1 text-xs font-bold cursor-pointer">עריכה</button>
+                    <button onClick={() => remove(r)} className="text-red-500 hover:text-red-700 px-2 py-1 text-xs font-bold cursor-pointer">מחיקה</button>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center">
+                <div className="flex items-center gap-2 bg-orange-50 border border-orange-100 rounded-xl p-2">
+                  <span className="flex-1 min-w-0 truncate text-xs text-gray-700" dir="ltr">{linkFor(r.code)}</span>
+                  <button onClick={() => copy(r.code)} className="shrink-0 bg-orange-600 hover:bg-orange-700 text-white px-3 py-2 rounded-lg text-xs font-black cursor-pointer">
+                    העתקה 📋
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
                   {[
-                    ['כניסות', r.clicks],
-                    ['רכישות', r.purchases],
-                    ['המרה', `${r.conversion.toFixed(1)}%`],
+                    ['נכנסו', String(r.clicks)],
+                    ['קנו', `${r.purchases}${r.clicks ? ` (${r.conversion.toFixed(0)}%)` : ''}`],
                     ['הכנסות', money(r.revenue)],
-                    ['רווח', money(r.profit)],
                   ].map(([label, value]) => (
-                    <div key={label as string} className="bg-gray-50 rounded-xl py-2">
+                    <div key={label} className="bg-gray-50 rounded-xl py-2">
                       <div className="text-[11px] text-gray-500">{label}</div>
-                      <div className={`text-sm font-black ${label === 'רווח' ? (r.profit >= 0 ? 'text-green-600' : 'text-red-600') : 'text-gray-900'}`}>{value}</div>
+                      <div className="text-sm font-black text-gray-900">{value}</div>
                     </div>
                   ))}
                 </div>
+                {Number(r.budget) > 0 && (
+                  <div className={`text-[11px] font-bold ${r.profit >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+                    תקציב {money(Number(r.budget))} · {r.profit >= 0 ? 'הרווחת' : 'הפסד של'} {money(Math.abs(r.profit))}
+                  </div>
+                )}
               </div>
             ))}
           </div>

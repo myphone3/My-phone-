@@ -1,16 +1,61 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { orderNumber } from '@/lib/orders';
+import { fetchAll } from '@/lib/fetchAll';
+import { escapeHtml, shippingLabelsHtml, waNumber } from '@/lib/shippingLabels';
+
+const STATUSES = ['חדש', 'בטיפול', 'מחכה למשלוח', 'מוכן לאיסוף', 'נשלח', 'הושלם', 'מבוטל'];
+
+// כפתור וואטסאפ ללקוח, עם הודעה פתוחה על ההזמנה
+const WhatsAppButton = ({ order, label }: { order: any; label?: string }) => {
+  const num = waNumber(order.phone || order.customer_phone);
+  if (!num) return null;
+  const text = `שלום ${order.customer_name || ''}, כאן NEW PHONE לגבי הזמנה #${orderNumber(order.id)}`;
+  return (
+    <a
+      href={`https://wa.me/${num}?text=${encodeURIComponent(text)}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold inline-flex items-center gap-1"
+      title="שליחת וואטסאפ ללקוח"
+    >
+      💬{label ? ` ${label}` : ''}
+    </a>
+  );
+};
 
 // מספר הזמנה: 8 ספרות בלבד, מחושב מהמזהה הפנימי (תמיד אותו מספר לאותה הזמנה)
 const getOrderNumber = orderNumber;
 
 export default function AdminOrdersPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-20 text-gray-500 font-medium">טוען הזמנות...</div>}>
+      <AdminOrders />
+    </Suspense>
+  );
+}
+
+function AdminOrders() {
+  const params = useSearchParams();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+  // חיפוש וסינון (אפשר להגיע עם ?q=מייל ממסך הלקוחות)
+  const [search, setSearch] = useState(params?.get('q') || '');
+  // מעבר לאותו מסך עם חיפוש אחר (למשל מהדשבורד) מעדכן את החיפוש
+  const qParam = params?.get('q') || '';
+  useEffect(() => {
+    setSearch(qParam);
+  }, [qParam]);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  // הזמנות שסומנו להדפסת מדבקות משלוח
+  const [checked, setChecked] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchOrders();
@@ -18,13 +63,79 @@ export default function AdminOrdersPage() {
 
   const fetchOrders = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('orders')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (!error && data) setOrders(data);
+    const { data, error } = await fetchAll((a, b) =>
+      supabase.from('orders').select('*').order('created_at', { ascending: false }).order('id').range(a, b)
+    );
+    if (error) alert('שגיאה בטעינת ההזמנות: ' + (error.message || ''));
+    else setOrders(data);
     setLoading(false);
+  };
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase().replace(/^#/, '');
+    // התאמה לפי ספרות רק כשהחיפוש הוא מספר (טלפון או מספר הזמנה), לא כשיש בו אותיות
+    const numericQuery = /^[\d\s\-+]+$/.test(q);
+    const qDigits = numericQuery ? q.replace(/\D/g, '') : '';
+    const from = fromDate ? new Date(fromDate + 'T00:00:00') : null;
+    // עד סוף היום שנבחר: עד תחילת היום שאחריו (לא כולל)
+    const to = toDate ? (([y, m, d]) => new Date(y, m - 1, d + 1))(toDate.split('-').map(Number)) : null;
+    return orders.filter((o) => {
+      if (statusFilter && (o.status || 'חדש') !== statusFilter) return false;
+      const d = o.created_at ? new Date(o.created_at) : null;
+      if (from && (!d || d < from)) return false;
+      if (to && (!d || d >= to)) return false;
+      if (!q) return true;
+      const phone = String(o.phone || o.customer_phone || '').replace(/\D/g, '');
+      return (
+        String(o.customer_name || '').toLowerCase().includes(q) ||
+        String(o.email || '').toLowerCase().includes(q) ||
+        (qDigits.length >= 3 && (phone.includes(qDigits) || orderNumber(o.id).includes(qDigits)))
+      );
+    });
+  }, [orders, search, statusFilter, fromDate, toDate]);
+
+  // הגעה מהדשבורד עם מספר הזמנה: פותחים ישר את פרטי ההזמנה
+  const [autoOpenedFor, setAutoOpenedFor] = useState('');
+  useEffect(() => {
+    if (loading || !qParam || autoOpenedFor === qParam || search !== qParam) return;
+    setAutoOpenedFor(qParam);
+    if (filtered.length === 1) setSelectedOrder(filtered[0]);
+  }, [autoOpenedFor, loading, filtered, qParam, search]);
+
+  const statusCounts = useMemo(() => {
+    const c: Record<string, number> = {};
+    orders.forEach((o) => (c[o.status || 'חדש'] = (c[o.status || 'חדש'] || 0) + 1));
+    return c;
+  }, [orders]);
+
+  const toggleChecked = (id: string) =>
+    setChecked((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  const allShownChecked = filtered.length > 0 && filtered.every((o) => checked.has(o.id));
+  const toggleAllShown = () =>
+    setChecked((prev) => {
+      const next = new Set(prev);
+      if (allShownChecked) filtered.forEach((o) => next.delete(o.id));
+      else filtered.forEach((o) => next.add(o.id));
+      return next;
+    });
+
+  const printLabels = () => {
+    const chosen = orders.filter((o) => checked.has(o.id));
+    if (!chosen.length) return;
+    const blob = new Blob([shippingLabelsHtml(chosen)], { type: 'text/html;charset=utf-8;' });
+    window.open(URL.createObjectURL(blob), '_blank');
+  };
+
+  const hasFilters = !!(search || statusFilter || fromDate || toDate);
+  const clearFilters = () => {
+    setSearch('');
+    setStatusFilter('');
+    setFromDate('');
+    setToDate('');
   };
 
   const handleStatusChange = async (orderId: string, newStatus: string, customerEmail?: string, customerName?: string) => {
@@ -74,9 +185,9 @@ export default function AdminOrdersPage() {
         <tr style="border-bottom: 1px solid #e5e7eb;">
           <td style="padding: 10px; text-align: center; font-weight: bold; width: 30px;">${idx + 1}</td>
           <td style="padding: 10px; font-weight: bold;">
-            ${item.name || 'מוצר'}
-            ${item.selectedVariant ? `<div style="font-size: 11px; color: #6b7280; margin-top: 2px;">גרסה: ${item.selectedVariant}</div>` : ''}
-            ${colorText ? `<div style="font-size: 11px; color: #6b7280; margin-top: 2px;">צבע: ${colorText}</div>` : ''}
+            ${escapeHtml(item.name || 'מוצר')}
+            ${item.selectedVariant ? `<div style="font-size: 11px; color: #6b7280; margin-top: 2px;">גרסה: ${escapeHtml(item.selectedVariant)}</div>` : ''}
+            ${colorText ? `<div style="font-size: 11px; color: #6b7280; margin-top: 2px;">צבע: ${escapeHtml(colorText)}</div>` : ''}
           </td>
           <td style="padding: 10px; text-align: center; font-weight: bold; width: 50px;">${item.quantity || 1}</td>
           <td style="padding: 10px; text-align: left; font-weight: bold; width: 80px;">₪${(item.sale_price || item.price || 0) * (item.quantity || 1)}</td>
@@ -127,11 +238,11 @@ export default function AdminOrdersPage() {
 
           <div class="details-card">
             <strong>פרטי לקוח למשלוח:</strong><br>
-            שם מלא: <strong>${selectedOrder.customer_name || 'לא צוין'}</strong><br>
-            טלפון: ${selectedOrder.phone || 'לא צוין'}<br>
-            אימייל: ${selectedOrder.email || 'לא צוין'}<br>
-            כתובת למשלוח: עיר: ${selectedOrder.city || ''}, רחוב: ${selectedOrder.street || ''} ${selectedOrder.building || ''}<br>
-            ${selectedOrder.notes ? `<div style="margin-top:6px; color:#c2410c;"><strong>הערות למשלוח:</strong> ${selectedOrder.notes}</div>` : ''}
+            שם מלא: <strong>${escapeHtml(selectedOrder.customer_name || 'לא צוין')}</strong><br>
+            טלפון: ${escapeHtml(selectedOrder.phone || 'לא צוין')}<br>
+            אימייל: ${escapeHtml(selectedOrder.email || 'לא צוין')}<br>
+            כתובת למשלוח: עיר: ${escapeHtml(selectedOrder.city || '')}, רחוב: ${escapeHtml(selectedOrder.street || '')} ${escapeHtml(selectedOrder.building || '')}<br>
+            ${selectedOrder.notes ? `<div style="margin-top:6px; color:#c2410c;"><strong>הערות למשלוח:</strong> ${escapeHtml(selectedOrder.notes)}</div>` : ''}
           </div>
 
           <table>
@@ -184,6 +295,54 @@ export default function AdminOrdersPage() {
           <span>ניהול הזמנות</span>
           <span className="text-sm font-normal text-gray-500">({orders.length})</span>
         </h1>
+        {checked.size > 0 && (
+          <button onClick={printLabels} className="bg-gray-900 hover:bg-black text-white px-4 py-2 rounded-xl text-xs font-bold cursor-pointer">
+            🏷️ הדפסת מדבקות משלוח ({checked.size})
+          </button>
+        )}
+      </div>
+
+      {/* חיפוש וסינון */}
+      <div className="bg-white rounded-3xl border p-4 space-y-3">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="חיפוש לפי שם, טלפון, מייל או מספר הזמנה..."
+          className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600"
+        />
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setStatusFilter('')}
+            className={`px-3 py-1.5 rounded-full text-[11px] font-bold cursor-pointer ${!statusFilter ? 'bg-orange-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+          >
+            הכל ({orders.length})
+          </button>
+          {STATUSES.filter((st) => statusCounts[st]).map((st) => (
+            <button
+              key={st}
+              onClick={() => setStatusFilter(st === statusFilter ? '' : st)}
+              className={`px-3 py-1.5 rounded-full text-[11px] font-bold cursor-pointer ${statusFilter === st ? 'bg-orange-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+            >
+              {st} ({statusCounts[st]})
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <label className="flex items-center gap-1.5 text-gray-600 font-bold">
+            מתאריך
+            <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="bg-gray-50 border rounded-lg px-2 py-1.5" />
+          </label>
+          <label className="flex items-center gap-1.5 text-gray-600 font-bold">
+            עד
+            <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="bg-gray-50 border rounded-lg px-2 py-1.5" />
+          </label>
+          {hasFilters && (
+            <button onClick={clearFilters} className="text-orange-700 font-bold hover:underline cursor-pointer">
+              ניקוי סינון ✕
+            </button>
+          )}
+          {hasFilters && <span className="text-gray-500">נמצאו {filtered.length}</span>}
+        </div>
       </div>
 
       {/* טבלת ההזמנות */}
@@ -192,6 +351,9 @@ export default function AdminOrdersPage() {
           <table className="w-full text-right text-xs">
             <thead className="bg-gray-50 border-b text-gray-700 font-bold">
               <tr>
+                <th className="p-4 w-8">
+                  <input type="checkbox" checked={allShownChecked} onChange={toggleAllShown} className="accent-orange-600 w-4 h-4" title="סימון כל ההזמנות המוצגות" />
+                </th>
                 <th className="p-4">מספר הזמנה</th>
                 <th className="p-4">שם הלקוח</th>
                 <th className="p-4">טלפון</th>
@@ -202,8 +364,16 @@ export default function AdminOrdersPage() {
               </tr>
             </thead>
             <tbody className="divide-y text-gray-800">
-              {orders.map((order) => (
-                <tr key={order.id} className="hover:bg-orange-50/40 transition cursor-pointer" onClick={() => setSelectedOrder(order)}>
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="text-center py-12 text-gray-400">{orders.length ? 'אין הזמנות שמתאימות לחיפוש.' : 'עדיין אין הזמנות.'}</td>
+                </tr>
+              )}
+              {filtered.map((order) => (
+                <tr key={order.id} className={`hover:bg-orange-50/40 transition cursor-pointer ${checked.has(order.id) ? 'bg-orange-50/60' : ''}`} onClick={() => setSelectedOrder(order)}>
+                  <td className="p-4" onClick={(e) => e.stopPropagation()}>
+                    <input type="checkbox" checked={checked.has(order.id)} onChange={() => toggleChecked(order.id)} className="accent-orange-600 w-4 h-4" />
+                  </td>
                   <td className="p-4 font-black text-orange-800" dir="ltr">#{getOrderNumber(order.id)}</td>
                   <td className="p-4 font-bold text-gray-900">{order.customer_name || 'ללא שם'}</td>
                   <td className="p-4 dir-ltr text-right">{order.phone || 'לא צוין'}</td>
@@ -225,9 +395,12 @@ export default function AdminOrdersPage() {
                   </td>
                   <td className="p-4 font-black text-orange-600">₪{order.total_price || 0}</td>
                   <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
-                    <button onClick={() => setSelectedOrder(order)} className="bg-orange-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold">
-                      👁️ צפה בפרטים
-                    </button>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <button onClick={() => setSelectedOrder(order)} className="bg-orange-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap">
+                        👁️ פרטים
+                      </button>
+                      <WhatsAppButton order={order} />
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -291,7 +464,7 @@ export default function AdminOrdersPage() {
               <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-1.5">
                 <div className="font-bold text-gray-900 border-b pb-1.5 mb-2 text-sm">👤 פרטי לקוח וכתובת למשלוח</div>
                 <p><strong>שם מלא:</strong> {selectedOrder.customer_name || 'לא צוין'}</p>
-                <p><strong>טלפון:</strong> <a href={`tel:${selectedOrder.phone}`} className="text-blue-600 font-bold underline">{selectedOrder.phone || 'לא צוין'}</a></p>
+                <p className="flex items-center gap-2 flex-wrap"><strong>טלפון:</strong> <a href={`tel:${selectedOrder.phone}`} className="text-blue-600 font-bold underline">{selectedOrder.phone || 'לא צוין'}</a> <WhatsAppButton order={selectedOrder} label="וואטסאפ" /></p>
                 <p><strong>אימייל:</strong> {selectedOrder.email || 'לא צוין'}</p>
                 <p><strong>כתובת:</strong> עיר: {selectedOrder.city || ''}, רחוב: {selectedOrder.street || ''} {selectedOrder.building || ''}</p>
                 {selectedOrder.notes && (

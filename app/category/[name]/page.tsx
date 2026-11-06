@@ -4,6 +4,7 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { versionExtra as getVersionExtra } from '@/lib/versionPrice';
 
 function CategoryContent() {
   const params = useParams();
@@ -106,7 +107,7 @@ function CategoryContent() {
       const firstVersion = versions[0] || {};
       
       const finalPrice = product.sale_price || product.price || 0;
-      const versionExtra = typeof firstVersion === 'object' ? (firstVersion?.price_add || firstVersion?.price || 0) : 0;
+      const versionExtra = getVersionExtra(product, firstVersion);
       const unitPrice = Number(finalPrice) + Number(versionExtra);
 
       const colorName = typeof firstColor === 'object' ? firstColor?.name : firstColor || '';

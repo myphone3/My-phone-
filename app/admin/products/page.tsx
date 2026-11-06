@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { fetchAll } from '@/lib/fetchAll';
 
@@ -30,6 +31,8 @@ export default function AdminProductsPage() {
   const [storageVal, setStorageVal] = useState('');
   const [warranty, setWarranty] = useState('');
   const [selectedVersions, setSelectedVersions] = useState<string[]>([]);
+  // תוספת מחיר לכל גרסה (₪). ריק או 0 = בלי תוספת
+  const [versionPrices, setVersionPrices] = useState<Record<string, string>>({});
   const [stock, setStock] = useState('10');
   // עלות למוצר נשמרת בטבלה נפרדת שרק מנהל רואה (טבלת המוצרים גלויה לכולם)
   const [cost, setCost] = useState('');
@@ -257,6 +260,8 @@ export default function AdminProductsPage() {
       storage: storageVal,
       warranty,
       product_variants: selectedVersions,
+      // תוספת מחיר לפי שם הגרסה (רק גרסאות שנבחרו ועם תוספת)
+      version_prices: Object.fromEntries(selectedVersions.filter((n) => Number(versionPrices[n]) > 0).map((n) => [n, Number(versionPrices[n])])),
       stock: Number(stock) || 0,
       is_published: !isDraft,
       short_description: shortDesc,
@@ -326,6 +331,7 @@ export default function AdminProductsPage() {
     setStorageVal('');
     setWarranty('');
     setSelectedVersions([]);
+    setVersionPrices({});
     setStock('10');
     setIsDraft(false);
     setShortDesc('');
@@ -362,6 +368,7 @@ export default function AdminProductsPage() {
     setStorageVal(prod.storage || '');
     setWarranty(prod.warranty || '');
     setSelectedVersions(prod.product_variants || []);
+    setVersionPrices(Object.fromEntries(Object.entries(prod.version_prices || {}).map(([k, v]) => [k, String(v)])));
     setStock(prod.stock?.toString() || '10');
     setIsDraft(prod.is_published === false);
     setShortDesc(prod.short_description || '');
@@ -430,6 +437,9 @@ export default function AdminProductsPage() {
               ניהול מוצרי החנות
             </h2>
             <p className="text-xs text-gray-500 mt-1">סה"כ מוצרים במערכת: {products.length}</p>
+            <Link href="/admin/products/quick-edit" className="inline-block mt-2 text-xs font-bold text-orange-700 hover:underline">
+              ⚡ עריכה מהירה של מחירים ומלאי ←
+            </Link>
           </div>
           <button
             type="button"
@@ -554,6 +564,27 @@ export default function AdminProductsPage() {
                 </div>
               ) : (
                 <p className="text-xs text-gray-400">לא הוגדרו גרסאות.</p>
+              )}
+              {selectedVersions.length > 0 && (
+                <div className="space-y-2 pt-2 border-t">
+                  <span className="block text-[11px] font-bold text-gray-600">תוספת מחיר לכל גרסה (ריק = בלי תוספת, המחיר הבסיסי):</span>
+                  {selectedVersions.map((n) => (
+                    <div key={n} className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-gray-800 flex-1 min-w-0 truncate">{n}</span>
+                      <span className="text-xs text-gray-500">+ ₪</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        inputMode="numeric"
+                        value={versionPrices[n] || ''}
+                        onChange={(e) => setVersionPrices({ ...versionPrices, [n]: e.target.value })}
+                        placeholder="0"
+                        className="w-24 bg-white border rounded-xl p-2 text-xs outline-none focus:border-orange-600"
+                      />
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
 

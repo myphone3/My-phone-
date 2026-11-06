@@ -77,15 +77,22 @@ export default function CartPage() {
   const [hasPastOrders, setHasPastOrders] = useState(false);
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number; isExpired: boolean } | null>(null);
 
+  // העגלה נטענת מהמכשיר, ונטענת שוב כשהיא משתנה מבחוץ (למשל שחזור העגלה מהחשבון אחרי התחברות)
   useEffect(() => {
-    const saved = localStorage.getItem('cart');
-    if (saved) {
+    const loadCart = () => {
       try {
-        setCartItems(JSON.parse(saved));
-      } catch (e) {
+        const parsed = JSON.parse(localStorage.getItem('cart') || '[]');
+        setCartItems(Array.isArray(parsed) ? parsed.filter((i: any) => i && typeof i === 'object') : []);
+      } catch {
         setCartItems([]);
       }
-    }
+    };
+    loadCart();
+    window.addEventListener('cartUpdated', loadCart);
+    return () => window.removeEventListener('cartUpdated', loadCart);
+  }, []);
+
+  useEffect(() => {
     fetchPromos();
     if (new URLSearchParams(window.location.search).get('tab') === 'orders') {
       setView('orders');

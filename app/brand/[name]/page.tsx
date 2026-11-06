@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { showAddedToCart } from '@/lib/toast';
+import { versionExtra as getVersionExtra } from '@/lib/versionPrice';
 
 export default function BrandPage() {
   const params = useParams();
@@ -101,7 +102,7 @@ export default function BrandPage() {
       const firstVersion = versions[0] || {};
       
       const finalPrice = product.sale_price || product.price || 0;
-      const versionExtra = typeof firstVersion === 'object' ? (firstVersion?.price_add || firstVersion?.price || 0) : 0;
+      const versionExtra = getVersionExtra(product, firstVersion);
       const unitPrice = Number(finalPrice) + Number(versionExtra);
 
       const colorName = typeof firstColor === 'object' ? firstColor?.name : firstColor || '';

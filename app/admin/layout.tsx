@@ -8,7 +8,6 @@ import { supabase } from '@/lib/supabase';
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || '';
   const router = useRouter();
-  const activeRef = useRef<HTMLAnchorElement | null>(null);
   const [access, setAccess] = useState<'checking' | 'allowed' | 'denied'>('checking');
 
   // שער כניסה: שואלים את בסיס הנתונים (הפונקציה is_admin) האם המשתמש המחובר מנהל
@@ -42,35 +41,40 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     };
   }, []);
 
-  const navItems = [
-    { name: 'ראשי 🏠', href: '/admin' },
-    { name: 'ניהול מוצרים 📦', href: '/admin/products' },
-    { name: 'ניהול הזמנות 📋', href: '/admin/orders' },
-    { name: 'דוחות 📊', href: '/admin/reports' },
-    { name: 'קישורי פרסום 📣', href: '/admin/campaigns' },
-    { name: 'ניהול קטגוריות 📁', href: '/admin/categories' },
-    { name: 'ניהול מותגים 🏷️', href: '/admin/brands' },
-    { name: 'ניהול כשרות ⭐', href: '/admin/kosher' },
-    { name: 'ניהול באנרים 🖼️', href: '/admin/banners' },
-    { name: 'ניהול גירסאות ⚙️', href: '/admin/versions' },
-    { name: 'ספריית מדיה 🖼️', href: '/admin/media' },
-    { name: 'מבצעים וקופונים 🎟️', href: '/admin/coupons' },
-    { name: 'לקוחות 👥', href: '/admin/customers' },
-    { name: 'ביקורות ⭐', href: '/admin/reviews' },
-    { name: 'שאלות נפוצות ❓', href: '/admin/faq' },
-    { name: 'ניהול ושליחת מייל ✉️', href: '/admin/email' },
-    { name: 'SEO ומעקב 🔍', href: '/admin/seo' },
+  // כל המסכים בסרגל אחד, בלחיצה אחת, מסודרים לפי כמה משתמשים בהם (קבוצות מופרדות בקו)
+  const groups = [
+    [
+      { name: 'ראשי', icon: '🏠', href: '/admin' },
+      { name: 'הזמנות', icon: '📋', href: '/admin/orders' },
+      { name: 'מוצרים', icon: '📦', href: '/admin/products' },
+      { name: 'לקוחות', icon: '👥', href: '/admin/customers' },
+      { name: 'דוחות', icon: '📊', href: '/admin/reports' },
+    ],
+    [
+      { name: 'מבצעים וקופונים', icon: '🎟️', href: '/admin/coupons' },
+      { name: 'קישורי פרסום', icon: '📣', href: '/admin/campaigns' },
+      { name: 'באנרים', icon: '🪧', href: '/admin/banners' },
+      { name: 'מיילים', icon: '✉️', href: '/admin/email' },
+    ],
+    [
+      { name: 'ביקורות', icon: '⭐', href: '/admin/reviews' },
+      { name: 'שאלות נפוצות', icon: '❓', href: '/admin/faq' },
+      { name: 'גוגל (SEO)', icon: '🔍', href: '/admin/seo' },
+    ],
+    [
+      { name: 'קטגוריות', icon: '📁', href: '/admin/categories' },
+      { name: 'מותגים', icon: '🏷️', href: '/admin/brands' },
+      { name: 'כשרויות', icon: '✡️', href: '/admin/kosher' },
+      { name: 'גרסאות', icon: '⚙️', href: '/admin/versions' },
+      { name: 'מדיה', icon: '🖼️', href: '/admin/media' },
+    ],
   ];
+  const isActive = (href: string) => (href === '/admin' ? pathname === '/admin' : pathname === href || pathname.startsWith(href + '/'));
+  const activeRef = useRef<HTMLAnchorElement | null>(null);
 
-  // שומר על הלשונית הפעילה במרכז הסרגל ללא קפיצות
+  // הלשונית הפעילה תמיד נראית בסרגל
   useEffect(() => {
-    if (activeRef.current) {
-      activeRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-        inline: 'center',
-      });
-    }
+    activeRef.current?.scrollIntoView({ block: 'nearest', inline: 'center' });
   }, [pathname, access]);
 
   // מי שאינו מנהל מוחזר לדף הבית בשקט
@@ -83,42 +87,37 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-4 space-y-4" dir="rtl">
-      {/* תפריט ניהול עליון */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-4 border-b">
-        
-        {/* כפתור מעבר לחנות */}
-        <Link
-          href="/"
-          className="px-4 py-2 rounded-xl text-xs font-black transition whitespace-nowrap cursor-pointer shrink-0 bg-white border-2 border-orange-300 text-orange-700 hover:bg-orange-50 shadow-xs flex items-center gap-2"
-        >
-          <img 
-            src="/Logo.JPG" 
-            alt="New Phone" 
-            className="w-6 h-6 object-contain rounded-md"
-          />
-          <span>מעבר לחנות</span>
-        </Link>
-
-        <div className="h-6 w-[1px] bg-gray-200 mx-1 shrink-0"></div>
-
-        {navItems.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              ref={isActive ? activeRef : null}
-              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer shrink-0 shadow-sm ${
-                isActive
-                  ? 'bg-orange-800 text-white border-2 border-orange-950 shadow-md scale-105'
-                  : 'bg-orange-600 text-white hover:bg-orange-700'
-              }`}
-            >
-              {item.name}
-            </Link>
-          );
-        })}
-      </div>
+      {/* תפריט ניהול: כל המסכים בלחיצה אחת. בטלפון גוללים את הסרגל הצידה */}
+      <nav className="-mx-4 px-4 pb-3 border-b border-orange-100">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar lg:flex-wrap">
+          <Link href="/" className="shrink-0 flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-bold text-orange-700 bg-white border border-orange-200" title="מעבר לחנות">
+            <img src="/Logo.JPG" alt="" className="w-5 h-5 object-contain rounded" />
+            לחנות
+          </Link>
+          {groups.map((items, gi) => (
+            <React.Fragment key={gi}>
+              <span className="shrink-0 w-px h-6 bg-orange-200 mx-1" aria-hidden="true" />
+              {items.map((item) => {
+                const active = isActive(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    ref={active ? activeRef : null}
+                    aria-current={active ? 'page' : undefined}
+                    className={`shrink-0 flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition ${
+                      active ? 'bg-orange-600 text-white shadow-sm' : 'bg-white text-gray-700 border border-orange-100 hover:border-orange-300 hover:text-orange-700'
+                    }`}
+                  >
+                    <span aria-hidden="true">{item.icon}</span>
+                    {item.name}
+                  </Link>
+                );
+              })}
+            </React.Fragment>
+          ))}
+        </div>
+      </nav>
 
       <main>{children}</main>
     </div>

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import TrustBadges from '@/components/TrustBadges';
 import FaqList from '@/components/FaqList';
 import Reviews from '@/components/Reviews';
+import { versionExtra as getVersionExtra } from '@/lib/versionPrice';
 
 function StoreContent() {
   const [products, setProducts] = useState<any[]>([]);
@@ -264,7 +265,7 @@ function StoreContent() {
       const firstVersion = versions[0] || {};
       
       const finalPrice = product.sale_price || product.price || 0;
-      const versionExtra = typeof firstVersion === 'object' ? (firstVersion?.price_add || firstVersion?.price || 0) : 0;
+      const versionExtra = getVersionExtra(product, firstVersion);
       const unitPrice = Number(finalPrice) + Number(versionExtra);
 
       const colorName = typeof firstColor === 'object' ? firstColor?.name : firstColor || '';

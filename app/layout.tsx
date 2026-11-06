@@ -7,6 +7,7 @@ import Script from 'next/script';
 import type { Metadata } from 'next';
 import Analytics from '../components/Analytics';
 import CampaignTracker from '../components/CampaignTracker';
+import CartSync from '../components/CartSync';
 import { Suspense } from 'react';
 import { getSiteSettings } from '@/lib/siteSettings';
 
@@ -60,6 +61,7 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <CampaignTracker />
         </Suspense>
+        <CartSync />
 
       </body>
     </html>
