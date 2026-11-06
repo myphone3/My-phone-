@@ -4,6 +4,7 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import { searchProducts } from '@/lib/smartSearch';
 
 function SearchResultsContent() {
   const searchParams = useSearchParams();
@@ -20,16 +21,7 @@ function SearchResultsContent() {
     setLoading(true);
     const { data } = await supabase.from('products').select('*').or('is_published.is.null,is_published.eq.true');
     if (data) {
-      const filtered = data.filter((p) => {
-        if (!query.trim()) return true;
-        const q = query.toLowerCase();
-        return (
-          p.name?.toLowerCase().includes(q) ||
-          p.brand?.toLowerCase().includes(q) ||
-          p.category?.toLowerCase().includes(q) ||
-          p.description?.toLowerCase().includes(q)
-        );
-      });
+      const filtered = searchProducts(data, query);
       setProducts(filtered);
     }
     setLoading(false);
