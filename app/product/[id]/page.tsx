@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, Suspense, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
+import { versionExtra as getVersionExtra } from '@/lib/versionPrice';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { showAddedToCart, showToast } from '@/lib/toast';
@@ -152,7 +153,7 @@ function ProductDetailContent() {
   const kosherLogo = kosherObj?.image_url || kosherObj?.image || (typeof kosherVal === 'string' && kosherVal.startsWith('http') ? kosherVal : '');
 
   const basePrice = Number(product.sale_price || product.price || 0);
-  const versionExtra = selectedVersion && typeof selectedVersion === 'object' ? Number(selectedVersion.price_add || selectedVersion.price || 0) : 0;
+  const versionExtra = getVersionExtra(product, selectedVersion);
   const finalPrice = (basePrice + versionExtra) * quantity;
   const regularPrice = (Number(product.price || 0) + versionExtra) * quantity;
 
@@ -434,6 +435,7 @@ function ProductDetailContent() {
               <div className="flex flex-wrap gap-2">
                 {versions.map((v: any, idx: number) => {
                   const vName = typeof v === 'object' ? (v.name || v.title || v.label) : v;
+                  const vExtra = getVersionExtra(product, v);
                   const isSelected = selectedVersion === v;
                   return (
                     <button
@@ -444,6 +446,7 @@ function ProductDetailContent() {
                       }`}
                     >
                       {vName}
+                      {vExtra > 0 && <span className={`mr-1 ${isSelected ? 'text-orange-100' : 'text-orange-600'}`}>+₪{vExtra}</span>}
                     </button>
                   );
                 })}

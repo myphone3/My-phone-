@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { inRange, isCountedOrder, productSales, revenueOf, startOfDay, startOfMonth, withCosts } from '@/lib/stats';
 import { fetchAll } from '@/lib/fetchAll';
+import { formatDate, orderNumber } from '@/lib/orders';
 import { LoadErrorBox } from '@/components/admin/LoadErrorBox';
 
 export default function AdminDashboard() {
@@ -39,18 +40,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleStatusChange = async (orderId: string, newStatus: string) => {
-    try {
-      const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
-      if (error) {
-        alert('שגיאה בעדכון הסטטוס: ' + error.message);
-      } else {
-        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   const now = new Date();
   const counted = orders.filter(isCountedOrder);
@@ -81,17 +70,13 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      {/* כותרת ראשית */}
-      <div className="bg-white p-6 rounded-3xl border shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-xl font-black text-gray-900">ברוך הבא לניהול החנות, דניאל 👋</h1>
-          <p className="text-xs text-gray-500 mt-1">מערכת הניהול פועלת כשורה. להלן נתוני החנות המעודכנים.</p>
-        </div>
-        <button 
+      <div className="flex items-center justify-between">
+        <h1 className="text-lg font-black text-gray-900">לוח בקרה</h1>
+        <button
           onClick={fetchDashboardData}
-          className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+          className="text-xs font-bold text-gray-500 hover:text-gray-800 bg-white border px-3 py-1.5 rounded-xl cursor-pointer"
         >
-          <span>רענן נתונים</span> 🔄
+          🔄 רענון
         </button>
       </div>
 
@@ -133,6 +118,39 @@ export default function AdminDashboard() {
             <span className="text-xs text-gray-400">דורש עדכון</span>
           </div>
         </div>
+      </div>
+
+      {/* הזמנות חדשות: רשימה קצרה, לחיצה פותחת את ההזמנה במסך ההזמנות */}
+      <div className="bg-white p-5 rounded-3xl border shadow-sm space-y-3">
+        <div className="flex justify-between items-center">
+          <h3 className="font-black text-base text-gray-900">🆕 הזמנות חדשות ({newOrders.length})</h3>
+          <Link href="/admin/orders" className="text-xs font-bold text-orange-600 hover:underline">כל ההזמנות ←</Link>
+        </div>
+        {newOrders.length > 0 ? (
+          <ul className="divide-y">
+            {newOrders.map((ord) => (
+              <li key={ord.id}>
+                <Link
+                  href={`/admin/orders?q=${orderNumber(ord.id)}`}
+                  className="flex items-center justify-between gap-3 py-3 hover:bg-orange-50/50 -mx-2 px-2 rounded-xl"
+                >
+                  <span className="min-w-0">
+                    <span className="block text-sm font-black text-gray-900 truncate">{ord.customer_name || 'לקוח'}</span>
+                    <span className="block text-[11px] text-gray-500">
+                      #{orderNumber(ord.id)} · {formatDate(ord.created_at, true)}
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-2 shrink-0">
+                    <span className="text-sm font-black text-orange-600">₪{Math.round(Number(ord.total_price || ord.total || 0)).toLocaleString()}</span>
+                    <span className="text-gray-300">‹</span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-xs text-gray-500 py-4 text-center">אין הזמנות חדשות שממתינות לטיפול 🎉</p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -180,66 +198,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* הזמנות חדשות */}
-      <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
-        <div className="flex justify-between items-center border-b pb-3">
-          <h3 className="font-black text-base text-gray-900">🚨 הזמנות חדשות שממתינות לטיפול ({newOrders.length})</h3>
-          <Link href="/admin/orders" className="text-xs font-bold text-orange-600 hover:underline">
-            לכל ההזמנות במערכת ➔
-          </Link>
-        </div>
-
-        <div className="space-y-3">
-          {newOrders.length > 0 ? (
-            newOrders.map((ord, idx) => {
-              const orderIdStr = String(ord?.id || '');
-              const displayId = orderIdStr.length > 8 ? orderIdStr.slice(0, 8) : (orderIdStr || String(idx + 1));
-              return (
-                <div key={ord?.id || idx} className="bg-orange-50/40 border border-orange-100 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition hover:bg-orange-50/80">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-black text-sm text-gray-900">
-                        הזמנה #{displayId} - {ord?.customer_name || ord?.name || 'לקוח'}
-                      </span>
-                      <span className="text-[10px] bg-orange-200 text-orange-800 px-2.5 py-0.5 rounded-full font-bold">
-                        ממתין לטיפול
-                      </span>
-                    </div>
-                    <div className="text-xs text-gray-600 flex flex-wrap gap-3">
-                      <span>📞 טלפון: <strong className="text-gray-800">{ord?.phone || ord?.customer_phone || 'לא צוין'}</strong></span>
-                      <span>📍 כתובת/סניף: <strong className="text-gray-800">{ord?.address || ord?.city || 'איסוף/משלוח'}</strong></span>
-                      <span>📅 תאריך: <strong className="text-gray-800">{ord?.created_at ? new Date(ord.created_at).toLocaleString('he-IL') : 'היום'}</strong></span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0">
-                    <span className="text-base font-black text-orange-600">₪{ord?.total_price || ord?.price || 0}</span>
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => handleStatusChange(ord.id, 'הושלם')}
-                        className="bg-green-600 hover:bg-green-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer shadow-xs"
-                      >
-                        סמן כהושלם ✓
-                      </button>
-                      <button 
-                        onClick={() => handleStatusChange(ord.id, 'בטיפול')}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer shadow-xs"
-                      >
-                        העבר לטיפול ⏳
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <div className="text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-              <span className="text-3xl block mb-2">🎉</span>
-              <p className="text-xs font-bold text-gray-600">כל הכבוד! אין הזמנות חדשות שממתינות לטיפול כרגע.</p>
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 }

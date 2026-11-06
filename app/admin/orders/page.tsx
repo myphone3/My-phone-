@@ -86,6 +86,14 @@ function AdminOrders() {
     });
   }, [orders, search, statusFilter, fromDate, toDate]);
 
+  // הגעה מהדשבורד עם מספר הזמנה: פותחים ישר את פרטי ההזמנה
+  const [autoOpened, setAutoOpened] = useState(false);
+  useEffect(() => {
+    if (autoOpened || loading || !params?.get('q')) return;
+    setAutoOpened(true);
+    if (filtered.length === 1) setSelectedOrder(filtered[0]);
+  }, [autoOpened, loading, filtered, params]);
+
   const statusCounts = useMemo(() => {
     const c: Record<string, number> = {};
     orders.forEach((o) => (c[o.status || 'חדש'] = (c[o.status || 'חדש'] || 0) + 1));
