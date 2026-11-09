@@ -487,7 +487,7 @@
         </ol>
         <button id="stopMirrorIos" style="width:100%;margin-top:10px">⏹ עצור שיקוף</button>
         <p class="note" id="airplayState">בלי אפליקציה ובלי תשלום. עובד דרך ה-WiFi, בלי ניתוק, והשלט ממשיך לעבוד. הקול יוצא רק מהטלוויזיה, וכפתורי הווליום באייפון משנים אותו. האייפון והטלוויזיה צריכים להיות על אותה רשת WiFi.</p>
-        <button id="copyAirplayLog" style="width:100%;margin-top:8px;font-size:13px;opacity:.75">📋 העתק יומן AirPlay (אם משהו לא עובד)</button>
+        <button id="copyAirplayLog" style="width:100%;margin-top:8px;font-size:13px;opacity:.75">📋 העתק דוח תקלות (אם משהו לא עובד)</button>
         <p class="note" id="airplayDown" hidden style="color:#d0607a">ה-AirPlay בטלוויזיה עוד לא עלה. אם זה נמשך - כבו והדליקו את הטלוויזיה.</p>
       </div>
     </section>
@@ -497,6 +497,12 @@
       <h2>הגדרות השלט</h2>
       <label class="toggle-row" for="hapticToggle"><span>רטט בכל לחיצה</span><input type="checkbox" id="hapticToggle" switch></label>
       <p class="note">באייפון הרטט עובד מגרסה iOS 18 ומעלה.</p>
+      <div class="toggle-row" style="gap:10px"><span>המקלדת בטלוויזיה</span>
+        <select id="kbSelect" style="flex:1;max-width:60%;padding:8px;border-radius:12px;border:1px solid rgba(0,0,0,.12);background:rgba(255,255,255,.7);font:inherit"><option>טוען…</option></select>
+      </div>
+      <p class="note">המקלדת שמופיעה בטלוויזיה כשכותבים בשלט המקורי. אם יש מקלדת עם עברית - בחרו אותה כאן.</p>
+      <button id="copyDiag" style="width:100%;margin-top:10px">📋 העתק דוח תקלות</button>
+      <p class="note">אם משהו לא עובד - לוחצים, ומדביקים בצ׳אט. הדוח מראה למה השלט התנתק ומה קרה בשיקוף.</p>
     </section>
   </main>
   </div>
@@ -1388,6 +1394,28 @@
     });
   };
 
+  // ===== בחירת המקלדת בטלוויזיה =====
+  let kbLoaded = false;
+  function loadKeyboards() {
+    call('keyboards').then((r) => {
+      if (!r.ok || !r.body || !r.body.list) return;
+      kbLoaded = true;
+      const sel = $('kbSelect');
+      sel.innerHTML = '';
+      for (const k of r.body.list) {
+        const o = document.createElement('option');
+        o.value = k.id; o.textContent = k.label;
+        if (k.id === r.body.current) o.selected = true;
+        sel.appendChild(o);
+      }
+    });
+  }
+  $('kbSelect').onfocus = () => { if (!kbLoaded) loadKeyboards(); };
+  $('kbSelect').onchange = () => {
+    buzz();
+    call('set_keyboard', { id: $('kbSelect').value }).then((r) => toast(r.ok ? 'המקלדת בטלוויזיה הוחלפה ✓' : 'לא הצלחתי להחליף מקלדת'));
+  };
+  setTimeout(loadKeyboards, 4000);
   $('hapticToggle').checked = hapticOn();
   $('hapticToggle').onchange = () => {
     try { localStorage.setItem('haptic', $('hapticToggle').checked ? '1' : '0'); } catch (e) {}
@@ -1537,17 +1565,19 @@
     // פותח את האפליקציה עם כתובת הטלוויזיה. אם היא לא מותקנת - מוריד אותה.
     location.href = appIntent('start?host=' + tvLan + '&port=' + tvMirrorPort + '&name=' + name);
   };
-  $('copyAirplayLog').onclick = () => {
+  function copyDiag() {
     buzz();
-    call('airplay_log').then((r) => {
-      if (!r.ok) return toast('לא הצלחתי לקבל את היומן');
-      const b = r.body || {};
-      const text = 'AirPlay port=' + b.port + ' error=' + (b.error || '-') + '\n' + (b.log || '(ריק)');
-      const done = () => toast('היומן הועתק ✓ הדביקו אותו בצ׳אט');
+    toast('אוסף נתונים…');
+    call('diag', {}, 9000).then((r) => {
+      if (!r.ok) return toast('לא הצלחתי לקבל את הדוח');
+      const text = (r.body && r.body.text) || '(ריק)';
+      const done = () => toast('הדוח הועתק ✓ הדביקו אותו בצ׳אט');
       if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => prompt('העתיקו:', text));
       else prompt('העתיקו:', text);
     });
-  };
+  }
+  $('copyAirplayLog').onclick = copyDiag;
+  $('copyDiag').onclick = copyDiag;
   $('startMirror').addEventListener('click', () => { if (tvLan) toast('פותח שיקוף…'); });
   $('getMirrorApp').onclick = () => { buzz(); location.href = appIntent('open'); };
   $('stopMirror').onclick = $('stopMirrorIos').onclick = () => {

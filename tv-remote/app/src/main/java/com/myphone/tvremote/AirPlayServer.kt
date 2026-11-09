@@ -45,8 +45,21 @@ object AirPlayServer {
 
     // ===== הפעלה =====
 
-    @Synchronized
+    @Volatile private var scheduled = false
+
+    /** מתחילים רק כמה שניות אחרי שהטלוויזיה עלתה, ולא על ה-thread הראשי - כדי שמסך הבית יעלה מהר. */
     fun start(context: Context) {
+        if (scheduled) return
+        scheduled = true
+        val app = context.applicationContext
+        Thread({
+            try { Thread.sleep(8000) } catch (e: InterruptedException) { }
+            try { startNow(app) } catch (t: Throwable) { lastError = "start: $t"; Log.e(TAG, "start", t) }
+        }, "airplay-delayed").start()
+    }
+
+    @Synchronized
+    private fun startNow(context: Context) {
         if (started) return
         appContext = context.applicationContext
         if (!loaded) {
@@ -77,7 +90,7 @@ object AirPlayServer {
         } catch (e: Exception) {
             Log.w(TAG, "multicast lock", e)
         }
-        Thread({ launch() }, "airplay-start").start()
+        launch()
         watchNetwork()
     }
 

@@ -68,6 +68,8 @@ class HomeActivity : Activity() {
     private lateinit var recentRow: LinearLayout
     private lateinit var recentTitle: TextView
     private lateinit var drawerScroll: ScrollView
+    /** מה שמאחורי רשימת האפליקציות - כשהיא פתוחה, אסור שהבחירה "תברח" אליו */
+    private val behindDrawer = mutableListOf<ViewGroup>()
 
     private var apps: List<App> = emptyList()
     private var drawerOpen = false
@@ -107,7 +109,7 @@ class HomeActivity : Activity() {
         super.onResume()
         watchWifi()
         main.post(tick)
-        PhotoStore.listener = { restartSlideshow() }
+        PhotoStore.listener = { main.removeCallbacks(slideshow); main.post(slideshow) }
         restartSlideshow()
         loadApps()
         loadWeather()
@@ -121,6 +123,28 @@ class HomeActivity : Activity() {
         main.removeCallbacks(slideshow)
         PhotoStore.listener = null
         super.onPause()
+    }
+
+    /**
+     * כשאפליקציה אחרת (למשל SmartTube) צריכה זיכרון - משחררים את התמונות והאייקונים של מסך הבית.
+     * בטלוויזיה עם 1GB זה מה שמונע מאנדרואיד לסגור את השלט באמצע סרטון. הכל נטען מחדש כשחוזרים למסך הבית.
+     */
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level >= TRIM_MEMORY_UI_HIDDEN && !hasWindowFocus()) releaseMemory()
+    }
+
+    private fun releaseMemory() {
+        main.removeCallbacks(slideshow)
+        bgFront.animate().cancel(); bgBack.animate().cancel()
+        bgFront.setImageDrawable(null); bgBack.setImageDrawable(null)
+        bgFront.alpha = 0f; bgBack.alpha = 0f
+        frontBitmap?.let { if (!it.isRecycled) it.recycle() }
+        frontBitmap = null
+        grid.removeAllViews()
+        favRow.removeAllViews()
+        apps = emptyList()
+        System.gc()
     }
 
     override fun onNewIntent(intent: Intent?) {
@@ -212,6 +236,7 @@ class HomeActivity : Activity() {
             }
             addView(statusWifi, FrameLayout.LayoutParams(dp(26), dp(26), Gravity.CENTER))
         }
+        behindDrawer += wifiButton
         root.addView(wifiButton, FrameLayout.LayoutParams(dp(46), dp(46), Gravity.TOP or Gravity.LEFT).apply {
             leftMargin = dp(SAFE_SIDE - 10); topMargin = dp(22)
         })
@@ -243,6 +268,7 @@ class HomeActivity : Activity() {
             // מרווח מהשוליים: הרבה טלוויזיות "חותכות" קצת מקצוות המסך
             setPadding(0, dp(2), 0, dp(SAFE_BOTTOM))
         }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        behindDrawer += bottom
         root.addView(bottom, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM))
 
         // רשימת כל האפליקציות - נפתחת מלמטה, על כל רוחב המסך
@@ -369,7 +395,9 @@ class HomeActivity : Activity() {
 
     private fun restartSlideshow() {
         main.removeCallbacks(slideshow)
-        main.post(slideshow)
+        // אם כבר יש תמונה על המסך - לא מחליפים מיד בחזרה למסך הבית (חוסך עבודה ומהיר יותר)
+        if (frontBitmap != null) main.postDelayed(slideshow, PhotoStore.intervalSec(this) * 1000L)
+        else main.post(slideshow)
     }
 
     private fun nextPhoto() {
@@ -431,8 +459,10 @@ class HomeActivity : Activity() {
         loader.execute {
             val list = queryApps()
             main.post {
+                // חוזרים למסך הבית בלי שהשתנה משהו - לא בונים הכל מחדש (זה מה שהאט את החזרה למסך)
+                val same = list.map { it.pkg } == apps.map { it.pkg } && renderedFavs == favorites()
                 apps = list
-                render()
+                if (!same || favRow.childCount == 0) render()
             }
         }
     }
@@ -461,8 +491,11 @@ class HomeActivity : Activity() {
             .map { it.pkg }.toMutableSet()
     }
 
+    private var renderedFavs: List<String> = emptyList()
+
     private fun render() {
         val favs = favorites()
+        renderedFavs = favs.toList()
         val hidden = hidden()
         val byPkg = apps.associateBy { it.pkg }
         val hadFocusInRow = favRow.hasFocus()
@@ -627,8 +660,8 @@ class HomeActivity : Activity() {
 
     private fun openDrawer() {
         if (drawerOpen) return
-        loadRecent()
         drawerOpen = true
+        setBehindFocusable(false)
         drawer.visibility = View.VISIBLE
         drawer.alpha = 0f
         drawer.translationY = dp(60).toFloat()
@@ -640,9 +673,18 @@ class HomeActivity : Activity() {
     private fun closeDrawer() {
         if (!drawerOpen) return
         drawerOpen = false
+        setBehindFocusable(true)
         drawer.animate().alpha(0f).translationY(dp(60).toFloat()).setDuration(200)
             .withEndAction { drawer.visibility = View.GONE }.start()
         favRow.getChildAt(0)?.requestFocus()
+    }
+
+    private fun setBehindFocusable(on: Boolean) {
+        for (v in behindDrawer) {
+            v.descendantFocusability = if (on) ViewGroup.FOCUS_AFTER_DESCENDANTS else ViewGroup.FOCUS_BLOCK_DESCENDANTS
+            if (v.childCount > 0 && v !is LinearLayout) v.isFocusable = on // כפתור ה-WiFi
+            v.visibility = if (on) View.VISIBLE else View.INVISIBLE
+        }
     }
 
     /** בחירה מגדילה את הפריט ומוסיפה מסגרת צבעונית. */

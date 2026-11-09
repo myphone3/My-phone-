@@ -89,11 +89,23 @@ object Commands {
         "launch" -> if (Apps.launch(context, params["pkg"].orEmpty())) ok() else fail("not found")
         "reconnect" -> { AdbBridge.reconnect(); ok() }
         "keyboard" -> { AdbBridge.useGboard(); ok() }
+        "keyboards" -> {
+            val (current, list) = AdbBridge.keyboards()
+            val array = JSONArray()
+            for (id in list) {
+                val pkg = id.substringBefore('/')
+                val label = try { context.packageManager.getApplicationLabel(context.packageManager.getApplicationInfo(pkg, 0)).toString() } catch (e: Exception) { pkg }
+                array.put(JSONObject().put("id", id).put("label", label))
+            }
+            ok(JSONObject().put("ok", true).put("current", current ?: "").put("list", array))
+        }
+        "set_keyboard" -> if (AdbBridge.setKeyboard(params["id"].orEmpty())) ok() else fail("bad keyboard")
         "recent" -> {
             val array = JSONArray()
             for ((pkg, label) in Apps.recent(context)) array.put(JSONObject().put("pkg", pkg).put("label", label))
             ok(array)
         }
+        "diag" -> ok(JSONObject().put("ok", true).put("text", Diagnostics.report(context)))
         "airplay_log" -> ok(JSONObject().put("ok", true).put("log", AirPlayServer.log()).put("port", AirPlayServer.port).put("error", AirPlayServer.lastError))
         "mirror_stop" -> { MirrorServer.stop(); AirPlayServer.stop(); ok() }
         "storage" -> ok(StorageReport.build(context))
