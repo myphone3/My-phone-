@@ -79,6 +79,8 @@ jobs:
           # קישורים קצרים שקל להקליד בטלוויזיה/בטלפון: .../tv.apk ו-.../app.apk
           cp tv-remote.apk /tmp/site/tv.apk
           cp mirror.apk /tmp/site/app.apk
+          # מספר הגרסה האחרונה - האפליקציות בודקות אותו כדי להתעדכן לבד
+          echo '{"version": ${{ github.run_number }}}' > /tmp/site/version.json
           # הענף הזה הוא רק דף השלט ל-GitHub Pages - Vercel (של החנות) לא צריך לבנות אותו
           echo '{"git":{"deploymentEnabled":false}}' > /tmp/site/vercel.json
           cd /tmp/site

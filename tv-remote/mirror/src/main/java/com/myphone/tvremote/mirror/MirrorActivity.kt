@@ -129,6 +129,7 @@ class MirrorActivity : Activity() {
         super.onResume()
         MirrorService.onChange = { runOnUiThread { pushMirrorState() } }
         pushMirrorState()
+        AppUpdater.maybeCheck(this)
         web.evaluateJavascript("window.poll && window.poll()", null)
     }
 

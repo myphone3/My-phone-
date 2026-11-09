@@ -26,6 +26,7 @@ object Diagnostics {
         val pi = Debug.MemoryInfo().also { Debug.getMemoryInfo(it) }
         appendLine("our process pss=${pi.totalPss / 1024}MB")
         appendLine("adb=${AdbBridge.connected} cloud=${CloudRelay.online} a11y=${RemoteAccessibility.instance != null}")
+        appendLine("update=${Updater.state.ifBlank { "-" }}")
         appendLine("airplay port=${AirPlayServer.port} error=${AirPlayServer.lastError.ifBlank { "-" }}")
         if (Build.VERSION.SDK_INT >= 30) {
             appendLine("--- last exits ---")

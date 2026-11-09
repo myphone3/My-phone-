@@ -271,6 +271,15 @@ object AdbBridge {
     /** מפעיל את Gboard עכשיו (נקרא גם מהטלפון). */
     fun useGboard() = worker.execute { fixKeyboard() }
 
+    /** מתקין עדכון של האפליקציה עצמה דרך ADB - בשקט, בלי שאלות על המסך. */
+    fun installApk(file: java.io.File): String? = try {
+        worker.submit(Callable {
+            try { connection().install(file, "-r"); null } catch (e: Exception) { e.toString() }
+        }).get(240, TimeUnit.SECONDS)
+    } catch (e: Exception) {
+        e.toString()
+    }
+
     /** המקלדות שמותקנות בטלוויזיה, והמקלדת הנוכחית - לבחירה מהשלט בטלפון */
     fun keyboards(): Pair<String?, List<String>> = onWorker {
         val current = run("settings get secure default_input_method")?.trim()?.takeIf { it != ourKeyboard }

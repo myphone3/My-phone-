@@ -501,6 +501,8 @@
         <select id="kbSelect" style="flex:1;max-width:60%;padding:8px;border-radius:12px;border:1px solid rgba(0,0,0,.12);background:rgba(255,255,255,.7);font:inherit"><option>טוען…</option></select>
       </div>
       <p class="note">המקלדת שמופיעה בטלוויזיה כשכותבים בשלט המקורי. אם יש מקלדת עם עברית - בחרו אותה כאן.</p>
+      <div class="toggle-row" style="gap:10px;margin-top:6px"><span id="tvVersion">גרסה בטלוויזיה: …</span><button id="updateNow" style="padding:8px 14px">⟳ עדכן עכשיו</button></div>
+      <p class="note">האפליקציה בטלוויזיה מתעדכנת לבד (כשלא משתמשים בשלט). הכפתור מעדכן מיד - השלט יתנתק לכמה שניות.</p>
       <button id="copyDiag" style="width:100%;margin-top:10px">📋 העתק דוח תקלות</button>
       <p class="note">אם משהו לא עובד - לוחצים, ומדביקים בצ׳אט. הדוח מראה למה השלט התנתק ומה קרה בשיקוף.</p>
     </section>
@@ -1565,6 +1567,10 @@
     // פותח את האפליקציה עם כתובת הטלוויזיה. אם היא לא מותקנת - מוריד אותה.
     location.href = appIntent('start?host=' + tvLan + '&port=' + tvMirrorPort + '&name=' + name);
   };
+  $('updateNow').onclick = () => {
+    buzz();
+    call('update_check').then((r) => toast(r.ok ? 'בודק עדכון… אם יש, הטלוויזיה תתעדכן תוך דקה' : 'לא הצלחתי לבדוק'));
+  };
   function copyDiag() {
     buzz();
     toast('אוסף נתונים…');
@@ -1619,6 +1625,7 @@
       const s = r.body;
       if (s.name) { $('tvName').textContent = s.name; $('airplayName').textContent = '"' + s.name + '"'; }
       if (s.airplay !== undefined) $('airplayDown').hidden = !!s.airplay;
+      if (s.version) $('tvVersion').textContent = 'גרסה בטלוויזיה: ' + s.version + (s.update && /^(downloading|installing)/.test(s.update) ? ' (מתעדכנת…)' : '');
       if (s.lan) { tvLan = s.lan; tvMirrorPort = s.mirrorPort || 8090; }
       setStatus(s.connected ? 'ok' : 'wait', s.connected ? 'מחובר' : 'ממתין…');
       if (!loadedOnce) { loadedOnce = true; loadApps(); loadRecent(); }

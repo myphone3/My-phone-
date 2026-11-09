@@ -11,6 +11,9 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- עדכון האפליקציה מתוכה (עם אישור של המשתמש) -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
 
     <!-- זיהוי דיבור (המיקרופון בשלט) -->
     <queries>
@@ -46,6 +49,10 @@
                 <data android:scheme="tvremote" />
             </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".InstallReceiver"
+            android:exported="false" />
 
         <service
             android:name=".MirrorService"

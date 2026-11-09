@@ -12,7 +12,15 @@ object Commands {
     private fun ok(body: Any = JSONObject().put("ok", true)) = Result(true, body)
     private fun fail(error: String) = Result(false, JSONObject().put("error", error))
 
-    fun handle(context: Context, command: String, params: Map<String, String>): Result = when (command) {
+    /** מתי השתמשו בשלט לאחרונה (לא כולל בדיקות מצב) - לא מעדכנים באמצע שימוש */
+    @Volatile var lastUse = 0L
+
+    fun handle(context: Context, command: String, params: Map<String, String>): Result {
+        if (command != "status" && command != "diag" && command != "keyboards") lastUse = System.currentTimeMillis()
+        return handleInner(context, command, params)
+    }
+
+    private fun handleInner(context: Context, command: String, params: Map<String, String>): Result = when (command) {
         "status" -> {
             AdbBridge.ensureConnected()
             AdbBridge.ensureAccessibility()
@@ -27,6 +35,8 @@ object Commands {
                 .put("lan", RemoteService.address().removePrefix("http://").substringBefore(':'))
                 .put("mirrorPort", MirrorServer.PORT)
                 .put("airplay", AirPlayServer.port > 0)
+                .put("version", Updater.currentVersion(context))
+                .put("update", Updater.state)
                 .put("airplayError", AirPlayServer.lastError)
             )
         }
@@ -105,6 +115,7 @@ object Commands {
             for ((pkg, label) in Apps.recent(context)) array.put(JSONObject().put("pkg", pkg).put("label", label))
             ok(array)
         }
+        "update_check" -> { Updater.checkNow(context, force = true); ok(JSONObject().put("ok", true).put("version", Updater.currentVersion(context)).put("state", Updater.state)) }
         "diag" -> ok(JSONObject().put("ok", true).put("text", Diagnostics.report(context)))
         "airplay_log" -> ok(JSONObject().put("ok", true).put("log", AirPlayServer.log()).put("port", AirPlayServer.port).put("error", AirPlayServer.lastError))
         "mirror_stop" -> { MirrorServer.stop(); AirPlayServer.stop(); ok() }
