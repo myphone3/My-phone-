@@ -10,7 +10,9 @@ import TrustBadges from '@/components/TrustBadges';
 import FaqList from '@/components/FaqList';
 import SimpleMarkdown from '@/components/SimpleMarkdown';
 import Lightbox, { MediaItem } from '@/components/Lightbox';
-import { CompareButton, DeliveryEstimate, FavoriteButton, ProductBadges } from '@/components/ProductExtras';
+import { ProductVersionHelp } from '@/components/VersionGuide';
+import ProductUrgency from '@/components/ProductUrgency';
+import { CompareButton, DeliveryEstimate, ProductBadges } from '@/components/ProductExtras';
 import { setCurrentProduct, track } from '@/lib/track';
 import { whatsappAboutProduct } from '@/lib/shop';
 
@@ -370,7 +372,6 @@ function ProductDetailContent() {
             </button>
 
             <span className="absolute bottom-3 left-3 bg-white/90 text-gray-600 text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm pointer-events-none">🔍 לחצו להגדלה</span>
-            <FavoriteButton productId={String(product.id)} size="lg" className="absolute bottom-3 right-3 z-10" />
             {viewImages.length > 1 && (
               <span className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1 pointer-events-none">
                 {viewImages.map((img, i) => (
@@ -453,6 +454,8 @@ function ProductDetailContent() {
             )}
           </div>
 
+          <ProductUrgency product={product} />
+
           {/* בחירת צבע (חובה רק אם יש יותר מאפשרות אחת) */}
           {colors.length > 0 && (
             <div className="space-y-2">
@@ -512,6 +515,7 @@ function ProductDetailContent() {
                   );
                 })}
               </div>
+              <ProductVersionHelp versions={versions} selected={selectedVersion} onSelect={setSelectedVersion} />
             </div>
           )}
 

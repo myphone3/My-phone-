@@ -5,9 +5,9 @@ import { usePathname } from 'next/navigation';
 import { BUSINESS } from '@/lib/business';
 
 const LINKS = [
+  { href: '/guide', label: '📖 מדריכים: כשר, תומך כשר וגרסאות' },
   { href: '/quiz', label: '🧭 איזה מכשיר מתאים לי?' },
   { href: '/compare', label: '⚖️ השוואת מוצרים' },
-  { href: '/favorites', label: '♡ המועדפים שלי' },
   { href: '/terms', label: 'תקנון האתר' },
   { href: '/returns', label: 'ביטולים והחזרות' },
   { href: '/privacy', label: 'מדיניות פרטיות' },

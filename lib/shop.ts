@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 import { BUSINESS } from './business';
 import { track } from './track';
 
-// כלים משותפים לחנות: מועדפים, השוואה, תאריך הגעה משוער ותגיות למוצרים.
+// כלים משותפים לחנות: השוואה, תאריך הגעה משוער ותגיות למוצרים.
 
 const read = (key: string): string[] => {
   try {
@@ -20,20 +20,6 @@ const write = (key: string, list: string[], event: string) => {
   }
   window.dispatchEvent(new Event(event));
 };
-
-// ===== מועדפים ❤️ =====
-const FAV_KEY = 'np_favorites';
-export const FAV_EVENT = 'favoritesUpdated';
-export const getFavorites = () => read(FAV_KEY);
-export const isFavorite = (id: string) => getFavorites().includes(String(id));
-export function toggleFavorite(id: string) {
-  const list = getFavorites();
-  const has = list.includes(String(id));
-  const next = has ? list.filter((x) => x !== String(id)) : [String(id), ...list].slice(0, 100);
-  write(FAV_KEY, next, FAV_EVENT);
-  if (!has) track('favorite', { product_id: String(id) });
-  return !has;
-}
 
 // ===== השוואה ⚖️ (עד 3 מוצרים) =====
 const CMP_KEY = 'np_compare';

@@ -70,7 +70,6 @@ const PAGE_NAMES: [RegExp, string][] = [
   [/^\/product\//, 'עמוד מוצר'],
   [/^\/quiz/, 'שאלון התאמה'],
   [/^\/compare/, 'השוואה'],
-  [/^\/favorites/, 'מועדפים'],
   [/^\/(terms|privacy|returns|accessibility)/, 'עמוד מידע'],
 ];
 function pageName(path?: string | null, product?: string | null) {
@@ -488,7 +487,6 @@ export default function AnalyticsPage() {
               <BarList
                 rows={[
                   { label: '💬 לחיצות על וואטסאפ', value: n(data?.actions?.whatsapp_click) },
-                  { label: '♥ שמירה במועדפים', value: n(data?.actions?.favorite) },
                   { label: '⚖️ הוספה להשוואה', value: n(data?.actions?.compare) },
                   { label: '🧭 סיימו את השאלון', value: n(data?.actions?.quiz_done) },
                 ]}

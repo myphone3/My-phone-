@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, Suspense } from 'react';
 import { CardOverlay } from '@/components/ProductExtras';
+import CategoryExplainer from '@/components/CategoryExplainer';
 import { supabase } from '@/lib/supabase';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -215,6 +216,8 @@ function CategoryContent() {
             </span>
           )}
         </div>
+
+        <CategoryExplainer name={categoryName} />
 
         {/* סרגל סינון מותגים ברור עם תיבות סימון (Checkboxes) */}
         {!loading && categoryBrands.length > 0 && (

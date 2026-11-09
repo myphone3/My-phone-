@@ -6,16 +6,12 @@ import { usePathname } from 'next/navigation';
 import {
   COMPARE_EVENT,
   COMPARE_MAX,
-  FAV_EVENT,
   deliveryEstimate,
   getBestSellers,
   getCompare,
-  getFavorites as getFavoritesList,
   inCompare,
-  isFavorite,
   productBadges,
   toggleCompare,
-  toggleFavorite,
 } from '@/lib/shop';
 import { showToast } from '@/lib/toast';
 
@@ -35,29 +31,6 @@ function useStored<T>(event: string, read: () => T, initial: T) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event]);
   return value;
-}
-
-export function FavoriteButton({ productId, className = '', size = 'sm' }: { productId: string; className?: string; size?: 'sm' | 'lg' }) {
-  const fav = useStored(FAV_EVENT, () => isFavorite(productId), false);
-  const onClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const added = toggleFavorite(productId);
-    showToast(added ? 'נשמר במועדפים ❤️' : 'הוסר מהמועדפים', added ? { kind: 'success', action: { href: '/favorites', label: 'למועדפים' } } : {});
-  };
-  const dim = size === 'lg' ? 'w-11 h-11 text-xl' : 'w-8 h-8 text-base';
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={fav}
-      aria-label={fav ? 'הסרה מהמועדפים' : 'שמירה במועדפים'}
-      title={fav ? 'הסרה מהמועדפים' : 'שמירה במועדפים'}
-      className={`${dim} rounded-full bg-white/95 border border-gray-200 shadow-sm flex items-center justify-center cursor-pointer hover:scale-110 transition ${className}`}
-    >
-      <span className={fav ? 'text-red-500' : 'text-gray-400'}>{fav ? '♥' : '♡'}</span>
-    </button>
-  );
 }
 
 export function CompareButton({ productId, variant = 'chip' }: { productId: string; variant?: 'chip' | 'full' }) {
@@ -161,36 +134,15 @@ export function CompareBar() {
   );
 }
 
-// שכבה על תמונת כרטיס מוצר: תגיות, לב למועדפים וכפתור השוואה
+// שכבה על תמונת כרטיס מוצר: תגיות וכפתור השוואה
 export function CardOverlay({ product }: { product: any }) {
   if (!product?.id) return null;
   return (
     <>
       <ProductBadges product={product} className="absolute bottom-2 right-2 z-10 pointer-events-none" />
-      <div className="absolute bottom-2 left-2 z-10 flex flex-col items-end gap-1">
-        <FavoriteButton productId={String(product.id)} />
+      <div className="absolute bottom-2 left-2 z-10">
         <CompareButton productId={String(product.id)} />
       </div>
     </>
-  );
-}
-
-// לב בכותרת האתר עם מספר המועדפים
-export function FavoritesLink() {
-  const ids = useStored(FAV_EVENT, getFavoritesList, [] as string[]);
-  return (
-    <Link
-      href="/favorites"
-      className="relative p-2 bg-white hover:bg-red-50 border-2 border-orange-200 text-red-500 rounded-xl transition shadow-2xs flex items-center justify-center font-bold"
-      title="המועדפים שלי"
-      aria-label={`המועדפים שלי${ids.length ? ` (${ids.length})` : ''}`}
-    >
-      <span className="text-lg leading-none">{ids.length ? '♥' : '♡'}</span>
-      {ids.length > 0 && (
-        <span className="absolute -top-2 -right-2 bg-red-500 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center font-black border-2 border-white shadow-md">
-          {ids.length}
-        </span>
-      )}
-    </Link>
   );
 }
