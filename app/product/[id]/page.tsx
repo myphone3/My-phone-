@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, Suspense, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { versionExtra as getVersionExtra } from '@/lib/versionPrice';
+import { versionExtra as getVersionExtra, versionName as versionNameOf } from '@/lib/versionPrice';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { showAddedToCart, showToast } from '@/lib/toast';
@@ -10,7 +10,8 @@ import TrustBadges from '@/components/TrustBadges';
 import FaqList from '@/components/FaqList';
 import SimpleMarkdown from '@/components/SimpleMarkdown';
 import Lightbox, { MediaItem } from '@/components/Lightbox';
-import { ProductVersionHelp } from '@/components/VersionGuide';
+import { ProductVersionHelp, VersionNameMark } from '@/components/VersionGuide';
+import { WhatsAppIcon } from '@/components/Logos';
 import ProductUrgency from '@/components/ProductUrgency';
 import { CompareButton, DeliveryEstimate, ProductBadges } from '@/components/ProductExtras';
 import { setCurrentProduct, track } from '@/lib/track';
@@ -105,7 +106,12 @@ function ProductDetailContent() {
 
       const rawVersions = data.product_variants || data.versions || data.product_versions || data.variants;
       const versionsArr = parseSafeArray(rawVersions);
-      if (versionsArr.length === 1) {
+      // קישור עם ?v= (למשל מהמלצת המכשיר) בוחר את הגרסה מראש
+      const wantedVersion = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('v') : null;
+      const preset = wantedVersion ? versionsArr.find((v: any) => versionNameOf(v) === wantedVersion) : null;
+      if (preset) {
+        setSelectedVersion(preset);
+      } else if (versionsArr.length === 1) {
         setSelectedVersion(versionsArr[0]);
       } else {
         setSelectedVersion(null);
@@ -505,10 +511,11 @@ function ProductDetailContent() {
                     <button
                       key={idx}
                       onClick={() => setSelectedVersion(v)}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                      className={`px-4 py-2 rounded-xl text-xs font-bold border transition cursor-pointer inline-flex items-center gap-1.5 ${
                         isSelected ? 'bg-orange-600 text-white border-orange-600 shadow-sm' : 'bg-white text-gray-800 border-gray-200 hover:bg-gray-50'
                       }`}
                     >
+                      <VersionNameMark name={String(vName)} />
                       {vName}
                       {vExtra > 0 && <span className={`mr-1 ${isSelected ? 'text-orange-100' : 'text-orange-600'}`}>+₪{vExtra}</span>}
                     </button>
@@ -609,11 +616,13 @@ function ProductDetailContent() {
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => track('whatsapp_click', { product_id: String(product.id) })}
-              className="flex-[1.4] bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/40 text-[#128C4B] py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition"
+              className="flex-1 bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/40 text-[#128C4B] py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition"
             >
-              💬 שאלה על המוצר? וואטסאפ
+              <WhatsAppIcon size={16} color="#25D366" /> שאלה על המוצר? כתבו לנו בוואטסאפ
             </a>
-            <CompareButton productId={String(product.id)} variant="full" />
+          </div>
+          <div className="text-center -mt-1">
+            <CompareButton productId={String(product.id)} variant="link" />
           </div>
 
           <TrustBadges compact />

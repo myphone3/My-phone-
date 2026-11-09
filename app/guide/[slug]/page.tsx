@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { GUIDES, getGuide } from '@/lib/guides';
+import { GUIDES, GUIDE_CATEGORIES, getGuide } from '@/lib/guides';
+import { WhatsAppIcon } from '@/components/Logos';
 import { BUSINESS } from '@/lib/business';
 import GuideTable from '@/components/GuideTables';
 
@@ -17,7 +18,11 @@ export function generateMetadata({ params }: { params: { slug: string } }) {
 export default function GuidePage({ params }: { params: { slug: string } }) {
   const g = getGuide(params.slug);
   if (!g) notFound();
-  const others = GUIDES.filter((x) => x.slug !== g.slug).slice(0, 3);
+  // קודם מדריכים מאותו נושא, ואחר כך השאר
+  const others = [...GUIDES.filter((x) => x.slug !== g.slug && x.category === g.category), ...GUIDES.filter((x) => x.category !== g.category)].slice(0, 3);
+  const cat = GUIDE_CATEGORIES.find((c) => c.key === g.category);
+  const headings = g.blocks.filter((b) => b.type === 'h').map((b) => (b as { text: string }).text);
+  let hIndex = 0;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 pb-16 space-y-6" dir="rtl">
@@ -25,6 +30,12 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
         <Link href="/" className="hover:text-orange-600">דף הבית</Link>
         <span className="text-gray-300">/</span>
         <Link href="/guide" className="hover:text-orange-600">מדריכים</Link>
+        {cat && (
+          <>
+            <span className="text-gray-300">/</span>
+            <Link href={`/guide#${cat.key}`} className="hover:text-orange-600">{cat.title}</Link>
+          </>
+        )}
       </nav>
 
       <article className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 sm:p-10 space-y-5">
@@ -32,29 +43,67 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
           <span className="text-5xl">{g.emoji}</span>
           <h1 className="text-2xl sm:text-3xl font-black text-gray-900 leading-tight">{g.title}</h1>
           <p className="text-sm text-gray-500">{g.excerpt}</p>
-          <span className="inline-block text-[11px] font-bold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-lg">{g.minutes} דק׳ קריאה</span>
+          <div className="flex gap-2 flex-wrap">
+            {cat && <span className="text-[11px] font-bold bg-orange-50 text-orange-800 px-2 py-0.5 rounded-lg">{cat.emoji} {cat.title}</span>}
+            <span className="text-[11px] font-bold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-lg">⏱️ {g.minutes} דק׳ קריאה</span>
+          </div>
         </header>
+
+        {/* השורה התחתונה */}
+        {g.keyPoints?.length > 0 && (
+          <div className="bg-green-50 border border-green-200 rounded-2xl p-4 space-y-1.5">
+            <span className="block text-xs font-black text-green-900">✅ בקצרה</span>
+            {g.keyPoints.map((k) => (
+              <p key={k} className="text-sm text-green-950 flex gap-2">
+                <span className="text-green-600 font-black shrink-0">✓</span>
+                <span>{k}</span>
+              </p>
+            ))}
+          </div>
+        )}
+
+        {/* תוכן העניינים */}
+        {headings.length >= 3 && (
+          <nav className="bg-gray-50 rounded-2xl p-4 text-sm" aria-label="תוכן העניינים">
+            <span className="block text-xs font-black text-gray-700 mb-1.5">📑 במדריך הזה</span>
+            <ol className="space-y-1">
+              {headings.map((h, i) => (
+                <li key={h}>
+                  <a href={`#s${i + 1}`} className="text-orange-700 hover:underline font-bold">
+                    {i + 1}. {h.replace(/^\d+\.\s*/, '')}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </nav>
+        )}
 
         <div className="space-y-4 text-sm sm:text-base leading-8 text-gray-700">
           {g.blocks.map((b, i) => {
             switch (b.type) {
-              case 'h':
+              case 'h': {
+                hIndex += 1;
                 return (
-                  <h2 key={i} className="text-lg sm:text-xl font-black text-gray-900 pt-2">
-                    {b.text}
+                  <h2 key={i} id={`s${hIndex}`} className="text-lg sm:text-xl font-black text-gray-900 pt-4 border-t border-gray-100 scroll-mt-28 flex items-center gap-2">
+                    <span className="w-7 h-7 shrink-0 rounded-lg bg-orange-600 text-white text-sm flex items-center justify-center">{hIndex}</span>
+                    <span>{b.text.replace(/^\d+\.\s*/, '')}</span>
                   </h2>
                 );
+              }
               case 'p':
                 return <p key={i}>{b.text}</p>;
               case 'list':
                 return (
-                  <ul key={i} className="space-y-1.5 pr-1">
-                    {b.items.map((it) => (
-                      <li key={it} className="flex gap-2">
-                        <span className="text-orange-600 font-black shrink-0">•</span>
-                        <span>{it}</span>
-                      </li>
-                    ))}
+                  <ul key={i} className="space-y-2 pr-1">
+                    {b.items.map((it) => {
+                      const [head, ...rest] = it.split(': ');
+                      return (
+                        <li key={it} className="flex gap-2 bg-gray-50/70 rounded-xl px-3 py-2">
+                          <span className="text-orange-600 font-black shrink-0">•</span>
+                          <span>{rest.length && head.length < 40 ? (<><b className="text-gray-900">{head}:</b> {rest.join(': ')}</>) : it}</span>
+                        </li>
+                      );
+                    })}
                   </ul>
                 );
               case 'tip':
@@ -85,9 +134,9 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
           href={`https://wa.me/${BUSINESS.whatsapp}?text=${encodeURIComponent(`שלום, קראתי את המדריך "${g.title}" ויש לי שאלה`)}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="bg-[#25D366] text-white px-5 py-3 rounded-2xl text-sm font-black shrink-0"
+          className="bg-[#25D366] text-white px-5 py-3 rounded-2xl text-sm font-black shrink-0 inline-flex items-center gap-2"
         >
-          💬 שאלה בוואטסאפ
+          <WhatsAppIcon size={18} color="#fff" /> שאלה בוואטסאפ
         </a>
       </div>
 
@@ -95,9 +144,10 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
         <h2 className="font-black text-gray-900">עוד מדריכים</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {others.map((o) => (
-            <Link key={o.slug} href={`/guide/${o.slug}`} className="bg-white border border-orange-100 hover:border-orange-300 rounded-2xl p-4 transition">
+            <Link key={o.slug} href={`/guide/${o.slug}`} className="bg-white border border-gray-100 hover:border-orange-300 rounded-2xl p-4 transition">
               <span className="text-2xl">{o.emoji}</span>
               <span className="block text-sm font-black text-gray-900 mt-1 leading-snug">{o.title}</span>
+              <span className="block text-[11px] text-gray-500 mt-1">{o.minutes} דק׳ קריאה</span>
             </Link>
           ))}
         </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import MyOrders from '@/components/MyOrders';
@@ -64,6 +64,8 @@ export default function CartPage() {
   const [cardHolderId, setCardHolderId] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
+  // נעילה מיידית נגד לחיצה כפולה (ה-state מתעדכן רק ברינדור הבא)
+  const submitLock = useRef(false);
 
   // קופונים ומבצעים
   const [couponInput, setCouponInput] = useState('');
@@ -305,6 +307,8 @@ export default function CartPage() {
       return;
     }
 
+    if (submitLock.current) return;
+    submitLock.current = true;
     setSubmitting(true);
 
     // מפתח חד-פעמי לשליחת מייל האישור (לקוח לא יכול לקרוא הזמנות מהבסיס)
@@ -326,6 +330,7 @@ export default function CartPage() {
       error = { message: err?.message };
     } finally {
       setSubmitting(false);
+      submitLock.current = false;
     }
 
     if (error || !savedOrder) {

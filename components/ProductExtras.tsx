@@ -33,7 +33,7 @@ function useStored<T>(event: string, read: () => T, initial: T) {
   return value;
 }
 
-export function CompareButton({ productId, variant = 'chip' }: { productId: string; variant?: 'chip' | 'full' }) {
+export function CompareButton({ productId, variant = 'chip' }: { productId: string; variant?: 'chip' | 'full' | 'link' }) {
   const active = useStored(COMPARE_EVENT, () => inCompare(productId), false);
   const onClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -42,6 +42,13 @@ export function CompareButton({ productId, variant = 'chip' }: { productId: stri
     if (result === 'full') showToast(`אפשר להשוות עד ${COMPARE_MAX} מוצרים`, { kind: 'error', action: { href: '/compare', label: 'להשוואה' } });
     else if (result === 'added') showToast('נוסף להשוואה ⚖️', { kind: 'success', action: { href: '/compare', label: 'להשוואה' } });
   };
+  if (variant === 'link') {
+    return (
+      <button type="button" onClick={onClick} aria-pressed={active} className="text-[11px] font-bold text-gray-400 hover:text-gray-700 cursor-pointer">
+        ⚖️ {active ? 'נוסף להשוואה ✓' : 'הוספה להשוואה'}
+      </button>
+    );
+  }
   if (variant === 'full') {
     return (
       <button
@@ -124,25 +131,17 @@ export function CompareBar() {
   return (
     <Link
       href="/compare"
-      className="fixed bottom-5 right-5 z-40 bg-gray-900 text-white rounded-2xl shadow-xl px-4 py-3 text-xs font-black flex items-center gap-2 hover:bg-black transition"
+      className="fixed bottom-24 left-5 z-30 bg-white/90 backdrop-blur border border-gray-200 text-gray-700 rounded-full shadow-sm px-3 py-1.5 text-[11px] font-bold flex items-center gap-1.5 hover:bg-white transition"
       dir="rtl"
     >
       <span>⚖️</span>
-      <span>השוואת {ids.length} מוצרים</span>
-      <span className="text-orange-400">←</span>
+      <span>השוואה ({ids.length})</span>
     </Link>
   );
 }
 
-// שכבה על תמונת כרטיס מוצר: תגיות וכפתור השוואה
+// שכבה על תמונת כרטיס מוצר: תגיות בלבד (ההשוואה נמצאת בעמוד המוצר, כדי שהכרטיסים יישארו נקיים)
 export function CardOverlay({ product }: { product: any }) {
   if (!product?.id) return null;
-  return (
-    <>
-      <ProductBadges product={product} className="absolute bottom-2 right-2 z-10 pointer-events-none" />
-      <div className="absolute bottom-2 left-2 z-10">
-        <CompareButton productId={String(product.id)} />
-      </div>
-    </>
-  );
+  return <ProductBadges product={product} className="absolute bottom-2 right-2 z-10 pointer-events-none" />;
 }

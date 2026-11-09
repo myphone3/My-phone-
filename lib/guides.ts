@@ -9,12 +9,24 @@ export type GuideBlock =
   | { type: 'table'; which: 'versions' | 'types' }
   | { type: 'cta'; href: string; label: string };
 
+export type GuideCategory = 'start' | 'kosher' | 'versions' | 'players';
+
+export const GUIDE_CATEGORIES: { key: GuideCategory; title: string; emoji: string; hint: string }[] = [
+  { key: 'start', title: 'מתחילים כאן', emoji: '🧭', hint: 'איך בוחרים מכשיר בלי להתחרט' },
+  { key: 'kosher', title: 'כשר ותומך כשר', emoji: '✡️', hint: 'מה ההבדל ומה מתאים לכם' },
+  { key: 'versions', title: 'הגרסאות', emoji: '⚙️', hint: 'מה יש ומה אין בכל גרסה' },
+  { key: 'players', title: 'נגנים', emoji: '🎧', hint: 'נגני MP3 ו-MP4 כשרים' },
+];
+
 export type Guide = {
   slug: string;
   title: string;
   emoji: string;
   excerpt: string;
   minutes: number;
+  category: GuideCategory;
+  /** שורה תחתונה: 2-4 נקודות שמופיעות בראש המדריך */
+  keyPoints: string[];
   blocks: GuideBlock[];
 };
 
@@ -25,6 +37,8 @@ export const GUIDES: Guide[] = [
     emoji: '⚖️',
     excerpt: 'שני סוגי מכשירים שנשמעים דומה, אבל שונים מאוד במה שאפשר לעשות איתם. כל מה שצריך לדעת לפני שבוחרים.',
     minutes: 3,
+    category: 'kosher',
+    keyPoints: ["מכשיר כשר: שיחות בלבד, באישור ועדת הרבנים.", "תומך כשר: עובד עם קו כשר, ובוחרים גרסה לפי מה שצריך.", "וואטסאפ וניווט: רק בתומך כשר בגרסת כשר פליי."],
     blocks: [
       { type: 'p', text: 'מי שמחפש מכשיר שמתאים לקו כשר נתקל מהר בשני מושגים: "מכשיר כשר" ו"תומך כשר". ההבדל ביניהם הוא בעיקר במה שהמכשיר מאפשר לעשות, ובמי שמאשר אותו.' },
       { type: 'h', text: 'בקצרה' },
@@ -56,6 +70,8 @@ export const GUIDES: Guide[] = [
     emoji: '✡️',
     excerpt: 'מכשיר לשיחות בלבד, באישור ועדת הרבנים לענייני תקשורת. מה יש בו, מה אין בו, ולמי הוא מתאים.',
     minutes: 3,
+    category: 'kosher',
+    keyPoints: ["שיחות בלבד: בלי הודעות, מצלמה, אינטרנט ואפליקציות.", "עובד עם קו כשר.", "מתאים למי שרוצה את הכשרות המחמירה ביותר."],
     blocks: [
       { type: 'p', text: 'מכשיר כשר הוא טלפון פשוט שנועד לדבר בטלפון, ותו לא. הוא מאושר על ידי ועדת הרבנים לענייני תקשורת, ועובד על קו כשר.' },
       { type: 'h', text: 'מה יש במכשיר כשר?' },
@@ -79,6 +95,8 @@ export const GUIDES: Guide[] = [
     emoji: '✅',
     excerpt: 'מכשיר שעובד עם קו כשר, עם סינון ברמה שבוחרים: רק SMS, נגן ומצלמה, או אפליקציות מאושרות כמו וואטסאפ ומוביט.',
     minutes: 4,
+    category: 'kosher',
+    keyPoints: ["עובד עם קו כשר, עם יותר אפשרויות ממכשיר כשר.", "בוחרים גרסה: נגן, מצלמה, SMS או כשר פליי.", "באף גרסה אין דפדפן, גוגל או יוטיוב."],
     blocks: [
       {
         type: 'p',
@@ -111,6 +129,8 @@ export const GUIDES: Guide[] = [
     emoji: '⚙️',
     excerpt: 'אותו מכשיר מגיע בכמה גרסאות. טבלה אחת שמראה בדיוק מה יש בכל גרסה, כדי לבחור נכון בפעם הראשונה.',
     minutes: 3,
+    category: 'versions',
+    keyPoints: ["הגרסה קובעת מה פתוח במכשיר ומה חסום.", "בכל גרסה כתוב בדיוק: יש או אין.", "צריכים וואטסאפ? כשר פליי."],
     blocks: [
       { type: 'p', text: 'כשבוחרים מכשיר תומך כשר, בוחרים גם גרסה. הגרסה קובעת מה יהיה פתוח במכשיר ומה יהיה חסום. הנה כל הגרסאות שלנו, זו לצד זו:' },
       { type: 'table', which: 'versions' },
@@ -134,6 +154,8 @@ export const GUIDES: Guide[] = [
     emoji: '🧭',
     excerpt: 'למי המכשיר, איזו כשרות, מה חייבים שיהיה בו, מה התקציב וכמה חשובה הסוללה. ככה בוחרים בלי להתחרט.',
     minutes: 3,
+    category: 'start',
+    keyPoints: ["קודם מחליטים למי המכשיר ואיזו כשרות.", "בוחרים את הגרסה הכי פשוטה שעונה על הצורך.", "לא בטוחים? השאלון ממליץ תוך דקה."],
     blocks: [
       { type: 'h', text: '1. למי המכשיר?' },
       { type: 'p', text: 'למבוגרים כדאי מכשיר עם מקשים גדולים ומסך ברור. לילדים ונוער מכשיר פשוט ועמיד. לעבודה כדאי לחשוב על הודעות ווואטסאפ.' },
@@ -154,6 +176,8 @@ export const GUIDES: Guide[] = [
     emoji: '🎧',
     excerpt: 'נגן בלי אינטרנט לשירים, שיעורים וסיפורים. על מה להסתכל כשבוחרים נגן, ומה ההבדל בין הדגמים.',
     minutes: 2,
+    category: 'players',
+    keyPoints: ["נגן בלי אינטרנט: מעבירים קבצים מהמחשב.", "בודקים נפח, מסך, רמקול ורדיו.", "בעמוד המוצר מופיע לוגו הכשרות."],
     blocks: [
       { type: 'p', text: 'נגן כשר הוא מכשיר להשמעת שירים, שיעורים וסיפורים, בלי אינטרנט ובלי אפשרות להוריד תוכן מהרשת. את הקבצים מעבירים מהמחשב.' },
       { type: 'h', text: 'על מה להסתכל?' },
@@ -171,5 +195,7 @@ export const GUIDES: Guide[] = [
     ],
   },
 ];
+
+export const guidesIn = (cat: GuideCategory) => GUIDES.filter((g) => g.category === cat);
 
 export const getGuide = (slug: string) => GUIDES.find((g) => g.slug === slug);

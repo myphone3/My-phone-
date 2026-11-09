@@ -96,6 +96,16 @@ export default function Header() {
     // כפתורים אחרים באתר (למשל "כתבו ביקורת") יכולים לפתוח את חלון ההרשמה
     const openSignup = () => setSignupOpen(true);
     window.addEventListener('open-signup', openSignup);
+    // עמודים אחרים (למשל סיום השאלון) מסמנים התראה כנקראה
+    const reloadDismissed = () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem('dismissedNotifications') || '[]');
+        if (Array.isArray(saved)) setDismissedIds(saved);
+      } catch {
+        // ignore
+      }
+    };
+    window.addEventListener('notificationsUpdated', reloadDismissed);
 
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -109,6 +119,7 @@ export default function Header() {
       window.removeEventListener('storage', updateCartCount);
       window.removeEventListener('cartUpdated', updateCartCount);
       window.removeEventListener('open-signup', openSignup);
+      window.removeEventListener('notificationsUpdated', reloadDismissed);
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
@@ -282,7 +293,10 @@ export default function Header() {
   const hasCartNotification =
     cartCount > 0 && pathname !== '/cart' && !dismissedIds.includes(cartNotificationId);
 
-  const notificationsCount = (hasGiftNotification ? 1 : 0) + (hasCartNotification ? 1 : 0);
+  // התראה 3: המלצת מכשיר (שאלון קצר). נעלמת כשמסמנים כנקרא או אחרי שסיימו את השאלון
+  const hasQuizNotification = !dismissedIds.includes('quiz') && pathname !== '/quiz';
+
+  const notificationsCount = (hasGiftNotification ? 1 : 0) + (hasCartNotification ? 1 : 0) + (hasQuizNotification ? 1 : 0);
 
   // שורת פרטים קטנה בכרטיס המתנה
   const giftMetaParts: string[] = [];
@@ -615,6 +629,33 @@ export default function Header() {
                             className="text-xs font-bold text-orange-700 hover:underline cursor-pointer"
                           >
                             לעגלה ←
+                          </Link>
+                        </div>
+                      </div>
+                    )}
+
+                    {hasQuizNotification && (
+                      <div className="bg-gradient-to-l from-sky-50 to-white border border-sky-200/80 rounded-2xl p-3 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-xs font-black text-sky-900 flex items-center gap-1">
+                            <span>🧭</span>
+                            <span>המלצת מכשיר אישית</span>
+                          </span>
+                          <button
+                            onClick={() => dismissNotification('quiz')}
+                            className="text-[10px] text-gray-500 hover:text-gray-700 font-bold cursor-pointer shrink-0"
+                          >
+                            סמן כנקרא ✓
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-600 font-medium">לא בטוחים מה לקנות? עונים על כמה שאלות קצרות ומקבלים את המכשיר והגרסה שמתאימים לכם.</p>
+                        <div className="pt-1 border-t border-sky-200/50">
+                          <Link
+                            href="/quiz"
+                            onClick={() => setDropdownOpen(false)}
+                            className="text-xs font-bold text-sky-700 hover:underline cursor-pointer"
+                          >
+                            להתחיל (דקה אחת) ←
                           </Link>
                         </div>
                       </div>

@@ -2,18 +2,19 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { FEATURES, FeatureKey, FeatureValue, featureMark, resolveVersion } from '@/lib/versionGuide';
+import { FEATURES, FeatureKey, FeatureValue, featureMark, isKosherPlay, resolveVersion } from '@/lib/versionGuide';
 import { showToast } from '@/lib/toast';
+import { VersionMark } from '@/components/Logos';
 
 // גרסאות: השם מופיע בבחירת גרסה במוצר, והתיאור והיכולות מוצגים ללקוחות ב"מה ההבדל בין הגרסאות?" ובמדריך.
-const CYCLE: FeatureValue[] = ['yes', 'limited', 'no'];
 
 export default function AdminVersionsPage() {
   const [versions, setVersions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
   const [editing, setEditing] = useState<string | null>(null);
-  const [draft, setDraft] = useState<{ description: string; features: Partial<Record<FeatureKey, FeatureValue>> }>({ description: '', features: {} });
+  const [draft, setDraft] = useState<{ description: string; image_url: string; features: Partial<Record<FeatureKey, FeatureValue>> }>({ description: '', image_url: '', features: {} });
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -48,17 +49,35 @@ export default function AdminVersionsPage() {
 
   const startEdit = (v: any) => {
     const info = resolveVersion(v.name, versions);
-    setDraft({ description: info.description, features: { ...info.features } });
+    setDraft({ description: info.description, image_url: v.image_url || '', features: { ...info.features } });
     setEditing(v.id);
+  };
+
+  const uploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const fileName = `version_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from('product-images').upload(fileName, file);
+      if (error) throw error;
+      const { data } = supabase.storage.from('product-images').getPublicUrl(fileName);
+      setDraft((d) => ({ ...d, image_url: data.publicUrl }));
+    } catch (err: any) {
+      showToast('העלאת הלוגו נכשלה: ' + err.message, { kind: 'error' });
+    } finally {
+      setUploading(false);
+    }
   };
 
   const saveDetails = async (id: string) => {
     setSaving(true);
-    const { error } = await supabase.from('versions').update({ description: draft.description.trim() || null, features: draft.features }).eq('id', id);
+    const { error } = await supabase.from('versions').update({ description: draft.description.trim() || null, features: draft.features, image_url: draft.image_url || null }).eq('id', id);
     setSaving(false);
     if (error) {
       showToast(
-        error.message.includes('column') ? 'צריך קודם להריץ ב-Supabase את הקובץ supabase/2026-11-versions-guide.sql' : 'השמירה נכשלה: ' + error.message,
+        error.message.includes('column') ? 'צריך קודם להריץ ב-Supabase את הקובץ supabase/2026-11-versions-logo.sql' : 'השמירה נכשלה: ' + error.message,
         { kind: 'error' }
       );
       return;
@@ -110,16 +129,15 @@ export default function AdminVersionsPage() {
               <div key={v.id} className="p-4 space-y-3">
                 <div className="flex justify-between items-start gap-3">
                   <div className="min-w-0">
-                    <span className="font-black text-sm text-gray-900">
-                      {info.icon} {v.name}
+                    <span className="font-black text-sm text-gray-900 flex items-center gap-2">
+                      <VersionMark v={info} size={22} /> {v.name}
                     </span>
                     {!isEditing && <p className="text-xs text-gray-500 mt-1 leading-relaxed">{info.description || 'אין הסבר עדיין'}</p>}
                     {!isEditing && (
                       <div className="flex flex-wrap gap-1 mt-2">
-                        {FEATURES.filter((f) => info.features[f.key] && info.features[f.key] !== 'no').map((f) => (
+                        {FEATURES.filter((f) => info.features[f.key] === 'yes').map((f) => (
                           <span key={f.key} className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${featureMark(info.features[f.key]).cls}`}>
                             {f.icon} {f.label}
-                            {info.features[f.key] === 'limited' ? ' (מוגבל)' : ''}
                           </span>
                         ))}
                       </div>
@@ -150,18 +168,33 @@ export default function AdminVersionsPage() {
                         className="w-full bg-white border rounded-xl p-2.5 text-xs font-normal"
                       />
                     </label>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="w-12 h-12 rounded-xl bg-white border flex items-center justify-center">
+                        <VersionMark v={{ name: v.name, icon: info.icon, logo: draft.image_url || undefined }} size={34} />
+                      </span>
+                      <label className="bg-white border rounded-xl px-3 py-2 text-xs font-bold text-gray-700 cursor-pointer hover:bg-gray-50">
+                        {uploading ? 'מעלה...' : draft.image_url ? '🖼️ החלפת לוגו' : '🖼️ העלאת לוגו לגרסה'}
+                        <input type="file" accept="image/*" className="hidden" onChange={uploadLogo} disabled={uploading} />
+                      </label>
+                      {draft.image_url && (
+                        <button type="button" onClick={() => setDraft((d) => ({ ...d, image_url: '' }))} className="text-xs text-red-600 font-bold cursor-pointer">
+                          הסרה
+                        </button>
+                      )}
+                      {isKosherPlay(v.name) && <span className="text-[10px] text-gray-500">הלוגו של כשר פליי יוצג בכל מקום שמופיעה הגרסה</span>}
+                    </div>
                     <div>
-                      <span className="block text-xs font-bold text-gray-700 mb-1.5">מה יש בגרסה? (לחיצה מחליפה: יש ← מוגבל ← אין)</span>
+                      <span className="block text-xs font-bold text-gray-700 mb-1.5">מה יש בגרסה? (לחיצה מחליפה בין יש לאין)</span>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                         {FEATURES.map((f) => {
-                          const value = draft.features[f.key] || 'no';
+                          const value: FeatureValue = draft.features[f.key] === 'yes' ? 'yes' : 'no';
                           const m = featureMark(value);
                           return (
                             <button
                               key={f.key}
                               type="button"
                               onClick={() =>
-                                setDraft((d) => ({ ...d, features: { ...d.features, [f.key]: CYCLE[(CYCLE.indexOf(value) + 1) % CYCLE.length] } }))
+                                setDraft((d) => ({ ...d, features: { ...d.features, [f.key]: value === 'yes' ? 'no' : 'yes' } }))
                               }
                               className="flex items-center justify-between gap-2 bg-white border rounded-xl px-3 py-2 text-xs cursor-pointer"
                             >
