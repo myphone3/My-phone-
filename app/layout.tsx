@@ -8,6 +8,9 @@ import type { Metadata } from 'next';
 import Analytics from '../components/Analytics';
 import CampaignTracker from '../components/CampaignTracker';
 import CartSync from '../components/CartSync';
+import SiteTracker from '../components/SiteTracker';
+import ConsentBanner from '../components/ConsentBanner';
+import { CompareBar } from '../components/ProductExtras';
 import { Suspense } from 'react';
 import { getSiteSettings } from '@/lib/siteSettings';
 
@@ -62,6 +65,9 @@ export default function RootLayout({
           <CampaignTracker />
         </Suspense>
         <CartSync />
+        <SiteTracker />
+        <CompareBar />
+        <ConsentBanner />
 
       </body>
     </html>

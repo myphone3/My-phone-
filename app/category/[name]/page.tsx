@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, Suspense } from 'react';
+import { CardOverlay } from '@/components/ProductExtras';
 import { supabase } from '@/lib/supabase';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -318,6 +319,7 @@ function CategoryContent() {
                 >
                   <Link href={`/product/${product.id}`} className="block space-y-3">
                     <div className="h-40 sm:h-52 w-full bg-gray-50 rounded-2xl flex items-center justify-center relative overflow-hidden group">
+                      <CardOverlay product={product} />
                       <img 
                         src={activeImage} 
                         alt={product.name} 

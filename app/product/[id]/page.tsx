@@ -9,6 +9,10 @@ import { showAddedToCart, showToast } from '@/lib/toast';
 import TrustBadges from '@/components/TrustBadges';
 import FaqList from '@/components/FaqList';
 import SimpleMarkdown from '@/components/SimpleMarkdown';
+import Lightbox, { MediaItem } from '@/components/Lightbox';
+import { CompareButton, DeliveryEstimate, FavoriteButton, ProductBadges } from '@/components/ProductExtras';
+import { setCurrentProduct, track } from '@/lib/track';
+import { whatsappAboutProduct } from '@/lib/shop';
 
 function ProductDetailContent() {
   const params = useParams();
@@ -35,6 +39,10 @@ function ProductDetailContent() {
   const [activeTab, setActiveTab] = useState<'desc' | 'specs' | 'faq'>('desc');
   const detailsRef = useRef<HTMLDivElement>(null);
 
+  // תצוגת תמונות במסך מלא
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const swipeX = useRef<number | null>(null);
+
   // פופאפ מבצע Upsell
   const [showUpsellModal, setShowUpsellModal] = useState(false);
   const [upsellTargetProduct, setUpsellTargetProduct] = useState<any>(null);
@@ -43,6 +51,7 @@ function ProductDetailContent() {
     if (productId) {
       fetchProductAndMetaData();
     }
+    return () => setCurrentProduct(null);
   }, [productId]);
 
   const parseSafeArray = (val: any) => {
@@ -76,6 +85,8 @@ function ProductDetailContent() {
 
       const data = prodRes.data;
       setProduct(data);
+      setCurrentProduct(String(data.id));
+      track('product_view', { product_id: String(data.id) });
       setActiveTab(data.description ? 'desc' : data.specs ? 'specs' : 'faq');
       if (brandRes.data) setBrandsList(brandRes.data);
       if (kosherRes.data) setKosherList(kosherRes.data);
@@ -144,6 +155,19 @@ function ProductDetailContent() {
   const versions = parseSafeArray(rawVersions);
   const bundledList = parseSafeArray(product.frequently_bought_together);
   const imagesList = parseSafeArray(product.images);
+  const galleryImages: string[] = Array.from(new Set([product.image_url, ...imagesList].filter((x: any) => typeof x === 'string' && x.trim())));
+  const viewImages = activeImage && !galleryImages.includes(activeImage) ? [activeImage, ...galleryImages] : galleryImages;
+  const videoUrl = typeof product.video_url === 'string' && /^https?:\/\//.test(product.video_url.trim()) ? product.video_url.trim() : '';
+  const mediaItems: MediaItem[] = [
+    ...viewImages.map((src) => ({ kind: 'image' as const, src })),
+    ...(videoUrl ? [{ kind: 'video' as const, src: videoUrl }] : []),
+  ];
+  const activeIndex = Math.max(0, viewImages.indexOf(activeImage));
+  const stepImage = (dir: number) => {
+    if (viewImages.length < 2) return;
+    setActiveImage(viewImages[(activeIndex + dir + viewImages.length) % viewImages.length]);
+  };
+  const outOfStock = product.stock !== null && product.stock !== undefined && product.stock !== '' && Number(product.stock) <= 0;
 
   const currentBrandObj = brandsList.find(b => b.name?.trim().toLowerCase() === product.brand?.trim().toLowerCase());
   const brandLogo = currentBrandObj?.image_url;
@@ -318,15 +342,42 @@ function ProductDetailContent() {
         
         {/* תמונות המוצר */}
         <div className="space-y-4">
-          <div className="h-72 sm:h-96 w-full bg-gray-50 rounded-2xl flex items-center justify-center p-4 relative overflow-hidden">
-            {/* תגית מבצע */}
-            {product.sale_price && (
-              <span className="absolute top-3 left-3 bg-red-500 text-white text-xs font-black px-3 py-1 rounded-xl shadow-md z-10">
-                מבצע 🔥
+          <div
+            className="h-72 sm:h-96 w-full bg-gray-50 rounded-2xl flex items-center justify-center p-4 relative overflow-hidden"
+            onTouchStart={(e) => (swipeX.current = e.touches[0].clientX)}
+            onTouchEnd={(e) => {
+              if (swipeX.current === null) return;
+              const dx = e.changedTouches[0].clientX - swipeX.current;
+              swipeX.current = null;
+              if (Math.abs(dx) > 40) stepImage(dx < 0 ? 1 : -1);
+            }}
+          >
+            {/* תגיות: מבצע, הכי נמכר, חדש, מלאי */}
+            <div className="absolute top-3 left-3 z-10 flex flex-col items-start gap-1">
+              {product.sale_price && (
+                <span className="bg-red-500 text-white text-xs font-black px-3 py-1 rounded-xl shadow-md">מבצע 🔥</span>
+              )}
+              <ProductBadges product={product} />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setLightboxIndex(Math.max(0, mediaItems.findIndex((m) => m.src === activeImage)))}
+              className="w-full h-full flex items-center justify-center cursor-zoom-in"
+              aria-label="הגדלת התמונה"
+            >
+              <img src={activeImage} alt={product.name} className="max-h-full max-w-full object-contain" />
+            </button>
+
+            <span className="absolute bottom-3 left-3 bg-white/90 text-gray-600 text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm pointer-events-none">🔍 לחצו להגדלה</span>
+            <FavoriteButton productId={String(product.id)} size="lg" className="absolute bottom-3 right-3 z-10" />
+            {viewImages.length > 1 && (
+              <span className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1 pointer-events-none">
+                {viewImages.map((img, i) => (
+                  <span key={img} className={`h-1.5 rounded-full transition-all ${i === activeIndex ? 'w-4 bg-orange-600' : 'w-1.5 bg-gray-300'}`} />
+                ))}
               </span>
             )}
-
-            <img src={activeImage} alt={product.name} className="max-h-full max-w-full object-contain" />
 
             {/* לוגו מותג וכשרות */}
             <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
@@ -343,9 +394,9 @@ function ProductDetailContent() {
             </div>
           </div>
 
-          {imagesList.length > 1 && (
+          {(viewImages.length > 1 || videoUrl) && (
             <div className="flex gap-2 overflow-x-auto pb-2">
-              {imagesList.map((img: string, idx: number) => (
+              {viewImages.map((img: string, idx: number) => (
                 <button
                   key={idx}
                   onClick={() => setActiveImage(img)}
@@ -354,6 +405,16 @@ function ProductDetailContent() {
                   <img src={img} alt="" className="w-full h-full object-contain" />
                 </button>
               ))}
+              {videoUrl && (
+                <button
+                  onClick={() => setLightboxIndex(mediaItems.length - 1)}
+                  className="w-16 h-16 rounded-xl border border-gray-200 shrink-0 bg-gray-900 text-white cursor-pointer flex flex-col items-center justify-center gap-0.5"
+                  aria-label="צפייה בסרטון המוצר"
+                >
+                  <span className="text-lg leading-none">▶</span>
+                  <span className="text-[9px] font-bold">סרטון</span>
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -495,6 +556,12 @@ function ProductDetailContent() {
             </div>
           )}
 
+          {outOfStock && (
+            <div className="bg-gray-100 border border-gray-200 text-gray-700 rounded-2xl p-3 text-xs font-bold">
+              המוצר אזל מהמלאי כרגע. רוצים לדעת מתי יחזור או לשמוע על חלופה? כתבו לנו בוואטסאפ 👇
+            </div>
+          )}
+
           {/* כפתורי קנייה */}
           <div className="grid grid-cols-12 gap-3 pt-2">
             <button
@@ -529,6 +596,21 @@ function ProductDetailContent() {
             <span>הוספה לעגלה</span>
             <span>🛒</span>
           </button>
+
+          <DeliveryEstimate />
+
+          <div className="flex gap-2">
+            <a
+              href={whatsappAboutProduct(product.name, typeof window !== 'undefined' ? window.location.href : '')}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => track('whatsapp_click', { product_id: String(product.id) })}
+              className="flex-[1.4] bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/40 text-[#128C4B] py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition"
+            >
+              💬 שאלה על המוצר? וואטסאפ
+            </a>
+            <CompareButton productId={String(product.id)} variant="full" />
+          </div>
 
           <TrustBadges compact />
 
@@ -657,6 +739,19 @@ function ProductDetailContent() {
           {activeTab === 'faq' && <FaqList productId={product.id} />}
         </div>
       </div>
+
+      {lightboxIndex !== null && mediaItems.length > 0 && (
+        <Lightbox
+          items={mediaItems}
+          index={Math.min(lightboxIndex, mediaItems.length - 1)}
+          onIndex={(i) => {
+            setLightboxIndex(i);
+            if (mediaItems[i]?.kind === 'image') setActiveImage(mediaItems[i].src);
+          }}
+          onClose={() => setLightboxIndex(null)}
+          alt={product.name}
+        />
+      )}
 
       {/* פופאפ Upsell */}
       {showUpsellModal && upsellTargetProduct && (

@@ -7,6 +7,9 @@ import MyOrders from '@/components/MyOrders';
 import { Order, formatMoney, newUuid, orderItems, orderNumber, orderTotals, toOrderLine } from '@/lib/orders';
 import { showToast } from '@/lib/toast';
 import { attachCampaignToOrder } from '@/lib/campaign';
+import { track } from '@/lib/track';
+import { DeliveryEstimate } from '@/components/ProductExtras';
+import CompleteTheKit from '@/components/CompleteTheKit';
 
 // מאגר ערים רחב להצעות חכמות (לא חובה לבחור מתוכו, אפשר להקליד חופשי)
 const ISRAEL_CITIES = [
@@ -331,6 +334,7 @@ export default function CartPage() {
     } else {
       const orderId = (savedOrder as Order).id;
       setPlacedOrder(savedOrder as Order);
+      track('order', { value: Math.round(orderTotals(savedOrder as Order).total) });
       attachCampaignToOrder(orderId, confirmationToken);
       localStorage.removeItem('cart');
       setCartItems([]);
@@ -604,9 +608,16 @@ export default function CartPage() {
             </div>
           )}
 
+          <DeliveryEstimate compact />
+
+          <CompleteTheKit cartItems={cartItems} />
+
           <button
             type="button"
-            onClick={() => setStep('checkout')}
+            onClick={() => {
+              setStep('checkout');
+              track('checkout_start', { value: Math.round(totalPrice) });
+            }}
             className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-2xl text-sm font-black transition shadow-md cursor-pointer flex items-center justify-center gap-2"
           >
             <span>המשך לתשלום</span>

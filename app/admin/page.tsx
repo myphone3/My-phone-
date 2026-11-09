@@ -13,6 +13,15 @@ export default function AdminDashboard() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [live, setLive] = useState<any>(null);
+
+  // עכשיו באתר: מתרענן כל 30 שניות
+  useEffect(() => {
+    const load = () => supabase.rpc('admin_live').then(({ data }) => data && setLive(data));
+    load();
+    const t = setInterval(load, 30000);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => {
     fetchDashboardData();
@@ -79,6 +88,23 @@ export default function AdminDashboard() {
           🔄 רענון
         </button>
       </div>
+
+      {/* עכשיו באתר */}
+      <Link href="/admin/analytics" className="flex items-center justify-between gap-3 bg-green-50 border-2 border-green-300 rounded-2xl p-4 hover:bg-green-100/70 transition">
+        <span className="flex items-center gap-3">
+          <span className="relative flex h-3 w-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-green-600" />
+          </span>
+          <span>
+            <span className="block text-sm font-black text-green-900">{live ? (live.online || []).length : '…'} גולשים באתר עכשיו</span>
+            <span className="block text-[11px] text-green-800/70">
+              {live ? `${live.today_visitors || 0} מבקרים היום · ${(live.open_carts || []).length} עגלות פתוחות` : 'טוען...'}
+            </span>
+          </span>
+        </span>
+        <span className="text-xs font-black text-green-800">לסטטיסטיקה המלאה ←</span>
+      </Link>
 
       {/* קוביות נתונים */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
