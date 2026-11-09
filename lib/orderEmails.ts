@@ -175,32 +175,3 @@ export function reviewRequestEmail(opts: { name?: string | null; reviewUrl: stri
   });
   return { subject: 'איך המכשיר החדש? נשמח לביקורת קצרה ⭐', html };
 }
-
-// דוח יומי למנהלים: מה קרה אתמול באתר
-export function dailyReportEmail(r: any, adminUrl: string) {
-  const n = (v: any) => Number(v) || 0;
-  const tile = (label: string, value: string) =>
-    `<td style="width:33%; padding:6px;"><div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:12px; padding:10px; text-align:center;"><div style="font-size:11px; color:#9a3412; font-weight:bold;">${label}</div><div style="font-size:20px; font-weight:900; color:#111827;">${value}</div></div></td>`;
-  const list = (title: string, items: string[]) =>
-    items.length
-      ? `<p style="margin:16px 0 6px; font-weight:900;">${title}</p><ul style="margin:0; padding-right:18px; font-size:13px; line-height:1.8;">${items.map((i) => `<li>${i}</li>`).join('')}</ul>`
-      : '';
-  const top = (r.top_products || []).map((p: any) => `${escapeHtml(p.name)} · ${n(p.views)} צפיות`);
-  const zero = (r.zero_searches || []).map((q: any) => `"${escapeHtml(q)}"`);
-  const low = (r.low_stock || []).map((p: any) => `${escapeHtml(p.name)} · ${n(p.stock) <= 0 ? 'אזל' : `נשארו ${n(p.stock)}`}`);
-  const html = layout({
-    title: `הדוח היומי · ${escapeHtml(r.day)}`,
-    subtitle: 'מה קרה אתמול בחנות',
-    body: `
-      <table dir="rtl" style="width:100%; border-collapse:collapse;"><tr>
-        ${tile('מבקרים', n(r.visitors).toLocaleString())}${tile('הזמנות', n(r.orders).toLocaleString())}${tile('הכנסות', formatMoney(n(r.revenue)))}
-      </tr><tr>
-        ${tile('צפיות בעמודים', n(r.page_views).toLocaleString())}${tile('הוספות לעגלה', n(r.add_to_cart).toLocaleString())}${tile('ממתינות לטיפול', n(r.pending).toLocaleString())}
-      </tr></table>
-      ${list('🏆 המוצרים הכי נצפים', top)}
-      ${list('❌ חיפשו ולא מצאו (כדאי להוסיף)', zero)}
-      ${list('📉 מלאי נמוך', low)}
-      <div style="margin-top:18px;">${button(adminUrl, 'לסטטיסטיקה המלאה')}</div>`,
-  });
-  return { subject: `📊 NEW PHONE · אתמול: ${n(r.visitors)} מבקרים, ${n(r.orders)} הזמנות`, html };
-}

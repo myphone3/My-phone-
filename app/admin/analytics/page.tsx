@@ -5,15 +5,18 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { addDays, startOfDay } from '@/lib/stats';
 import { downloadCsv } from '@/lib/csv';
+import { BestSellers, CompareTile, OrdersByTime, SummaryPanel, TrendChart } from '@/components/admin/AnalyticsWidgets';
 
 // סטטיסטיקה של האתר: מי באתר עכשיו, כמה נכנסו, מה הכי נצפה, איפה לקוחות נוטשים, מאיפה הם מגיעים ומה הם מחפשים.
 // הנתונים נאספים באתר עצמו (lib/track.ts), בלי Google Analytics. מנהלים לא נספרים.
 
-type Tab = 'live' | 'overview' | 'products' | 'sources' | 'hours' | 'searches' | 'visitors';
+type Tab = 'summary' | 'live' | 'overview' | 'sales' | 'products' | 'sources' | 'hours' | 'searches' | 'visitors';
 
 const TABS: { key: Tab; label: string }[] = [
+  { key: 'summary', label: '📋 סיכום יומי ושבועי' },
   { key: 'live', label: '🟢 עכשיו באתר' },
-  { key: 'overview', label: '📊 סקירה' },
+  { key: 'overview', label: '📊 פעילות לאורך זמן' },
+  { key: 'sales', label: '🏆 מכירות' },
   { key: 'products', label: '📦 מוצרים' },
   { key: 'sources', label: '📍 מקורות ומכשירים' },
   { key: 'hours', label: '⏰ שעות וימים' },
@@ -26,7 +29,11 @@ const PERIODS = [
   { key: 'yesterday', label: 'אתמול' },
   { key: '7', label: '7 ימים' },
   { key: '30', label: '30 ימים' },
+  { key: 'month', label: 'החודש' },
+  { key: 'lastmonth', label: 'חודש שעבר' },
   { key: '90', label: '90 ימים' },
+  { key: '365', label: 'שנה' },
+  { key: 'custom', label: '📅 בחירת תאריכים' },
 ] as const;
 type PeriodKey = (typeof PERIODS)[number]['key'];
 
@@ -36,11 +43,30 @@ const fmt = (v: any) => n(v).toLocaleString('he-IL');
 const money = (v: any) => `₪${Math.round(n(v)).toLocaleString('he-IL')}`;
 const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 1000) / 10 : 0);
 
-function range(key: PeriodKey) {
+const parseDay = (s: string) => {
+  const [y, m, d] = s.split('-').map(Number);
+  return y && m && d ? new Date(y, m - 1, d) : null;
+};
+const dayInput = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+function range(key: PeriodKey, custom: { from: string; to: string }) {
   const today = startOfDay(new Date());
   if (key === 'today') return { from: today, to: addDays(today, 1) };
   if (key === 'yesterday') return { from: addDays(today, -1), to: today };
+  if (key === 'month') return { from: new Date(today.getFullYear(), today.getMonth(), 1), to: addDays(today, 1) };
+  if (key === 'lastmonth') return { from: new Date(today.getFullYear(), today.getMonth() - 1, 1), to: new Date(today.getFullYear(), today.getMonth(), 1) };
+  if (key === 'custom') {
+    const f = parseDay(custom.from) || addDays(today, -6);
+    const t = parseDay(custom.to) || today;
+    return f <= t ? { from: f, to: addDays(t, 1) } : { from: t, to: addDays(f, 1) };
+  }
   return { from: addDays(today, -(Number(key) - 1)), to: addDays(today, 1) };
+}
+
+// התקופה הקודמת באותו אורך, להשוואה
+function previousRange(from: Date, to: Date) {
+  const ms = to.getTime() - from.getTime();
+  return { from: new Date(from.getTime() - ms), to: new Date(from) };
 }
 
 function duration(sec: number) {
@@ -148,47 +174,14 @@ function BarList({ rows, format = fmt, empty = 'אין נתונים עדיין' 
   );
 }
 
-// גרף עמודות יומי (סדרה אחת), עם ערך במעבר עכבר
-function DailyBars({ rows }: { rows: { label: string; value: number; sub: string }[] }) {
-  const max = Math.max(1, ...rows.map((r) => r.value));
-  const [hover, setHover] = useState<number | null>(null);
-  if (!rows.length) return <p className="text-xs text-gray-400 py-6 text-center">אין נתונים עדיין</p>;
-  const h = hover !== null ? rows[hover] : null;
-  return (
-    <div className="space-y-2">
-      <div className="h-6 text-xs text-gray-700 font-bold">{h ? `${h.label}: ${fmt(h.value)} מבקרים · ${h.sub}` : `שיא: ${fmt(max)} מבקרים ביום`}</div>
-      <div className="flex items-end gap-[2px] h-36 border-b border-gray-200" dir="ltr" onMouseLeave={() => setHover(null)}>
-        {rows.map((r, i) => (
-          <button
-            key={r.label}
-            type="button"
-            onMouseEnter={() => setHover(i)}
-            onFocus={() => setHover(i)}
-            onClick={() => setHover(i)}
-            aria-label={`${r.label}: ${r.value} מבקרים`}
-            className="flex-1 h-full flex items-end cursor-pointer"
-          >
-            <span
-              className={`block w-full rounded-t-[4px] transition ${hover === i ? 'bg-orange-700' : 'bg-orange-500'}`}
-              style={{ height: `${r.value ? Math.max(3, (r.value / max) * 100) : 0}%` }}
-            />
-          </button>
-        ))}
-      </div>
-      <div className="flex justify-between text-[10px] text-gray-400" dir="ltr">
-        <span>{rows[0]?.label}</span>
-        <span>{rows[rows.length - 1]?.label}</span>
-      </div>
-    </div>
-  );
-}
-
 // ===== הדף =====
 
 export default function AnalyticsPage() {
-  const [tab, setTab] = useState<Tab>('live');
+  const [tab, setTab] = useState<Tab>('summary');
   const [period, setPeriod] = useState<PeriodKey>('7');
+  const [custom, setCustom] = useState(() => ({ from: dayInput(addDays(new Date(), -6)), to: dayInput(new Date()) }));
   const [data, setData] = useState<any>(null);
+  const [prevData, setPrevData] = useState<any>(null);
   const [live, setLive] = useState<any>(null);
   const [visitors, setVisitors] = useState<any[] | null>(null);
   const [error, setError] = useState('');
@@ -196,7 +189,7 @@ export default function AnalyticsPage() {
   const [timeline, setTimeline] = useState<{ visitor: any; events: any[] | null } | null>(null);
   const [productSort, setProductSort] = useState<'views' | 'carts' | 'sold' | 'gap'>('views');
 
-  const { from, to } = useMemo(() => range(period), [period]);
+  const { from, to } = useMemo(() => range(period, custom), [period, custom]);
 
   const loadPeriod = useCallback(async () => {
     setLoading(true);
@@ -208,6 +201,9 @@ export default function AnalyticsPage() {
     }
     setError('');
     setData(res.data);
+    const prev = previousRange(from, to);
+    const p = await supabase.rpc('admin_analytics', { p_from: prev.from.toISOString(), p_to: prev.to.toISOString() });
+    setPrevData(p.error ? null : p.data);
   }, [from, to]);
 
   const loadLive = useCallback(async () => {
@@ -251,18 +247,6 @@ export default function AnalyticsPage() {
   const online: any[] = live?.online || [];
   const openCarts: any[] = live?.open_carts || [];
 
-  // ימים בגרף כולל ימים בלי כניסות
-  const dailyRows = useMemo(() => {
-    const byDay = new Map<string, any>((data?.daily || []).map((d: any) => [d.day, d]));
-    const rows: { label: string; value: number; sub: string }[] = [];
-    for (let d = new Date(from); d < to; d = addDays(d, 1)) {
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const row = byDay.get(key);
-      rows.push({ label: `${d.getDate()}.${d.getMonth() + 1}`, value: n(row?.visitors), sub: `${fmt(row?.views)} צפיות` });
-    }
-    return rows;
-  }, [data, from, to]);
-
   const products: any[] = useMemo(() => {
     const list = [...(data?.products || [])].map((p: any) => ({
       ...p,
@@ -301,6 +285,13 @@ export default function AnalyticsPage() {
               {p.label}
             </button>
           ))}
+          {period === 'custom' && (
+            <span className="flex items-center gap-1 text-xs">
+              <input type="date" value={custom.from} max={custom.to} onChange={(e) => e.target.value && setCustom((c) => ({ ...c, from: e.target.value }))} className="bg-white border rounded-lg px-2 py-1" aria-label="מתאריך" />
+              <span>עד</span>
+              <input type="date" value={custom.to} min={custom.from} onChange={(e) => e.target.value && setCustom((c) => ({ ...c, to: e.target.value }))} className="bg-white border rounded-lg px-2 py-1" aria-label="עד תאריך" />
+            </span>
+          )}
           <button
             onClick={() => {
               loadPeriod();
@@ -339,9 +330,9 @@ export default function AnalyticsPage() {
           <span className="block text-2xl font-black text-green-800 tabular-nums">{fmt(online.length)}</span>
           <span className="block text-[11px] text-green-800/70">{fmt(live?.today_visitors)} מבקרים היום</span>
         </button>
-        <Tile label="מבקרים בתקופה" value={fmt(k.visitors)} sub={`${fmt(k.sessions)} ביקורים`} />
-        <Tile label="הזמנות" value={fmt(k.orders)} sub={`${conversion}% מהביקורים קנו`} tone="text-green-700" />
-        <Tile label="הכנסות" value={money(k.revenue)} sub={k.orders ? `ממוצע ${money(n(k.revenue) / n(k.orders))} להזמנה` : ''} tone="text-blue-700" />
+        <CompareTile label="מבקרים בתקופה" value={fmt(k.visitors)} now={n(k.visitors)} before={prevData ? n(prevData.kpis?.visitors) : undefined} sub={`${fmt(k.sessions)} ביקורים`} />
+        <CompareTile label="הזמנות" value={fmt(k.orders)} now={n(k.orders)} before={prevData ? n(prevData.kpis?.orders) : undefined} sub={`${conversion}% קנו`} />
+        <CompareTile label="הכנסות" value={money(k.revenue)} now={n(k.revenue)} before={prevData ? n(prevData.kpis?.revenue) : undefined} sub={k.orders ? `ממוצע ${money(n(k.revenue) / n(k.orders))}` : ''} />
       </div>
 
       {/* לשוניות */}
@@ -358,6 +349,23 @@ export default function AnalyticsPage() {
           </button>
         ))}
       </nav>
+
+      {prevData && tab !== 'summary' && tab !== 'live' && <p className="text-[10px] text-gray-400 -mt-2">↑↓ = שינוי לעומת התקופה הקודמת באותו אורך</p>}
+
+      {/* ===== סיכום יומי ושבועי ===== */}
+      {tab === 'summary' && <SummaryPanel />}
+
+      {/* ===== מכירות ===== */}
+      {tab === 'sales' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Card title="🏆 המוצרים הכי נמכרים בתקופה">
+            <BestSellers from={from} to={to} />
+          </Card>
+          <Card title="📅 מכירות לפי ימים ושעות">
+            <OrdersByTime from={from} to={to} />
+          </Card>
+        </div>
+      )}
 
       {/* ===== עכשיו באתר ===== */}
       {tab === 'live' && (
@@ -424,18 +432,18 @@ export default function AnalyticsPage() {
       {tab === 'overview' && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <Tile label="צפיות בעמודים" value={fmt(k.page_views)} sub={`${k.avg_pages || 0} עמודים בממוצע לביקור`} />
+            <CompareTile label="צפיות בעמודים" value={fmt(k.page_views)} now={n(k.page_views)} before={prevData ? n(prevData.kpis?.page_views) : undefined} sub={`${k.avg_pages || 0} עמודים בממוצע לביקור`} />
             <Tile label="זמן ממוצע באתר" value={duration(n(k.avg_seconds))} sub="לכל ביקור" />
             <Tile label="יצאו אחרי עמוד אחד" value={`${fmt(k.bounce)}%`} sub="ככל שנמוך יותר, טוב יותר" />
             <Tile label="מבקרים חוזרים" value={fmt(k.returning)} sub={`${pct(n(k.returning), n(k.visitors))}% מהמבקרים`} />
-            <Tile label="צפיות במוצרים" value={fmt(k.product_views)} />
-            <Tile label="הוספות לעגלה" value={fmt(k.add_to_cart)} />
+            <CompareTile label="צפיות במוצרים" value={fmt(k.product_views)} now={n(k.product_views)} before={prevData ? n(prevData.kpis?.product_views) : undefined} />
+            <CompareTile label="הוספות לעגלה" value={fmt(k.add_to_cart)} now={n(k.add_to_cart)} before={prevData ? n(prevData.kpis?.add_to_cart) : undefined} />
             <Tile label="לקוחות מחוברים" value={fmt(k.signed_in)} sub="שאישרו עוגיות" />
             <Tile label="אחוז המרה" value={`${conversion}%`} sub="ביקורים שהסתיימו בהזמנה" tone="text-green-700" />
           </div>
 
-          <Card title="מבקרים לפי יום">
-            <DailyBars rows={dailyRows} />
+          <Card title="📈 פעילות לאורך זמן">
+            <TrendChart from={from} to={to} />
           </Card>
 
           <Card title="🔻 משפך הקנייה: איפה לקוחות נוטשים?">
@@ -460,7 +468,7 @@ export default function AnalyticsPage() {
                     <div key={s.label} className="flex items-center gap-3 text-xs" title={`${s.label}: ${fmt(s.v)}`}>
                       <span className="w-24 shrink-0 font-bold text-gray-700">{s.label}</span>
                       <div className="flex-1 h-7 bg-gray-50 rounded-lg overflow-hidden">
-                        <div className="h-full bg-orange-500 rounded-lg flex items-center px-2 text-white font-black" style={{ width: `${Math.max(4, (s.v / top) * 100)}%` }}>
+                        <div className="h-full bg-orange-500 rounded-lg flex items-center px-2 text-white font-black" style={{ width: `${Math.max(14, (s.v / top) * 100)}%` }}>
                           {fmt(s.v)}
                         </div>
                       </div>
