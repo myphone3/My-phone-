@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import OrderAlerts from '@/components/admin/OrderAlerts';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || '';
@@ -48,6 +49,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       { name: 'הזמנות', icon: '📋', href: '/admin/orders' },
       { name: 'מוצרים', icon: '📦', href: '/admin/products' },
       { name: 'לקוחות', icon: '👥', href: '/admin/customers' },
+      { name: 'סטטיסטיקה', icon: '📈', href: '/admin/analytics' },
       { name: 'דוחות', icon: '📊', href: '/admin/reports' },
     ],
     [
@@ -116,6 +118,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               })}
             </React.Fragment>
           ))}
+          <span className="shrink-0 w-px h-6 bg-orange-200 mx-1" aria-hidden="true" />
+          <OrderAlerts />
         </div>
       </nav>
 

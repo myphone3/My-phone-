@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import { whatsappLink } from '@/lib/storeInfo';
+import { track } from '@/lib/track';
 
 // כפתור וואטסאפ צף בפינת המסך, בסגנון שקוף (זכוכית) כדי שלא יסתיר את התוכן
 export default function WhatsAppFloat() {
@@ -13,6 +14,7 @@ export default function WhatsAppFloat() {
       href={whatsappLink('שלום, אשמח לעזרה באתר NEW PHONE')}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={() => track('whatsapp_click')}
       aria-label="שיחה בוואטסאפ"
       className="fixed bottom-5 left-5 z-40 w-14 h-14 rounded-full bg-white/30 backdrop-blur-md border border-[#25D366]/50 hover:bg-white/50 hover:scale-110 transition shadow-lg flex items-center justify-center"
     >

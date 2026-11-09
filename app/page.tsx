@@ -1,6 +1,9 @@
 'use client';
 
 import React, { useEffect, useState, useRef, Suspense } from 'react';
+import { CardOverlay } from '@/components/ProductExtras';
+import DealOfWeek from '@/components/DealOfWeek';
+import { GUIDES } from '@/lib/guides';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import TrustBadges from '@/components/TrustBadges';
@@ -446,6 +449,23 @@ function StoreContent() {
 
       <div className="max-w-7xl mx-auto px-4 space-y-10 pt-8">
 
+        {/* מבצע השבוע עם שעון ספירה לאחור (נבחר בפאנל) */}
+        <DealOfWeek settings={settings} products={products} />
+
+        {/* שאלון "איזה מכשיר מתאים לי" */}
+        <Link
+          href="/quiz"
+          className="flex items-center gap-4 bg-gradient-to-l from-orange-50 to-amber-50 border-2 border-orange-200 hover:border-orange-400 rounded-3xl p-4 sm:p-5 transition group"
+        >
+          <span className="w-14 h-14 shrink-0 rounded-2xl bg-orange-600 text-white text-3xl flex items-center justify-center shadow-md group-hover:scale-105 transition">🧭</span>
+          <span className="flex-1 min-w-0">
+            <span className="block text-base sm:text-lg font-black text-gray-900">לא בטוחים איזה מכשיר לקנות?</span>
+            <span className="block text-xs sm:text-sm text-gray-600">עונים על 5 שאלות קצרות ומקבלים המלצה מותאמת אישית</span>
+          </span>
+          <span className="hidden sm:inline-block bg-orange-600 text-white px-4 py-2.5 rounded-xl text-xs font-black shrink-0">להתחיל ←</span>
+          <span className="sm:hidden text-orange-600 text-xl font-black">←</span>
+        </Link>
+
         {/* קטגוריות מובילות ב-2 שורות */}
         {categories.length > 0 && (
           <section className="space-y-4 relative group">
@@ -543,6 +563,7 @@ function StoreContent() {
                     >
                       <Link href={`/product/${product.id}`} className="block space-y-2.5">
                         <div className="h-32 sm:h-36 w-full bg-gray-50 rounded-2xl flex items-center justify-center relative overflow-hidden group">
+                          <CardOverlay product={product} />
                           <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-lg shadow-xs z-10">
                             מבצע
                           </span>
@@ -623,6 +644,7 @@ function StoreContent() {
                   >
                     <Link href={`/product/${product.id}`} className="block space-y-3">
                       <div className="h-40 sm:h-52 w-full bg-gray-50 rounded-2xl flex items-center justify-center relative overflow-hidden group">
+                        <CardOverlay product={product} />
                         {product.sale_price && (
                           <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-lg shadow-xs z-10">
                             מבצע 🔥
@@ -726,6 +748,27 @@ function StoreContent() {
         </section>
 
       </div>
+
+      {/* מדריכים: כשר, תומך כשר והגרסאות */}
+      <section className="max-w-7xl mx-auto px-4 mt-12 space-y-4" dir="rtl">
+        <div className="flex justify-between items-center">
+          <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">📖 לפני שבוחרים: מדריכים קצרים</h2>
+          <Link href="/guide" className="text-xs font-bold text-orange-700 shrink-0">לכל המדריכים ←</Link>
+        </div>
+        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 snap-x">
+          {GUIDES.slice(0, 4).map((g) => (
+            <Link
+              key={g.slug}
+              href={`/guide/${g.slug}`}
+              className="snap-start shrink-0 w-64 bg-white border-2 border-orange-100 hover:border-orange-300 rounded-3xl p-4 space-y-1.5 transition"
+            >
+              <span className="text-3xl">{g.emoji}</span>
+              <span className="block font-black text-sm text-gray-900 leading-snug">{g.title}</span>
+              <span className="block text-[11px] text-gray-500 leading-relaxed line-clamp-3">{g.excerpt}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       {/* אזור מידע נפרד מהמוצרים: למה לקנות אצלנו ושאלות נפוצות */}
       <section className="mt-16 bg-gradient-to-b from-orange-50 to-white border-t-4 border-orange-500" dir="rtl">

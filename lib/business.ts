@@ -9,11 +9,15 @@ export const BUSINESS = {
   whatsapp: '972556771356', // מספר בפורמט בינלאומי, למשל 972501234567
   email: 'npnp1356@gmail.com',
   shippingDays: 'בין 3 ל-6 ימי עסקים', // למשל: 3–5 ימי עסקים
+  // לחישוב "יגיע עד...": ימי עסקים (א׳-ה׳) מינימום ומקסימום, ושעת הסגירה להזמנות של אותו יום
+  shippingMinDays: 3,
+  shippingMaxDays: 6,
+  sameDayCutoffHour: 14,
   jurisdiction: '', // העיר שבה בית המשפט המוסמך
   accessibility: {
     name: '', // רכז/ת הנגישות
     phone: '',
     email: '',
   },
-  updated: '5 בנובמבר 2026',
+  updated: '9 בנובמבר 2026',
 };

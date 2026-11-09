@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import DealSettings from '@/components/admin/DealSettings';
 
 // מידות והנחיות לתמונות באנר (אפשר לשנות כאן בלבד)
 const DESKTOP_SPEC = {
@@ -167,6 +168,8 @@ export default function AdminBanners() {
       <h1 className="text-xl sm:text-2xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
         ניהול באנרים 🖼️
       </h1>
+
+      <DealSettings />
 
       <form onSubmit={handleSubmit} className="bg-white p-5 sm:p-6 rounded-3xl border border-gray-100 shadow-sm space-y-4">
         <h2 className="text-base font-bold text-gray-800 border-b pb-2">

@@ -30,6 +30,7 @@ export default function AdminProductsPage() {
   const [kosher, setKosher] = useState('');
   const [storageVal, setStorageVal] = useState('');
   const [warranty, setWarranty] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
   const [selectedVersions, setSelectedVersions] = useState<string[]>([]);
   // תוספת מחיר לכל גרסה (₪). ריק או 0 = בלי תוספת
   const [versionPrices, setVersionPrices] = useState<Record<string, string>>({});
@@ -259,6 +260,7 @@ export default function AdminProductsPage() {
       kosher,
       storage: storageVal,
       warranty,
+      video_url: videoUrl.trim() || null,
       product_variants: selectedVersions,
       // תוספת מחיר לפי שם הגרסה (רק גרסאות שנבחרו ועם תוספת)
       version_prices: Object.fromEntries(selectedVersions.filter((n) => Number(versionPrices[n]) > 0).map((n) => [n, Number(versionPrices[n])])),
@@ -330,6 +332,7 @@ export default function AdminProductsPage() {
     setKosher('');
     setStorageVal('');
     setWarranty('');
+    setVideoUrl('');
     setSelectedVersions([]);
     setVersionPrices({});
     setStock('10');
@@ -367,6 +370,7 @@ export default function AdminProductsPage() {
     setKosher(prod.kosher || '');
     setStorageVal(prod.storage || '');
     setWarranty(prod.warranty || '');
+    setVideoUrl(prod.video_url || '');
     setSelectedVersions(prod.product_variants || []);
     setVersionPrices(Object.fromEntries(Object.entries(prod.version_prices || {}).map(([k, v]) => [k, String(v)])));
     setStock(prod.stock?.toString() || '10');
@@ -536,6 +540,11 @@ export default function AdminProductsPage() {
                 <label className="block text-xs font-bold text-gray-700 mb-1">אחריות</label>
                 <input type="text" value={warranty} onChange={(e) => setWarranty(e.target.value)} placeholder="שנה אחריות יבואן רשמי" className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
               </div>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">🎬 סרטון המוצר (לא חובה)</label>
+              <input type="url" dir="ltr" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://youtu.be/..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none focus:border-orange-600" />
+              <p className="text-[11px] text-gray-400 mt-1">קישור ליוטיוב או לקובץ וידאו. יופיע בגלריית התמונות בעמוד המוצר.</p>
             </div>
 
             <div className="space-y-2 bg-gray-50 p-4 rounded-2xl border">

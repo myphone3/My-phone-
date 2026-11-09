@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useEffect, useState, Suspense } from 'react';
+import { CardOverlay } from '@/components/ProductExtras';
+import CategoryExplainer from '@/components/CategoryExplainer';
 import { supabase } from '@/lib/supabase';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -215,6 +217,8 @@ function CategoryContent() {
           )}
         </div>
 
+        <CategoryExplainer name={categoryName} />
+
         {/* סרגל סינון מותגים ברור עם תיבות סימון (Checkboxes) */}
         {!loading && categoryBrands.length > 0 && (
           <div className="bg-orange-50/60 border border-orange-200/80 p-3.5 rounded-2xl space-y-2.5">
@@ -318,6 +322,7 @@ function CategoryContent() {
                 >
                   <Link href={`/product/${product.id}`} className="block space-y-3">
                     <div className="h-40 sm:h-52 w-full bg-gray-50 rounded-2xl flex items-center justify-center relative overflow-hidden group">
+                      <CardOverlay product={product} />
                       <img 
                         src={activeImage} 
                         alt={product.name} 

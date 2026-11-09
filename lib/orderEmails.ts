@@ -154,3 +154,24 @@ export function abandonedCartEmail(opts: { name?: string | null; items: SavedCar
   });
   return { subject: 'שכחת משהו בעגלה? המוצרים שלך מחכים 🛒', html };
 }
+
+// בקשת ביקורת: נשלחת פעם אחת אחרי שההזמנה נמסרה (מייל שירות על הקנייה, בלי פרסום)
+export function reviewRequestEmail(opts: { name?: string | null; reviewUrl: string; whatsappUrl: string }) {
+  const first = escapeHtml((opts.name || '').trim().split(/\s+/)[0] || 'לקוח יקר');
+  const stars = [1, 2, 3, 4, 5]
+    .map((n) => `<a href="${opts.reviewUrl}" style="text-decoration:none; font-size:30px; color:#f59e0b; padding:0 2px;">★</a>`)
+    .join('');
+  const html = layout({
+    title: 'איך המכשיר החדש? ⭐',
+    subtitle: 'נשמח לשמוע מה דעתך',
+    body: `
+      <p style="margin:0 0 8px;">שלום ${first},</p>
+      <p style="margin:0;">ההזמנה שלך הגיעה, ונשמח לדעת איך הייתה החוויה. ביקורת קצרה (ואפילו תמונה) עוזרת ללקוחות אחרים לבחור, ולנו להשתפר.</p>
+      <div style="text-align:center; margin:18px 0 6px;" dir="ltr">${stars}</div>
+      ${button(opts.reviewUrl, 'כתיבת ביקורת')}
+      <p style="margin:14px 0 0; font-size:12px; color:#6b7280; text-align:center;">
+        משהו לא בסדר? <a href="${opts.whatsappUrl}" style="color:${ORANGE}; font-weight:bold;">כתבו לנו בוואטסאפ</a> ונטפל בזה מיד.
+      </p>`,
+  });
+  return { subject: 'איך המכשיר החדש? נשמח לביקורת קצרה ⭐', html };
+}
