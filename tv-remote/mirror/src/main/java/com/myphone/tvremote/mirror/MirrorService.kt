@@ -112,12 +112,19 @@ class MirrorService : Service() {
             override fun onStop() { stopSelf() }
         }, worker)
 
-        measure()
-        startEncoder()
-        display = mp.createVirtualDisplay(
-            "tvmirror", width, height, dpi, DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-            inputSurface, null, worker,
-        )
+        try {
+            measure()
+            startEncoder()
+            if (encoder == null) return
+            display = mp.createVirtualDisplay(
+                "tvmirror", width, height, dpi, DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                inputSurface, null, worker,
+            )
+        } catch (e: Exception) {
+            Log.w(tag, "capture start", e)
+            fail("לא הצלחתי להתחיל לצלם את המסך: ${e.javaClass.simpleName}")
+            return
+        }
         watchRotation()
         startAudio(mp)
         status = "משקף לטלוויזיה ✓"
@@ -129,31 +136,55 @@ class MirrorService : Service() {
      * זה בדיוק הגודל שבו הטלוויזיה מציגה אותו, ומפענחים של טלוויזיות לא תמיד מסכימים לתמונה "עומדת" של 1920 גובה.
      */
     private fun measure() {
-        val wm = getSystemService(WindowManager::class.java)
-        val bounds = wm.maximumWindowMetrics.bounds
-        val w = bounds.width().toFloat()
-        val h = bounds.height().toFloat()
+        // DisplayManager עובד גם מתוך שירות (WindowManager מתוך שירות לא תמיד מחזיר גודל נכון)
+        val display = getSystemService(DisplayManager::class.java).getDisplay(Display.DEFAULT_DISPLAY)
+        val real = DisplayMetrics()
+        @Suppress("DEPRECATION")
+        display.getRealMetrics(real)
+        val w = real.widthPixels.toFloat().coerceAtLeast(16f)
+        val h = real.heightPixels.toFloat().coerceAtLeast(16f)
         val scale = minOf(1f, 1920f / w, 1080f / h)
         width = maxOf(16, ((w * scale) / 16f).toInt() * 16)
         height = maxOf(16, ((h * scale) / 16f).toInt() * 16)
-        dpi = (resources.displayMetrics.densityDpi * scale).roundToInt().coerceAtLeast(120)
+        dpi = (real.densityDpi * scale).roundToInt().coerceAtLeast(120)
     }
 
     private var inputSurface: Surface? = null
 
     private fun startEncoder() {
-        val format = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, width, height).apply {
-            setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
-            setInteger(MediaFormat.KEY_BIT_RATE, 8_000_000)
-            setInteger(MediaFormat.KEY_FRAME_RATE, 30)
-            setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1)
-            // גם כשהמסך לא זז שולחים פריים מדי פעם, כדי שהטלוויזיה לא "תיתקע"
-            setLong(MediaFormat.KEY_REPEAT_PREVIOUS_FRAME_AFTER, 100_000)
-            setInteger(MediaFormat.KEY_PRIORITY, 0)
-            if (Build.VERSION.SDK_INT >= 30) setInteger(MediaFormat.KEY_LATENCY, 1)
+        var codec: MediaCodec? = null
+        // קודם עם הגדרות להשהיה נמוכה; אם המקודד של הטלפון לא מקבל אותן - בלי
+        for (extras in listOf(true, false)) {
+            try {
+                val format = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, width, height).apply {
+                    setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
+                    setInteger(MediaFormat.KEY_BIT_RATE, 8_000_000)
+                    setInteger(MediaFormat.KEY_FRAME_RATE, 30)
+                    setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1)
+                    if (extras) {
+                        // גם כשהמסך לא זז שולחים פריים מדי פעם, כדי שהטלוויזיה לא "תיתקע"
+                        setLong(MediaFormat.KEY_REPEAT_PREVIOUS_FRAME_AFTER, 100_000)
+                        setInteger(MediaFormat.KEY_PRIORITY, 0)
+                        if (Build.VERSION.SDK_INT >= 30) setInteger(MediaFormat.KEY_LATENCY, 1)
+                    }
+                }
+                val c = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_VIDEO_AVC)
+                try {
+                    c.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+                } catch (e: Exception) {
+                    c.release()
+                    throw e
+                }
+                codec = c
+                break
+            } catch (e: Exception) {
+                Log.w(tag, "encoder extras=$extras ${width}x$height", e)
+            }
         }
-        val codec = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_VIDEO_AVC)
-        codec.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+        if (codec == null) {
+            fail("המקודד של הטלפון לא הסכים להתחיל (${width}x$height)")
+            return
+        }
         inputSurface = codec.createInputSurface()
         codec.start()
         encoder = codec

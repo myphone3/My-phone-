@@ -24,6 +24,15 @@ import java.net.Socket
  * ומציג על מסך מלא. ה-WiFi לא נופל (בניגוד ל-Miracast), כך שהשלט ממשיך לעבוד בזמן השיקוף.
  */
 object MirrorServer {
+    /** יומן קצר לדוח התקלות */
+    private val logLines = ArrayDeque<String>()
+    fun log(): String = synchronized(logLines) { logLines.joinToString("\n") }
+    fun note(msg: String) {
+        Log.i(TAG, msg)
+        val t = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date())
+        synchronized(logLines) { logLines.addLast("$t $msg"); while (logLines.size > 80) logLines.removeFirst() }
+    }
+
     private const val TAG = "MirrorServer"
     const val PORT = 8090
     private const val MAGIC = "TVM1"
@@ -91,7 +100,7 @@ object MirrorServer {
                     }
                 }
             } catch (e: Exception) {
-                Log.w(TAG, "server", e)
+                note("server error: $e")
                 Thread.sleep(2000)
             }
         }
@@ -131,7 +140,8 @@ object MirrorServer {
                 val input = DataInputStream(BufferedInputStream(socket.getInputStream(), 1 shl 16))
                 val magic = ByteArray(4)
                 input.readFully(magic)
-                if (String(magic) != MAGIC) return
+                if (String(magic) != MAGIC) { note("bad magic from ${socket.inetAddress}"); return }
+                note("phone connected ${socket.inetAddress?.hostAddress}")
                 openScreen()
                 while (!closed) {
                     val type = input.readUnsignedByte()
@@ -144,15 +154,19 @@ object MirrorServer {
                         VIDEO_SIZE -> {
                             width = ((payload[0].toInt() and 0xff) shl 8) or (payload[1].toInt() and 0xff)
                             height = ((payload[2].toInt() and 0xff) shl 8) or (payload[3].toInt() and 0xff)
+                            note("video size ${width}x$height")
                             synchronized(lock) { restartDecoder() }
                             lastSize = width to height
                             main.post { screen?.onVideoSize(width, height) }
                         }
                         VIDEO_CONFIG -> {
+                            note("video config ${payload.size}B surface=${surface != null} size=${width}x$height")
                             config = payload
                             synchronized(lock) { restartDecoder() }
                         }
                         VIDEO_KEYFRAME, VIDEO_FRAME -> synchronized(lock) {
+                            frames++
+                            if (frames <= 2 || (type == VIDEO_KEYFRAME && frames < 200)) note("frame #$frames key=${type == VIDEO_KEYFRAME} ${payload.size}B decoder=${decoder != null} waiting=$waitingForKeyframe")
                             if (type == VIDEO_KEYFRAME) {
                                 if (decoder == null) restartDecoder() // למשל אחרי תקלה במפענח
                                 waitingForKeyframe = false
@@ -163,7 +177,7 @@ object MirrorServer {
                     }
                 }
             } catch (e: Exception) {
-                Log.i(TAG, "session ended: $e")
+                note("session ended: $e")
             } finally {
                 close()
             }
@@ -181,6 +195,7 @@ object MirrorServer {
         }
 
         fun setSurface(s: Surface?) = synchronized(lock) {
+            note("surface ${if (s != null) "ready" else "gone"}")
             surface = s
             restartDecoder()
         }
@@ -207,10 +222,11 @@ object MirrorServer {
                     codec.configure(format, s, null, 0)
                     codec.start()
                     decoder = codec
+                    note("decoder started ${width}x$height lowLatency=$lowLatency ${codec.name}")
                     feed(c, 0, MediaCodec.BUFFER_FLAG_CODEC_CONFIG)
                     return
                 } catch (e: Exception) {
-                    Log.w(TAG, "decoder lowLatency=$lowLatency ${width}x$height", e)
+                    note("decoder failed lowLatency=$lowLatency ${width}x$height: $e")
                     try { codec?.release() } catch (x: Exception) { }
                     decoder = null
                 }
@@ -218,6 +234,8 @@ object MirrorServer {
         }
 
         private val info = MediaCodec.BufferInfo()
+        private var rendered = 0L
+        private var frames = 0L
 
         private fun feed(data: ByteArray, pts: Long, flags: Int) {
             val codec = decoder ?: return
@@ -233,10 +251,14 @@ object MirrorServer {
                 // מציגים מיד כל פריים מוכן - בלי לחכות, בשביל השהיה מינימלית
                 while (true) {
                     val out = codec.dequeueOutputBuffer(info, 0)
-                    if (out >= 0) codec.releaseOutputBuffer(out, true) else if (out == MediaCodec.INFO_TRY_AGAIN_LATER) break
+                    if (out >= 0) {
+                        codec.releaseOutputBuffer(out, true)
+                        rendered++
+                        if (rendered == 1L || rendered % 600 == 0L) note("rendered frame #$rendered")
+                    } else if (out == MediaCodec.INFO_TRY_AGAIN_LATER) break
                 }
             } catch (e: Exception) {
-                Log.w(TAG, "feed", e)
+                note("feed error: $e")
                 try { codec.release() } catch (x: Exception) { }
                 decoder = null
                 waitingForKeyframe = true

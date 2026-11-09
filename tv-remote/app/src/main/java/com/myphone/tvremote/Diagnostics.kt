@@ -37,6 +37,8 @@ object Diagnostics {
                 appendLine("exit reasons unavailable: $t")
             }
         }
+        appendLine("--- android mirror log ---")
+        appendLine(MirrorServer.log().ifBlank { "(empty)" })
         appendLine("--- airplay log ---")
         append(AirPlayServer.log().ifBlank { "(empty)" })
     }
