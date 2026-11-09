@@ -465,6 +465,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       <div class="goal" id="heroGoal" hidden><div class="goal-row"><span id="heroGoalText"></span><span class="num" id="heroGoalPct"></span></div><div class="goal-bar"><i id="heroGoalBar"></i></div></div>
       <div class="kpis" id="kpis"></div>
     </section>
+    <section class="card" id="regCard" aria-labelledby="hReg">
+      <div class="card-head"><h2 id="hReg">🏪 מכירות מהקופה</h2><span class="sum num" id="regSum"></span></div>
+      <div class="hint">מכשירים שנמכרו על שמך לפי סיכום החודש בקופה. הסכום נוסף לסה״כ ולסיכום שנשלח לבוס.</div>
+      <div class="inline">
+        <div class="field"><label class="lbl" for="regCount">כמה מכשירים נמכרו</label><input id="regCount" type="number" inputmode="numeric" min="0" step="1" placeholder="0"></div>
+        <div class="field"><label class="lbl" for="regRate">בונוס לכל מכשיר ₪</label><input id="regRate" type="number" inputmode="numeric" min="0" step="1"></div>
+      </div>
+      <div class="hint num" id="regCalc"></div>
+    </section>
     <section class="card chart" aria-labelledby="hChart">
       <div class="card-head"><h2 id="hChart">ההיסטוריה שלי</h2><div class="chips" id="rangeChips"><button class="chip" type="button" data-range="6" aria-pressed="true">6 חודשים</button><button class="chip" type="button" data-range="12" aria-pressed="false">שנה</button></div></div>
       <div id="myChart"></div>
@@ -1156,9 +1165,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     line: ["הערה (לא חובה)", "למשל: 3 קווים משפחה, ניוד מסלקום"]
   };
   var SHARE_EMOJI = { device: "📱", line: "📶", repair: "🔧" };
-  var DEFAULT_SETTINGS = { name: "", phone: "", my_phone: "", reg: 10, big: 50, avatar: "", types: null, cats: null, contacts: null };
+  var DEFAULT_SETTINGS = { name: "", phone: "", my_phone: "", reg: 10, big: 50, avatar: "", types: null, cats: null, contacts: null, register: null };
   var ENTRY_COLS = "id,kind,sub,big,amount,date,month,note,ts";
-  var SETTINGS_COLS = "name,phone,reg,big,avatar,types,contacts,my_phone,cats";
+  var SETTINGS_COLS = "name,phone,reg,big,avatar,types,contacts,my_phone,cats,register";
   var SETTINGS_COLS_OLD = "name,phone,reg,big,avatar,types,contacts";
 
   var sb = window.supabase.createClient(SB_URL, SB_KEY, {
@@ -1312,9 +1321,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   async function upsertSettings(myAcct, row) {
     var full = Object.assign({ user_id: myAcct }, row);
     var res = await sb.from("settings").upsert(full, { onConflict: "user_id" });
+    if (res.error && /register/i.test(res.error.message || "")) { delete full.register; res = await sb.from("settings").upsert(full, { onConflict: "user_id" }); }
     if (res.error && /my_phone|cats|column/i.test(res.error.message || "")) {
       // database not updated yet: save what it knows
-      delete full.my_phone; delete full.cats;
+      delete full.my_phone; delete full.cats; delete full.register;
       res = await sb.from("settings").upsert(full, { onConflict: "user_id" });
     }
     return res;
@@ -1389,6 +1399,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     if (r.error) r = await selectAll(function () { return sb.from("entries").select(ENTRY_COLS); });
     if (r.error) throw r.error;
     var s = await sb.from("settings").select(SETTINGS_COLS).maybeSingle();
+    if (s.error) s = await sb.from("settings").select(SETTINGS_COLS.replace(",register", "")).maybeSingle();
     if (s.error) s = await sb.from("settings").select(SETTINGS_COLS_OLD).maybeSingle();
     await loadTeam(myAcct);
     if (accts.active !== myAcct) return;
@@ -1631,6 +1642,21 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     });
     return t;
   }
+  // sales recorded at the store register (devices sold under my name), per month
+  function regOf(mk) {
+    var r = (state.settings.register || {})[mk];
+    if (!r || !(Number(r.count) > 0)) return null;
+    var c = Math.round(Number(r.count)), rate = Number(r.rate) || 0;
+    return { count: c, rate: rate, amount: c * rate };
+  }
+  function regAmt(mk) { var r = regOf(mk); return r ? r.amount : 0; }
+  function regSum(ms) { var o = { count: 0, amount: 0 }; ms.forEach(function (mk) { var r = regOf(mk); if (r) { o.count += r.count; o.amount += r.amount; } }); return o; }
+  function lastRegRate() {
+    var reg = state.settings.register || {}, ks = Object.keys(reg).sort().reverse();
+    for (var i = 0; i < ks.length; i++) if (Number(reg[ks[i]].rate) > 0) return Number(reg[ks[i]].rate);
+    return cfg().reg;
+  }
+  function monthTotal(mk) { return totals(monthEntries(mk)).all + regAmt(mk); }
   function myGoal() { if (!state.team) return null; var g = state.team.myGoal != null ? state.team.myGoal : state.team.goal; return g > 0 ? g : null; }
   function goalFor(uidM) { if (!state.team) return null; var g = state.memberGoal[uidM] != null ? state.memberGoal[uidM] : state.team.goal; return g > 0 ? g : null; }
   function dmy(d) { var p = d.split("-"); return (+p[2]) + "." + (+p[1]); }
@@ -1663,7 +1689,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     $("sToday").textContent = todays.length ? countLine(tt) + " · " + fmt(tt.all) + " ₪" : "";
     renderLog($("todayList"), todays, false, "עוד לא נוסף כלום היום. לחץ על אחד הכפתורים למעלה.");
     $("lockNote").hidden = !state.approved[state.month];
-    var g = myGoal(), curTot = totals(monthEntries(monthKey(new Date()))).all;
+    var g = myGoal(), curTot = monthTotal(monthKey(new Date()));
     $("goalCard").hidden = !g;
     if (g) {
       var pct = Math.min(100, Math.round(curTot / g * 100));
@@ -1675,7 +1701,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 
     var list = monthEntries(state.month), t = totals(list);
     $("totalLabel").textContent = state.settings.name ? "מגיע ל" + state.settings.name + " בחודש הזה" : "מגיע לי בחודש הזה";
-    $("total").textContent = fmt(t.all);
+    var rg = regOf(state.month), all = t.all + (rg ? rg.amount : 0);
+    $("total").textContent = fmt(all);
+    renderRegCard();
     $("totalSub").textContent = "";
     if (t.count) { $("totalSub").appendChild(el("b", null, fmt(t.count))); $("totalSub").appendChild(document.createTextNode(" בונוסים" + (t.big ? " · מתוכם " + t.big + " אולטרה" : ""))); }
     else $("totalSub").textContent = "אין בונוסים בחודש הזה";
@@ -1683,8 +1711,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     $("heroGoal").hidden = !g;
     if (g) {
       $("heroGoalText").textContent = "יעד " + fmt(g) + " ₪";
-      $("heroGoalPct").textContent = Math.round(t.all / g * 100) + "%";
-      $("heroGoalBar").style.width = Math.min(100, Math.round(t.all / g * 100)) + "%";
+      $("heroGoalPct").textContent = Math.round(all / g * 100) + "%";
+      $("heroGoalBar").style.width = Math.min(100, Math.round(all / g * 100)) + "%";
     }
     renderHistory();
     countUse();
@@ -1697,11 +1725,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     });
     $("tierReg").textContent = fmt(t.count - t.big) + " · " + fmt(t.all - t.bigAmt) + " ₪";
     $("tierUltra").textContent = fmt(t.big) + " · " + fmt(t.bigAmt) + " ₪";
-    var pm = shiftMonth(state.month, -1), prev = totals(monthEntries(pm));
+    var pm = shiftMonth(state.month, -1), prev = totals(monthEntries(pm)), prevAll = prev.all + regAmt(pm);
     var cmp = $("compare"); cmp.textContent = "";
-    if (prev.count || t.count) {
-      var diff = t.all - prev.all;
-      cmp.appendChild(document.createTextNode("לעומת " + monthLabel(pm) + " (" + fmt(prev.all) + " ₪): "));
+    if (prevAll || all) {
+      var diff = all - prevAll;
+      cmp.appendChild(document.createTextNode("לעומת " + monthLabel(pm) + " (" + fmt(prevAll) + " ₪): "));
       cmp.appendChild(el("b", diff > 0 ? "trend-up" : diff < 0 ? "trend-down" : "", (diff > 0 ? "+" : "") + fmt(diff) + " ₪"));
     }
     renderCatCards(list);
@@ -1899,6 +1927,37 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     });
   }
 
+  // ---------- register sales (from the store's register) ----------
+  function renderRegCard() {
+    var r = (state.settings.register || {})[state.month] || {}, locked = !!state.approved[state.month] || !accts.active;
+    var cIn = $("regCount"), rIn = $("regRate");
+    if (document.activeElement !== cIn) cIn.value = Number(r.count) > 0 ? String(r.count) : "";
+    if (document.activeElement !== rIn) rIn.value = String(Number(r.rate) > 0 ? r.rate : lastRegRate());
+    cIn.disabled = rIn.disabled = locked;
+    paintRegCalc();
+  }
+  function paintRegCalc() {
+    var c = Math.max(0, Math.round(Number($("regCount").value) || 0)), rate = Math.max(0, Number($("regRate").value) || 0);
+    $("regCalc").textContent = c ? fmt(c) + " מכשירים × " + fmt(rate) + " ₪ = " + fmt(c * rate) + " ₪" : "עוד לא הוזן כמה נמכרו בקופה בחודש הזה.";
+    $("regSum").textContent = c ? fmt(c * rate) + " ₪" : "";
+  }
+  function saveReg() {
+    if (state.approved[state.month] || !accts.active) return;
+    var c = Math.max(0, Math.round(Number($("regCount").value) || 0)), rate = Math.max(0, Number($("regRate").value) || 0);
+    var reg = Object.assign({}, state.settings.register || {}), old = reg[state.month] || {};
+    if (c) reg[state.month] = { count: c, rate: rate };
+    else if (old.count) delete reg[state.month];
+    else return;
+    if (Number(old.count) === c && Number(old.rate) === rate) return;
+    state.settings.register = reg;
+    persistSettings();
+    toast(c ? "נשמר: " + c + " מכשירים מהקופה · " + fmt(c * rate) + " ₪" : "מכירות הקופה נמחקו לחודש הזה");
+  }
+  ["regCount", "regRate"].forEach(function (id) {
+    $(id).addEventListener("input", paintRegCalc);
+    $(id).addEventListener("change", saveReg);
+  });
+
   // ---------- share ----------
   function shareMonths() {
     var cur = monthKey(new Date());
@@ -1909,6 +1968,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   function availableMonths() {
     var set = {}; set[monthKey(new Date())] = 1;
     for (var id in state.entries) if (state.entries[id]) set[state.entries[id].month] = 1;
+    Object.keys(state.settings.register || {}).forEach(function (mk) { if (regOf(mk)) set[mk] = 1; });
     return Object.keys(set).sort().reverse();
   }
   function periodLabel(ms) {
@@ -1920,7 +1980,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     var list = entriesWhere(function (e) { return ms.indexOf(e.month) >= 0; }), t = totals(list);
     var lines = ["סיכום בונוסים – " + periodLabel(ms) + (state.settings.name ? " – " + state.settings.name : ""), ""];
     if (ms.length > 1) {
-      ms.forEach(function (mk) { var mt = totals(monthEntries(mk)); lines.push("🗓 " + monthLabel(mk) + ": " + mt.count + " בונוסים · " + fmt(mt.all) + " ₪"); });
+      ms.forEach(function (mk) { var mt = totals(monthEntries(mk)), mr = regOf(mk); lines.push("🗓 " + monthLabel(mk) + ": " + mt.count + " בונוסים" + (mr ? " + " + mr.count + " מהקופה" : "") + " · " + fmt(mt.all + (mr ? mr.amount : 0)) + " ₪"); });
       lines.push("");
     }
     kindsIn(list).forEach(function (k) {
@@ -1929,11 +1989,18 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       rows.forEach(function (r) { lines.push("• " + r.sub + (r.big ? " (אולטרה)" : "") + ": " + r.count); });
       lines.push("");
     });
-    if (!list.length) { lines.push("אין רישומים בתקופה הזו."); lines.push(""); }
+    var rs = regSum(ms);
+    if (rs.count) {
+      if (ms.length === 1) { var r1 = regOf(ms[0]); lines.push("🏪 מכירות מהקופה: " + r1.count + " מכשירים × " + fmt(r1.rate) + " ₪ = " + fmt(r1.amount) + " ₪"); }
+      else lines.push("🏪 מכירות מהקופה: " + rs.count + " מכשירים (" + fmt(rs.amount) + " ₪)");
+      lines.push("");
+    }
+    if (!list.length && !rs.count) { lines.push("אין רישומים בתקופה הזו."); lines.push(""); }
+    if (rs.count) lines.push("📒 מהיומן: " + fmt(t.all) + " ₪ · 🏪 מהקופה: " + fmt(rs.amount) + " ₪");
     lines.push("🧾 מספר בונוסים: " + t.count + (t.big ? " (מתוכם " + t.big + " אולטרה)" : ""));
     var tbS = ms.length === 1 ? teamBonusFor(ms[0]) : 0;
     if (tbS) lines.push("🤝 בונוס צוות: +" + fmt(tbS) + " ₪");
-    lines.push("💰 סה״כ לתשלום: " + fmt(t.all + tbS) + " ₪");
+    lines.push("💰 סה״כ לתשלום: " + fmt(t.all + rs.amount + tbS) + " ₪");
     return lines.join("\n");
   }
   function waNumber(p) {
@@ -1959,7 +2026,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     }
     var ms = shareMonths();
     var t = totals(entriesWhere(function (e) { return ms.indexOf(e.month) >= 0; }));
-    $("periodNote").textContent = periodLabel(ms) + " · " + fmt(t.count) + " בונוסים · " + fmt(t.all) + " ₪";
+    var rsN = regSum(ms);
+    $("periodNote").textContent = periodLabel(ms) + " · " + fmt(t.count) + " בונוסים" + (rsN.count ? " + " + fmt(rsN.count) + " מהקופה" : "") + " · " + fmt(t.all + rsN.amount) + " ₪";
     var cs = contacts();
     if (share.to === null) { var boss = cs.filter(function (c) { return c.boss; })[0]; share.to = boss ? boss.id : (cs[0] ? cs[0].id : "any"); }
     var rc = $("recipChips"); rc.textContent = "";
@@ -2079,13 +2147,17 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       var ks = kindsIn(list);
       var rows = [["סיכום בונוסים – " + periodLabel(ms)], [who], [], ["קטגוריה", "סוג", "אולטרה", "כמות", "סכום ₪"]];
       ks.forEach(function (k) { group(list, k).forEach(function (r) { rows.push([catPlural(k), r.sub, r.big ? "כן" : "", r.count, r.amount]); }); });
-      rows.push([]); rows.push(["מספר בונוסים", "", "", t.count]); rows.push(["מתוכם אולטרה", "", "", t.big]); rows.push(["סה״כ לתשלום", "", "", "", t.all]);
+      var rsX = regSum(ms);
+      if (rsX.count) rows.push(["מכירות מהקופה", "מכשירים שנמכרו על שמי", "", rsX.count, rsX.amount]);
+      rows.push([]); rows.push(["מספר בונוסים", "", "", t.count]); rows.push(["מתוכם אולטרה", "", "", t.big]);
+      if (rsX.count) { rows.push(["סה״כ מהיומן", "", "", "", t.all]); rows.push(["סה״כ מהקופה", "", "", "", rsX.amount]); }
+      rows.push(["סה״כ לתשלום", "", "", "", t.all + rsX.amount]);
       var ws1 = X.utils.aoa_to_sheet(rows); ws1["!cols"] = [{ wch: 16 }, { wch: 22 }, { wch: 9 }, { wch: 8 }, { wch: 10 }];
       X.utils.book_append_sheet(wb, ws1, "סיכום");
       if (ms.length > 1) {
-        var mrows = [["חודש"].concat(ks.map(catPlural)).concat(["מספר בונוסים", "מתוכם אולטרה", "סה״כ ₪"])];
-        ms.forEach(function (mk) { var t2 = totals(monthEntries(mk)); mrows.push([monthLabel(mk)].concat(ks.map(function (k) { return t2.byKind[k] || 0; })).concat([t2.count, t2.big, t2.all])); });
-        mrows.push([]); mrows.push(["סה״כ"].concat(ks.map(function (k) { return t.byKind[k] || 0; })).concat([t.count, t.big, t.all]));
+        var mrows = [["חודש"].concat(ks.map(catPlural)).concat(["מספר בונוסים", "מתוכם אולטרה", "מכשירים מהקופה", "מהקופה ₪", "סה״כ ₪"])];
+        ms.forEach(function (mk) { var t2 = totals(monthEntries(mk)), r2 = regOf(mk) || { count: 0, amount: 0 }; mrows.push([monthLabel(mk)].concat(ks.map(function (k) { return t2.byKind[k] || 0; })).concat([t2.count, t2.big, r2.count, r2.amount, t2.all + r2.amount])); });
+        mrows.push([]); mrows.push(["סה״כ"].concat(ks.map(function (k) { return t.byKind[k] || 0; })).concat([t.count, t.big, rsX.count, rsX.amount, t.all + rsX.amount]));
         var ws3 = X.utils.aoa_to_sheet(mrows);
         X.utils.book_append_sheet(wb, ws3, "לפי חודשים");
       }
@@ -3219,17 +3291,17 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   // ---------- my history ----------
   function renderHistory() {
     var series = [];
-    for (var i = state.range - 1; i >= 0; i--) { var mk = shiftMonth(state.month, -i); series.push({ m: mk, v: totals(monthEntries(mk)).all }); }
+    for (var i = state.range - 1; i >= 0; i--) { var mk = shiftMonth(state.month, -i); series.push({ m: mk, v: monthTotal(mk) }); }
     drawChart($("myChart"), series);
     var box = $("histList"); box.textContent = "";
-    availableMonths().filter(function (mk) { return monthEntries(mk).length; }).forEach(function (mk) {
+    availableMonths().filter(function (mk) { return monthEntries(mk).length || regOf(mk); }).forEach(function (mk) {
       var t = totals(monthEntries(mk));
       var b = el("button", "hist-row"); b.type = "button";
       var n = el("span"); n.appendChild(el("b", null, monthLabel(mk)));
       if (state.paid[mk]) n.appendChild(el("span", "pill paid", "💸 שולם")); else if (state.approved[mk]) n.appendChild(el("span", "pill ok", "✓ אושר"));
       b.appendChild(n);
       b.appendChild(el("span", "hint num", t.count + " בונוסים"));
-      b.appendChild(el("b", "num", fmt(t.all) + " ₪"));
+      b.appendChild(el("b", "num", fmt(t.all + regAmt(mk)) + " ₪"));
       b.addEventListener("click", function () { state.month = mk; render(); window.scrollTo(0, 0); });
       box.appendChild(b);
     });
@@ -3465,8 +3537,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   }
   function paintHeroExtra() {
     var parts = [], cur = monthKey(new Date());
-    var tb = teamBonusFor(state.month);
-    if (tb) parts.push("🤝 בונוס צוות +" + fmt(tb) + " ₪ · סה״כ " + fmt(totals(monthEntries(state.month)).all + tb) + " ₪");
+    var tb = teamBonusFor(state.month), rg = regOf(state.month);
+    if (rg) parts.push("🏪 כולל " + fmt(rg.count) + " מכשירים מהקופה (" + fmt(rg.amount) + " ₪)");
+    if (tb) parts.push("🤝 בונוס צוות +" + fmt(tb) + " ₪ · סה״כ " + fmt(monthTotal(state.month) + tb) + " ₪");
     if (state.month === cur) {
       var now = new Date(), day = now.getDate(), last = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
       var tot = totals(monthEntries(cur)).all;
