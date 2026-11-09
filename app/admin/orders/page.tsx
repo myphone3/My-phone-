@@ -46,6 +46,7 @@ function AdminOrders() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+  const [orderNotes, setOrderNotes] = useState<Record<string, string>>({});
   // חיפוש וסינון (אפשר להגיע עם ?q=מייל ממסך הלקוחות)
   const [search, setSearch] = useState(params?.get('q') || '');
   // מעבר לאותו מסך עם חיפוש אחר (למשל מהדשבורד) מעדכן את החיפוש
@@ -71,6 +72,9 @@ function AdminOrders() {
     if (error) alert('שגיאה בטעינת ההזמנות: ' + (error.message || ''));
     else setOrders(data);
     setLoading(false);
+    // הערות פנימיות (טבלה נפרדת שרק הצוות קורא)
+    const notes = await fetchAll((a, b) => supabase.from('order_notes').select('order_id, note').order('order_id').range(a, b));
+    if (!notes.error) setOrderNotes(Object.fromEntries(notes.data.map((n: any) => [n.order_id, n.note])));
   };
 
   const filtered = useMemo(() => {
@@ -150,7 +154,7 @@ function AdminOrders() {
         t.discount,
         t.total,
         o.notes || '',
-        o.admin_notes || '',
+        orderNotes[o.id] || '',
       ];
     });
     downloadCsv(`orders-${new Date().toISOString().slice(0, 10)}.csv`, [head, ...rows]);
@@ -506,12 +510,14 @@ function AdminOrders() {
               </div>
 
               <InternalNote
-                value={selectedOrder.admin_notes || ''}
+                value={orderNotes[selectedOrder.id] || ''}
                 onSave={async (text) => {
-                  const { error } = await supabase.from('orders').update({ admin_notes: text || null }).eq('id', selectedOrder.id);
+                  const id = selectedOrder.id;
+                  const { error } = text
+                    ? await supabase.from('order_notes').upsert({ order_id: id, note: text, updated_at: new Date().toISOString() })
+                    : await supabase.from('order_notes').delete().eq('order_id', id);
                   if (error) return false;
-                  setOrders((prev: any[]) => prev.map((o) => (o.id === selectedOrder.id ? { ...o, admin_notes: text || null } : o)));
-                  setSelectedOrder((prev: any) => (prev ? { ...prev, admin_notes: text || null } : prev));
+                  setOrderNotes((prev) => ({ ...prev, [id]: text }));
                   return true;
                 }}
               />

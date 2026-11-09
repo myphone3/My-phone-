@@ -25,49 +25,55 @@ export async function POST(request: Request) {
     const order = data as Order;
     const origin = new URL(request.url).origin;
 
-    // התראה לחנות (גם אם ללקוח אין מייל). תקלה כאן לא עוצרת את המייל ללקוח.
-    try {
-      const alert = adminNewOrderEmail(order, `${origin}/admin/orders?q=${orderNumber(order.id)}`);
-      await mailTransport().sendMail({
+    // התראה לחנות (גם אם ללקוח אין מייל). נשלחת במקביל למייל ללקוח, ותקלה בה לא עוצרת אותו.
+    const alert = adminNewOrderEmail(order, `${origin}/admin/orders?q=${orderNumber(order.id)}`);
+    const adminAlert = mailTransport()
+      .sendMail({
         from: `"NEW PHONE" <${process.env.GMAIL_USER}>`,
         to: process.env.GMAIL_USER,
         replyTo: order.email || undefined,
         subject: alert.subject,
         text: alert.text,
         html: alert.html,
-      });
-    } catch (err) {
-      console.error('Admin order alert failed:', err);
+      })
+      .catch((err) => console.error('Admin order alert failed:', err));
+
+    try {
+      return await sendCustomerEmail(order, origin);
+    } finally {
+      await adminAlert;
     }
-
-    if (!order.email) {
-      return NextResponse.json({ success: true, skipped: 'no email' });
-    }
-
-    const publicDir = path.join(process.cwd(), 'public');
-    // הלוגו לא חובה: אם אין, ה-PDF מציג כותרת טקסט
-    const [regular, bold, logo] = await Promise.all([
-      readFile(path.join(publicDir, PDF_ASSET_PATHS.regular)),
-      readFile(path.join(publicDir, PDF_ASSET_PATHS.bold)),
-      readFile(path.join(publicDir, PDF_ASSET_PATHS.logo)).catch(() => undefined),
-    ]);
-    const pdf = await buildOrderPdf(order, { regular, bold, logo });
-
-    const ordersUrl = `${origin}/cart?tab=orders`;
-    const email = orderConfirmationEmail(order, ordersUrl);
-
-    await mailTransport().sendMail({
-      from: `"NEW PHONE" <${process.env.GMAIL_USER}>`,
-      to: order.email,
-      subject: email.subject,
-      text: email.text,
-      html: email.html,
-      attachments: [{ filename: `order-${orderNumber(order.id)}.pdf`, content: Buffer.from(pdf), contentType: 'application/pdf' }],
-    });
-
-    return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Order confirmation error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+}
+
+async function sendCustomerEmail(order: Order, origin: string) {
+  if (!order.email) {
+    return NextResponse.json({ success: true, skipped: 'no email' });
+  }
+
+  const publicDir = path.join(process.cwd(), 'public');
+  // הלוגו לא חובה: אם אין, ה-PDF מציג כותרת טקסט
+  const [regular, bold, logo] = await Promise.all([
+    readFile(path.join(publicDir, PDF_ASSET_PATHS.regular)),
+    readFile(path.join(publicDir, PDF_ASSET_PATHS.bold)),
+    readFile(path.join(publicDir, PDF_ASSET_PATHS.logo)).catch(() => undefined),
+  ]);
+  const pdf = await buildOrderPdf(order, { regular, bold, logo });
+
+  const ordersUrl = `${origin}/cart?tab=orders`;
+  const email = orderConfirmationEmail(order, ordersUrl);
+
+  await mailTransport().sendMail({
+    from: `"NEW PHONE" <${process.env.GMAIL_USER}>`,
+    to: order.email,
+    subject: email.subject,
+    text: email.text,
+    html: email.html,
+    attachments: [{ filename: `order-${orderNumber(order.id)}.pdf`, content: Buffer.from(pdf), contentType: 'application/pdf' }],
+  });
+
+  return NextResponse.json({ success: true });
 }

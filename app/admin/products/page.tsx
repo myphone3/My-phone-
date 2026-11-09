@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import SimpleMarkdown from '@/components/SimpleMarkdown';
 import { fetchAll } from '@/lib/fetchAll';
 
 export default function AdminProductsPage() {
@@ -399,13 +400,14 @@ export default function AdminProductsPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // שכפול: טופס חדש עם כל הפרטים והתמונות של המוצר, בלי מק"ט וכתובת (שחייבים להיות ייחודיים)
+  // שכפול: טופס חדש עם כל הפרטים והתמונות של המוצר; מק"ט ריק וכתובת חדשה ייחודית
   const handleDuplicate = (prod: any) => {
-    handleEdit(prod);
+    // עותק עמוק, כדי ששינוי בטופס השכפול לא ישנה את המוצר המקורי
+    handleEdit(JSON.parse(JSON.stringify(prod)));
     setEditingId(null);
     setName(`${prod.name || ''} (עותק)`);
     setSku('');
-    setSlug('');
+    setSlug(`${prod.slug || String(prod.name || 'product').toLowerCase().replace(/\s+/g, '-')}-copy-${Date.now().toString(36)}`);
     setIsDraft(true);
     setDuplicatedFrom(prod.name || '');
   };
@@ -975,7 +977,7 @@ export default function AdminProductsPage() {
                 <button type="button" onClick={() => setShowPreviewShort(!showPreviewShort)} className="text-orange-600 text-xs font-bold">👁️ תצוגה מקדימה</button>
               </div>
               <input type="text" value={shortDesc} onChange={(e) => setShortDesc(e.target.value)} placeholder="משפט סיכום קצר..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none" />
-              {showPreviewShort && <div className="bg-orange-50 border p-3 rounded-xl text-xs" dangerouslySetInnerHTML={{ __html: parseMarkdownPreview(shortDesc) }}></div>}
+              {showPreviewShort && <div className="bg-orange-50 border p-3 rounded-xl text-xs" ><SimpleMarkdown text={shortDesc} /></div>}
             </div>
 
             {/* תיאור מלא + סרגל כלים לעיצוב + סוכן AI צמוד */}
@@ -1003,7 +1005,7 @@ export default function AdminProductsPage() {
               </div>
 
               <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="תיאור מפורט..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none"></textarea>
-              {showPreviewFull && <div className="bg-orange-50 border p-3 rounded-xl text-xs whitespace-pre-line" dangerouslySetInnerHTML={{ __html: parseMarkdownPreview(description) }}></div>}
+              {showPreviewFull && <div className="bg-orange-50 border p-3 rounded-xl text-xs whitespace-pre-line" ><SimpleMarkdown text={description} /></div>}
             </div>
 
             <div className="space-y-2">
@@ -1012,7 +1014,7 @@ export default function AdminProductsPage() {
                 <button type="button" onClick={() => setShowPreviewSpecs(!showPreviewSpecs)} className="text-orange-600 text-xs font-bold">👁️ תצוגה מקדימה</button>
               </div>
               <textarea value={specs} onChange={(e) => setSpecs(e.target.value)} rows={3} placeholder="מפרט טכני..." className="w-full bg-gray-50 border rounded-xl p-3 text-xs outline-none"></textarea>
-              {showPreviewSpecs && <div className="bg-orange-50 border p-3 rounded-xl text-xs whitespace-pre-line" dangerouslySetInnerHTML={{ __html: parseMarkdownPreview(specs) }}></div>}
+              {showPreviewSpecs && <div className="bg-orange-50 border p-3 rounded-xl text-xs whitespace-pre-line" ><SimpleMarkdown text={specs} /></div>}
             </div>
 
             {/* ניהול SEO מתקדם עם מוני תווים */}

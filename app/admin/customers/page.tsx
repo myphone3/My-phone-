@@ -35,6 +35,7 @@ export default function AdminCustomersPage() {
   const [search, setSearch] = useState('');
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [openNote, setOpenNote] = useState('');
+  const [notesError, setNotesError] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -42,9 +43,10 @@ export default function AdminCustomersPage() {
     setLoadError(error ? error.message || 'שגיאה בטעינה' : '');
     if (!error) setCustomers(data);
     setLoading(false);
-    // הערות פנימיות על לקוחות (אם הטבלה עוד לא קיימת, פשוט אין הערות)
-    const { data: n } = await supabase.from('customer_notes').select('email, note');
-    setNotes(Object.fromEntries((n || []).map((r: any) => [r.email, r.note])));
+    // הערות פנימיות על לקוחות; אם הטעינה נכשלה, העריכה נחסמת כדי לא לדרוס הערה קיימת
+    const { data: n, error: notesErr } = await supabase.from('customer_notes').select('email, note');
+    setNotesError(!!notesErr);
+    if (!notesErr) setNotes(Object.fromEntries((n || []).map((r: any) => [r.email, r.note])));
   };
 
   const saveNote = async (email: string, text: string) => {
@@ -162,7 +164,8 @@ export default function AdminCustomersPage() {
                         <button
                           type="button"
                           onClick={() => setOpenNote(openNote === c.email ? '' : c.email)}
-                          title="הערה פנימית"
+                          disabled={notesError}
+                          title={notesError ? 'ההערות לא נטענו. רעננו את הדף.' : 'הערה פנימית'}
                           className={`text-xs px-1.5 py-0.5 rounded-lg cursor-pointer ${notes[c.email] ? 'bg-yellow-100' : 'opacity-50 hover:opacity-100'}`}
                         >
                           📝

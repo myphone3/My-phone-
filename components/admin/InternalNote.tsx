@@ -1,14 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { showToast } from '@/lib/toast';
 
 // הערה פנימית לצוות (הלקוח לא רואה אותה)
-export default function InternalNote({ value, onSave }: { value: string; onSave: (text: string) => Promise<boolean> }) {
+export default function InternalNote({ value, onSave, disabled = false }: { value: string; onSave: (text: string) => Promise<boolean>; disabled?: boolean }) {
   const [text, setText] = useState(value || '');
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => setText(value || ''), [value]);
+  // ערך חדש מבחוץ (טעינה או שמירה) מחליף את הטקסט רק אם לא נערך מאז
+  const lastValue = useRef(value || '');
+  useEffect(() => {
+    setText((current) => (current === lastValue.current ? value || '' : current));
+    lastValue.current = value || '';
+  }, [value]);
 
   const changed = text.trim() !== (value || '').trim();
 
@@ -27,6 +32,7 @@ export default function InternalNote({ value, onSave }: { value: string; onSave:
         onChange={(e) => setText(e.target.value)}
         rows={2}
         maxLength={1000}
+        disabled={disabled}
         placeholder="למשל: התקשרתי, רוצה איסוף עצמי ביום ראשון"
         className="w-full bg-white border border-yellow-200 rounded-xl p-2.5 text-xs outline-none focus:border-yellow-500"
       />

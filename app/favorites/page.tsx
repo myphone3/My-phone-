@@ -18,7 +18,7 @@ export default function FavoritesPage() {
         setLoading(false);
         return;
       }
-      const { data } = await supabase.from('products').select('*').in('id', ids);
+      const { data } = await supabase.from('products').select('*').in('id', ids).or('is_published.is.null,is_published.eq.true');
       const byId = new Map((data || []).map((p: any) => [p.id, p]));
       setProducts(ids.map((id) => byId.get(id)).filter(Boolean));
       setLoading(false);

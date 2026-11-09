@@ -69,7 +69,8 @@ body {
 /* הגדרות נגישות (כפתור ♿) */
 html.a11y-text-1 { font-size: 112.5%; }
 html.a11y-text-2 { font-size: 125%; }
-html.a11y-contrast { filter: contrast(1.35) saturate(1.1); }
+/* על אזורי התוכן ולא על html, כדי שכפתורים צפים יישארו קבועים במסך בכל הדפדפנים */
+html.a11y-contrast body > header, html.a11y-contrast body > main, html.a11y-contrast body > footer { filter: contrast(1.35) saturate(1.1); }
 html.a11y-links a { text-decoration: underline !important; text-underline-offset: 3px; outline: 2px solid #1d4ed8; outline-offset: 2px; border-radius: 4px; }
 html.a11y-no-motion *, html.a11y-no-motion *::before, html.a11y-no-motion *::after {
   animation: none !important;

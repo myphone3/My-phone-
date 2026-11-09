@@ -1,7 +1,16 @@
 -- NEW PHONE: internal notes, staff accounts with roles, daily summary email. Safe to run again.
 
--- הערות פנימיות (הלקוח לא רואה)
-alter table public.orders add column if not exists admin_notes text;
+-- הערות פנימיות (הלקוח לא רואה): בטבלה נפרדת שרק הצוות קורא,
+-- כי לקוחות יכולים לקרוא את שורות ההזמנות שלהם
+create table if not exists public.order_notes (
+  order_id uuid primary key references public.orders(id) on delete cascade,
+  note text not null default '',
+  updated_at timestamptz not null default now()
+);
+alter table public.order_notes enable row level security;
+drop policy if exists "admins manage order notes" on public.order_notes;
+create policy "admins manage order notes" on public.order_notes
+  for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 create table if not exists public.customer_notes (
   email text primary key,
@@ -63,7 +72,7 @@ begin
   if not public.is_owner() then
     return 'not_allowed';
   end if;
-  if p_role not in ('owner', 'staff') then
+  if p_role is null or p_role not in ('owner', 'staff') then
     return 'bad_role';
   end if;
   select u.id into v_user from auth.users u where lower(u.email) = v_email;
