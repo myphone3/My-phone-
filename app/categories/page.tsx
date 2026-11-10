@@ -90,7 +90,7 @@ function AllCategoriesAndBrandsContent() {
                     <img
                       src={cat.image_url}
                       alt={cat.name}
-                      className="w-full h-full object-cover pointer-events-none"
+                      className="w-full h-full object-contain p-2.5 bg-white pointer-events-none"
                     />
                   ) : (
                     <span className="text-3xl">📦</span>
