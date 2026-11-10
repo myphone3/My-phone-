@@ -117,6 +117,8 @@ export default function AssistantFloat() {
 
   useEffect(() => {
     if (!open) return;
+    // חימום: מכין את השרת והקטלוג כבר כשפותחים את הצ'אט, כדי שהתשובה הראשונה תגיע מהר
+    fetch('/api/assistant').catch(() => {});
     if (!seen) {
       setSeen(true);
       try {
@@ -151,16 +153,46 @@ export default function AssistantFloat() {
     setMessages(next);
     setInput('');
     setSending(true);
+    // התשובה מגיעה בזרימה: מציגים כל מילה ברגע שהיא מגיעה. בסוף (אחרי \u0000) מגיעה רשימת המוצרים
+    let started = false;
+    const show = (text: string, productIds?: string[]) => {
+      setMessages((m) => {
+        const msg: Msg = { role: 'assistant', text, ...(productIds ? { productIds } : {}) };
+        if (!started) return [...m, msg];
+        return [...m.slice(0, -1), msg];
+      });
+      if (!started) {
+        started = true;
+        setSending(false);
+      }
+    };
     try {
       const res = await fetch('/api/assistant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: next.map(({ role, text }) => ({ role, text })) }),
       });
-      const data = await res.json();
-      setMessages((m) => [...m, { role: 'assistant', text: data.reply || 'סליחה, משהו השתבש. נסו שוב.', productIds: data.productIds || [] }]);
+      if (!res.body) throw new Error('no body');
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let all = '';
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        all += dec.decode(value, { stream: true });
+        const text = all.split('\u0000')[0];
+        if (text.trim()) show(text);
+      }
+      const [text, meta] = all.split('\u0000');
+      let productIds: string[] = [];
+      try {
+        productIds = JSON.parse(meta || '{}').productIds || [];
+      } catch {
+        // ignore
+      }
+      show(text.trim() || 'סליחה, משהו השתבש. נסו שוב.', productIds);
     } catch {
-      setMessages((m) => [...m, { role: 'assistant', text: 'אין חיבור כרגע. נסו שוב עוד רגע, או כתבו לנו בוואטסאפ.' }]);
+      show('אין חיבור כרגע. נסו שוב עוד רגע, או כתבו לנו בוואטסאפ.');
     } finally {
       setSending(false);
       inputRef.current?.focus();
