@@ -10,6 +10,7 @@ import { FeatureKey, FEATURES, VersionInfo, resolveVersion } from '@/lib/version
 import { versionName } from '@/lib/versionPrice';
 import { KosherPlayMark, VersionMark, WhatsAppIcon } from '@/components/Logos';
 import Icon from '@/components/Icon';
+import { PHONE_CERT } from '@/components/KosherExplainer';
 
 // "איזה מכשיר מתאים לי?": שאלות קצרות שמשתנות לפי התשובות, ובסוף 3 המלצות מהחנות:
 // המכשיר, הגרסה המדויקת שמתאימה (לפי מה שצריך שיהיה פתוח), לוגו הכשרות, ולמה הוא מתאים.
@@ -26,14 +27,62 @@ type Answers = {
 
 type StepKey = 'type' | 'who' | 'level' | 'cert' | 'needs' | 'budget' | 'extras';
 
-// אילו שאלות מוצגות, לפי מה שכבר נענה
-function stepsFor(a: Answers): StepKey[] {
+// המוצרים שרלוונטיים לפי מה שכבר נענה (לפיהם בונים את שאלת הכשרות ואת טווחי המחיר)
+function poolFor(a: Answers, products: any[]) {
+  const kinds =
+    a.type === 'player'
+      ? ['player']
+      : a.level === 'kosher'
+        ? ['kosher']
+        : a.level === 'support'
+          ? ['support']
+          : a.level === 'open'
+            ? ['open']
+            : ['kosher', 'support', 'open'];
+  return products.filter((p) => kinds.includes(kindOf(p)));
+}
+
+// הכשרויות שקיימות בפועל במוצרים האלה. בטלפונים יש רק ועדת הרבנים, ולכן לא שואלים
+const certsIn = (pool: any[]) => Array.from(new Set(pool.map((p) => String(p.kosher || '').trim()).filter(Boolean)));
+
+const roundTo50 = (n: number) => Math.round(n / 50) * 50;
+const shekel = (n: number) => `₪${n.toLocaleString('he-IL')}`;
+
+// טווחי מחיר לפי המחירים האמיתיים של המוצרים הרלוונטיים (שלושה טווחים בערך שווים)
+function budgetsFor(pool: any[]): { key: string; label: string }[] | null {
+  const prices = pool.map(priceOf).filter((x) => x > 0).sort((x, y) => x - y);
+  if (prices.length < 3) return null;
+  const lo = prices[0];
+  const hi = prices[prices.length - 1];
+  if (hi < lo * 1.25) return null;
+  const edges = Array.from(new Set([prices[Math.floor(prices.length / 3)], prices[Math.floor((prices.length * 2) / 3)]].map(roundTo50)))
+    .filter((e) => e > lo && e < hi)
+    .sort((x, y) => x - y);
+  if (!edges.length) return null;
+  const out: { key: string; label: string }[] = [{ key: `0-${edges[0]}`, label: `עד ${shekel(edges[0])}` }];
+  if (edges[1]) out.push({ key: `${edges[0]}-${edges[1]}`, label: `${shekel(edges[0])} – ${shekel(edges[1])}` });
+  const last = edges[edges.length - 1];
+  out.push({ key: `${last}-999999`, label: `מעל ${shekel(last)}` });
+  out.push({ key: 'any', label: 'לא משנה לי' });
+  return out;
+}
+
+// אילו שאלות מוצגות, לפי מה שכבר נענה ולפי המוצרים שבחנות
+function stepsFor(a: Answers, products: any[]): StepKey[] {
   const steps: StepKey[] = ['type'];
-  if (a.type === 'player') return [...steps, 'cert', 'budget'];
+  const pool = poolFor(a, products);
+  const askCert = certsIn(pool).length > 1;
+  const askBudget = !products.length || !!budgetsFor(pool);
+  if (a.type === 'player') {
+    if (askCert) steps.push('cert');
+    if (askBudget) steps.push('budget');
+    return steps;
+  }
   steps.push('who', 'level');
-  if (a.level === 'kosher') steps.push('cert');
+  if (a.level === 'kosher' && askCert) steps.push('cert');
   if (a.level === 'support' || a.level === 'unsure' || a.level === 'open') steps.push('needs');
-  steps.push('budget', 'extras');
+  if (askBudget) steps.push('budget');
+  steps.push('extras');
   return steps;
 }
 
@@ -45,14 +94,6 @@ const NEED_OPTIONS: { key: FeatureKey; label: string; icon: React.ReactNode; not
   { key: 'navigation', label: 'Waze / מוביט', icon: 'map', note: 'כשר פליי' },
 ];
 
-const BUDGETS = [
-  { key: '0-300', label: 'עד ₪300' },
-  { key: '300-500', label: '₪300 – ₪500' },
-  { key: '500-800', label: '₪500 – ₪800' },
-  { key: '800-1500', label: '₪800 – ₪1,500' },
-  { key: '1500-99999', label: 'מעל ₪1,500' },
-  { key: 'any', label: 'לא משנה לי' },
-];
 
 const EXTRAS: { key: string; label: string; icon: string; re: RegExp; reason: string }[] = [
   { key: 'battery', label: 'סוללה חזקה', icon: 'battery', re: /סוללה|mah|battery/i, reason: 'סוללה חזקה' },
@@ -87,11 +128,13 @@ function kindOf(p: any) {
   const t = textOf(p);
   const cat = String(p.category || '');
   if (/נגן|mp3|mp4/i.test(cat) || /^נגן|נגן mp/i.test(p.name || '')) return 'player';
-  if (/אביזר|כיסוי|מטען|מגן מסך|אוזניות|כבל/.test(cat)) return 'accessory';
+  if (/אביזר|כיסו|מטע[ןנ]|מגן מסך|אוזני|כבל|רמקול|שעו|מעמד|זיכרון|כרטיס|סוללה|מתאם/.test(cat)) return 'accessory';
   if (/תומך/.test(cat) || /תומך כשר/.test(t)) return 'support';
   if (/כשר/.test(cat) || p.kosher) return 'kosher';
   if (/סמארטפון|smartphone|iphone|galaxy/i.test(t)) return 'open';
-  return versionsOf(p).length ? 'support' : 'kosher';
+  if (versionsOf(p).length) return 'support';
+  // רק קטגוריות של טלפונים נחשבות מכשיר; כל השאר אביזרים
+  return /טלפון|מכשיר|סלולר|פלאפון/.test(cat) ? 'kosher' : 'accessory';
 }
 
 type Result = {
@@ -169,7 +212,7 @@ function score(p: any, a: Answers, best: Set<string>, versionRows: any[]): Resul
   }
 
   // תקציב
-  if (a.budget && a.budget !== 'any') {
+  if (a.budget && a.budget !== 'any' && /^\d+-\d+$/.test(a.budget)) {
     const [min, max] = a.budget.split('-').map(Number);
     const price = priceOf(p);
     if (price >= min && price <= max) {
@@ -237,7 +280,7 @@ export default function QuizPage() {
   const [versionRows, setVersionRows] = useState<any[]>([]);
   const [best, setBest] = useState<Set<string>>(new Set());
 
-  const steps = stepsFor(answers);
+  const steps = stepsFor(answers, products);
   const done = stepIdx >= steps.length;
   const step = steps[stepIdx];
 
@@ -272,11 +315,15 @@ export default function QuizPage() {
     }
   }, [done]);
 
-  // רק כשרויות שיש להן מוצרים בחנות
+  // רק הכשרויות שיש להן מוצרים מהסוג שנבחר (בטלפונים: ועדת הרבנים בלבד)
+  const pool = useMemo(() => poolFor(answers, products), [answers, products]);
   const certs = useMemo(() => {
-    const used = new Set(products.map((p) => String(p.kosher || '').trim()).filter(Boolean));
+    const used = new Set(certsIn(pool));
     return kosherList.filter((k) => used.has(String(k.name).trim()));
-  }, [kosherList, products]);
+  }, [kosherList, pool]);
+  const phoneCerts = useMemo(() => certsIn(products.filter((p) => kindOf(p) === 'kosher')), [products]);
+  const phoneCertName = phoneCerts[0] || PHONE_CERT;
+  const budgets = useMemo(() => budgetsFor(pool) || [], [pool]);
   const logoOf = (name?: string) => kosherList.find((k) => String(k.name).trim() === String(name || '').trim())?.image_url || '';
   const kosherPlayLogo = versionRows.find((r) => /כשר ?פליי/.test(r?.name) && r?.image_url)?.image_url;
 
@@ -309,7 +356,7 @@ export default function QuizPage() {
     ({ kosher: 'כשר', support: 'תומך כשר', open: 'פתוח', unsure: '' } as Record<string, string>)[answers.level || ''] || '',
     answers.cert && answers.cert !== 'any' ? `כשרות ${answers.cert}` : '',
     (answers.needs || []).map((k) => NEED_OPTIONS.find((n) => n.key === k)?.label).join(', '),
-    BUDGETS.find((b) => b.key === answers.budget && b.key !== 'any')?.label || '',
+    budgets.find((b) => b.key === answers.budget && b.key !== 'any')?.label || '',
     (answers.extras || []).map((k) => EXTRAS.find((e) => e.key === k)?.label).join(', '),
   ]
     .filter(Boolean)
@@ -393,18 +440,17 @@ export default function QuizPage() {
                 </p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <OptionButton selected={answers.level === 'kosher'} onClick={() => next({ level: 'kosher', needs: [] })}>
-                  <span className="flex items-center gap-1.5">
-                    {certs.slice(0, 3).map((k) =>
-                      k.image_url ? <img key={k.name} src={k.image_url} alt={k.name} className="w-9 h-9 object-contain rounded-lg bg-white border p-0.5" /> : null
-                    )}
-                    {!certs.some((k) => k.image_url) && <Emoji c="kosher" />}
-                  </span>
+                <OptionButton selected={answers.level === 'kosher'} onClick={() => next({ level: 'kosher', needs: [], cert: undefined })}>
+                  {logoOf(phoneCertName) ? (
+                    <img src={logoOf(phoneCertName)} alt={phoneCertName} className="w-11 h-11 object-contain rounded-lg bg-white border p-0.5" />
+                  ) : (
+                    <Emoji c="kosher" />
+                  )}
                   <span>מכשיר כשר</span>
-                  <span className="text-[11px] font-medium text-gray-500">שיחות בלבד, באישור ועדות הכשרות</span>
+                  <span className="text-[11px] font-medium text-gray-500">שיחות בלבד, באישור {phoneCertName}</span>
                 </OptionButton>
                 <OptionButton selected={answers.level === 'support'} onClick={() => next({ level: 'support', cert: undefined })}>
-                  <Emoji c="shield" />
+                  <Emoji c="supported" />
                   <span>תומך כשר</span>
                   <span className="text-[11px] font-medium text-gray-500">בוחרים מה פתוח: נגן, מצלמה, SMS או וואטסאפ</span>
                 </OptionButton>
@@ -475,9 +521,12 @@ export default function QuizPage() {
 
           {step === 'budget' && (
             <>
-              <h2 className="text-xl font-black text-gray-900">מה התקציב?</h2>
+              <div>
+                <h2 className="text-xl font-black text-gray-900">מה התקציב?</h2>
+                <p className="text-xs text-gray-500 mt-1">הטווחים לפי המחירים של המכשירים שמתאימים לבחירה שלכם</p>
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {BUDGETS.map((b) => (
+                {budgets.map((b) => (
                   <OptionButton key={b.key} selected={answers.budget === b.key} onClick={() => next({ budget: b.key })}>
                     <Emoji c={b.key === 'any' ? 'help' : 'wallet'} /> {b.label}
                   </OptionButton>

@@ -22,7 +22,7 @@ export default function TrustBadges({ compact = false }: { compact?: boolean }) 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3" dir="rtl">
       {TRUST_ITEMS.map((item) => (
-        <div key={item.title} className="bg-white border border-gray-100 rounded-2xl p-4 text-center space-y-1.5">
+        <div key={item.title} className="bg-white border border-orange-100 shadow-sm rounded-2xl p-4 text-center space-y-1.5">
           <div className="w-12 h-12 mx-auto rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center"><Icon name={item.icon} size={24} /></div>
           <div className="text-sm font-black text-gray-900">{item.title}</div>
           <div className="text-xs text-gray-500">{item.text}</div>

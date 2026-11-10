@@ -10,7 +10,11 @@ import Icon from '@/components/Icon';
 import TrustBadges from '@/components/TrustBadges';
 import FaqList from '@/components/FaqList';
 import Reviews from '@/components/Reviews';
+import KosherExplainer from '@/components/KosherExplainer';
 import { versionExtra as getVersionExtra } from '@/lib/versionPrice';
+
+// כמה מוצרים מוצגים בדף הבית (השאר בעמוד "כל המוצרים")
+const HOME_PRODUCTS = 12;
 
 function StoreContent() {
   const [products, setProducts] = useState<any[]>([]);
@@ -448,7 +452,7 @@ function StoreContent() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 space-y-14 pt-10">
+      <div className="max-w-7xl mx-auto px-4 space-y-10 pt-8">
 
         {/* מבצע השבוע עם שעון ספירה לאחור (נבחר בפאנל) */}
         <DealOfWeek settings={settings} products={products} />
@@ -457,12 +461,12 @@ function StoreContent() {
         {categories.length > 0 && (
           <section className="space-y-4 relative group">
             <div className="flex justify-between items-center">
-              <h2 className="text-base sm:text-xl font-black text-gray-900 shrink-0">
+              <h2 className="text-base sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3 shrink-0">
                 קטגוריות מובילות
               </h2>
               <Link 
                 href="/categories" 
-                className="text-orange-700 hover:text-orange-800 text-xs font-bold transition flex items-center gap-1 shrink-0"
+                className="bg-orange-100/80 hover:bg-orange-200/90 text-orange-700 border border-orange-300/60 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-bold transition flex items-center gap-1 shrink-0 shadow-2xs backdrop-blur-xs"
               >
                 <span>לכל הקטגוריות והמותגים</span>
                 <span className="text-[9px]">➔</span>
@@ -494,7 +498,7 @@ function StoreContent() {
                     href={`/category/${encodeURIComponent(cat.name)}`}
                     className="flex flex-col items-center text-center gap-2 cursor-pointer group shrink-0 w-28 sm:w-32"
                   >
-                    <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gray-50 flex items-center justify-center overflow-hidden group-hover:scale-105 transition">
+                    <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-white flex items-center justify-center overflow-hidden group-hover:scale-105 transition shadow-xs border border-orange-500/30">
                       {cat.image_url ? (
                         <img src={cat.image_url} alt={cat.name} className="w-full h-full object-contain p-2.5 bg-white pointer-events-none" />
                       ) : (
@@ -511,9 +515,9 @@ function StoreContent() {
 
         {/* מבצעים חמים */}
         {saleProducts.length > 0 && (
-          <section className="space-y-4 relative group">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg sm:text-xl font-black text-gray-900">
+          <section className="bg-orange-50/60 border border-orange-200/80 p-4 sm:p-6 rounded-3xl space-y-4 shadow-xs relative group">
+            <div className="flex justify-between items-center border-b border-orange-200/60 pb-3">
+              <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
                 מבצעים חמים
               </h2>
             </div>
@@ -546,7 +550,7 @@ function StoreContent() {
                   return (
                     <div 
                       key={`sale-${product.id}`} 
-                      className="w-48 sm:w-56 shrink-0 bg-white rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between p-3.5 hover:shadow-lg transition-all duration-300 relative"
+                      className="w-48 sm:w-56 shrink-0 bg-white rounded-3xl border-2 border-orange-200 shadow-md flex flex-col justify-between p-3.5 animate-subtle-pulse hover:shadow-xl transition-all duration-300 relative"
                     >
                       <Link href={`/product/${product.id}`} className="block space-y-2.5">
                         <div className="h-32 sm:h-36 w-full bg-gray-50 rounded-2xl flex items-center justify-center relative overflow-hidden group">
@@ -598,12 +602,28 @@ function StoreContent() {
           </section>
         )}
 
-        {/* כל המוצרים */}
-        <section className="space-y-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-lg sm:text-xl font-black text-gray-900">
-              כל המוצרים בחנות
-            </h2>
+        {/* כל המוצרים: מציגים חלק, ויש כפתור לכל המוצרים (למעלה ולמטה) */}
+        <section className="space-y-6 pt-4 border-t">
+          <div className="flex justify-between items-center gap-3">
+            <div>
+              <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
+                המוצרים שלנו
+              </h2>
+              {products.length > 0 && (
+                <p className="text-[11px] sm:text-xs text-gray-500 font-medium pr-4 mt-0.5">
+                  {products.length > HOME_PRODUCTS ? `${HOME_PRODUCTS} מתוך ${products.length} מוצרים בחנות` : `${products.length} מוצרים בחנות`}
+                </p>
+              )}
+            </div>
+            {products.length > HOME_PRODUCTS && (
+              <Link
+                href="/catalog"
+                className="bg-orange-100/80 hover:bg-orange-200/90 text-orange-700 border border-orange-300/60 px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-black transition flex items-center gap-1.5 shrink-0 shadow-2xs"
+              >
+                <Icon name="grid" size={14} />
+                <span>לכל המוצרים ({products.length})</span>
+              </Link>
+            )}
           </div>
 
           {products.length === 0 ? (
@@ -613,7 +633,7 @@ function StoreContent() {
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
-              {products.map((product) => {
+              {products.slice(0, HOME_PRODUCTS).map((product) => {
                 const colors = product.product_colors || product.colors || [];
                 const primaryImg = getProductImage(product);
                 const secondaryImg = (Array.isArray(product.images) && product.images[1]) || primaryImg;
@@ -732,34 +752,62 @@ function StoreContent() {
               })}
             </div>
           )}
+
+          {products.length > HOME_PRODUCTS && (
+            <div className="flex flex-col items-center gap-2 pt-2">
+              <Link
+                href="/catalog"
+                className="w-full sm:w-auto sm:min-w-[320px] bg-orange-600 hover:bg-orange-700 text-white px-8 py-3.5 rounded-2xl text-sm font-black transition shadow-md flex items-center justify-center gap-2"
+              >
+                <Icon name="grid" size={18} />
+                <span>לצפייה בכל {products.length} המוצרים</span>
+                <span>←</span>
+              </Link>
+              <span className="text-[11px] text-gray-400 font-medium">אפשר לסנן לפי קטגוריה, מחיר וכשרות</span>
+            </div>
+          )}
         </section>
 
       </div>
 
-      {/* מדריכים: כשר, תומך כשר והגרסאות */}
-      <section className="max-w-7xl mx-auto px-4 mt-16 space-y-4" dir="rtl">
-        <div className="flex justify-between items-center">
-          <h2 className="text-lg sm:text-xl font-black text-gray-900">לפני שבוחרים: מדריכים קצרים</h2>
-          <Link href="/guide" className="text-xs font-bold text-orange-700 shrink-0">לכל המדריכים ←</Link>
-        </div>
-        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 snap-x">
-          {GUIDES.slice(0, 4).map((g) => (
-            <Link
-              key={g.slug}
-              href={`/guide/${g.slug}`}
-              className="snap-start shrink-0 w-64 bg-white border border-gray-100 hover:shadow-md rounded-3xl p-4 space-y-1.5 transition"
-            >
-              <span className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center"><Icon name={g.emoji} size={22} /></span>
-              <span className="block font-black text-sm text-gray-900 leading-snug">{g.title}</span>
-              <span className="block text-[11px] text-gray-500 leading-relaxed line-clamp-3">{g.excerpt}</span>
-            </Link>
-          ))}
-        </div>
-      </section>
+      {/* ===== מכאן: אזור מידע, מופרד בבירור מהמוצרים ===== */}
+      <div className="mt-20 border-t-4 border-orange-500 bg-gradient-to-b from-orange-50 to-white" dir="rtl">
+        {/* מכשיר כשר או תומך כשר? */}
+        <section className="max-w-5xl mx-auto px-4 pt-12 pb-4 space-y-6">
+          <div className="text-center space-y-1">
+            <span className="inline-block bg-orange-600 text-white text-[11px] font-black px-3 py-1 rounded-full">לפני שקונים</span>
+            <h2 className="text-xl sm:text-2xl font-black text-gray-900">מכשיר כשר או תומך כשר?</h2>
+            <p className="text-sm text-gray-500">ההבדל בשתי דקות, בלי מילים מסובכות</p>
+          </div>
+          <KosherExplainer />
+        </section>
 
-      {/* אזור מידע נפרד מהמוצרים: למה לקנות אצלנו ושאלות נפוצות */}
-      <section className="mt-20 bg-gray-50" dir="rtl">
-        <div className="max-w-5xl mx-auto px-4 py-14 space-y-16">
+        {/* הבלוג: מדריכים קצרים */}
+        <section className="max-w-7xl mx-auto px-4 pt-14 pb-4 space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">מדריכים קצרים</h2>
+            <Link href="/guide" className="bg-orange-100/80 hover:bg-orange-200/90 text-orange-700 border border-orange-300/60 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-bold transition shrink-0">לכל המדריכים ←</Link>
+          </div>
+          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 snap-x">
+            {GUIDES.map((g) => (
+              <Link
+                key={g.slug}
+                href={`/guide/${g.slug}`}
+                className="snap-start shrink-0 w-64 bg-white border-2 border-orange-100 hover:border-orange-300 rounded-3xl p-4 space-y-1.5 transition shadow-xs"
+              >
+                <span className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center"><Icon name={g.emoji} size={22} /></span>
+                <span className="block font-black text-sm text-gray-900 leading-snug">{g.title}</span>
+                <span className="block text-[11px] text-gray-500 leading-relaxed line-clamp-3">{g.excerpt}</span>
+                <span className="block text-[11px] font-black text-orange-700 pt-1">לקריאה ({g.minutes} דק׳) ←</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      {/* קונים בראש שקט, ביקורות ושאלות נפוצות */}
+      <section className="mt-14 bg-gray-50 border-y border-gray-100" dir="rtl">
+        <div className="max-w-5xl mx-auto px-4 py-12 space-y-14">
           <div className="space-y-6">
             <div className="text-center space-y-1">
               <h2 className="text-xl sm:text-2xl font-black text-gray-900">קונים בראש שקט</h2>

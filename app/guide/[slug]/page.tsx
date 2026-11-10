@@ -5,6 +5,8 @@ import { GUIDES, GUIDE_CATEGORIES, getGuide } from '@/lib/guides';
 import { WhatsAppIcon } from '@/components/Logos';
 import { BUSINESS } from '@/lib/business';
 import GuideTable from '@/components/GuideTables';
+import KosherExplainer from '@/components/KosherExplainer';
+import { CertLogo } from '@/components/ProductExtras';
 
 export function generateStaticParams() {
   return GUIDES.map((g) => ({ slug: g.slug }));
@@ -41,7 +43,10 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
 
       <article className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 sm:p-10 space-y-5">
         <header className="space-y-2">
-          <span className="w-14 h-14 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center"><Icon name={g.emoji} size={30} /></span>
+          <span className="flex items-center gap-2">
+            <span className="w-14 h-14 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center"><Icon name={g.emoji} size={30} /></span>
+            {g.cert && <CertLogo name={g.cert} size={56} className="border border-gray-100 p-1" />}
+          </span>
           <h1 className="text-2xl sm:text-3xl font-black text-gray-900 leading-tight">{g.title}</h1>
           <p className="text-sm text-gray-500">{g.excerpt}</p>
           <div className="flex gap-2 flex-wrap">
@@ -115,6 +120,12 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
                 );
               case 'table':
                 return <GuideTable key={i} which={b.which} />;
+              case 'kinds':
+                return (
+                  <div key={i} className="not-prose leading-normal">
+                    <KosherExplainer compact />
+                  </div>
+                );
               case 'cta':
                 return (
                   <Link key={i} href={b.href} className="block text-center bg-orange-600 hover:bg-orange-700 text-white py-3.5 rounded-2xl text-sm font-black transition">

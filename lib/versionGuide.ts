@@ -120,7 +120,7 @@ export const DEVICE_TYPES: VersionInfo[] = [
   {
     name: 'תומך כשר',
     title: 'תומך כשר',
-    icon: 'shield',
+    icon: 'supported',
     description: 'עובד עם קו כשר, ובוחרים גרסה: נגן, מצלמה, SMS, או כשר פליי עם וואטסאפ ומוביט. אין דפדפן ואין גוגל באף גרסה.',
     bestFor: 'מי שצריך יותר משיחות, בלי אינטרנט פתוח',
     features: { calls: 'yes', sms: 'yes', whatsapp: 'yes', camera: 'yes', gallery: 'yes', music: 'yes', navigation: 'yes', apps: 'yes', internet: 'no' },

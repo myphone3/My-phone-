@@ -10,7 +10,7 @@ import CampaignTracker from '../components/CampaignTracker';
 import CartSync from '../components/CartSync';
 import SiteTracker from '../components/SiteTracker';
 import ConsentBanner from '../components/ConsentBanner';
-import { CompareBar } from '../components/ProductExtras';
+import AssistantFloat from '../components/AssistantFloat';
 import { Suspense } from 'react';
 import { getSiteSettings } from '@/lib/siteSettings';
 
@@ -66,7 +66,7 @@ export default function RootLayout({
         </Suspense>
         <CartSync />
         <SiteTracker />
-        <CompareBar />
+        <AssistantFloat />
         <ConsentBanner />
 
       </body>
