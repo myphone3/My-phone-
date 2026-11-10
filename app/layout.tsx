@@ -4,10 +4,7 @@ import Footer from '../components/Footer';
 import ToastHost from '../components/Toast';
 import WhatsAppFloat from '../components/WhatsAppFloat';
 import type { Metadata, Viewport } from 'next';
-import { Rubik } from 'next/font/google';
 
-// הגופן של האתר: Rubik בעברית ובאנגלית, נטען מהשרת שלנו (בלי בקשה לגוגל אצל הלקוח)
-const rubik = Rubik({ subsets: ['hebrew', 'latin'], weight: ['400', '500', '600', '700', '800', '900'], display: 'swap', variable: '--font-rubik' });
 import Analytics from '../components/Analytics';
 import CampaignTracker from '../components/CampaignTracker';
 import CartSync from '../components/CartSync';
@@ -62,8 +59,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="he" dir="rtl" className={rubik.variable}>
+    <html lang="he" dir="rtl">
       <head>
+        {/* הגופן Rubik נמצא באתר עצמו (public/fonts), ומוגדר ב-globals.css */}
+        <link rel="preload" href="/fonts/rubik-hebrew.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(organizationJsonLd()) }} />
       </head>
       <body className="bg-gray-50 text-gray-900 font-sans antialiased">
