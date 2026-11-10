@@ -7,6 +7,7 @@ import { BUSINESS } from '@/lib/business';
 import GuideTable from '@/components/GuideTables';
 import KosherExplainer from '@/components/KosherExplainer';
 import { CertLogo } from '@/components/ProductExtras';
+import GuideMark from '@/components/GuideMark';
 
 export function generateStaticParams() {
   return GUIDES.map((g) => ({ slug: g.slug }));
@@ -32,7 +33,7 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
       <nav className="text-xs font-bold text-gray-500 flex gap-2">
         <Link href="/" className="hover:text-orange-600">דף הבית</Link>
         <span className="text-gray-300">/</span>
-        <Link href="/guide" className="hover:text-orange-600">מדריכים</Link>
+        <Link href="/guide" className="hover:text-orange-600">המדריך</Link>
         {cat && (
           <>
             <span className="text-gray-300">/</span>
@@ -157,7 +158,7 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {others.map((o) => (
             <Link key={o.slug} href={`/guide/${o.slug}`} className="bg-white border-2 border-orange-100 hover:border-orange-300 rounded-2xl p-4 transition">
-              <span className="text-orange-600"><Icon name={o.emoji} size={24} /></span>
+              <GuideMark emoji={o.emoji} cert={o.cert} category={o.category} size={36} />
               <span className="block text-sm font-black text-gray-900 mt-1 leading-snug">{o.title}</span>
               <span className="block text-[11px] text-gray-500 mt-1">{o.minutes} דק׳ קריאה</span>
             </Link>

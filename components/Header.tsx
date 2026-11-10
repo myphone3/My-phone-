@@ -450,7 +450,8 @@ export default function Header() {
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 className="relative flex items-center justify-center w-12 h-12 bg-white hover:bg-orange-50/50 border-2 border-orange-200 rounded-full shadow-2xs transition duration-200 cursor-pointer p-1"
-                title={user ? (user.user_metadata?.full_name || 'החשבון שלי') : 'הרשמה לאתר והתראות'}
+                title={user ? (user.user_metadata?.full_name || 'האזור האישי') : 'האזור האישי: התחברות'}
+                aria-label={user ? 'האזור האישי' : 'האזור האישי: התחברות'}
               >
                 <span className="w-full h-full rounded-full overflow-hidden flex items-center justify-center">
                   {user?.user_metadata?.avatar_url ? (
@@ -480,15 +481,6 @@ export default function Header() {
                     </span>
                   </span>
                 )}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="mr-2 text-right leading-tight cursor-pointer"
-              >
-                <span className="block text-[11px] sm:text-xs font-black text-gray-900">האזור האישי</span>
-                <span className="block text-[10px] text-gray-500">{user ? 'הזמנות והשוואה' : 'התחברות'}</span>
               </button>
 
               {/* חלונית נפתחת */}

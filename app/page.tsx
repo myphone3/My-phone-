@@ -11,6 +11,7 @@ import TrustBadges from '@/components/TrustBadges';
 import FaqList from '@/components/FaqList';
 import Reviews from '@/components/Reviews';
 import KosherExplainer from '@/components/KosherExplainer';
+import GuideMark from '@/components/GuideMark';
 import { versionExtra as getVersionExtra } from '@/lib/versionPrice';
 
 // כמה מוצרים מוצגים בדף הבית (השאר בעמוד "כל המוצרים")
@@ -786,7 +787,7 @@ function StoreContent() {
         <section className="max-w-7xl mx-auto px-4 pt-14 pb-4 space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">מדריכים קצרים</h2>
-            <Link href="/guide" className="bg-orange-100/80 hover:bg-orange-200/90 text-orange-700 border border-orange-300/60 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-bold transition shrink-0">לכל המדריכים ←</Link>
+            <Link href="/guide" className="bg-orange-100/80 hover:bg-orange-200/90 text-orange-700 border border-orange-300/60 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-bold transition shrink-0">למדריך המלא צעד אחרי צעד ←</Link>
           </div>
           <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 snap-x">
             {GUIDES.map((g) => (
@@ -795,7 +796,7 @@ function StoreContent() {
                 href={`/guide/${g.slug}`}
                 className="snap-start shrink-0 w-64 bg-white border-2 border-orange-100 hover:border-orange-300 rounded-3xl p-4 space-y-1.5 transition shadow-xs"
               >
-                <span className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center"><Icon name={g.emoji} size={22} /></span>
+                <GuideMark emoji={g.emoji} cert={g.cert} category={g.category} />
                 <span className="block font-black text-sm text-gray-900 leading-snug">{g.title}</span>
                 <span className="block text-[11px] text-gray-500 leading-relaxed line-clamp-3">{g.excerpt}</span>
                 <span className="block text-[11px] font-black text-orange-700 pt-1">לקריאה ({g.minutes} דק׳) ←</span>

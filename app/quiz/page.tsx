@@ -426,7 +426,7 @@ export default function QuizPage() {
                   <Emoji c="phone" /> טלפון
                 </OptionButton>
                 <OptionButton selected={answers.type === 'player'} onClick={() => next({ type: 'player', level: undefined, needs: [], extras: [] })}>
-                  <Emoji c="headphones" /> נגן MP3 / MP4
+                  <Emoji c="headphones" /> נגן MP3
                 </OptionButton>
                 <OptionButton selected={answers.type === 'any'} onClick={() => next({ type: 'any' })}>
                   <Emoji c="help" /> עוד לא בטוח

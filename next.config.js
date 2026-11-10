@@ -1,5 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // מדריכים שאוחדו למדריך אחד
+  async redirects() {
+    return [
+      { source: '/guide/kosher-phone', destination: '/guide/kosher-vs-supported', permanent: true },
+      { source: '/guide/kosher-supported', destination: '/guide/kosher-vs-supported', permanent: true },
+    ];
+  },
   images: {
     remotePatterns: [
       {

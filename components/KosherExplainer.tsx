@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRef, useState } from 'react';
 import Icon from './Icon';
 import { CertLogo } from './ProductExtras';
 import { KosherPlayMark } from './Logos';
@@ -50,11 +51,30 @@ function Rows({ rows }: { rows: Row[] }) {
 }
 
 export default function KosherExplainer({ compact = false }: { compact?: boolean }) {
+  // שני הכרטיסים אחד ליד השני, עם גלילה ימינה ושמאלה (בטלפון רואים כרטיס אחד ומציצים לשני)
+  const scroller = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(0);
+  const onScroll = () => {
+    const el = scroller.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    if (max <= 0) return;
+    setActive(Math.abs(el.scrollLeft) > max / 2 ? 1 : 0);
+  };
+  const goTo = (i: number) => {
+    const card = scroller.current?.children[i] as HTMLElement | undefined;
+    card?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  };
+  const cardSize = 'snap-center shrink-0 w-[86%] sm:w-[calc(50%-8px)]';
   return (
-    <div className="space-y-4" dir="rtl">
-      <div className="grid md:grid-cols-2 gap-4">
+    <div className="space-y-3" dir="rtl">
+      <div
+        ref={scroller}
+        onScroll={onScroll}
+        className="flex gap-4 overflow-x-auto snap-x snap-mandatory no-scrollbar -mx-4 px-4 pb-2 sm:mx-0 sm:px-0"
+      >
         {/* מכשיר כשר */}
-        <div className="bg-white border-2 border-orange-200 rounded-3xl p-5 space-y-4 shadow-sm">
+        <div className={`${cardSize} bg-white border-2 border-orange-200 rounded-3xl p-5 space-y-4 shadow-sm`}>
           <div className="flex items-center gap-3">
             <CertLogo
               name={PHONE_CERT}
@@ -86,7 +106,7 @@ export default function KosherExplainer({ compact = false }: { compact?: boolean
         </div>
 
         {/* תומך כשר */}
-        <div className="bg-white border-2 border-sky-200 rounded-3xl p-5 space-y-4 shadow-sm">
+        <div className={`${cardSize} bg-white border-2 border-sky-200 rounded-3xl p-5 space-y-4 shadow-sm`}>
           <div className="flex items-center gap-3">
             <span className="w-14 h-14 rounded-2xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0">
               <Icon name="supported" size={32} />
@@ -113,6 +133,28 @@ export default function KosherExplainer({ compact = false }: { compact?: boolean
           </Link>
         </div>
       </div>
+
+      {/* בטלפון: נקודות ומעבר בין הכרטיסים */}
+      <div className="flex sm:hidden items-center justify-center gap-3">
+        {['מכשיר כשר', 'תומך כשר'].map((label, i) => (
+          <button
+            key={label}
+            type="button"
+            onClick={() => goTo(i)}
+            aria-label={`להצגת ${label}`}
+            className={`text-[11px] font-black px-3 py-1 rounded-full border transition ${
+              active === i
+                ? i === 0
+                  ? 'bg-orange-600 border-orange-600 text-white'
+                  : 'bg-sky-700 border-sky-700 text-white'
+                : 'bg-white border-gray-200 text-gray-500'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <p className="sm:hidden text-center text-[10px] text-gray-400 font-medium">גוללים ימינה ושמאלה כדי לראות את שני הסוגים</p>
 
       {!compact && (
         <div className="flex flex-col sm:flex-row items-center justify-center gap-2 text-center">

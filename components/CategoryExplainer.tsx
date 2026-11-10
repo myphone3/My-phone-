@@ -7,20 +7,20 @@ const EXPLAINERS: { match: RegExp; icon: string; title: string; text: string; hr
     icon: '✅',
     title: 'מה זה תומך כשר?',
     text: 'מכשיר שעובד עם קו כשר, בגרסה שאתם בוחרים: נגן וגלריה, מצלמה, הודעות SMS, או אפליקציות מאושרות כמו וואטסאפ ומוביט. בלי דפדפן ובלי גוגל.',
-    href: '/guide/kosher-supported',
+    href: '/guide/kosher-vs-supported#s2',
   },
   {
     match: /כשר/,
     icon: '✡️',
     title: 'מה זה מכשיר כשר?',
     text: 'מכשיר באישור ועדת הרבנים לענייני תקשורת, לשיחות בלבד: בלי הודעות, בלי מצלמה ובלי אינטרנט.',
-    href: '/guide/kosher-phone',
+    href: '/guide/kosher-vs-supported#s1',
   },
   {
     match: /נגן/,
     icon: '🎧',
     title: 'איך בוחרים נגן?',
-    text: 'נגנים בלי אינטרנט לשירים ושיעורים. כדאי לשים לב לנפח, לסוג המסך ולהכשר.',
+    text: 'נגני MP3 בלי אינטרנט לשירים ושיעורים. כדאי לשים לב לנפח, לרמקול ולכשרות.',
     href: '/guide/kosher-players',
   },
 ];
