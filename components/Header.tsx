@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import Icon from './Icon';
+import CategoriesMenu from './CategoriesMenu';
 import { usePathname, useRouter } from 'next/navigation';
 import { COMPARE_EVENT, getCompare } from '@/lib/shop';
 
@@ -783,22 +784,25 @@ export default function Header() {
           </div>
 
           {/* שורה תחתונה: חיפוש */}
-          <form onSubmit={handleSearchSubmit} className="relative w-full pt-2">
+          <div className="flex items-stretch gap-2 pt-2">
+          <CategoriesMenu />
+          <form onSubmit={handleSearchSubmit} className="relative flex-1 min-w-0">
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="חיפוש מוצרים, מכשירים, נגנים או קטגוריות..."
+              placeholder="חיפוש מוצרים, מכשירים, נגנים..."
               aria-label="חיפוש מוצרים"
               type="search"
               enterKeyHint="search"
               className="w-full bg-white border-2 border-orange-200 hover:border-orange-300 focus:border-orange-500 rounded-2xl py-2.5 pr-4 pl-10 text-xs font-medium text-gray-800 shadow-2xs outline-none transition"
             />
-            <button type="submit" aria-label="חיפוש" className="absolute left-3 top-[calc(50%+4px)] -translate-y-1/2 text-gray-400 hover:text-orange-600 transition cursor-pointer">
+            <button type="submit" aria-label="חיפוש" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-600 transition cursor-pointer">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </button>
           </form>
+          </div>
 
         </div>
       </header>

@@ -174,7 +174,7 @@ export default function AssistantFloat() {
       {/* העיגול הקטן: בצבעי הלוגו של החנות */}
       <div
         className="fixed left-[1.625rem] bottom-[5.6rem] [body[data-consent=open]_&]:bottom-[8.35rem] z-40 flex items-center gap-2 group"
-        dir="rtl"
+        dir="ltr"
         data-float
         style={{ translate: '0 calc(-1 * var(--float-shift, 0px))', transition: 'translate 300ms ease, transform 150ms ease' }}
       >
@@ -194,6 +194,7 @@ export default function AssistantFloat() {
           <button
             type="button"
             onClick={() => setOpen(true)}
+            dir="rtl"
             className={`${seen ? 'hidden sm:group-hover:block' : 'hidden sm:block'} bg-white/95 backdrop-blur border border-pink-100 text-gray-800 text-xs font-black px-3 py-2 rounded-2xl rounded-bl-sm shadow-lg cursor-pointer whitespace-nowrap`}
           >
             <span className="bg-gradient-to-l from-orange-600 via-pink-600 to-purple-600 bg-clip-text text-transparent">הנציג החכם</span> · איזה מכשיר מתאים לי?
