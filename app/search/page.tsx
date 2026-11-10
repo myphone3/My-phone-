@@ -64,7 +64,7 @@ function SearchResultsContent() {
           <p className="text-gray-500 font-medium">לא נמצאו מוצרים התואמים את החיפוש שלך.</p>
           <p className="text-xs text-gray-400">לא בטוחים מה לחפש? נעזור לכם לבחור</p>
           <div className="flex flex-wrap justify-center gap-2 pt-1">
-            <Link href="/quiz" className="bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-black">🧭 איזה מכשיר מתאים לי?</Link>
+            <Link href="/quiz" className="text-orange-700 underline underline-offset-4 text-xs font-black">🧭 איזה מכשיר מתאים לי?</Link>
             <a href={`https://wa.me/${BUSINESS.whatsapp}?text=${encodeURIComponent(`שלום, חיפשתי באתר "${query}" ולא מצאתי`)}`} target="_blank" rel="noopener noreferrer" className="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-xl text-xs font-black">💬 שאלו אותנו בוואטסאפ</a>
           </div>
           <Link href="/" className="inline-block bg-orange-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold mt-2 cursor-pointer">
@@ -87,7 +87,7 @@ function SearchResultsContent() {
               >
                 <Link href={`/product/${product.id}`} className="block">
                   <div className="h-40 sm:h-52 w-full bg-gray-50 overflow-hidden relative rounded-2xl mb-3 flex items-center justify-center">
-                    <CardOverlay product={product} />
+                    <CardOverlay product={product} withKosher />
                     <img 
                       src={activeImage} 
                       alt={product.name} 

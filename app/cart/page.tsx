@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import Icon from '@/components/Icon';
 import MyOrders from '@/components/MyOrders';
 import { Order, formatMoney, newUuid, orderItems, orderNumber, orderTotals, toOrderLine } from '@/lib/orders';
 import { showToast } from '@/lib/toast';
@@ -64,6 +65,8 @@ export default function CartPage() {
   const [cardHolderId, setCardHolderId] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
+  // נעילה מיידית נגד לחיצה כפולה (ה-state מתעדכן רק ברינדור הבא)
+  const submitLock = useRef(false);
 
   // קופונים ומבצעים
   const [couponInput, setCouponInput] = useState('');
@@ -305,6 +308,8 @@ export default function CartPage() {
       return;
     }
 
+    if (submitLock.current) return;
+    submitLock.current = true;
     setSubmitting(true);
 
     // מפתח חד-פעמי לשליחת מייל האישור (לקוח לא יכול לקרוא הזמנות מהבסיס)
@@ -326,6 +331,7 @@ export default function CartPage() {
       error = { message: err?.message };
     } finally {
       setSubmitting(false);
+      submitLock.current = false;
     }
 
     if (error || !savedOrder) {
@@ -367,8 +373,8 @@ export default function CartPage() {
       {/* לשוניות: העגלה שלי / ההזמנות שלי */}
       <div className="flex gap-2 bg-gray-100 p-1.5 rounded-2xl">
         {([
-          ['cart', '🛒 העגלה שלי'],
-          ['orders', '📦 ההזמנות שלי'],
+          ['cart', 'העגלה שלי'],
+          ['orders', 'ההזמנות שלי'],
         ] as const).map(([key, label]) => (
           <button
             key={key}
@@ -778,7 +784,7 @@ export default function CartPage() {
           {/* 2. קוד קופון */}
           <div className="bg-white rounded-3xl border p-6 shadow-sm space-y-3">
             <h3 className="font-bold text-xs text-gray-800 flex items-center gap-1.5">
-              <span>🎟️</span>
+              <Icon name="tag" size={14} className="text-orange-600" />
               <span>2. יש לך קוד קופון?</span>
             </h3>
             <div className="flex gap-2">
@@ -872,7 +878,7 @@ export default function CartPage() {
             {/* שדות פרטי אשראי ותעודת זהות */}
             <div className="space-y-3 bg-orange-50/40 p-4 rounded-2xl border border-orange-100">
               <h4 className="text-xs font-black text-gray-800 flex items-center gap-1.5">
-                <span>💳</span>
+                <Icon name="card" size={14} className="text-orange-600" />
                 <span>הזנת פרטי כרטיס אשראי</span>
               </h4>
 
@@ -935,7 +941,7 @@ export default function CartPage() {
               disabled={submitting}
               className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-2xl text-sm font-black transition shadow-md cursor-pointer flex items-center justify-center gap-2"
             >
-              <span>{submitting ? 'מעבד תשלום...' : `שלם ₪${totalPrice.toFixed(0)} באשראי מאובטח 🔒`}</span>
+              <span>{submitting ? 'מעבד תשלום...' : `שלם ₪${totalPrice.toFixed(0)} באשראי מאובטח`}</span>
             </button>
           </div>
 

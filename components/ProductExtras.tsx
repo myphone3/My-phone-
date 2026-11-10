@@ -14,6 +14,8 @@ import {
   toggleCompare,
 } from '@/lib/shop';
 import { showToast } from '@/lib/toast';
+import { supabase } from '@/lib/supabase';
+import Icon from './Icon';
 
 // רכיבים קטנים שמופיעים על כרטיסי מוצר ובעמוד המוצר
 
@@ -33,15 +35,24 @@ function useStored<T>(event: string, read: () => T, initial: T) {
   return value;
 }
 
-export function CompareButton({ productId, variant = 'chip' }: { productId: string; variant?: 'chip' | 'full' }) {
+export function CompareButton({ productId, variant = 'chip' }: { productId: string; variant?: 'chip' | 'full' | 'link' }) {
   const active = useStored(COMPARE_EVENT, () => inCompare(productId), false);
   const onClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     const result = toggleCompare(productId);
     if (result === 'full') showToast(`אפשר להשוות עד ${COMPARE_MAX} מוצרים`, { kind: 'error', action: { href: '/compare', label: 'להשוואה' } });
-    else if (result === 'added') showToast('נוסף להשוואה ⚖️', { kind: 'success', action: { href: '/compare', label: 'להשוואה' } });
+    else if (result === 'added') showToast('נוסף להשוואה', { kind: 'success', action: { href: '/compare', label: 'להשוואה' } });
   };
+  if (variant === 'link') {
+    return (
+      <button type="button" onClick={onClick} aria-pressed={active} className="text-[11px] font-bold text-gray-400 hover:text-gray-700 cursor-pointer">
+        <span className="inline-flex items-center gap-1">
+          <Icon name="compare" size={14} /> {active ? 'נוסף להשוואה ✓' : 'הוספה להשוואה'}
+        </span>
+      </button>
+    );
+  }
   if (variant === 'full') {
     return (
       <button
@@ -52,7 +63,9 @@ export function CompareButton({ productId, variant = 'chip' }: { productId: stri
           active ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
         }`}
       >
-        ⚖️ {active ? 'בהשוואה ✓' : 'הוספה להשוואה'}
+        <span className="inline-flex items-center justify-center gap-1">
+          <Icon name="compare" size={15} /> {active ? 'בהשוואה ✓' : 'הוספה להשוואה'}
+        </span>
       </button>
     );
   }
@@ -66,7 +79,9 @@ export function CompareButton({ productId, variant = 'chip' }: { productId: stri
         active ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
       }`}
     >
-      ⚖️ {active ? 'בהשוואה' : 'השוואה'}
+      <span className="inline-flex items-center gap-1">
+        <Icon name="compare" size={12} /> {active ? 'בהשוואה' : 'השוואה'}
+      </span>
     </button>
   );
 }
@@ -103,7 +118,7 @@ export function DeliveryEstimate({ compact = false }: { compact?: boolean }) {
   if (!est) return null;
   return (
     <div className={`flex items-start gap-2.5 bg-green-50 border border-green-200 rounded-2xl ${compact ? 'p-2.5' : 'p-3'}`}>
-      <span className="text-xl leading-none">🚚</span>
+      <Icon name="truck" size={22} className="text-green-700 mt-0.5" />
       <div className="text-xs leading-relaxed">
         <span className="block font-black text-green-900">
           יגיע אליך בין {est.fromText} ל{est.toText}
@@ -124,25 +139,43 @@ export function CompareBar() {
   return (
     <Link
       href="/compare"
-      className="fixed bottom-5 right-5 z-40 bg-gray-900 text-white rounded-2xl shadow-xl px-4 py-3 text-xs font-black flex items-center gap-2 hover:bg-black transition"
+      className="fixed bottom-24 left-5 z-30 bg-white/90 backdrop-blur border border-gray-200 text-gray-700 rounded-full shadow-sm px-3 py-1.5 text-[11px] font-bold flex items-center gap-1.5 hover:bg-white transition"
       dir="rtl"
     >
-      <span>⚖️</span>
-      <span>השוואת {ids.length} מוצרים</span>
-      <span className="text-orange-400">←</span>
+      <Icon name="compare" size={15} />
+      <span>השוואה ({ids.length})</span>
     </Link>
   );
 }
 
-// שכבה על תמונת כרטיס מוצר: תגיות וכפתור השוואה
-export function CardOverlay({ product }: { product: any }) {
+// לוגואים של הכשרויות (נטען פעם אחת לכל הדף)
+let kosherPromise: Promise<any[]> | null = null;
+const loadKosher = () =>
+  (kosherPromise ||= Promise.resolve(supabase.from('kosher_options').select('name, image_url')).then(({ data }) => data || []).catch(() => []));
+
+export function KosherBadge({ product, className = '' }: { product: any; className?: string }) {
+  const [list, setList] = useState<any[]>([]);
+  useEffect(() => {
+    loadKosher().then(setList);
+  }, []);
+  const name = String(product?.kosher || '').trim();
+  const logo = name ? list.find((k) => String(k.name).trim() === name)?.image_url : '';
+  if (!logo) return null;
+  return (
+    <span className={`w-8 h-8 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center ${className}`} title={`כשרות ${name}`}>
+      <img src={logo} alt={`כשרות ${name}`} className="w-full h-full object-contain" />
+    </span>
+  );
+}
+
+// שכבה על תמונת כרטיס מוצר: תגיות, ולוגו הכשרות בעמודים שלא מציגים אותו בעצמם
+// (ההשוואה נמצאת בעמוד המוצר, כדי שהכרטיסים יישארו נקיים)
+export function CardOverlay({ product, withKosher = false }: { product: any; withKosher?: boolean }) {
   if (!product?.id) return null;
   return (
     <>
       <ProductBadges product={product} className="absolute bottom-2 right-2 z-10 pointer-events-none" />
-      <div className="absolute bottom-2 left-2 z-10">
-        <CompareButton productId={String(product.id)} />
-      </div>
+      {withKosher && <KosherBadge product={product} className="absolute top-2 right-2 z-10" />}
     </>
   );
 }

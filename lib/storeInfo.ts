@@ -2,10 +2,10 @@ import { BUSINESS } from './business';
 
 // היתרונות שמוצגים בעמוד הבית ובעמוד המוצר
 export const TRUST_ITEMS = [
-  { icon: '🚚', title: 'משלוח עד הבית', text: BUSINESS.shippingDays },
-  { icon: '🛡️', title: 'אחריות יבואן', text: 'על כל המכשירים' },
-  { icon: '↩️', title: 'ביטול והחזרה', text: 'לפי חוק הגנת הצרכן' },
-  { icon: '💬', title: 'שירות אישי', text: 'מענה מהיר בוואטסאפ' },
+  { icon: 'truck', title: 'משלוח עד הבית', text: BUSINESS.shippingDays },
+  { icon: 'shield', title: 'אחריות יבואן', text: 'על כל המכשירים' },
+  { icon: 'return', title: 'ביטול והחזרה', text: 'לפי חוק הגנת הצרכן' },
+  { icon: 'chat', title: 'שירות אישי', text: 'מענה מהיר בוואטסאפ' },
 ];
 
 // שאלות נפוצות: מוצגות בעמוד הבית ובלשונית בעמוד המוצר

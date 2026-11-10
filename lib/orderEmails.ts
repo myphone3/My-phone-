@@ -175,3 +175,31 @@ export function reviewRequestEmail(opts: { name?: string | null; reviewUrl: stri
   });
   return { subject: 'איך המכשיר החדש? נשמח לביקורת קצרה ⭐', html };
 }
+
+// התראה לבעלי החנות על הזמנה חדשה (מייל נפרד מהמייל ללקוח, עם כותרת שקל לזהות בטלפון)
+export function newOrderAlertEmail(order: Order, adminUrl: string) {
+  const num = orderNumber(order.id);
+  const totals = orderTotals(order);
+  const name = escapeHtml(order.customer_name || 'לקוח');
+  const phone = escapeHtml(order.phone || order.customer_phone || '');
+  const address = escapeHtml(order.address || order.customer_address || '');
+  const rows = orderItems(order)
+    .map(
+      (i) =>
+        `<tr><td style="padding:6px 0; border-bottom:1px solid #f3f4f6;">${escapeHtml(i.name)} × ${i.qty}</td><td style="padding:6px 0; border-bottom:1px solid #f3f4f6; text-align:left; white-space:nowrap;">${i.gift ? 'מתנה' : formatMoney(i.total)}</td></tr>`
+    )
+    .join('');
+  const body = `
+    <p style="margin:0 0 10px;"><b>${name}</b>${phone ? ` · <a href="tel:${phone}" style="color:${ORANGE};">${phone}</a>` : ''}</p>
+    ${address ? `<p style="margin:0 0 10px; color:#4b5563;">📍 ${address}</p>` : ''}
+    <table style="width:100%; border-collapse:collapse; font-size:13px;">${rows}</table>
+    <p style="font-size:18px; font-weight:900; margin:14px 0;">סה״כ: ${formatMoney(totals.total)}</p>
+    ${order.notes ? `<p style="background:#fff7ed; padding:10px; border-radius:10px; margin:0 0 14px;">📝 ${escapeHtml(order.notes)}</p>` : ''}
+    <div style="text-align:center;"><a href="${adminUrl}" style="display:inline-block; background:#111827; color:#fff; text-decoration:none; padding:12px 22px; border-radius:12px; font-weight:900;">לפתיחת ההזמנה בפאנל</a></div>
+  `;
+  return {
+    subject: `🛍️ הזמנה חדשה #${num} · ${order.customer_name || 'לקוח'} · ${formatMoney(totals.total)}`,
+    html: layout({ title: '🛍️ הזמנה חדשה!', subtitle: `מספר ${num}`, body }),
+    text: `הזמנה חדשה #${num} מ-${order.customer_name || 'לקוח'} (${order.phone || ''}), סה״כ ${formatMoney(totals.total)}. ${adminUrl}`,
+  };
+}

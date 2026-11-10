@@ -3,11 +3,12 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { BUSINESS } from '@/lib/business';
+import Icon from './Icon';
 
 const LINKS = [
-  { href: '/guide', label: '📖 מדריכים: כשר, תומך כשר וגרסאות' },
-  { href: '/quiz', label: '🧭 איזה מכשיר מתאים לי?' },
-  { href: '/compare', label: '⚖️ השוואת מוצרים' },
+  { href: '/guide', label: 'מדריכים: כשר, תומך כשר וגרסאות', icon: 'book' },
+  { href: '/quiz', label: 'איזה מכשיר מתאים לי?', icon: 'compass' },
+  { href: '/compare', label: 'השוואת מוצרים', icon: 'compare' },
   { href: '/terms', label: 'תקנון האתר' },
   { href: '/returns', label: 'ביטולים והחזרות' },
   { href: '/privacy', label: 'מדיניות פרטיות' },
@@ -54,7 +55,8 @@ export default function Footer() {
           <ul className="space-y-1.5">
             {LINKS.map((link) => (
               <li key={link.href}>
-                <Link href={link.href} className="hover:text-orange-400 transition">
+                <Link href={link.href} className="hover:text-orange-400 transition inline-flex items-center gap-1.5">
+                  {'icon' in link && link.icon ? <Icon name={link.icon} size={15} className="opacity-70" /> : null}
                   {link.label}
                 </Link>
               </li>

@@ -9,12 +9,25 @@ export type GuideBlock =
   | { type: 'table'; which: 'versions' | 'types' }
   | { type: 'cta'; href: string; label: string };
 
+export type GuideCategory = 'start' | 'kosher' | 'versions' | 'players';
+
+export const GUIDE_CATEGORIES: { key: GuideCategory; title: string; /** שם אייקון (components/Icon) */ emoji: string; hint: string }[] = [
+  { key: 'start', title: 'מתחילים כאן', emoji: 'compass', hint: 'איך בוחרים מכשיר בלי להתחרט' },
+  { key: 'kosher', title: 'כשר ותומך כשר', emoji: 'kosher', hint: 'מה ההבדל ומה מתאים לכם' },
+  { key: 'versions', title: 'הגרסאות', emoji: 'settings', hint: 'מה יש ומה אין בכל גרסה' },
+  { key: 'players', title: 'נגנים', emoji: 'headphones', hint: 'נגני MP3 ו-MP4 כשרים' },
+];
+
 export type Guide = {
   slug: string;
   title: string;
+  /** שם אייקון (components/Icon) */
   emoji: string;
   excerpt: string;
   minutes: number;
+  category: GuideCategory;
+  /** שורה תחתונה: 2-4 נקודות שמופיעות בראש המדריך */
+  keyPoints: string[];
   blocks: GuideBlock[];
 };
 
@@ -22,9 +35,11 @@ export const GUIDES: Guide[] = [
   {
     slug: 'kosher-vs-supported',
     title: 'כשר או תומך כשר? ההבדל בהסבר פשוט',
-    emoji: '⚖️',
+    emoji: 'compare',
     excerpt: 'שני סוגי מכשירים שנשמעים דומה, אבל שונים מאוד במה שאפשר לעשות איתם. כל מה שצריך לדעת לפני שבוחרים.',
     minutes: 3,
+    category: 'kosher',
+    keyPoints: ["מכשיר כשר: שיחות בלבד, באישור ועדת הרבנים.", "תומך כשר: עובד עם קו כשר, ובוחרים גרסה לפי מה שצריך.", "וואטסאפ וניווט: רק בתומך כשר בגרסת כשר פליי."],
     blocks: [
       { type: 'p', text: 'מי שמחפש מכשיר שמתאים לקו כשר נתקל מהר בשני מושגים: "מכשיר כשר" ו"תומך כשר". ההבדל ביניהם הוא בעיקר במה שהמכשיר מאפשר לעשות, ובמי שמאשר אותו.' },
       { type: 'h', text: 'בקצרה' },
@@ -47,15 +62,17 @@ export const GUIDES: Guide[] = [
         ],
       },
       { type: 'tip', text: 'לא בטוחים? כתבו לנו בוואטסאפ מה אתם צריכים, ונגיד לכם בדיוק איזה מכשיר ואיזו גרסה מתאימים.' },
-      { type: 'cta', href: '/quiz', label: '🧭 עונים על 5 שאלות ומקבלים המלצה' },
+      { type: 'cta', href: '/quiz', label: 'עונים על כמה שאלות קצרות ומקבלים המלצה' },
     ],
   },
   {
     slug: 'kosher-phone',
     title: 'מה זה מכשיר כשר?',
-    emoji: '✡️',
+    emoji: 'kosher',
     excerpt: 'מכשיר לשיחות בלבד, באישור ועדת הרבנים לענייני תקשורת. מה יש בו, מה אין בו, ולמי הוא מתאים.',
     minutes: 3,
+    category: 'kosher',
+    keyPoints: ["שיחות בלבד: בלי הודעות, מצלמה, אינטרנט ואפליקציות.", "עובד עם קו כשר.", "מתאים למי שרוצה את הכשרות המחמירה ביותר."],
     blocks: [
       { type: 'p', text: 'מכשיר כשר הוא טלפון פשוט שנועד לדבר בטלפון, ותו לא. הוא מאושר על ידי ועדת הרבנים לענייני תקשורת, ועובד על קו כשר.' },
       { type: 'h', text: 'מה יש במכשיר כשר?' },
@@ -70,15 +87,17 @@ export const GUIDES: Guide[] = [
       { type: 'h', text: 'למי זה מתאים?' },
       { type: 'list', items: ['למי שרוצה את רמת הכשרות המחמירה ביותר', 'למבוגרים שצריכים טלפון פשוט וברור', 'לילדים ונוער שצריכים להיות זמינים לשיחות', 'כמכשיר שני, לשיחות בלבד'] },
       { type: 'tip', text: 'בכל עמוד מוצר מופיע לוגו הכשרות של המכשיר, כך שאפשר לדעת בדיוק מי אישר אותו.' },
-      { type: 'cta', href: '/category/' + encodeURIComponent('מכשירים כשרים'), label: '📱 לכל המכשירים הכשרים' },
+      { type: 'cta', href: '/category/' + encodeURIComponent('מכשירים כשרים'), label: 'לכל המכשירים הכשרים' },
     ],
   },
   {
     slug: 'kosher-supported',
     title: 'מה זה תומך כשר?',
-    emoji: '✅',
+    emoji: 'shield',
     excerpt: 'מכשיר שעובד עם קו כשר, עם סינון ברמה שבוחרים: רק SMS, נגן ומצלמה, או אפליקציות מאושרות כמו וואטסאפ ומוביט.',
     minutes: 4,
+    category: 'kosher',
+    keyPoints: ["עובד עם קו כשר, עם יותר אפשרויות ממכשיר כשר.", "בוחרים גרסה: נגן, מצלמה, SMS או כשר פליי.", "באף גרסה אין דפדפן, גוגל או יוטיוב."],
     blocks: [
       {
         type: 'p',
@@ -102,15 +121,17 @@ export const GUIDES: Guide[] = [
         type: 'tip',
         text: 'אפליקציות כמו וואטסאפ צריכות חיבור לרשת, ולכן צריך קו שמאפשר זאת (למשל קו עם גלישה מסוננת). לא בטוחים מה מתאים לקו שלכם? כתבו לנו ונבדוק יחד.',
       },
-      { type: 'cta', href: '/category/' + encodeURIComponent('תומך כשר'), label: '📱 לכל המכשירים התומכי כשר' },
+      { type: 'cta', href: '/category/' + encodeURIComponent('תומך כשר'), label: 'לכל המכשירים התומכי כשר' },
     ],
   },
   {
     slug: 'versions',
     title: 'מדריך הגרסאות: נגן, גלריה, מצלמה, SMS וכשר פליי',
-    emoji: '⚙️',
+    emoji: 'settings',
     excerpt: 'אותו מכשיר מגיע בכמה גרסאות. טבלה אחת שמראה בדיוק מה יש בכל גרסה, כדי לבחור נכון בפעם הראשונה.',
     minutes: 3,
+    category: 'versions',
+    keyPoints: ["הגרסה קובעת מה פתוח במכשיר ומה חסום.", "בכל גרסה כתוב בדיוק: יש או אין.", "צריכים וואטסאפ? כשר פליי."],
     blocks: [
       { type: 'p', text: 'כשבוחרים מכשיר תומך כשר, בוחרים גם גרסה. הגרסה קובעת מה יהיה פתוח במכשיר ומה יהיה חסום. הנה כל הגרסאות שלנו, זו לצד זו:' },
       { type: 'table', which: 'versions' },
@@ -125,15 +146,17 @@ export const GUIDES: Guide[] = [
         ],
       },
       { type: 'tip', text: 'בעמוד של כל מוצר יש כפתור "מה ההבדל בין הגרסאות?", שמראה את ההשוואה רק לגרסאות של אותו מכשיר.' },
-      { type: 'cta', href: '/category/' + encodeURIComponent('תומך כשר'), label: '📱 למכשירים עם בחירת גרסה' },
+      { type: 'cta', href: '/category/' + encodeURIComponent('תומך כשר'), label: 'למכשירים עם בחירת גרסה' },
     ],
   },
   {
     slug: 'how-to-choose',
     title: 'איך בוחרים מכשיר? 5 שאלות שכדאי לשאול',
-    emoji: '🧭',
+    emoji: 'compass',
     excerpt: 'למי המכשיר, איזו כשרות, מה חייבים שיהיה בו, מה התקציב וכמה חשובה הסוללה. ככה בוחרים בלי להתחרט.',
     minutes: 3,
+    category: 'start',
+    keyPoints: ["קודם מחליטים למי המכשיר ואיזו כשרות.", "בוחרים את הגרסה הכי פשוטה שעונה על הצורך.", "לא בטוחים? השאלון ממליץ תוך דקה."],
     blocks: [
       { type: 'h', text: '1. למי המכשיר?' },
       { type: 'p', text: 'למבוגרים כדאי מכשיר עם מקשים גדולים ומסך ברור. לילדים ונוער מכשיר פשוט ועמיד. לעבודה כדאי לחשוב על הודעות ווואטסאפ.' },
@@ -145,15 +168,17 @@ export const GUIDES: Guide[] = [
       { type: 'p', text: 'יש מכשירים טובים בכל טווח מחירים. מכשיר יקר יותר נותן בדרך כלל מסך, מצלמה וסוללה טובים יותר.' },
       { type: 'h', text: '5. כמה חשובה הסוללה?' },
       { type: 'p', text: 'מכשירים כשרים פשוטים מחזיקים לרוב כמה ימים בטעינה אחת. מכשירים עם מסך מגע ואפליקציות צריכים טעינה בתדירות גבוהה יותר.' },
-      { type: 'cta', href: '/quiz', label: '🧭 לשאלון ההתאמה: 5 שאלות והמלצה מיד' },
+      { type: 'cta', href: '/quiz', label: 'לשאלון ההתאמה: המלצה תוך דקה' },
     ],
   },
   {
     slug: 'kosher-players',
     title: 'נגני MP3 ו-MP4 כשרים: מה חשוב לדעת',
-    emoji: '🎧',
+    emoji: 'headphones',
     excerpt: 'נגן בלי אינטרנט לשירים, שיעורים וסיפורים. על מה להסתכל כשבוחרים נגן, ומה ההבדל בין הדגמים.',
     minutes: 2,
+    category: 'players',
+    keyPoints: ["נגן בלי אינטרנט: מעבירים קבצים מהמחשב.", "בודקים נפח, מסך, רמקול ורדיו.", "בעמוד המוצר מופיע לוגו הכשרות."],
     blocks: [
       { type: 'p', text: 'נגן כשר הוא מכשיר להשמעת שירים, שיעורים וסיפורים, בלי אינטרנט ובלי אפשרות להוריד תוכן מהרשת. את הקבצים מעבירים מהמחשב.' },
       { type: 'h', text: 'על מה להסתכל?' },
@@ -167,9 +192,11 @@ export const GUIDES: Guide[] = [
           'הכשר: בעמוד המוצר מופיע לוגו הכשרות של הנגן',
         ],
       },
-      { type: 'cta', href: '/category/' + encodeURIComponent('נגנים'), label: '🎧 לכל הנגנים' },
+      { type: 'cta', href: '/category/' + encodeURIComponent('נגנים'), label: 'לכל הנגנים' },
     ],
   },
 ];
+
+export const guidesIn = (cat: GuideCategory) => GUIDES.filter((g) => g.category === cat);
 
 export const getGuide = (slug: string) => GUIDES.find((g) => g.slug === slug);

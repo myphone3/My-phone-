@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import Icon from './Icon';
 import { usePathname, useRouter } from 'next/navigation';
 
 export default function Header() {
@@ -96,6 +97,16 @@ export default function Header() {
     // כפתורים אחרים באתר (למשל "כתבו ביקורת") יכולים לפתוח את חלון ההרשמה
     const openSignup = () => setSignupOpen(true);
     window.addEventListener('open-signup', openSignup);
+    // עמודים אחרים (למשל סיום השאלון) מסמנים התראה כנקראה
+    const reloadDismissed = () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem('dismissedNotifications') || '[]');
+        if (Array.isArray(saved)) setDismissedIds(saved);
+      } catch {
+        // ignore
+      }
+    };
+    window.addEventListener('notificationsUpdated', reloadDismissed);
 
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -109,6 +120,7 @@ export default function Header() {
       window.removeEventListener('storage', updateCartCount);
       window.removeEventListener('cartUpdated', updateCartCount);
       window.removeEventListener('open-signup', openSignup);
+      window.removeEventListener('notificationsUpdated', reloadDismissed);
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
@@ -282,7 +294,10 @@ export default function Header() {
   const hasCartNotification =
     cartCount > 0 && pathname !== '/cart' && !dismissedIds.includes(cartNotificationId);
 
-  const notificationsCount = (hasGiftNotification ? 1 : 0) + (hasCartNotification ? 1 : 0);
+  // התראה 3: המלצת מכשיר (שאלון קצר). נעלמת כשמסמנים כנקרא או אחרי שסיימו את השאלון
+  const hasQuizNotification = !dismissedIds.includes('quiz') && pathname !== '/quiz';
+
+  const notificationsCount = (hasGiftNotification ? 1 : 0) + (hasCartNotification ? 1 : 0) + (hasQuizNotification ? 1 : 0);
 
   // שורת פרטים קטנה בכרטיס המתנה
   const giftMetaParts: string[] = [];
@@ -322,7 +337,7 @@ export default function Header() {
                   {getProductImage(giftProduct) ? (
                     <img src={getProductImage(giftProduct)} alt={giftProduct?.name || ''} className="w-full h-full object-contain p-2" />
                   ) : (
-                    <span className="text-6xl">🎁</span>
+                    <Icon name="gift" size={64} className="text-orange-500" strokeWidth={1.3} />
                   )}
                 </div>
                 <div>
@@ -341,13 +356,13 @@ export default function Header() {
               <div className="flex items-center justify-center flex-wrap gap-2 mt-3">
                 {welcomeMinPurchase > 0 && (
                   <span className="inline-flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-full px-3 py-1 text-xs text-gray-600 font-medium">
-                    <span>🛒</span>
+                    <Icon name="cart" size={14} />
                     <span>בקנייה מעל ₪{welcomeMinPurchase}</span>
                   </span>
                 )}
                 {welcomeDaysValid > 0 && (
                   <span className="inline-flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-full px-3 py-1 text-xs text-gray-600 font-medium">
-                    <span>⏱️</span>
+                    <Icon name="clock" size={14} />
                     <span>תקף {welcomeDaysValid} ימים</span>
                   </span>
                 )}
@@ -356,12 +371,12 @@ export default function Header() {
 
             <ul className="mt-4 space-y-2 text-right">
               {[
-                ['📦', 'מעקב אחרי ההזמנות שלך במקום אחד'],
-                ['⚡', 'קנייה מהירה יותר בפעם הבאה'],
-                ['🔔', 'עדכון כשההזמנה בדרך אליך'],
+                ['box', 'מעקב אחרי ההזמנות שלך במקום אחד'],
+                ['sparkle', 'קנייה מהירה יותר בפעם הבאה'],
+                ['bell', 'עדכון כשההזמנה בדרך אליך'],
               ].map(([icon, text]) => (
                 <li key={text} className="flex items-center gap-2.5 text-sm text-gray-700 font-medium">
-                  <span className="w-8 h-8 shrink-0 rounded-full bg-orange-50 flex items-center justify-center">{icon}</span>
+                  <span className="w-8 h-8 shrink-0 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center"><Icon name={icon} size={16} /></span>
                   {text}
                 </li>
               ))}
@@ -462,7 +477,7 @@ export default function Header() {
                   
                   <div className="flex items-center justify-between border-b pb-2.5">
                     <span className="font-black text-sm text-gray-900 flex items-center gap-1.5">
-                      <span>🔔</span>
+                      <Icon name="bell" size={16} className="text-orange-600" />
                       <span>התראות ואישי</span>
                     </span>
                     <button 
@@ -512,7 +527,7 @@ export default function Header() {
                   {user && mySubscribed !== null && (
                     <label className="flex items-center justify-between gap-3 bg-white border rounded-2xl p-3 cursor-pointer">
                       <span className="text-xs">
-                        <span className="font-bold text-gray-900 block">📧 מבצעים והטבות במייל</span>
+                        <span className="font-bold text-gray-900 flex items-center gap-1.5"><Icon name="mail" size={14} /> מבצעים והטבות במייל</span>
                         <span className="text-gray-500">{mySubscribed ? 'את/ה ברשימה. אפשר לבטל בכל עת.' : 'לא נשלח לך מבצעים במייל.'}</span>
                       </span>
                       <input
@@ -532,7 +547,7 @@ export default function Header() {
                       <div className="bg-orange-50 border border-orange-200/80 rounded-2xl p-3 space-y-2">
                         <div className="flex items-start justify-between gap-2">
                           <span className="text-xs font-black text-orange-900 flex items-center gap-1">
-                            <span>🎁</span>
+                            <Icon name="gift" size={14} />
                             <span>{user ? 'יש לך מתנת הצטרפות' : 'מתנת הצטרפות'}</span>
                           </span>
                           <button
@@ -549,7 +564,7 @@ export default function Header() {
                               {getProductImage(giftProduct) ? (
                                 <img src={getProductImage(giftProduct)} alt="" className="w-full h-full object-contain" />
                               ) : (
-                                <span>🎁</span>
+                                <Icon name="gift" size={14} />
                               )}
                             </div>
                             <div className="overflow-hidden">
@@ -595,7 +610,7 @@ export default function Header() {
                       <div className="bg-orange-50 border border-orange-200/80 rounded-2xl p-3 space-y-2">
                         <div className="flex items-start justify-between gap-2">
                           <span className="text-xs font-black text-orange-900 flex items-center gap-1">
-                            <span>🛒</span>
+                            <Icon name="cart" size={14} />
                             <span>שכחת משהו בעגלה</span>
                           </span>
                           <button
@@ -620,6 +635,33 @@ export default function Header() {
                       </div>
                     )}
 
+                    {hasQuizNotification && (
+                      <div className="bg-gradient-to-l from-sky-50 to-white border border-sky-200/80 rounded-2xl p-3 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-xs font-black text-sky-900 flex items-center gap-1">
+                            <Icon name="compass" size={14} />
+                            <span>המלצת מכשיר אישית</span>
+                          </span>
+                          <button
+                            onClick={() => dismissNotification('quiz')}
+                            className="text-[10px] text-gray-500 hover:text-gray-700 font-bold cursor-pointer shrink-0"
+                          >
+                            סמן כנקרא ✓
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-600 font-medium">לא בטוחים מה לקנות? עונים על כמה שאלות קצרות ומקבלים את המכשיר והגרסה שמתאימים לכם.</p>
+                        <div className="pt-1 border-t border-sky-200/50">
+                          <Link
+                            href="/quiz"
+                            onClick={() => setDropdownOpen(false)}
+                            className="text-xs font-bold text-sky-700 hover:underline cursor-pointer"
+                          >
+                            להתחיל (דקה אחת) ←
+                          </Link>
+                        </div>
+                      </div>
+                    )}
+
                     {notificationsCount === 0 && (
                       <p className="text-center text-xs text-gray-400 font-medium py-2">אין התראות חדשות</p>
                     )}
@@ -635,7 +677,7 @@ export default function Header() {
                       }}
                       className="w-full bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-800 font-black py-3 rounded-xl text-xs transition flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      <span>📦 ההזמנות שלי</span>
+                      <Icon name="box" size={16} /><span>ההזמנות שלי</span>
                     </Link>
                   )}
 
@@ -645,7 +687,7 @@ export default function Header() {
                       onClick={() => setDropdownOpen(false)}
                       className="w-full bg-black hover:bg-gray-800 text-white font-black py-3 rounded-xl text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-md"
                     >
-                      <span>פאנל ניהול אתר 🛠️</span>
+                      <Icon name="tools" size={16} /><span>פאנל ניהול אתר</span>
                     </a>
                   )}
 
@@ -654,7 +696,7 @@ export default function Header() {
                       onClick={handleLogout}
                       className="w-full bg-gray-100 hover:bg-red-50 text-red-600 font-bold py-2 rounded-xl text-xs transition cursor-pointer text-center"
                     >
-                      התנתק מהחשבון 🚪
+                      <span className="inline-flex items-center gap-1.5"><Icon name="logout" size={14} /> התנתק מהחשבון</span>
                     </button>
                   )}
 
@@ -674,7 +716,7 @@ export default function Header() {
               className="relative p-2 bg-orange-50/40 hover:bg-orange-50 border-2 border-orange-200 text-orange-700 rounded-xl transition shadow-2xs flex items-center justify-center shrink-0 font-bold ml-2 cursor-pointer"
               title="עגלה"
             >
-              <span className="text-lg">🛒</span>
+              <Icon name="cart" size={22} />
               {cartCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-orange-600 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center font-black border-2 border-white shadow-md">
                   {cartCount}

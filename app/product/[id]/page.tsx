@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, Suspense, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { versionExtra as getVersionExtra } from '@/lib/versionPrice';
+import { versionExtra as getVersionExtra, versionName as versionNameOf } from '@/lib/versionPrice';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { showAddedToCart, showToast } from '@/lib/toast';
@@ -10,7 +10,9 @@ import TrustBadges from '@/components/TrustBadges';
 import FaqList from '@/components/FaqList';
 import SimpleMarkdown from '@/components/SimpleMarkdown';
 import Lightbox, { MediaItem } from '@/components/Lightbox';
-import { ProductVersionHelp } from '@/components/VersionGuide';
+import { ProductVersionHelp, VersionNameMark } from '@/components/VersionGuide';
+import { WhatsAppIcon } from '@/components/Logos';
+import Icon from '@/components/Icon';
 import ProductUrgency from '@/components/ProductUrgency';
 import { CompareButton, DeliveryEstimate, ProductBadges } from '@/components/ProductExtras';
 import { setCurrentProduct, track } from '@/lib/track';
@@ -105,7 +107,12 @@ function ProductDetailContent() {
 
       const rawVersions = data.product_variants || data.versions || data.product_versions || data.variants;
       const versionsArr = parseSafeArray(rawVersions);
-      if (versionsArr.length === 1) {
+      // קישור עם ?v= (למשל מהמלצת המכשיר) בוחר את הגרסה מראש
+      const wantedVersion = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('v') : null;
+      const preset = wantedVersion ? versionsArr.find((v: any) => versionNameOf(v) === wantedVersion) : null;
+      if (preset) {
+        setSelectedVersion(preset);
+      } else if (versionsArr.length === 1) {
         setSelectedVersion(versionsArr[0]);
       } else {
         setSelectedVersion(null);
@@ -312,7 +319,7 @@ function ProductDetailContent() {
       window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text + ' ' + url)}`, '_blank');
     } else {
       navigator.clipboard.writeText(url);
-      showToast('הקישור הועתק 📋', { kind: 'success' });
+      showToast('הקישור הועתק', { kind: 'success' });
     }
   };
 
@@ -432,7 +439,7 @@ function ProductDetailContent() {
             )}
             {product.warranty && (
               <span className="text-xs font-bold bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-100 flex items-center gap-1">
-                🛡 אחריות: {product.warranty} {product.warranty_duration ? `(${product.warranty_duration})` : ''}
+                <Icon name="shield" size={13} className="inline -mt-0.5" /> אחריות: {product.warranty} {product.warranty_duration ? `(${product.warranty_duration})` : ''}
               </span>
             )}
           </div>
@@ -505,10 +512,11 @@ function ProductDetailContent() {
                     <button
                       key={idx}
                       onClick={() => setSelectedVersion(v)}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                      className={`px-4 py-2 rounded-xl text-xs font-bold border transition cursor-pointer inline-flex items-center gap-1.5 ${
                         isSelected ? 'bg-orange-600 text-white border-orange-600 shadow-sm' : 'bg-white text-gray-800 border-gray-200 hover:bg-gray-50'
                       }`}
                     >
+                      <VersionNameMark name={String(vName)} />
                       {vName}
                       {vExtra > 0 && <span className={`mr-1 ${isSelected ? 'text-orange-100' : 'text-orange-600'}`}>+₪{vExtra}</span>}
                     </button>
@@ -573,7 +581,6 @@ function ProductDetailContent() {
               className="col-span-8 bg-green-600 hover:bg-green-700 text-white py-3.5 px-4 rounded-2xl font-black text-sm transition shadow-md cursor-pointer flex items-center justify-center gap-2"
             >
               <span>קנה עכשיו</span>
-              <span>⚡</span>
             </button>
 
             <div className="col-span-4 flex items-center justify-between border rounded-2xl bg-gray-50 px-2 overflow-hidden shadow-xs">
@@ -598,7 +605,7 @@ function ProductDetailContent() {
             className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-2xl font-black text-sm transition shadow-md cursor-pointer flex items-center justify-center gap-2"
           >
             <span>הוספה לעגלה</span>
-            <span>🛒</span>
+            <Icon name="cart" size={18} />
           </button>
 
           <DeliveryEstimate />
@@ -609,11 +616,13 @@ function ProductDetailContent() {
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => track('whatsapp_click', { product_id: String(product.id) })}
-              className="flex-[1.4] bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/40 text-[#128C4B] py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition"
+              className="flex-1 bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/40 text-[#128C4B] py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition"
             >
-              💬 שאלה על המוצר? וואטסאפ
+              <WhatsAppIcon size={16} color="#25D366" /> שאלה על המוצר? כתבו לנו בוואטסאפ
             </a>
-            <CompareButton productId={String(product.id)} variant="full" />
+          </div>
+          <div className="text-center -mt-1">
+            <CompareButton productId={String(product.id)} variant="link" />
           </div>
 
           <TrustBadges compact />
@@ -636,7 +645,7 @@ function ProductDetailContent() {
                 className="w-9 h-9 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl border border-gray-200 transition cursor-pointer flex items-center justify-center shadow-xs"
                 title="העתק קישור"
               >
-                <span className="text-base">🔗</span>
+                <Icon name="link" size={16} />
               </button>
             </div>
           </div>
