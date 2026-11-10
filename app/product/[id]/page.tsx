@@ -378,7 +378,6 @@ function ProductDetailContent() {
               <img src={activeImage} alt={product.name} className="max-h-full max-w-full object-contain" />
             </button>
 
-            <span className="absolute bottom-3 left-3 bg-white/90 text-gray-600 text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm pointer-events-none">🔍 לחצו להגדלה</span>
             {viewImages.length > 1 && (
               <span className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1 pointer-events-none">
                 {viewImages.map((img, i) => (

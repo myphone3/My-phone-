@@ -361,11 +361,11 @@ function StoreContent() {
 
       {/* שורת מותגים רצה תמיד אוטומטית ברציפות */}
       {brands.length > 0 && (
-        <div className="w-full bg-white py-3 border-b border-gray-100 overflow-hidden relative">
+        <div className="w-full bg-white py-2 border-b border-gray-100 overflow-hidden relative">
           <div 
             ref={scrollRef}
             dir="ltr"
-            className="no-scrollbar flex overflow-x-auto space-x-8 items-center py-2 px-4 cursor-grab active:cursor-grabbing select-none"
+            className="no-scrollbar flex overflow-x-auto space-x-8 items-center py-0.5 px-4 cursor-grab active:cursor-grabbing select-none"
             style={{ scrollBehavior: 'auto', WebkitOverflowScrolling: 'touch' }}
           >
             {scrollingBrands.map((brand, idx) => (
@@ -373,7 +373,7 @@ function StoreContent() {
                 <Link 
                   key={`${brand.id}-${idx}`} 
                   href={`/brand/${encodeURIComponent(brand.name)}`}
-                  className="w-24 h-12 flex items-center justify-center flex-shrink-0 opacity-85 hover:opacity-100 transition cursor-pointer"
+                  className="w-36 h-[67px] flex items-center justify-center flex-shrink-0 opacity-90 hover:opacity-100 transition cursor-pointer"
                 >
                   <img loading="lazy" decoding="async" src={brand.image_url} alt={brand.name} className="max-h-full max-w-full object-contain pointer-events-none" />
                 </Link>

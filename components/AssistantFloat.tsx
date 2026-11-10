@@ -180,13 +180,10 @@ export default function AssistantFloat() {
           aria-expanded={open}
           className="relative w-[52px] h-[52px] rounded-full cursor-pointer transition duration-300 hover:scale-110 active:scale-95"
         >
-          {/* הילה רכה שזזה לאט */}
-          {!open && <span className="absolute -inset-1 rounded-full bg-[conic-gradient(from_0deg,#f97316,#ec4899,#8b5cf6,#f97316)] opacity-60 blur-md animate-[spin_6s_linear_infinite] pointer-events-none" />}
           <span className="absolute inset-0 rounded-full bg-gradient-to-br from-orange-500 via-pink-500 to-purple-600 shadow-[0_6px_18px_-4px_rgba(236,72,153,0.55)] ring-2 ring-white" />
           <span className="relative w-full h-full flex items-center justify-center text-white">
             {open ? <Icon name="x" size={20} strokeWidth={2.2} /> : <AiMark size={30} />}
           </span>
-          {!seen && !open && <span className="absolute inset-0 rounded-full animate-ping bg-pink-400/40 pointer-events-none" />}
         </button>
         {!open && (
           <button

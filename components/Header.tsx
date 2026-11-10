@@ -498,14 +498,6 @@ export default function Header() {
                 )}
               </button>
 
-              <button
-                type="button"
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="mr-2 text-right leading-tight cursor-pointer"
-              >
-                <span className="block text-[11px] sm:text-xs font-black text-gray-900">האזור האישי</span>
-                <span className="block text-[10px] text-gray-500">{user ? 'הזמנות והשוואה' : 'התחברות'}</span>
-              </button>
 
               {/* חלונית נפתחת */}
               {dropdownOpen && (
