@@ -4,6 +4,8 @@
 
 html {
   scroll-behavior: smooth;
+  --font-display: var(--font-rubik);
+  --font-body: var(--font-rubik);
 }
 
 body {

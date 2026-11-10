@@ -4,12 +4,17 @@ import Footer from '../components/Footer';
 import ToastHost from '../components/Toast';
 import WhatsAppFloat from '../components/WhatsAppFloat';
 import type { Metadata, Viewport } from 'next';
+import { Rubik } from 'next/font/google';
+
+// הגופן של האתר: Rubik בעברית ובאנגלית, נטען מהשרת שלנו (בלי בקשה לגוגל אצל הלקוח)
+const rubik = Rubik({ subsets: ['hebrew', 'latin'], weight: ['400', '500', '600', '700', '800', '900'], display: 'swap', variable: '--font-rubik' });
 import Analytics from '../components/Analytics';
 import CampaignTracker from '../components/CampaignTracker';
 import CartSync from '../components/CartSync';
 import SiteTracker from '../components/SiteTracker';
 import ConsentBanner from '../components/ConsentBanner';
 import AssistantFloat from '../components/AssistantFloat';
+import FloatDodge from '../components/FloatDodge';
 import { Suspense } from 'react';
 import { getSiteSettings } from '@/lib/siteSettings';
 import { SITE_NAME, SITE_URL, jsonLdString, organizationJsonLd } from '@/lib/seo';
@@ -57,7 +62,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="he" dir="rtl">
+    <html lang="he" dir="rtl" className={rubik.variable}>
       <head>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(organizationJsonLd()) }} />
       </head>
@@ -86,6 +91,7 @@ export default function RootLayout({
         <CartSync />
         <SiteTracker />
         <AssistantFloat />
+        <FloatDodge />
         <ConsentBanner />
 
       </body>

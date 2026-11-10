@@ -37,6 +37,7 @@ export default function ConsentBanner() {
       dir="rtl"
       role="dialog"
       aria-label="הודעה על עוגיות"
+      data-float-ignore
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="max-w-5xl mx-auto px-3 h-11 flex items-center gap-2 sm:gap-3">
