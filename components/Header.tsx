@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import Icon from './Icon';
 import { usePathname, useRouter } from 'next/navigation';
+import { COMPARE_EVENT, getCompare } from '@/lib/shop';
 
 export default function Header() {
   const pathname = usePathname();
@@ -31,6 +32,18 @@ export default function Header() {
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
   
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  // כמה מוצרים בהשוואה (מוצג באזור האישי)
+  const [compareCount, setCompareCount] = useState(0);
+  useEffect(() => {
+    const update = () => setCompareCount(getCompare().length);
+    update();
+    window.addEventListener(COMPARE_EVENT, update);
+    window.addEventListener('storage', update);
+    return () => {
+      window.removeEventListener(COMPARE_EVENT, update);
+      window.removeEventListener('storage', update);
+    };
+  }, []);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -294,10 +307,8 @@ export default function Header() {
   const hasCartNotification =
     cartCount > 0 && pathname !== '/cart' && !dismissedIds.includes(cartNotificationId);
 
-  // התראה 3: המלצת מכשיר (שאלון קצר). נעלמת כשמסמנים כנקרא או אחרי שסיימו את השאלון
-  const hasQuizNotification = !dismissedIds.includes('quiz') && pathname !== '/quiz';
-
-  const notificationsCount = (hasGiftNotification ? 1 : 0) + (hasCartNotification ? 1 : 0) + (hasQuizNotification ? 1 : 0);
+  // (המלצת מכשיר עברה לנציג החכם: העיגול מעל הוואטסאפ, ולכן היא כבר לא התראה)
+  const notificationsCount = (hasGiftNotification ? 1 : 0) + (hasCartNotification ? 1 : 0);
 
   // שורת פרטים קטנה בכרטיס המתנה
   const giftMetaParts: string[] = [];
@@ -471,14 +482,23 @@ export default function Header() {
                 )}
               </button>
 
+              <button
+                type="button"
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="mr-2 text-right leading-tight cursor-pointer"
+              >
+                <span className="block text-[11px] sm:text-xs font-black text-gray-900">האזור האישי</span>
+                <span className="block text-[10px] text-gray-500">{user ? 'הזמנות והשוואה' : 'התחברות'}</span>
+              </button>
+
               {/* חלונית נפתחת */}
               {dropdownOpen && (
                 <div className="absolute top-16 right-0 z-50 w-80 max-w-[calc(100vw-24px)] bg-white rounded-3xl shadow-2xl border border-gray-100 p-4 space-y-3 animate-in fade-in zoom-in duration-150">
                   
                   <div className="flex items-center justify-between border-b pb-2.5">
                     <span className="font-black text-sm text-gray-900 flex items-center gap-1.5">
-                      <Icon name="bell" size={16} className="text-orange-600" />
-                      <span>התראות ואישי</span>
+                      <Icon name="user" size={16} className="text-orange-600" />
+                      <span>האזור האישי</span>
                     </span>
                     <button 
                       onClick={() => setDropdownOpen(false)}
@@ -541,8 +561,75 @@ export default function Header() {
                     </label>
                   )}
 
+                  {/* ===== הכלים שלי ===== */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {user ? (
+                      <Link
+                        href="/cart?tab=orders"
+                        onClick={() => {
+                          setDropdownOpen(false);
+                          // אם כבר בעמוד העגלה, מעבירים אותו ללשונית ההזמנות
+                          window.dispatchEvent(new Event('showMyOrders'));
+                        }}
+                        className="bg-orange-50 hover:bg-orange-100 border-2 border-orange-200 rounded-2xl p-3 text-right transition"
+                      >
+                        <Icon name="box" size={22} className="text-orange-600" />
+                        <span className="block text-xs font-black text-gray-900 mt-1">ההזמנות שלי</span>
+                        <span className="block text-[10px] text-gray-500">מעקב ומצב משלוח</span>
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleGoogleLogin}
+                        className="bg-orange-50 hover:bg-orange-100 border-2 border-orange-200 rounded-2xl p-3 text-right transition cursor-pointer"
+                      >
+                        <Icon name="box" size={22} className="text-orange-600" />
+                        <span className="block text-xs font-black text-gray-900 mt-1">ההזמנות שלי</span>
+                        <span className="block text-[10px] text-gray-500">אחרי התחברות</span>
+                      </button>
+                    )}
+                    <Link
+                      href="/compare"
+                      onClick={() => setDropdownOpen(false)}
+                      className="relative bg-white hover:bg-orange-50 border-2 border-orange-100 hover:border-orange-200 rounded-2xl p-3 text-right transition"
+                    >
+                      {compareCount > 0 && (
+                        <span className="absolute top-2 left-2 bg-orange-600 text-white text-[10px] font-black min-w-5 h-5 px-1 rounded-full flex items-center justify-center">{compareCount}</span>
+                      )}
+                      <Icon name="compare" size={22} className="text-orange-600" />
+                      <span className="block text-xs font-black text-gray-900 mt-1">השוואת מוצרים</span>
+                      <span className="block text-[10px] text-gray-500">{compareCount > 0 ? `${compareCount} מוצרים בהשוואה` : 'שמים מכשירים זה לצד זה'}</span>
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDropdownOpen(false);
+                        window.dispatchEvent(new Event('openAssistant'));
+                      }}
+                      className="bg-white hover:bg-orange-50 border-2 border-orange-100 hover:border-orange-200 rounded-2xl p-3 text-right transition cursor-pointer"
+                    >
+                      <Icon name="bot" size={22} className="text-orange-600" />
+                      <span className="block text-xs font-black text-gray-900 mt-1">איזה מכשיר מתאים לי?</span>
+                      <span className="block text-[10px] text-gray-500">הנציג החכם ימליץ</span>
+                    </button>
+                    <Link
+                      href="/guide"
+                      onClick={() => setDropdownOpen(false)}
+                      className="bg-white hover:bg-orange-50 border-2 border-orange-100 hover:border-orange-200 rounded-2xl p-3 text-right transition"
+                    >
+                      <Icon name="book" size={22} className="text-orange-600" />
+                      <span className="block text-xs font-black text-gray-900 mt-1">מדריכים</span>
+                      <span className="block text-[10px] text-gray-500">כשר, תומך כשר וגרסאות</span>
+                    </Link>
+                  </div>
+
                   {/* ===== רשימת התראות ===== */}
                   <div className="space-y-2">
+                    {(hasGiftNotification || hasCartNotification) && (
+                      <span className="flex items-center gap-1.5 text-[11px] font-black text-gray-500 pt-1">
+                        <Icon name="bell" size={13} /> התראות
+                      </span>
+                    )}
                     {hasGiftNotification && (
                       <div className="bg-orange-50 border border-orange-200/80 rounded-2xl p-3 space-y-2">
                         <div className="flex items-start justify-between gap-2">
@@ -635,51 +722,10 @@ export default function Header() {
                       </div>
                     )}
 
-                    {hasQuizNotification && (
-                      <div className="bg-gradient-to-l from-sky-50 to-white border border-sky-200/80 rounded-2xl p-3 space-y-2">
-                        <div className="flex items-start justify-between gap-2">
-                          <span className="text-xs font-black text-sky-900 flex items-center gap-1">
-                            <Icon name="compass" size={14} />
-                            <span>המלצת מכשיר אישית</span>
-                          </span>
-                          <button
-                            onClick={() => dismissNotification('quiz')}
-                            className="text-[10px] text-gray-500 hover:text-gray-700 font-bold cursor-pointer shrink-0"
-                          >
-                            סמן כנקרא ✓
-                          </button>
-                        </div>
-                        <p className="text-xs text-gray-600 font-medium">לא בטוחים מה לקנות? עונים על כמה שאלות קצרות ומקבלים את המכשיר והגרסה שמתאימים לכם.</p>
-                        <div className="pt-1 border-t border-sky-200/50">
-                          <Link
-                            href="/quiz"
-                            onClick={() => setDropdownOpen(false)}
-                            className="text-xs font-bold text-sky-700 hover:underline cursor-pointer"
-                          >
-                            להתחיל (דקה אחת) ←
-                          </Link>
-                        </div>
-                      </div>
-                    )}
-
                     {notificationsCount === 0 && (
-                      <p className="text-center text-xs text-gray-400 font-medium py-2">אין התראות חדשות</p>
+                      <p className="text-center text-[11px] text-gray-400 font-medium pt-1">אין התראות חדשות</p>
                     )}
                   </div>
-
-                  {user && (
-                    <Link
-                      href="/cart?tab=orders"
-                      onClick={() => {
-                        setDropdownOpen(false);
-                        // אם כבר בעמוד העגלה, מעבירים אותו ללשונית ההזמנות
-                        window.dispatchEvent(new Event('showMyOrders'));
-                      }}
-                      className="w-full bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-800 font-black py-3 rounded-xl text-xs transition flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <Icon name="box" size={16} /><span>ההזמנות שלי</span>
-                    </Link>
-                  )}
 
                   {user && isUserAdmin && (
                     <a

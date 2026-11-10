@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useEffect, useState, Suspense } from 'react';
+import SmartFilters from '@/components/SmartFilters';
+import { EMPTY_FACETS, FacetState, applyFacets } from '@/lib/facets';
 import { CardOverlay } from '@/components/ProductExtras';
 import CategoryExplainer from '@/components/CategoryExplainer';
 import { supabase } from '@/lib/supabase';
@@ -19,8 +21,8 @@ function CategoryContent() {
   const [loading, setLoading] = useState(true);
   const [selectedColors, setSelectedColors] = useState<{ [key: string]: string }>({});
   
-  // מערך של מותגים נבחרים לבחירה מרובה
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  // הסינונים שנבחרו (lib/facets.ts)
+  const [facets, setFacets] = useState<FacetState>(EMPTY_FACETS);
 
   // סטייט עבור פופ-אפ המבצעים וההמלצות החכם (Upsell)
   const [upsellModalOpen, setUpsellModalOpen] = useState(false);
@@ -29,7 +31,7 @@ function CategoryContent() {
   useEffect(() => {
     if (categoryName) {
       fetchCategoryData();
-      setSelectedBrands([]); // איפוס סינון מותגים במעבר קטגוריה
+      setFacets(EMPTY_FACETS); // לכל קטגוריה סינונים משלה
     }
   }, [categoryName]);
 
@@ -148,41 +150,10 @@ function CategoryContent() {
     }
   };
 
-  // חילוץ המותגים הייחודיים שקיימים בקטגוריה הזו בלבד
-  const categoryBrands = Array.from(
-    new Set(
-      products
-        .map((p) => p.brand?.trim())
-        .filter((brandName): brandName is string => Boolean(brandName && brandName.length > 0))
-    )
-  );
-
   // מוצרי מבצע עבור פופ-אפ ההמלצות
   const saleProducts = products.filter(p => p.sale_price && Number(p.sale_price) > 0 && Number(p.sale_price) < Number(p.price));
 
-  // פונקציה לניהול בחירה/הסרה של מותג
-  const toggleBrand = (brandName: string) => {
-    setSelectedBrands((prev) => {
-      const exists = prev.some((b) => b.toLowerCase() === brandName.toLowerCase());
-      if (exists) {
-        return prev.filter((b) => b.toLowerCase() !== brandName.toLowerCase());
-      } else {
-        return [...prev, brandName];
-      }
-    });
-  };
-
-  // איפוס לבחירת "הכל"
-  const clearBrandFilter = () => {
-    setSelectedBrands([]);
-  };
-
-  // סינון המוצרים - אם לא נבחר אף מותג (או שנבחר הכל), יופיעו כולם
-  const filteredProducts = selectedBrands.length === 0
-    ? products
-    : products.filter((p) =>
-        selectedBrands.some((sb) => sb.toLowerCase() === p.brand?.trim().toLowerCase())
-      );
+  const filteredProducts = applyFacets(products, facets);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8" dir="rtl">
@@ -219,88 +190,15 @@ function CategoryContent() {
 
         <CategoryExplainer name={categoryName} />
 
-        {/* סרגל סינון מותגים ברור עם תיבות סימון (Checkboxes) */}
-        {!loading && categoryBrands.length > 0 && (
-          <div className="bg-orange-50/60 border border-orange-200/80 p-3.5 rounded-2xl space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
-                <span>🔍</span>
-                <span>סינון לפי מותג:</span>
-              </span>
-              {selectedBrands.length > 0 && (
-                <button 
-                  onClick={clearBrandFilter} 
-                  className="text-[11px] font-bold text-orange-600 hover:underline cursor-pointer flex items-center gap-1"
-                >
-                  <span>איפוס בחירה</span>
-                  <span>✕</span>
-                </button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
-              {/* כפתור "הכל" */}
-              <button
-                onClick={clearBrandFilter}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer flex items-center gap-1.5 ${
-                  selectedBrands.length === 0
-                    ? 'bg-gray-900 text-white shadow-xs'
-                    : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-100'
-                }`}
-              >
-                <span>הכל</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                  selectedBrands.length === 0 ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
-                }`}>
-                  {products.length}
-                </span>
-              </button>
-
-              {/* כפתורי מותגים עם תיבת וי דינמית */}
-              {categoryBrands.map((brandName) => {
-                const count = products.filter((p) => p.brand?.trim().toLowerCase() === brandName.toLowerCase()).length;
-                const isSelected = selectedBrands.some((sb) => sb.toLowerCase() === brandName.toLowerCase());
-
-                return (
-                  <button
-                    key={brandName}
-                    onClick={() => toggleBrand(brandName)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer flex items-center gap-2 border ${
-                      isSelected
-                        ? 'bg-orange-600 text-white border-orange-600 shadow-xs'
-                        : 'bg-white text-gray-700 border-gray-200 hover:bg-orange-50 hover:border-orange-300'
-                    }`}
-                  >
-                    {/* תיבת הסימון (Checkbox) */}
-                    <div className={`w-4 h-4 rounded flex items-center justify-center transition border ${
-                      isSelected 
-                        ? 'bg-white text-orange-600 border-white' 
-                        : 'bg-gray-50 border-gray-300'
-                    }`}>
-                      {isSelected && <span className="text-[11px] font-black leading-none">✓</span>}
-                    </div>
-
-                    <span>{brandName}</span>
-
-                    {/* כמות המוצרים של המותג */}
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                      isSelected ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
-                    }`}>
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        {/* סינון חכם: רק מה שקיים בקטגוריה הזו (כשרות, גרסה, מחיר, מותג) */}
+        {!loading && <SmartFilters products={products} value={facets} onChange={setFacets} resultCount={filteredProducts.length} />}
 
         {loading ? (
           <div className="text-center py-20 text-gray-500 font-medium">טוען מוצרים...</div>
         ) : filteredProducts.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-3xl border p-8 space-y-3 shadow-sm">
             <span className="text-4xl">📦</span>
-            <p className="text-gray-500 font-medium">אין מוצרים זמינים עבור המותגים שנבחרו.</p>
+            <p className="text-gray-500 font-medium">אין מוצרים שמתאימים לסינון שבחרתם.</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
@@ -318,7 +216,7 @@ function CategoryContent() {
               return (
                 <div 
                   key={product.id} 
-                  className="bg-white rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between p-4 hover:shadow-xl transition-all duration-300"
+                  className="bg-white rounded-3xl border-2 border-orange-100 hover:border-orange-300 shadow-sm flex flex-col justify-between p-4 hover:shadow-xl transition-all duration-300"
                 >
                   <Link href={`/product/${product.id}`} className="block space-y-3">
                     <div className="h-40 sm:h-52 w-full bg-gray-50 rounded-2xl flex items-center justify-center relative overflow-hidden group">

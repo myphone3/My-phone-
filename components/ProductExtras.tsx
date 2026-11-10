@@ -179,3 +179,22 @@ export function CardOverlay({ product, withKosher = false }: { product: any; wit
     </>
   );
 }
+
+// לוגו של כשרות לפי השם (למשל "ועדת הרבנים"), מתוך רשימת הכשרויות בפאנל
+export function CertLogo({ name, size = 40, className = '', fallback = null }: { name: string; size?: number; className?: string; fallback?: React.ReactNode }) {
+  const [list, setList] = useState<any[] | null>(null);
+  useEffect(() => {
+    loadKosher().then(setList);
+  }, []);
+  const logo = list?.find((k) => String(k.name).trim() === name.trim())?.image_url;
+  if (!logo) return <>{list ? fallback : null}</>;
+  return (
+    <img
+      src={logo}
+      alt={`כשרות ${name}`}
+      title={`כשרות ${name}`}
+      style={{ width: size, height: size }}
+      className={`object-contain bg-white rounded-xl shrink-0 ${className}`}
+    />
+  );
+}

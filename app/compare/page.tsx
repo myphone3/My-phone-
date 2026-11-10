@@ -114,7 +114,7 @@ export default function ComparePage() {
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-6" dir="rtl">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-gray-900 flex items-center gap-2"><Icon name="compare" size={26} className="text-orange-600" /> השוואת מוצרים</h1>
+          <h1 className="text-xl sm:text-2xl font-black text-gray-900 border-r-4 border-orange-600 pr-3 flex items-center gap-2"><Icon name="compare" size={26} className="text-orange-600" /> השוואת מוצרים</h1>
           <p className="text-xs text-gray-500 mt-1 pr-4">עד {COMPARE_MAX} מוצרים זה לצד זה</p>
         </div>
         {products.length > 0 && (
