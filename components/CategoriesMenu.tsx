@@ -45,9 +45,9 @@ export default function CategoriesMenu() {
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
         aria-expanded={open}
-        className="shrink-0 flex items-center gap-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-2xl px-3 sm:px-4 text-xs sm:text-sm font-black transition shadow-2xs cursor-pointer"
+        className="shrink-0 flex items-center gap-1.5 bg-orange-50 hover:bg-orange-100 border-2 border-orange-200 hover:border-orange-300 text-orange-700 rounded-2xl px-3 text-xs font-bold transition shadow-2xs cursor-pointer"
       >
-        <Icon name="grid" size={16} />
+        <Icon name="grid" size={15} />
         <span>קטגוריות</span>
       </button>
 
