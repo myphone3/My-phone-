@@ -509,7 +509,7 @@ function StoreContent() {
                   >
                     <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-white flex items-center justify-center overflow-hidden group-hover:scale-105 transition shadow-xs border border-orange-500/30">
                       {cat.image_url ? (
-                        <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover pointer-events-none" />
+                        <img src={cat.image_url} alt={cat.name} className="w-full h-full object-contain p-2.5 bg-white pointer-events-none" />
                       ) : (
                         <span className="text-3xl">📦</span>
                       )}
