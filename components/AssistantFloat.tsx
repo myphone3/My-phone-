@@ -53,6 +53,7 @@ function ProductChips({ ids, onPick }: { ids: string[]; onPick: () => void }) {
   if (!items.length) return null;
   return (
     <div className="space-y-1.5 mt-2">
+      <span className="block text-[10px] font-bold text-gray-500 px-1">מוצרים מהאתר שלנו · הפרטים המחייבים בדף המוצר</span>
       {items.map((p) => (
         <Link
           key={p.id}
@@ -214,7 +215,7 @@ export default function AssistantFloat() {
             </span>
             <span className="flex-1 min-w-0">
               <span className="block font-black text-sm">הנציג החכם של NEW PHONE</span>
-              <span className="block text-[11px] text-white/85">עונה מיד, 24/7 · נציג AI</span>
+              <span className="block text-[11px] text-white/85">נציג AI · ממליץ רק על מוצרים מהאתר שלנו</span>
             </span>
             {messages.length > 0 && (
               <button type="button" onClick={() => setMessages([])} className="text-[11px] font-bold text-white/85 hover:text-white cursor-pointer" title="שיחה חדשה">
@@ -226,10 +227,24 @@ export default function AssistantFloat() {
             </button>
           </div>
 
+          {/* הודעה מודגשת: ממליץ רק מתוך האתר (מוצגת תמיד) */}
+          <div className="bg-amber-50 border-b-2 border-amber-300 px-3 py-2 flex items-start gap-2 shrink-0" role="note">
+            <span className="text-base leading-none mt-0.5" aria-hidden="true">⚠️</span>
+            <p className="text-[11px] leading-snug text-amber-900">
+              <strong className="font-black">ממליץ רק על מוצרים שנמכרים באתר NEW PHONE.</strong> ההמלצות הן הצעה כללית שנכתבת
+              אוטומטית על ידי AI, וייתכנו בהן טעויות. המחיר, המלאי והפרטים המחייבים הם אלה שבדף המוצר באתר. לפני רכישה מומלץ
+              לבדוק את דף המוצר.{' '}
+              <Link href="/terms#ai" onClick={close} className="font-bold underline">
+                לתנאים המלאים
+              </Link>
+            </p>
+          </div>
+
           {/* תוכן */}
           <div ref={listRef} className="flex-1 overflow-y-auto p-3 space-y-3 bg-orange-50/40">
             <div className="bg-white border border-gray-100 rounded-2xl rounded-tr-sm p-3 text-sm text-gray-800 shadow-xs max-w-[90%]">
-              שלום! אני הנציג החכם של החנות. אפשר לשאול אותי כל שאלה על המכשירים, או לתת לי למצוא לכם את המכשיר המתאים.
+              שלום! אני הנציג החכם של החנות. אני ממליץ <strong className="font-black">רק על מוצרים מהאתר שלנו</strong>. אפשר לשאול
+              אותי כל שאלה על המכשירים, או לתת לי למצוא לכם את המכשיר המתאים.
             </div>
 
             {/* ממליץ המכשירים */}
