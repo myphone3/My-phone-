@@ -47,10 +47,12 @@ export default function ProductUrgency({ product }: { product: any }) {
     lines.push({ icon: '⏰', text: `המחיר הזה נגמר בעוד ${d > 0 ? `${d} ימים ו-` : ''}${pad(h)}:${pad(m)}:${pad(s)}`, tone: 'bg-red-50 border-red-200 text-red-800' });
   }
   if (lowStock) lines.push({ icon: '🔥', text: stock === 1 ? 'נשארה יחידה אחרונה במלאי!' : `נשארו רק ${stock} יחידות במלאי`, tone: 'bg-amber-50 border-amber-200 text-amber-900' });
-  if (interest?.viewers) lines.push({ icon: '👀', text: `${interest.viewers} אנשים צפו במוצר הזה ב-24 השעות האחרונות`, tone: 'bg-orange-50 border-orange-200 text-orange-900' });
-  if (interest?.carts) lines.push({ icon: '🛒', text: `${interest.carts} אנשים הוסיפו אותו לעגלה היום`, tone: 'bg-orange-50 border-orange-200 text-orange-900' });
+  // צפיות והוספות לעגלה: שורה קטנה ושקטה, לא תיבה בולטת
+  const quiet: string[] = [];
+  if (interest?.viewers) quiet.push(`${interest.viewers} צפו ב-24 השעות האחרונות`);
+  if (interest?.carts) quiet.push(`${interest.carts} הוסיפו לעגלה היום`);
 
-  if (!lines.length) return null;
+  if (!lines.length && !quiet.length) return null;
   return (
     <div className="space-y-1.5">
       {lines.map((l) => (
@@ -59,6 +61,7 @@ export default function ProductUrgency({ product }: { product: any }) {
           <span className="tabular-nums">{l.text}</span>
         </div>
       ))}
+      {quiet.length > 0 && <p className="text-[11px] text-gray-400 font-medium tabular-nums">{quiet.join(' · ')}</p>}
     </div>
   );
 }

@@ -4,8 +4,12 @@ import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import Icon from './Icon';
+import CategoriesMenu from './CategoriesMenu';
 import { usePathname, useRouter } from 'next/navigation';
 import { COMPARE_EVENT, getCompare } from '@/lib/shop';
+
+// כמה זמן אחרי הכניסה לאתר מוצג פופאפ ההצטרפות (רק פעם אחת בביקור)
+const WELCOME_DELAY_MS = 20000;
 
 export default function Header() {
   const pathname = usePathname();
@@ -45,6 +49,7 @@ export default function Header() {
     };
   }, []);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const welcomeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -66,9 +71,10 @@ export default function Header() {
           syncMarketingConsent();
         } else {
           // אם המשתמש לא מחובר, נבדוק אם כבר ראה את הפופאפ בסשן הנוכחי
+          // הפופאפ לא קופץ מיד: נותנים ללקוח קודם להכיר את החנות
           const hasSeenWelcome = sessionStorage.getItem('seenWelcomeModal');
           if (!hasSeenWelcome) {
-            setShowWelcomeModal(true);
+            welcomeTimer.current = setTimeout(() => setShowWelcomeModal(true), WELCOME_DELAY_MS);
           }
         }
 
@@ -129,6 +135,7 @@ export default function Header() {
     document.addEventListener('mousedown', handleClickOutside);
 
     return () => {
+      if (welcomeTimer.current) clearTimeout(welcomeTimer.current);
       subscription.unsubscribe();
       window.removeEventListener('storage', updateCartCount);
       window.removeEventListener('cartUpdated', updateCartCount);
@@ -327,8 +334,16 @@ export default function Header() {
   return (
     <>
       {/* ===== פופאפ מרכזי קופץ באמצע המסך למשתמש לא מחובר ===== */}
-      {!user && (signupOpen || (showWelcomeModal && promoConfig?.welcome_active)) && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200" dir="rtl">
+      {!user && (signupOpen || (showWelcomeModal && promoConfig?.welcome_active && pathname !== '/cart')) && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          dir="rtl"
+          role="dialog"
+          aria-modal="true"
+          aria-label="הצטרפות ל-NEW PHONE"
+          onClick={(e) => { if (e.target === e.currentTarget) handleCloseWelcomeModal(); }}
+          onKeyDown={(e) => { if (e.key === 'Escape') handleCloseWelcomeModal(); }}
+        >
           <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-sm w-full text-center shadow-2xl relative border border-gray-100 max-h-[95vh] overflow-y-auto">
             
             <button
@@ -339,7 +354,7 @@ export default function Header() {
               ✕
             </button>
 
-            <img src="/Logo.JPG" alt="NEW PHONE" className="h-16 mx-auto object-contain" />
+            <img src="/logo-160.jpg" alt="NEW PHONE" width={64} height={64} className="h-16 mx-auto object-contain" />
             <h3 className="text-xl font-black text-gray-900 pt-1 pb-3">הצטרפות ל-NEW PHONE</h3>
 
             {!promoConfig?.welcome_active ? null : isGiftPromo ? (
@@ -449,6 +464,8 @@ export default function Header() {
             <div className="relative z-10 flex items-center ml-2" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
+                aria-label="האזור האישי"
+                aria-expanded={dropdownOpen}
                 className="relative flex items-center justify-center w-12 h-12 bg-white hover:bg-orange-50/50 border-2 border-orange-200 rounded-full shadow-2xs transition duration-200 cursor-pointer p-1"
                 title={user ? (user.user_metadata?.full_name || 'החשבון שלי') : 'הרשמה לאתר והתראות'}
               >
@@ -482,14 +499,6 @@ export default function Header() {
                 )}
               </button>
 
-              <button
-                type="button"
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="mr-2 text-right leading-tight cursor-pointer"
-              >
-                <span className="block text-[11px] sm:text-xs font-black text-gray-900">האזור האישי</span>
-                <span className="block text-[10px] text-gray-500">{user ? 'הזמנות והשוואה' : 'התחברות'}</span>
-              </button>
 
               {/* חלונית נפתחת */}
               {dropdownOpen && (
@@ -752,13 +761,14 @@ export default function Header() {
 
             {/* אמצע: לוגו */}
             <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center cursor-pointer group shrink-0">
-              <img src="/Logo.JPG" alt="NEW PHONE" className="w-20 h-20 object-contain shadow-xs group-hover:scale-105 transition" />
+              <img src="/logo-160.jpg" alt="NEW PHONE - לדף הבית" width={80} height={80} className="w-16 h-16 sm:w-20 sm:h-20 object-contain group-hover:scale-105 transition" />
             </Link>
 
             {/* צד ימין: עגלה */}
             <div className="flex items-center gap-2 shrink-0">
             <Link 
               href="/cart" 
+              aria-label={cartCount > 0 ? `עגלת קניות, ${cartCount} מוצרים` : 'עגלת קניות'}
               className="relative p-2 bg-orange-50/40 hover:bg-orange-50 border-2 border-orange-200 text-orange-700 rounded-xl transition shadow-2xs flex items-center justify-center shrink-0 font-bold ml-2 cursor-pointer"
               title="עגלה"
             >
@@ -774,20 +784,25 @@ export default function Header() {
           </div>
 
           {/* שורה תחתונה: חיפוש */}
-          <form onSubmit={handleSearchSubmit} className="relative w-full pt-2">
+          <div className="flex items-stretch gap-2 pt-2">
+          <CategoriesMenu />
+          <form onSubmit={handleSearchSubmit} className="relative flex-1 min-w-0">
             <input
-              type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="חיפוש מוצרים, מכשירים, נגנים או קטגוריות..."
+              placeholder="חיפוש מוצרים, מכשירים, נגנים..."
+              aria-label="חיפוש מוצרים"
+              type="search"
+              enterKeyHint="search"
               className="w-full bg-white border-2 border-orange-200 hover:border-orange-300 focus:border-orange-500 rounded-2xl py-2.5 pr-4 pl-10 text-xs font-medium text-gray-800 shadow-2xs outline-none transition"
             />
-            <button type="submit" className="absolute left-3 top-[calc(50%+4px)] -translate-y-1/2 text-gray-400 hover:text-orange-600 transition cursor-pointer">
+            <button type="submit" aria-label="חיפוש" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-600 transition cursor-pointer">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </button>
           </form>
+          </div>
 
         </div>
       </header>

@@ -6,6 +6,7 @@ import { BUSINESS } from '@/lib/business';
 import Icon from './Icon';
 
 const LINKS = [
+  { href: '/about', label: 'אודות NEW PHONE' },
   { href: '/guide', label: 'מדריכים: כשר, תומך כשר וגרסאות', icon: 'book' },
   { href: '/quiz', label: 'איזה מכשיר מתאים לי?', icon: 'compass' },
   { href: '/compare', label: 'השוואת מוצרים', icon: 'compare' },

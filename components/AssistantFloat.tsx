@@ -172,7 +172,12 @@ export default function AssistantFloat() {
   return (
     <>
       {/* העיגול הקטן: בצבעי הלוגו של החנות */}
-      <div className="fixed left-[1.625rem] bottom-[5.6rem] [body[data-consent=open]_&]:bottom-[8.35rem] z-40 flex items-center gap-2 group" dir="rtl">
+      <div
+        className="fixed left-[1.625rem] bottom-[5.6rem] [body[data-consent=open]_&]:bottom-[8.35rem] z-40 flex items-center gap-2 group"
+        dir="ltr"
+        data-float
+        style={{ translate: '0 calc(-1 * var(--float-shift, 0px))', transition: 'translate 300ms ease, transform 150ms ease' }}
+      >
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
@@ -180,18 +185,16 @@ export default function AssistantFloat() {
           aria-expanded={open}
           className="relative w-[52px] h-[52px] rounded-full cursor-pointer transition duration-300 hover:scale-110 active:scale-95"
         >
-          {/* הילה רכה שזזה לאט */}
-          {!open && <span className="absolute -inset-1 rounded-full bg-[conic-gradient(from_0deg,#f97316,#ec4899,#8b5cf6,#f97316)] opacity-60 blur-md animate-[spin_6s_linear_infinite] pointer-events-none" />}
           <span className="absolute inset-0 rounded-full bg-gradient-to-br from-orange-500 via-pink-500 to-purple-600 shadow-[0_6px_18px_-4px_rgba(236,72,153,0.55)] ring-2 ring-white" />
           <span className="relative w-full h-full flex items-center justify-center text-white">
             {open ? <Icon name="x" size={20} strokeWidth={2.2} /> : <AiMark size={30} />}
           </span>
-          {!seen && !open && <span className="absolute inset-0 rounded-full animate-ping bg-pink-400/40 pointer-events-none" />}
         </button>
         {!open && (
           <button
             type="button"
             onClick={() => setOpen(true)}
+            dir="rtl"
             className={`${seen ? 'hidden sm:group-hover:block' : 'hidden sm:block'} bg-white/95 backdrop-blur border border-pink-100 text-gray-800 text-xs font-black px-3 py-2 rounded-2xl rounded-bl-sm shadow-lg cursor-pointer whitespace-nowrap`}
           >
             <span className="bg-gradient-to-l from-orange-600 via-pink-600 to-purple-600 bg-clip-text text-transparent">הנציג החכם</span> · איזה מכשיר מתאים לי?
@@ -203,6 +206,7 @@ export default function AssistantFloat() {
       {open && (
         <div
           role="dialog"
+          data-float-open
           aria-label="הנציג החכם"
           dir="rtl"
           className="fixed z-50 left-4 right-4 sm:right-auto bottom-[9.75rem] [body[data-consent=open]_&]:bottom-[12.5rem] sm:w-[380px] h-[min(560px,calc(100vh-12rem))] bg-white rounded-3xl shadow-2xl border-2 border-pink-100 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-150"

@@ -66,7 +66,7 @@ export default function ProductCard({ product }: { product: any }) {
             </span>
           )}
           {image ? (
-            <img src={image} alt={product.name} className="h-full object-contain group-hover:scale-105 transition" />
+            <img loading="lazy" decoding="async" src={image} alt={product.name} className="h-full object-contain group-hover:scale-105 transition" />
           ) : (
             <span className="text-xs text-gray-400">אין תמונה</span>
           )}

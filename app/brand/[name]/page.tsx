@@ -28,16 +28,9 @@ export default function BrandPage() {
     try {
       setLoading(true);
 
-      let fetchedKosher: any[] = [];
-      const [k1, k2, k3] = await Promise.all([
-        supabase.from('kosher').select('*'),
-        supabase.from('kosher_certifications').select('*'),
-        supabase.from('kosher_options').select('*')
-      ]);
-
-      if (k3.data && k3.data.length > 0) fetchedKosher = k3.data;
-      else if (k1.data && k1.data.length > 0) fetchedKosher = k1.data;
-      else if (k2.data && k2.data.length > 0) fetchedKosher = k2.data;
+      // הכשרויות נשמרות בטבלה kosher_options (כמו בפאנל הניהול)
+      const { data: kosherData } = await supabase.from('kosher_options').select('*');
+      const fetchedKosher: any[] = kosherData || [];
 
       const [prodRes, brandRes] = await Promise.all([
         supabase
@@ -179,19 +172,19 @@ export default function BrandPage() {
                   <div className="h-40 sm:h-52 w-full bg-gray-50 rounded-2xl flex items-center justify-center relative overflow-hidden group">
                     <CardOverlay product={product} />
                     {/* תגית מבצע */}
-                    {product.sale_price && (
+                    {Number(product.sale_price) > 0 && (
                       <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-lg shadow-xs z-10">
                         מבצע 🔥
                       </span>
                     )}
 
-                    <img 
+                    <img loading="lazy" decoding="async" 
                       src={activeImage} 
                       alt={product.name} 
                       className={`w-full h-full object-contain transition duration-300 group-hover:scale-105 ${hasHoverImage ? 'group-hover:opacity-0' : ''}`} 
                     />
                     {hasHoverImage && (
-                      <img 
+                      <img loading="lazy" decoding="async" 
                         src={secondaryImg} 
                         alt={product.name} 
                         className="absolute inset-0 w-full h-full object-contain opacity-0 group-hover:opacity-100 transition duration-300 group-hover:scale-105" 
@@ -201,12 +194,12 @@ export default function BrandPage() {
                     <div className="absolute top-2 right-2 flex flex-col gap-1.5 z-10">
                       {brandLogo && (
                         <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center">
-                          <img src={brandLogo} alt="" className="w-full h-full object-contain" />
+                          <img loading="lazy" decoding="async" src={brandLogo} alt="" className="w-full h-full object-contain" />
                         </div>
                       )}
                       {kosherLogo && (
                         <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center">
-                          <img src={kosherLogo} alt="Kosher" className="w-full h-full object-contain" />
+                          <img loading="lazy" decoding="async" src={kosherLogo} alt="Kosher" className="w-full h-full object-contain" />
                         </div>
                       )}
                     </div>
@@ -242,7 +235,7 @@ export default function BrandPage() {
                             title={colorName}
                           >
                             {colorImg && (
-                              <img src={colorImg} alt={colorName} className="w-full h-full object-cover rounded-md" />
+                              <img loading="lazy" decoding="async" src={colorImg} alt={colorName} className="w-full h-full object-cover rounded-md" />
                             )}
                           </button>
                         );
@@ -254,10 +247,10 @@ export default function BrandPage() {
                     <div>
                       <span className="text-xs text-gray-400 block">מחיר</span>
                       <div className="flex items-center gap-2">
-                        <span className={`text-base font-black ${product.sale_price ? 'text-orange-600' : 'text-gray-900'}`}>
+                        <span className={`text-base font-black ${Number(product.sale_price) > 0 ? 'text-orange-600' : 'text-gray-900'}`}>
                           ₪{product.sale_price || product.price || 0}
                         </span>
-                        {product.sale_price && (
+                        {Number(product.sale_price) > 0 && (
                           <span className="text-xs text-gray-400 line-through">
                             ₪{product.price}
                           </span>

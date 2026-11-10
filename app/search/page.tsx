@@ -88,19 +88,19 @@ function SearchResultsContent() {
                 <Link href={`/product/${product.id}`} className="block">
                   <div className="h-40 sm:h-52 w-full bg-gray-50 overflow-hidden relative rounded-2xl mb-3 flex items-center justify-center">
                     <CardOverlay product={product} withKosher />
-                    <img 
+                    <img loading="lazy" decoding="async" 
                       src={activeImage} 
                       alt={product.name} 
                       className={`w-full h-full object-contain transition duration-300 group-hover:scale-105 ${hasHoverImage ? 'group-hover:opacity-0' : ''}`} 
                     />
                     {hasHoverImage && (
-                      <img 
+                      <img loading="lazy" decoding="async" 
                         src={secondaryImg} 
                         alt={product.name} 
                         className="absolute inset-0 w-full h-full object-contain opacity-0 group-hover:opacity-100 transition duration-300 group-hover:scale-105" 
                       />
                     )}
-                    {product.sale_price && (
+                    {Number(product.sale_price) > 0 && (
                       <span className="absolute top-2 right-2 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow">
                         מבצע ⚡
                       </span>
@@ -135,7 +135,7 @@ function SearchResultsContent() {
 
                   <div className="flex items-center justify-between gap-1">
                     <div className="flex items-baseline gap-1.5">
-                      {product.sale_price ? (
+                      {Number(product.sale_price) > 0 ? (
                         <>
                           <span className="text-sm sm:text-base font-black text-red-600">₪{product.sale_price}</span>
                           <span className="text-[10px] text-gray-400 line-through">₪{product.price}</span>

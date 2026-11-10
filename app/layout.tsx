@@ -3,24 +3,45 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ToastHost from '../components/Toast';
 import WhatsAppFloat from '../components/WhatsAppFloat';
-import Script from 'next/script';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
+import { Rubik } from 'next/font/google';
+
+// הגופן של האתר: Rubik בעברית ובאנגלית, נטען מהשרת שלנו (בלי בקשה לגוגל אצל הלקוח)
+const rubik = Rubik({ subsets: ['hebrew', 'latin'], weight: ['400', '500', '600', '700', '800', '900'], display: 'swap', variable: '--font-rubik' });
 import Analytics from '../components/Analytics';
 import CampaignTracker from '../components/CampaignTracker';
 import CartSync from '../components/CartSync';
 import SiteTracker from '../components/SiteTracker';
 import ConsentBanner from '../components/ConsentBanner';
 import AssistantFloat from '../components/AssistantFloat';
+import FloatDodge from '../components/FloatDodge';
 import { Suspense } from 'react';
 import { getSiteSettings } from '@/lib/siteSettings';
+import { SITE_NAME, SITE_URL, jsonLdString, organizationJsonLd } from '@/lib/seo';
+
+export const viewport: Viewport = {
+  themeColor: '#ea580c',
+};
 
 // מטא-דאטה: שם האפליקציה והלוגו, וכותרת/תיאור/אימות גוגל מהגדרות ה-SEO בפאנל
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
   const icon = settings.favicon_url || '/Logo.JPG';
+  const title = settings.meta_title?.trim() || 'NEW PHONE - הפלאפון החדש שלך';
+  const description = settings.meta_description?.trim() || 'החנות המובילה למכשירים כשרים, סלולר ונגנים';
   return {
-    title: settings.meta_title?.trim() || 'NEW PHONE - הפלאפון החדש שלך',
-    description: settings.meta_description?.trim() || 'החנות המובילה למכשירים כשרים, סלולר ונגנים',
+    metadataBase: new URL(SITE_URL),
+    title,
+    description,
+    openGraph: {
+      type: 'website',
+      siteName: SITE_NAME,
+      locale: 'he_IL',
+      url: SITE_URL,
+      title,
+      description,
+      images: [{ url: '/Logo.JPG', alt: SITE_NAME }],
+    },
     manifest: '/manifest.json',
     appleWebApp: {
       capable: true,
@@ -29,7 +50,7 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     icons: {
       icon,
-      apple: '/Logo.JPG',
+      apple: '/icon-192.png',
     },
     verification: settings.google_site_verification ? { google: settings.google_site_verification } : undefined,
   };
@@ -41,19 +62,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="he" dir="rtl">
+    <html lang="he" dir="rtl" className={rubik.variable}>
       <head>
-        <Script
-          src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-fzkOn_MnGATKsLfCbQC3KaRgQmVlcso&libraries=places&language=he"
-          strategy="beforeInteractive"
-        />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(organizationJsonLd()) }} />
       </head>
       <body className="bg-gray-50 text-gray-900 font-sans antialiased">
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:right-3 focus:z-[200] focus:bg-orange-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-xl focus:font-bold"
+        >
+          דילוג לתוכן הראשי
+        </a>
         
         {/* הדר ראשי */}
         <Header />
 
-        <main className="min-h-screen">
+        <main id="main" className="min-h-screen">
           {children}
         </main>
 
@@ -67,6 +91,7 @@ export default function RootLayout({
         <CartSync />
         <SiteTracker />
         <AssistantFloat />
+        <FloatDodge />
         <ConsentBanner />
 
       </body>

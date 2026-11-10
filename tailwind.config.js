@@ -20,6 +20,7 @@ module.exports = {
         muted: '#6B7280',
       },
       fontFamily: {
+        sans: ['var(--font-rubik)', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'Arial', 'sans-serif'],
         display: ['var(--font-display)', 'sans-serif'],
         body: ['var(--font-body)', 'sans-serif'],
         mono: ['var(--font-mono)', 'monospace'],

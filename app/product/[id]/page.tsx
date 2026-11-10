@@ -363,7 +363,7 @@ function ProductDetailContent() {
           >
             {/* תגיות: מבצע, הכי נמכר, חדש, מלאי */}
             <div className="absolute top-3 left-3 z-10 flex flex-col items-start gap-1">
-              {product.sale_price && (
+              {Number(product.sale_price) > 0 && (
                 <span className="bg-red-500 text-white text-xs font-black px-3 py-1 rounded-xl shadow-md">מבצע 🔥</span>
               )}
               <ProductBadges product={product} />
@@ -378,7 +378,6 @@ function ProductDetailContent() {
               <img src={activeImage} alt={product.name} className="max-h-full max-w-full object-contain" />
             </button>
 
-            <span className="absolute bottom-3 left-3 bg-white/90 text-gray-600 text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm pointer-events-none">🔍 לחצו להגדלה</span>
             {viewImages.length > 1 && (
               <span className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1 pointer-events-none">
                 {viewImages.map((img, i) => (
@@ -451,10 +450,10 @@ function ProductDetailContent() {
           {/* מחיר - כתום בולט */}
           <div className="flex items-baseline gap-3">
             <span className="text-3xl font-black text-orange-600">₪{finalPrice}</span>
-            {product.sale_price && (
+            {Number(product.sale_price) > 0 && (
               <span className="text-sm text-gray-400 line-through">₪{regularPrice}</span>
             )}
-            {product.sale_price && regularPrice > finalPrice && (
+            {Number(product.sale_price) > 0 && regularPrice > finalPrice && (
               <span className="text-xs font-black bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-lg">
                 חיסכון ₪{Math.round((regularPrice - finalPrice) * 100) / 100}
               </span>
@@ -686,7 +685,7 @@ function ProductDetailContent() {
                   className="bg-gray-50 p-3 rounded-2xl border border-gray-100 hover:shadow-md transition flex flex-col justify-between group"
                 >
                   <div className="h-32 w-full bg-white rounded-xl flex items-center justify-center p-2 relative overflow-hidden">
-                    {relProd.sale_price && (
+                    {Number(relProd.sale_price) > 0 && (
                       <span className="absolute top-1 left-1 bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-lg shadow-xs z-10">
                         מבצע 🔥
                       </span>
@@ -697,7 +696,7 @@ function ProductDetailContent() {
                     <h4 className="font-bold text-xs text-gray-900 text-right group-hover:text-orange-600 transition" dir="auto">{relProd.name}</h4>
                     <div className="flex items-center justify-end gap-1.5">
                       <span className="text-xs font-black text-orange-600">₪{relPrice}</span>
-                      {relProd.sale_price && (
+                      {Number(relProd.sale_price) > 0 && (
                         <span className="text-[10px] text-gray-400 line-through">₪{relProd.price}</span>
                       )}
                     </div>

@@ -37,10 +37,11 @@ export default function ConsentBanner() {
       dir="rtl"
       role="dialog"
       aria-label="הודעה על עוגיות"
+      data-float-ignore
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      <div className="max-w-5xl mx-auto px-3 py-2 flex items-center gap-2 sm:gap-3">
-        <p className="text-[11px] sm:text-xs text-gray-200 leading-snug flex-1 min-w-0">
+      <div className="max-w-5xl mx-auto px-3 h-11 flex items-center gap-2 sm:gap-3">
+        <p className="text-[11px] sm:text-xs text-gray-200 leading-snug flex-1 min-w-0 truncate">
           האתר משתמש בעוגיות.{' '}
           <Link href="/privacy#cookies" className="underline text-white/90">
             פרטים
@@ -49,7 +50,7 @@ export default function ConsentBanner() {
         <button onClick={() => choose('essential')} className="shrink-0 text-[11px] sm:text-xs text-gray-300 hover:text-white px-2 py-1.5 cursor-pointer">
           רק הכרחיות
         </button>
-        <button onClick={() => choose('all')} className="shrink-0 bg-white text-gray-900 hover:bg-orange-50 px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-black cursor-pointer">
+        <button onClick={() => choose('all')} className="shrink-0 bg-white text-gray-900 hover:bg-orange-50 px-3 py-1 rounded-lg text-[11px] sm:text-xs font-black cursor-pointer">
           אישור
         </button>
       </div>

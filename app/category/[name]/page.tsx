@@ -39,16 +39,9 @@ function CategoryContent() {
     try {
       setLoading(true);
 
-      let fetchedKosher: any[] = [];
-      const [k1, k2, k3] = await Promise.all([
-        supabase.from('kosher').select('*'),
-        supabase.from('kosher_certifications').select('*'),
-        supabase.from('kosher_options').select('*')
-      ]);
-
-      if (k3.data && k3.data.length > 0) fetchedKosher = k3.data;
-      else if (k1.data && k1.data.length > 0) fetchedKosher = k1.data;
-      else if (k2.data && k2.data.length > 0) fetchedKosher = k2.data;
+      // הכשרויות נשמרות בטבלה kosher_options (כמו בפאנל הניהול)
+      const { data: kosherData } = await supabase.from('kosher_options').select('*');
+      const fetchedKosher: any[] = kosherData || [];
 
       const [prodRes, catRes, brandRes] = await Promise.all([
         supabase.from('products').select('*').ilike('category', categoryName).or('is_published.is.null,is_published.eq.true').order('created_at', { ascending: false }),
@@ -221,13 +214,13 @@ function CategoryContent() {
                   <Link href={`/product/${product.id}`} className="block space-y-3">
                     <div className="h-40 sm:h-52 w-full bg-gray-50 rounded-2xl flex items-center justify-center relative overflow-hidden group">
                       <CardOverlay product={product} />
-                      <img 
+                      <img loading="lazy" decoding="async" 
                         src={activeImage} 
                         alt={product.name} 
                         className={`w-full h-full object-contain transition duration-300 group-hover:scale-105 ${hasHoverImage ? 'group-hover:opacity-0' : ''}`} 
                       />
                       {hasHoverImage && (
-                        <img 
+                        <img loading="lazy" decoding="async" 
                           src={secondaryImg} 
                           alt={product.name} 
                           className="absolute inset-0 w-full h-full object-contain opacity-0 group-hover:opacity-100 transition duration-300 group-hover:scale-105" 
@@ -237,12 +230,12 @@ function CategoryContent() {
                       <div className="absolute top-2 right-2 flex flex-col gap-1.5 z-10">
                         {brandLogo && (
                           <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center">
-                            <img src={brandLogo} alt="" className="w-full h-full object-contain" />
+                            <img loading="lazy" decoding="async" src={brandLogo} alt="" className="w-full h-full object-contain" />
                           </div>
                         )}
                         {kosherLogo && (
                           <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center">
-                            <img src={kosherLogo} alt="Kosher" className="w-full h-full object-contain" />
+                            <img loading="lazy" decoding="async" src={kosherLogo} alt="Kosher" className="w-full h-full object-contain" />
                           </div>
                         )}
                       </div>
@@ -278,7 +271,7 @@ function CategoryContent() {
                               title={colorName}
                             >
                               {colorImg && (
-                                <img src={colorImg} alt={colorName} className="w-full h-full object-cover rounded-md" />
+                                <img loading="lazy" decoding="async" src={colorImg} alt={colorName} className="w-full h-full object-cover rounded-md" />
                               )}
                             </button>
                           );
@@ -334,7 +327,7 @@ function CategoryContent() {
               <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto no-scrollbar">
                 {(saleProducts.length > 0 ? saleProducts : products).slice(0, 2).map((promoProduct) => (
                   <div key={promoProduct.id} className="bg-gray-50 border rounded-2xl p-2.5 flex flex-col justify-between text-right space-y-2">
-                    <img 
+                    <img loading="lazy" decoding="async" 
                       src={getProductImage(promoProduct)} 
                       alt={promoProduct.name} 
                       className="w-full h-20 object-contain bg-white rounded-xl p-1" 
