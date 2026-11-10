@@ -87,7 +87,7 @@ function SearchResultsContent() {
               >
                 <Link href={`/product/${product.id}`} className="block">
                   <div className="h-40 sm:h-52 w-full bg-gray-50 overflow-hidden relative rounded-2xl mb-3 flex items-center justify-center">
-                    <CardOverlay product={product} />
+                    <CardOverlay product={product} withKosher />
                     <img 
                       src={activeImage} 
                       alt={product.name} 

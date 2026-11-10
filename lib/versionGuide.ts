@@ -17,20 +17,21 @@ export type FeatureKey =
 export type FeatureValue = 'yes' | 'no';
 
 export const FEATURES: { key: FeatureKey; label: string; icon: string; hint: string }[] = [
-  { key: 'calls', label: 'שיחות', icon: '📞', hint: 'שיחות קוליות נכנסות ויוצאות, אנשי קשר' },
-  { key: 'sms', label: 'הודעות SMS', icon: '✉️', hint: 'שליחה וקבלה של הודעות טקסט' },
-  { key: 'whatsapp', label: 'וואטסאפ', icon: '💬', hint: 'וואטסאפ מסונן (בלי סטטוסים וקישורים)' },
-  { key: 'camera', label: 'מצלמה', icon: '📷', hint: 'צילום תמונות' },
-  { key: 'gallery', label: 'גלריה', icon: '🖼️', hint: 'צפייה בתמונות ששמורות במכשיר' },
-  { key: 'music', label: 'נגן שירים ושיעורים', icon: '🎵', hint: 'השמעת קבצי שמע שהועברו למכשיר' },
-  { key: 'navigation', label: 'ניווט ותחבורה', icon: '🗺️', hint: 'Waze, מוביט ואפליקציות תחבורה מאושרות' },
-  { key: 'apps', label: 'אפליקציות מאושרות', icon: '🧩', hint: 'חנות מסוננת: רק אפליקציות שאושרו מראש' },
-  { key: 'internet', label: 'דפדפן, גוגל ויוטיוב', icon: '🌐', hint: 'גלישה חופשית באינטרנט' },
+  { key: 'calls', label: 'שיחות', icon: 'call', hint: 'שיחות קוליות נכנסות ויוצאות, אנשי קשר' },
+  { key: 'sms', label: 'הודעות SMS', icon: 'sms', hint: 'שליחה וקבלה של הודעות טקסט' },
+  { key: 'whatsapp', label: 'וואטסאפ', icon: 'chat', hint: 'וואטסאפ מסונן (בלי סטטוסים וקישורים)' },
+  { key: 'camera', label: 'מצלמה', icon: 'camera', hint: 'צילום תמונות' },
+  { key: 'gallery', label: 'גלריה', icon: 'image', hint: 'צפייה בתמונות ששמורות במכשיר' },
+  { key: 'music', label: 'נגן שירים ושיעורים', icon: 'music', hint: 'השמעת קבצי שמע שהועברו למכשיר' },
+  { key: 'navigation', label: 'ניווט ותחבורה', icon: 'map', hint: 'Waze, מוביט ואפליקציות תחבורה מאושרות' },
+  { key: 'apps', label: 'אפליקציות מאושרות', icon: 'apps', hint: 'חנות מסוננת: רק אפליקציות שאושרו מראש' },
+  { key: 'internet', label: 'דפדפן, גוגל ויוטיוב', icon: 'globe', hint: 'גלישה חופשית באינטרנט' },
 ];
 
 export type VersionInfo = {
   name: string;
   title: string;
+  /** שם אייקון (components/Icon) */
   icon: string;
   /** לוגו (למשל כשר פליי). אם אין, מוצג האייקון */
   logo?: string;
@@ -57,7 +58,7 @@ export const DEFAULT_VERSIONS: VersionInfo[] = [
   {
     name: 'נגן גלריה',
     title: 'נגן + גלריה',
-    icon: '🎵',
+    icon: 'music',
     description: 'שיחות, נגן לשירים ושיעורים וצפייה בתמונות שהועברו למכשיר. בלי מצלמה, בלי הודעות ובלי אינטרנט.',
     bestFor: 'למי שרוצה לשמוע שירים ושיעורים, בלי מצלמה ובלי הודעות',
     features: { ...NONE, music: 'yes', gallery: 'yes' },
@@ -65,7 +66,7 @@ export const DEFAULT_VERSIONS: VersionInfo[] = [
   {
     name: 'נגן גלריה + הודעות sms',
     title: 'נגן + גלריה + SMS',
-    icon: '✉️',
+    icon: 'sms',
     description: 'כמו "נגן גלריה", ובנוסף שליחה וקבלה של הודעות SMS. בלי מצלמה ובלי אינטרנט.',
     bestFor: 'למי שצריך גם לשלוח ולקבל הודעות (קודים, תורים, עבודה)',
     features: { ...NONE, music: 'yes', gallery: 'yes', sms: 'yes' },
@@ -73,7 +74,7 @@ export const DEFAULT_VERSIONS: VersionInfo[] = [
   {
     name: 'נגן מצלמה',
     title: 'נגן + מצלמה',
-    icon: '📷',
+    icon: 'camera',
     description: 'שיחות, נגן, גלריה ומצלמה לצילום תמונות. בלי הודעות ובלי אינטרנט.',
     bestFor: 'למי שרוצה לצלם את הילדים והאירועים, בלי הודעות',
     features: { ...NONE, music: 'yes', gallery: 'yes', camera: 'yes' },
@@ -81,7 +82,7 @@ export const DEFAULT_VERSIONS: VersionInfo[] = [
   {
     name: 'נגן מצלמה + הודעות sms',
     title: 'נגן + מצלמה + SMS',
-    icon: '📸',
+    icon: 'camera',
     description: 'שיחות, נגן, גלריה, מצלמה והודעות SMS. בלי אינטרנט ובלי אפליקציות.',
     bestFor: 'הגרסה המלאה בלי אפליקציות: מצלמה וגם הודעות',
     features: { ...NONE, music: 'yes', gallery: 'yes', camera: 'yes', sms: 'yes' },
@@ -89,7 +90,7 @@ export const DEFAULT_VERSIONS: VersionInfo[] = [
   {
     name: 'כשר פליי בסיסי',
     title: 'כשר פליי',
-    icon: '▶️',
+    icon: 'apps',
     description:
       'חנות אפליקציות מסוננת: מתקינים רק אפליקציות שאושרו מראש, כמו וואטסאפ, Waze ומוביט. יש מצלמה, נגן והודעות. אין דפדפן, אין גוגל ואין יוטיוב.',
     bestFor: 'למי שצריך וואטסאפ, ניווט או מוביט, בלי אינטרנט פתוח',
@@ -98,7 +99,7 @@ export const DEFAULT_VERSIONS: VersionInfo[] = [
   {
     name: 'גירסה רגילה',
     title: 'גרסה פתוחה (ללא סינון)',
-    icon: '🌐',
+    icon: 'globe',
     description: 'המכשיר כפי שהוא מהיצרן, בלי סינון: אינטרנט, גוגל וכל האפליקציות. לא מתאים לקו כשר.',
     bestFor: 'למי שלא צריך סינון בכלל',
     features: { calls: 'yes', sms: 'yes', whatsapp: 'yes', camera: 'yes', gallery: 'yes', music: 'yes', navigation: 'yes', apps: 'yes', internet: 'yes' },
@@ -111,7 +112,7 @@ export const DEVICE_TYPES: VersionInfo[] = [
   {
     name: 'כשר',
     title: 'מכשיר כשר',
-    icon: '✡️',
+    icon: 'kosher',
     description: 'מאושר על ידי ועדת הרבנים לענייני תקשורת. שיחות בלבד: בלי הודעות, בלי מצלמה ובלי אינטרנט.',
     bestFor: 'רמת הכשרות המחמירה ביותר',
     features: { ...NONE },
@@ -119,7 +120,7 @@ export const DEVICE_TYPES: VersionInfo[] = [
   {
     name: 'תומך כשר',
     title: 'תומך כשר',
-    icon: '✅',
+    icon: 'shield',
     description: 'עובד עם קו כשר, ובוחרים גרסה: נגן, מצלמה, SMS, או כשר פליי עם וואטסאפ ומוביט. אין דפדפן ואין גוגל באף גרסה.',
     bestFor: 'מי שצריך יותר משיחות, בלי אינטרנט פתוח',
     features: { calls: 'yes', sms: 'yes', whatsapp: 'yes', camera: 'yes', gallery: 'yes', music: 'yes', navigation: 'yes', apps: 'yes', internet: 'no' },
@@ -127,7 +128,7 @@ export const DEVICE_TYPES: VersionInfo[] = [
   {
     name: 'פתוח',
     title: 'סמארטפון פתוח',
-    icon: '🌐',
+    icon: 'globe',
     description: 'סמארטפון רגיל בלי סינון: אינטרנט, גוגל וכל האפליקציות.',
     bestFor: 'בלי סינון',
     features: { calls: 'yes', sms: 'yes', whatsapp: 'yes', camera: 'yes', gallery: 'yes', music: 'yes', navigation: 'yes', apps: 'yes', internet: 'yes' },
@@ -193,7 +194,7 @@ function guessVersion(name: string): VersionInfo {
     apps: play || has(/אפליקציות/) ? 'yes' : 'no',
     internet: has(/פתוח|רגיל|אינטרנט/) ? 'yes' : 'no',
   };
-  return { name, title: name, icon: play ? '▶️' : '⚙️', description: '', features };
+  return { name, title: name, icon: play ? 'apps' : 'settings', description: '', features };
 }
 
 export const featureMark = (v?: FeatureValue | string) =>

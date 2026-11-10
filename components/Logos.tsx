@@ -1,3 +1,5 @@
+import Icon from './Icon';
+
 // לוגואים קטנים שחוזרים באתר: וואטסאפ, כשר פליי ולוגו של גרסה
 
 export function WhatsAppIcon({ size = 18, color = 'currentColor', className = '' }: { size?: number; color?: string; className?: string }) {
@@ -8,23 +10,10 @@ export function WhatsAppIcon({ size = 18, color = 'currentColor', className = ''
   );
 }
 
-// סימן כשר פליי: הלוגו שהועלה בפאנל (מסך "גרסאות"), ואם אין, תגית בצבעי החנות
+// לוגו כשר פליי (הקובץ הרשמי מ-kosherplay.com, שמור ב-public). אפשר להחליף לוגו בפאנל ← גרסאות
+export const KOSHER_PLAY_LOGO = '/kosherplay.svg';
 export function KosherPlayMark({ logo, size = 28 }: { logo?: string; size?: number }) {
-  if (logo) {
-    return <img src={logo} alt="כשר פליי" style={{ width: size, height: size }} className="object-contain rounded-md bg-white shrink-0" />;
-  }
-  return (
-    <span
-      style={{ width: size, height: size }}
-      className="shrink-0 rounded-lg bg-gradient-to-br from-sky-500 to-blue-700 text-white inline-flex items-center justify-center shadow-sm"
-      aria-label="כשר פליי"
-      title="כשר פליי"
-    >
-      <svg viewBox="0 0 24 24" width={size * 0.55} height={size * 0.55} fill="currentColor" aria-hidden="true">
-        <path d="M8 5.5v13a1 1 0 0 0 1.52.85l10.4-6.5a1 1 0 0 0 0-1.7L9.52 4.65A1 1 0 0 0 8 5.5Z" />
-      </svg>
-    </span>
-  );
+  return <img src={logo || KOSHER_PLAY_LOGO} alt="כשר פליי" title="כשר פליי" style={{ width: size, height: size }} className="object-contain rounded-md shrink-0" />;
 }
 
 // לוגו או אייקון של גרסה
@@ -32,8 +21,8 @@ export function VersionMark({ v, size = 28 }: { v: { name: string; icon: string;
   if (/כשר ?פליי|kosher ?play/i.test(v.name)) return <KosherPlayMark logo={v.logo} size={size} />;
   if (v.logo) return <img src={v.logo} alt="" style={{ width: size, height: size }} className="object-contain rounded-md bg-white shrink-0" />;
   return (
-    <span style={{ fontSize: size * 0.75, lineHeight: 1 }} className="shrink-0" aria-hidden="true">
-      {v.icon}
+    <span className="shrink-0 text-orange-600 inline-flex">
+      <Icon name={v.icon} size={Math.round(size * 0.8)} />
     </span>
   );
 }

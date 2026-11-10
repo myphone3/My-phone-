@@ -5,7 +5,8 @@ import { supabase } from '@/lib/supabase';
 import { mailTransport } from '@/lib/mailer';
 import { buildOrderPdf, PDF_ASSET_PATHS } from '@/lib/orderPdf';
 import { newOrderAlertEmail, orderConfirmationEmail } from '@/lib/orderEmails';
-import { Order, orderNumber } from '@/lib/orders';
+import { Order, formatMoney, orderNumber, orderTotals } from '@/lib/orders';
+import { pushToAdmins } from '@/lib/push';
 
 export const runtime = 'nodejs';
 
@@ -32,8 +33,15 @@ export async function POST(request: Request) {
 
     // 1) התראה למנהלים (גם כשאין ללקוח מייל)
     const alert = sendAdminAlert(order, origin, transport, from);
+    // 2) התראה לטלפון (למנהלים שהפעילו "התראות לטלפון" בפאנל)
+    const push = pushToAdmins({
+      title: `🛍️ הזמנה חדשה · ${formatMoney(orderTotals(order).total)}`,
+      body: `${order.customer_name || 'לקוח'} · הזמנה #${orderNumber(order.id)}`,
+      url: `/admin/orders?q=${orderNumber(order.id)}`,
+      tag: order.id,
+    }).catch((err) => console.error('Push failed:', err));
 
-    // 2) מייל ללקוח
+    // 3) מייל ללקוח
     if (order.email) {
       const publicDir = path.join(process.cwd(), 'public');
       // הלוגו לא חובה: אם אין, ה-PDF מציג כותרת טקסט
@@ -55,7 +63,7 @@ export async function POST(request: Request) {
       });
     }
 
-    await alert;
+    await Promise.all([alert, push]);
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Order confirmation error:', error);

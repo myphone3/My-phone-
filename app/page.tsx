@@ -6,6 +6,7 @@ import DealOfWeek from '@/components/DealOfWeek';
 import { GUIDES } from '@/lib/guides';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import Icon from '@/components/Icon';
 import TrustBadges from '@/components/TrustBadges';
 import FaqList from '@/components/FaqList';
 import Reviews from '@/components/Reviews';
@@ -447,7 +448,7 @@ function StoreContent() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 space-y-10 pt-8">
+      <div className="max-w-7xl mx-auto px-4 space-y-14 pt-10">
 
         {/* מבצע השבוע עם שעון ספירה לאחור (נבחר בפאנל) */}
         <DealOfWeek settings={settings} products={products} />
@@ -456,12 +457,12 @@ function StoreContent() {
         {categories.length > 0 && (
           <section className="space-y-4 relative group">
             <div className="flex justify-between items-center">
-              <h2 className="text-base sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3 shrink-0">
+              <h2 className="text-base sm:text-xl font-black text-gray-900 shrink-0">
                 קטגוריות מובילות
               </h2>
               <Link 
                 href="/categories" 
-                className="bg-orange-100/80 hover:bg-orange-200/90 text-orange-700 border border-orange-300/60 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-bold transition flex items-center gap-1 shrink-0 shadow-2xs backdrop-blur-xs"
+                className="text-orange-700 hover:text-orange-800 text-xs font-bold transition flex items-center gap-1 shrink-0"
               >
                 <span>לכל הקטגוריות והמותגים</span>
                 <span className="text-[9px]">➔</span>
@@ -493,7 +494,7 @@ function StoreContent() {
                     href={`/category/${encodeURIComponent(cat.name)}`}
                     className="flex flex-col items-center text-center gap-2 cursor-pointer group shrink-0 w-28 sm:w-32"
                   >
-                    <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-white flex items-center justify-center overflow-hidden group-hover:scale-105 transition shadow-xs border border-orange-500/30">
+                    <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gray-50 flex items-center justify-center overflow-hidden group-hover:scale-105 transition">
                       {cat.image_url ? (
                         <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover pointer-events-none" />
                       ) : (
@@ -510,9 +511,9 @@ function StoreContent() {
 
         {/* מבצעים חמים */}
         {saleProducts.length > 0 && (
-          <section className="bg-orange-50/60 border border-orange-200/80 p-4 sm:p-6 rounded-3xl space-y-4 shadow-xs relative group">
-            <div className="flex justify-between items-center border-b border-orange-200/60 pb-3">
-              <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
+          <section className="space-y-4 relative group">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg sm:text-xl font-black text-gray-900">
                 מבצעים חמים
               </h2>
             </div>
@@ -545,7 +546,7 @@ function StoreContent() {
                   return (
                     <div 
                       key={`sale-${product.id}`} 
-                      className="w-48 sm:w-56 shrink-0 bg-white rounded-3xl border-2 border-orange-200 shadow-md flex flex-col justify-between p-3.5 animate-subtle-pulse hover:shadow-xl transition-all duration-300 relative"
+                      className="w-48 sm:w-56 shrink-0 bg-white rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between p-3.5 hover:shadow-lg transition-all duration-300 relative"
                     >
                       <Link href={`/product/${product.id}`} className="block space-y-2.5">
                         <div className="h-32 sm:h-36 w-full bg-gray-50 rounded-2xl flex items-center justify-center relative overflow-hidden group">
@@ -598,9 +599,9 @@ function StoreContent() {
         )}
 
         {/* כל המוצרים */}
-        <section className="space-y-6 pt-4 border-t">
+        <section className="space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
+            <h2 className="text-lg sm:text-xl font-black text-gray-900">
               כל המוצרים בחנות
             </h2>
           </div>
@@ -736,9 +737,9 @@ function StoreContent() {
       </div>
 
       {/* מדריכים: כשר, תומך כשר והגרסאות */}
-      <section className="max-w-7xl mx-auto px-4 mt-12 space-y-4" dir="rtl">
+      <section className="max-w-7xl mx-auto px-4 mt-16 space-y-4" dir="rtl">
         <div className="flex justify-between items-center">
-          <h2 className="text-lg sm:text-xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">📖 לפני שבוחרים: מדריכים קצרים</h2>
+          <h2 className="text-lg sm:text-xl font-black text-gray-900">לפני שבוחרים: מדריכים קצרים</h2>
           <Link href="/guide" className="text-xs font-bold text-orange-700 shrink-0">לכל המדריכים ←</Link>
         </div>
         <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 snap-x">
@@ -746,9 +747,9 @@ function StoreContent() {
             <Link
               key={g.slug}
               href={`/guide/${g.slug}`}
-              className="snap-start shrink-0 w-64 bg-white border-2 border-orange-100 hover:border-orange-300 rounded-3xl p-4 space-y-1.5 transition"
+              className="snap-start shrink-0 w-64 bg-white border border-gray-100 hover:shadow-md rounded-3xl p-4 space-y-1.5 transition"
             >
-              <span className="text-3xl">{g.emoji}</span>
+              <span className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center"><Icon name={g.emoji} size={22} /></span>
               <span className="block font-black text-sm text-gray-900 leading-snug">{g.title}</span>
               <span className="block text-[11px] text-gray-500 leading-relaxed line-clamp-3">{g.excerpt}</span>
             </Link>
@@ -757,8 +758,8 @@ function StoreContent() {
       </section>
 
       {/* אזור מידע נפרד מהמוצרים: למה לקנות אצלנו ושאלות נפוצות */}
-      <section className="mt-16 bg-gradient-to-b from-orange-50 to-white border-t-4 border-orange-500" dir="rtl">
-        <div className="max-w-5xl mx-auto px-4 py-12 space-y-12">
+      <section className="mt-20 bg-gray-50" dir="rtl">
+        <div className="max-w-5xl mx-auto px-4 py-14 space-y-16">
           <div className="space-y-6">
             <div className="text-center space-y-1">
               <h2 className="text-xl sm:text-2xl font-black text-gray-900">קונים בראש שקט</h2>

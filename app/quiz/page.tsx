@@ -9,6 +9,7 @@ import { track } from '@/lib/track';
 import { FeatureKey, FEATURES, VersionInfo, resolveVersion } from '@/lib/versionGuide';
 import { versionName } from '@/lib/versionPrice';
 import { KosherPlayMark, VersionMark, WhatsAppIcon } from '@/components/Logos';
+import Icon from '@/components/Icon';
 
 // "איזה מכשיר מתאים לי?": שאלות קצרות שמשתנות לפי התשובות, ובסוף 3 המלצות מהחנות:
 // המכשיר, הגרסה המדויקת שמתאימה (לפי מה שצריך שיהיה פתוח), לוגו הכשרות, ולמה הוא מתאים.
@@ -37,11 +38,11 @@ function stepsFor(a: Answers): StepKey[] {
 }
 
 const NEED_OPTIONS: { key: FeatureKey; label: string; icon: React.ReactNode; note?: string }[] = [
-  { key: 'sms', label: 'הודעות SMS', icon: '✉️' },
-  { key: 'camera', label: 'מצלמה', icon: '📷' },
-  { key: 'music', label: 'שירים ושיעורים', icon: '🎵' },
+  { key: 'sms', label: 'הודעות SMS', icon: 'sms' },
+  { key: 'camera', label: 'מצלמה', icon: 'camera' },
+  { key: 'music', label: 'שירים ושיעורים', icon: 'music' },
   { key: 'whatsapp', label: 'וואטסאפ', icon: <WhatsAppIcon size={30} color="#25D366" />, note: 'כשר פליי' },
-  { key: 'navigation', label: 'Waze / מוביט', icon: '🗺️', note: 'כשר פליי' },
+  { key: 'navigation', label: 'Waze / מוביט', icon: 'map', note: 'כשר פליי' },
 ];
 
 const BUDGETS = [
@@ -54,11 +55,11 @@ const BUDGETS = [
 ];
 
 const EXTRAS: { key: string; label: string; icon: string; re: RegExp; reason: string }[] = [
-  { key: 'battery', label: 'סוללה חזקה', icon: '🔋', re: /סוללה|mah|battery/i, reason: 'סוללה חזקה' },
-  { key: 'screen', label: 'מסך גדול / מגע', icon: '🖥️', re: /מסך גדול|מסך מגע|טאץ|touch|אינץ/i, reason: 'מסך גדול' },
-  { key: 'buttons', label: 'מקשים גדולים', icon: '🔢', re: /מקשים|כפתורים|מקלדת|מבוגר/i, reason: 'מקשים נוחים' },
-  { key: 'rugged', label: 'קטן ועמיד', icon: '🛡️', re: /עמיד|מוקשח|ip6[78]|קומפקטי|קטן|flip|פליפ/i, reason: 'קטן ועמיד' },
-  { key: 'dualsim', label: '2 כרטיסי סים', icon: '📶', re: /2 כרטיסי|שני כרטיסי|dual ?sim|2 סים/i, reason: '2 כרטיסי סים' },
+  { key: 'battery', label: 'סוללה חזקה', icon: 'battery', re: /סוללה|mah|battery/i, reason: 'סוללה חזקה' },
+  { key: 'screen', label: 'מסך גדול / מגע', icon: 'screen', re: /מסך גדול|מסך מגע|טאץ|touch|אינץ/i, reason: 'מסך גדול' },
+  { key: 'buttons', label: 'מקשים גדולים', icon: 'keypad', re: /מקשים|כפתורים|מקלדת|מבוגר/i, reason: 'מקשים נוחים' },
+  { key: 'rugged', label: 'קטן ועמיד', icon: 'shield', re: /עמיד|מוקשח|ip6[78]|קומפקטי|קטן|flip|פליפ/i, reason: 'קטן ועמיד' },
+  { key: 'dualsim', label: '2 כרטיסי סים', icon: 'sim', re: /2 כרטיסי|שני כרטיסי|dual ?sim|2 סים/i, reason: '2 כרטיסי סים' },
 ];
 
 const asArray = (val: any): any[] => {
@@ -226,7 +227,7 @@ function OptionButton({ selected, onClick, children }: { selected: boolean; onCl
   );
 }
 
-const Emoji = ({ c }: { c: string }) => <span className="text-3xl leading-none">{c}</span>;
+const Emoji = ({ c }: { c: string }) => <Icon name={c} size={30} className="text-orange-600" strokeWidth={1.5} />;
 
 export default function QuizPage() {
   const [answers, setAnswers] = useState<Answers>({});
@@ -319,7 +320,7 @@ export default function QuizPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6" dir="rtl">
       <div className="text-center space-y-1">
-        <h1 className="text-2xl sm:text-3xl font-black text-gray-900">🧭 איזה מכשיר מתאים לי?</h1>
+        <h1 className="text-2xl sm:text-3xl font-black text-gray-900 flex items-center justify-center gap-2"><Icon name="compass" size={30} className="text-orange-600" /> איזה מכשיר מתאים לי?</h1>
         <p className="text-sm text-gray-500">כמה שאלות קצרות, ונמליץ על המכשיר והגרסה המדויקת מהחנות</p>
       </div>
 
@@ -350,13 +351,13 @@ export default function QuizPage() {
               <h2 className="text-xl font-black text-gray-900">מה אתם מחפשים?</h2>
               <div className="grid grid-cols-3 gap-3">
                 <OptionButton selected={answers.type === 'phone'} onClick={() => next({ type: 'phone' })}>
-                  <Emoji c="📱" /> טלפון
+                  <Emoji c="phone" /> טלפון
                 </OptionButton>
                 <OptionButton selected={answers.type === 'player'} onClick={() => next({ type: 'player', level: undefined, needs: [], extras: [] })}>
-                  <Emoji c="🎧" /> נגן MP3 / MP4
+                  <Emoji c="headphones" /> נגן MP3 / MP4
                 </OptionButton>
                 <OptionButton selected={answers.type === 'any'} onClick={() => next({ type: 'any' })}>
-                  <Emoji c="🤔" /> עוד לא בטוח
+                  <Emoji c="help" /> עוד לא בטוח
                 </OptionButton>
               </div>
             </>
@@ -367,10 +368,10 @@ export default function QuizPage() {
               <h2 className="text-xl font-black text-gray-900">למי המכשיר?</h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {([
-                  ['me', '🙋', 'בשבילי'],
-                  ['senior', '👴', 'להורים / מבוגרים'],
-                  ['kid', '🧒', 'לילד או נער'],
-                  ['gift', '🎁', 'מתנה'],
+                  ['me', 'user', 'בשבילי'],
+                  ['senior', 'users', 'להורים / מבוגרים'],
+                  ['kid', 'child', 'לילד או נער'],
+                  ['gift', 'gift', 'מתנה'],
                 ] as const).map(([k, icon, label]) => (
                   <OptionButton key={k} selected={answers.who === k} onClick={() => next({ who: k })}>
                     <Emoji c={icon} /> {label}
@@ -397,23 +398,23 @@ export default function QuizPage() {
                     {certs.slice(0, 3).map((k) =>
                       k.image_url ? <img key={k.name} src={k.image_url} alt={k.name} className="w-9 h-9 object-contain rounded-lg bg-white border p-0.5" /> : null
                     )}
-                    {!certs.some((k) => k.image_url) && <Emoji c="✡️" />}
+                    {!certs.some((k) => k.image_url) && <Emoji c="kosher" />}
                   </span>
                   <span>מכשיר כשר</span>
                   <span className="text-[11px] font-medium text-gray-500">שיחות בלבד, באישור ועדות הכשרות</span>
                 </OptionButton>
                 <OptionButton selected={answers.level === 'support'} onClick={() => next({ level: 'support', cert: undefined })}>
-                  <Emoji c="✅" />
+                  <Emoji c="shield" />
                   <span>תומך כשר</span>
                   <span className="text-[11px] font-medium text-gray-500">בוחרים מה פתוח: נגן, מצלמה, SMS או וואטסאפ</span>
                 </OptionButton>
                 <OptionButton selected={answers.level === 'open'} onClick={() => next({ level: 'open', cert: undefined })}>
-                  <Emoji c="🌐" />
+                  <Emoji c="globe" />
                   <span>סמארטפון פתוח</span>
                   <span className="text-[11px] font-medium text-gray-500">בלי סינון</span>
                 </OptionButton>
                 <OptionButton selected={answers.level === 'unsure'} onClick={() => next({ level: 'unsure', cert: undefined })}>
-                  <Emoji c="🤷" />
+                  <Emoji c="help" />
                   <span>עוד לא יודע</span>
                   <span className="text-[11px] font-medium text-gray-500">נשאל מה צריך ונמליץ</span>
                 </OptionButton>
@@ -430,12 +431,12 @@ export default function QuizPage() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {certs.map((k) => (
                   <OptionButton key={k.name} selected={answers.cert === k.name} onClick={() => next({ cert: k.name })}>
-                    {k.image_url ? <img src={k.image_url} alt="" className="w-14 h-14 object-contain" /> : <Emoji c="✡️" />}
+                    {k.image_url ? <img src={k.image_url} alt="" className="w-14 h-14 object-contain" /> : <Emoji c="kosher" />}
                     <span>{k.name}</span>
                   </OptionButton>
                 ))}
                 <OptionButton selected={answers.cert === 'any'} onClick={() => next({ cert: 'any' })}>
-                  <Emoji c="👌" /> לא משנה לי
+                  <Emoji c="check" /> לא משנה לי
                 </OptionButton>
               </div>
             </>
@@ -478,7 +479,7 @@ export default function QuizPage() {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {BUDGETS.map((b) => (
                   <OptionButton key={b.key} selected={answers.budget === b.key} onClick={() => next({ budget: b.key })}>
-                    <Emoji c={b.key === 'any' ? '🤷' : '💰'} /> {b.label}
+                    <Emoji c={b.key === 'any' ? 'help' : 'wallet'} /> {b.label}
                   </OptionButton>
                 ))}
               </div>
@@ -511,7 +512,7 @@ export default function QuizPage() {
               <b>חיפשתם:</b> {summary || 'הכל'}
             </p>
             <button onClick={restart} className="text-xs font-black text-orange-700 cursor-pointer">
-              🔄 מתחילים מחדש
+              ↻ מתחילים מחדש
             </button>
           </div>
 
@@ -519,7 +520,7 @@ export default function QuizPage() {
             <p className="text-center text-gray-500 py-10">טוען המלצות...</p>
           ) : results.length === 0 ? (
             <div className="text-center bg-white border rounded-3xl p-8 space-y-2">
-              <p className="text-3xl">🔎</p>
+              <p className="flex justify-center text-gray-300"><Icon name="search" size={40} /></p>
               <p className="font-black text-gray-900">לא מצאנו מכשיר שמתאים בדיוק</p>
               <p className="text-xs text-gray-500">כתבו לנו בוואטסאפ, ונמצא לכם מכשיר גם אם הוא עוד לא באתר</p>
             </div>
@@ -545,7 +546,7 @@ export default function QuizPage() {
                     </div>
                     <div className="flex-1 min-w-0 space-y-2">
                       <span className={`inline-block text-[10px] font-black px-2 py-0.5 rounded-lg ${i === 0 ? 'bg-orange-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
-                        {i === 0 ? '🏆 ההתאמה הכי טובה' : `התאמה מספר ${i + 1}`}
+                        {i === 0 ? '★ ההתאמה הכי טובה' : `התאמה מספר ${i + 1}`}
                       </span>
                       <h3 className="font-black text-gray-900 text-sm sm:text-base leading-snug line-clamp-2">{p.name}</h3>
                       <div className="flex items-baseline gap-2">

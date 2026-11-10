@@ -17,36 +17,41 @@ export default function ConsentBanner() {
     return () => window.removeEventListener('open-consent', open);
   }, []);
 
-  if (!show || pathname?.startsWith('/admin')) return null;
+  // כשהפס פתוח, הכפתורים הצפים (וואטסאפ) עולים מעליו
+  const visible = show && !pathname?.startsWith('/admin');
+  useEffect(() => {
+    document.body.dataset.consent = visible ? 'open' : '';
+  }, [visible]);
+
+  if (!visible) return null;
 
   const choose = (value: 'all' | 'essential') => {
     setConsent(value);
     setShow(false);
   };
 
+  // פס דק בתחתית המסך: לא מסתיר את האתר
   return (
-    <div className="fixed bottom-0 inset-x-0 z-[60] p-3 sm:p-4" dir="rtl" role="dialog" aria-label="הודעה על עוגיות">
-      <div className="max-w-3xl mx-auto bg-white border-2 border-orange-200 shadow-2xl rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
-        <p className="text-xs text-gray-700 leading-relaxed flex-1">
-          🍪 אנחנו משתמשים בעוגיות כדי שהאתר יעבוד, כדי להבין אילו מוצרים מעניינים אתכם ולשפר את האתר.{' '}
-          <Link href="/privacy#cookies" className="underline font-bold text-orange-700">
-            פרטים במדיניות הפרטיות
+    <div
+      className="fixed bottom-0 inset-x-0 z-[60] bg-gray-900/95 backdrop-blur text-white"
+      dir="rtl"
+      role="dialog"
+      aria-label="הודעה על עוגיות"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
+      <div className="max-w-5xl mx-auto px-3 py-2 flex items-center gap-2 sm:gap-3">
+        <p className="text-[11px] sm:text-xs text-gray-200 leading-snug flex-1 min-w-0">
+          האתר משתמש בעוגיות.{' '}
+          <Link href="/privacy#cookies" className="underline text-white/90">
+            פרטים
           </Link>
         </p>
-        <div className="flex gap-2 shrink-0">
-          <button
-            onClick={() => choose('essential')}
-            className="flex-1 sm:flex-none bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer"
-          >
-            רק הכרחיות
-          </button>
-          <button
-            onClick={() => choose('all')}
-            className="flex-1 sm:flex-none bg-orange-600 hover:bg-orange-700 text-white px-5 py-2.5 rounded-xl text-xs font-black cursor-pointer"
-          >
-            מאשר/ת הכל
-          </button>
-        </div>
+        <button onClick={() => choose('essential')} className="shrink-0 text-[11px] sm:text-xs text-gray-300 hover:text-white px-2 py-1.5 cursor-pointer">
+          רק הכרחיות
+        </button>
+        <button onClick={() => choose('all')} className="shrink-0 bg-white text-gray-900 hover:bg-orange-50 px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-black cursor-pointer">
+          אישור
+        </button>
       </div>
     </div>
   );

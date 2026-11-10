@@ -11,16 +11,17 @@ export type GuideBlock =
 
 export type GuideCategory = 'start' | 'kosher' | 'versions' | 'players';
 
-export const GUIDE_CATEGORIES: { key: GuideCategory; title: string; emoji: string; hint: string }[] = [
-  { key: 'start', title: 'מתחילים כאן', emoji: '🧭', hint: 'איך בוחרים מכשיר בלי להתחרט' },
-  { key: 'kosher', title: 'כשר ותומך כשר', emoji: '✡️', hint: 'מה ההבדל ומה מתאים לכם' },
-  { key: 'versions', title: 'הגרסאות', emoji: '⚙️', hint: 'מה יש ומה אין בכל גרסה' },
-  { key: 'players', title: 'נגנים', emoji: '🎧', hint: 'נגני MP3 ו-MP4 כשרים' },
+export const GUIDE_CATEGORIES: { key: GuideCategory; title: string; /** שם אייקון (components/Icon) */ emoji: string; hint: string }[] = [
+  { key: 'start', title: 'מתחילים כאן', emoji: 'compass', hint: 'איך בוחרים מכשיר בלי להתחרט' },
+  { key: 'kosher', title: 'כשר ותומך כשר', emoji: 'kosher', hint: 'מה ההבדל ומה מתאים לכם' },
+  { key: 'versions', title: 'הגרסאות', emoji: 'settings', hint: 'מה יש ומה אין בכל גרסה' },
+  { key: 'players', title: 'נגנים', emoji: 'headphones', hint: 'נגני MP3 ו-MP4 כשרים' },
 ];
 
 export type Guide = {
   slug: string;
   title: string;
+  /** שם אייקון (components/Icon) */
   emoji: string;
   excerpt: string;
   minutes: number;
@@ -34,7 +35,7 @@ export const GUIDES: Guide[] = [
   {
     slug: 'kosher-vs-supported',
     title: 'כשר או תומך כשר? ההבדל בהסבר פשוט',
-    emoji: '⚖️',
+    emoji: 'compare',
     excerpt: 'שני סוגי מכשירים שנשמעים דומה, אבל שונים מאוד במה שאפשר לעשות איתם. כל מה שצריך לדעת לפני שבוחרים.',
     minutes: 3,
     category: 'kosher',
@@ -61,13 +62,13 @@ export const GUIDES: Guide[] = [
         ],
       },
       { type: 'tip', text: 'לא בטוחים? כתבו לנו בוואטסאפ מה אתם צריכים, ונגיד לכם בדיוק איזה מכשיר ואיזו גרסה מתאימים.' },
-      { type: 'cta', href: '/quiz', label: '🧭 עונים על 5 שאלות ומקבלים המלצה' },
+      { type: 'cta', href: '/quiz', label: 'עונים על כמה שאלות קצרות ומקבלים המלצה' },
     ],
   },
   {
     slug: 'kosher-phone',
     title: 'מה זה מכשיר כשר?',
-    emoji: '✡️',
+    emoji: 'kosher',
     excerpt: 'מכשיר לשיחות בלבד, באישור ועדת הרבנים לענייני תקשורת. מה יש בו, מה אין בו, ולמי הוא מתאים.',
     minutes: 3,
     category: 'kosher',
@@ -86,13 +87,13 @@ export const GUIDES: Guide[] = [
       { type: 'h', text: 'למי זה מתאים?' },
       { type: 'list', items: ['למי שרוצה את רמת הכשרות המחמירה ביותר', 'למבוגרים שצריכים טלפון פשוט וברור', 'לילדים ונוער שצריכים להיות זמינים לשיחות', 'כמכשיר שני, לשיחות בלבד'] },
       { type: 'tip', text: 'בכל עמוד מוצר מופיע לוגו הכשרות של המכשיר, כך שאפשר לדעת בדיוק מי אישר אותו.' },
-      { type: 'cta', href: '/category/' + encodeURIComponent('מכשירים כשרים'), label: '📱 לכל המכשירים הכשרים' },
+      { type: 'cta', href: '/category/' + encodeURIComponent('מכשירים כשרים'), label: 'לכל המכשירים הכשרים' },
     ],
   },
   {
     slug: 'kosher-supported',
     title: 'מה זה תומך כשר?',
-    emoji: '✅',
+    emoji: 'shield',
     excerpt: 'מכשיר שעובד עם קו כשר, עם סינון ברמה שבוחרים: רק SMS, נגן ומצלמה, או אפליקציות מאושרות כמו וואטסאפ ומוביט.',
     minutes: 4,
     category: 'kosher',
@@ -120,13 +121,13 @@ export const GUIDES: Guide[] = [
         type: 'tip',
         text: 'אפליקציות כמו וואטסאפ צריכות חיבור לרשת, ולכן צריך קו שמאפשר זאת (למשל קו עם גלישה מסוננת). לא בטוחים מה מתאים לקו שלכם? כתבו לנו ונבדוק יחד.',
       },
-      { type: 'cta', href: '/category/' + encodeURIComponent('תומך כשר'), label: '📱 לכל המכשירים התומכי כשר' },
+      { type: 'cta', href: '/category/' + encodeURIComponent('תומך כשר'), label: 'לכל המכשירים התומכי כשר' },
     ],
   },
   {
     slug: 'versions',
     title: 'מדריך הגרסאות: נגן, גלריה, מצלמה, SMS וכשר פליי',
-    emoji: '⚙️',
+    emoji: 'settings',
     excerpt: 'אותו מכשיר מגיע בכמה גרסאות. טבלה אחת שמראה בדיוק מה יש בכל גרסה, כדי לבחור נכון בפעם הראשונה.',
     minutes: 3,
     category: 'versions',
@@ -145,13 +146,13 @@ export const GUIDES: Guide[] = [
         ],
       },
       { type: 'tip', text: 'בעמוד של כל מוצר יש כפתור "מה ההבדל בין הגרסאות?", שמראה את ההשוואה רק לגרסאות של אותו מכשיר.' },
-      { type: 'cta', href: '/category/' + encodeURIComponent('תומך כשר'), label: '📱 למכשירים עם בחירת גרסה' },
+      { type: 'cta', href: '/category/' + encodeURIComponent('תומך כשר'), label: 'למכשירים עם בחירת גרסה' },
     ],
   },
   {
     slug: 'how-to-choose',
     title: 'איך בוחרים מכשיר? 5 שאלות שכדאי לשאול',
-    emoji: '🧭',
+    emoji: 'compass',
     excerpt: 'למי המכשיר, איזו כשרות, מה חייבים שיהיה בו, מה התקציב וכמה חשובה הסוללה. ככה בוחרים בלי להתחרט.',
     minutes: 3,
     category: 'start',
@@ -167,13 +168,13 @@ export const GUIDES: Guide[] = [
       { type: 'p', text: 'יש מכשירים טובים בכל טווח מחירים. מכשיר יקר יותר נותן בדרך כלל מסך, מצלמה וסוללה טובים יותר.' },
       { type: 'h', text: '5. כמה חשובה הסוללה?' },
       { type: 'p', text: 'מכשירים כשרים פשוטים מחזיקים לרוב כמה ימים בטעינה אחת. מכשירים עם מסך מגע ואפליקציות צריכים טעינה בתדירות גבוהה יותר.' },
-      { type: 'cta', href: '/quiz', label: '🧭 לשאלון ההתאמה: 5 שאלות והמלצה מיד' },
+      { type: 'cta', href: '/quiz', label: 'לשאלון ההתאמה: המלצה תוך דקה' },
     ],
   },
   {
     slug: 'kosher-players',
     title: 'נגני MP3 ו-MP4 כשרים: מה חשוב לדעת',
-    emoji: '🎧',
+    emoji: 'headphones',
     excerpt: 'נגן בלי אינטרנט לשירים, שיעורים וסיפורים. על מה להסתכל כשבוחרים נגן, ומה ההבדל בין הדגמים.',
     minutes: 2,
     category: 'players',
@@ -191,7 +192,7 @@ export const GUIDES: Guide[] = [
           'הכשר: בעמוד המוצר מופיע לוגו הכשרות של הנגן',
         ],
       },
-      { type: 'cta', href: '/category/' + encodeURIComponent('נגנים'), label: '🎧 לכל הנגנים' },
+      { type: 'cta', href: '/category/' + encodeURIComponent('נגנים'), label: 'לכל הנגנים' },
     ],
   },
 ];

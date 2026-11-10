@@ -5,6 +5,7 @@ import { supabase } from '../../../lib/supabase';
 import { FEATURES, FeatureKey, FeatureValue, featureMark, isKosherPlay, resolveVersion } from '@/lib/versionGuide';
 import { showToast } from '@/lib/toast';
 import { VersionMark } from '@/components/Logos';
+import Icon from '@/components/Icon';
 
 // גרסאות: השם מופיע בבחירת גרסה במוצר, והתיאור והיכולות מוצגים ללקוחות ב"מה ההבדל בין הגרסאות?" ובמדריך.
 
@@ -137,7 +138,7 @@ export default function AdminVersionsPage() {
                       <div className="flex flex-wrap gap-1 mt-2">
                         {FEATURES.filter((f) => info.features[f.key] === 'yes').map((f) => (
                           <span key={f.key} className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${featureMark(info.features[f.key]).cls}`}>
-                            {f.icon} {f.label}
+                            <Icon name={f.icon} size={12} className="inline -mt-0.5" /> {f.label}
                           </span>
                         ))}
                       </div>
@@ -199,7 +200,7 @@ export default function AdminVersionsPage() {
                               className="flex items-center justify-between gap-2 bg-white border rounded-xl px-3 py-2 text-xs cursor-pointer"
                             >
                               <span className="font-bold text-gray-800">
-                                {f.icon} {f.label}
+                                <Icon name={f.icon} size={12} className="inline -mt-0.5" /> {f.label}
                               </span>
                               <span className={`px-2 py-0.5 rounded-lg font-black ${m.cls}`}>
                                 {m.text} {m.label}

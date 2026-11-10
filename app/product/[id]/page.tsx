@@ -12,6 +12,7 @@ import SimpleMarkdown from '@/components/SimpleMarkdown';
 import Lightbox, { MediaItem } from '@/components/Lightbox';
 import { ProductVersionHelp, VersionNameMark } from '@/components/VersionGuide';
 import { WhatsAppIcon } from '@/components/Logos';
+import Icon from '@/components/Icon';
 import ProductUrgency from '@/components/ProductUrgency';
 import { CompareButton, DeliveryEstimate, ProductBadges } from '@/components/ProductExtras';
 import { setCurrentProduct, track } from '@/lib/track';
@@ -318,7 +319,7 @@ function ProductDetailContent() {
       window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text + ' ' + url)}`, '_blank');
     } else {
       navigator.clipboard.writeText(url);
-      showToast('הקישור הועתק 📋', { kind: 'success' });
+      showToast('הקישור הועתק', { kind: 'success' });
     }
   };
 
@@ -438,7 +439,7 @@ function ProductDetailContent() {
             )}
             {product.warranty && (
               <span className="text-xs font-bold bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-100 flex items-center gap-1">
-                🛡 אחריות: {product.warranty} {product.warranty_duration ? `(${product.warranty_duration})` : ''}
+                <Icon name="shield" size={13} className="inline -mt-0.5" /> אחריות: {product.warranty} {product.warranty_duration ? `(${product.warranty_duration})` : ''}
               </span>
             )}
           </div>
@@ -580,7 +581,6 @@ function ProductDetailContent() {
               className="col-span-8 bg-green-600 hover:bg-green-700 text-white py-3.5 px-4 rounded-2xl font-black text-sm transition shadow-md cursor-pointer flex items-center justify-center gap-2"
             >
               <span>קנה עכשיו</span>
-              <span>⚡</span>
             </button>
 
             <div className="col-span-4 flex items-center justify-between border rounded-2xl bg-gray-50 px-2 overflow-hidden shadow-xs">
@@ -605,7 +605,7 @@ function ProductDetailContent() {
             className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-2xl font-black text-sm transition shadow-md cursor-pointer flex items-center justify-center gap-2"
           >
             <span>הוספה לעגלה</span>
-            <span>🛒</span>
+            <Icon name="cart" size={18} />
           </button>
 
           <DeliveryEstimate />
@@ -645,7 +645,7 @@ function ProductDetailContent() {
                 className="w-9 h-9 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl border border-gray-200 transition cursor-pointer flex items-center justify-center shadow-xs"
                 title="העתק קישור"
               >
-                <span className="text-base">🔗</span>
+                <Icon name="link" size={16} />
               </button>
             </div>
           </div>

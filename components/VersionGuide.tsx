@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { FEATURES, VersionInfo, featureMark, resolveVersion, splitFeatures } from '@/lib/versionGuide';
 import { versionName } from '@/lib/versionPrice';
 import { VersionMark } from './Logos';
+import Icon from './Icon';
 
 // הסבר והשוואה בין גרסאות: בעמוד המוצר ובמדריכים
 
@@ -55,8 +56,8 @@ export function VersionCard({ v, active, onSelect }: { v: VersionInfo; active?: 
         <div className="bg-green-50 rounded-xl p-2.5 space-y-1">
           <span className="block font-black text-green-800">✓ יש</span>
           {yes.map((f) => (
-            <span key={f.key} className="block text-green-900">
-              {f.icon} {f.label}
+            <span key={f.key} className="flex items-center gap-1.5 text-green-900">
+              <Icon name={f.icon} size={13} /> {f.label}
             </span>
           ))}
         </div>
@@ -64,8 +65,8 @@ export function VersionCard({ v, active, onSelect }: { v: VersionInfo; active?: 
           <span className="block font-black text-gray-500">✕ אין</span>
           {no.length ? (
             no.map((f) => (
-              <span key={f.key} className="block text-gray-400 line-through decoration-gray-300">
-                {f.icon} {f.label}
+              <span key={f.key} className="flex items-center gap-1.5 text-gray-400 line-through decoration-gray-300">
+                <Icon name={f.icon} size={13} /> {f.label}
               </span>
             ))
           ) : (
@@ -116,8 +117,8 @@ export function VersionTable({ versions, selected, onSelect }: { versions: Versi
           {FEATURES.map((f, i) => (
             <tr key={f.key} className={i % 2 ? 'bg-gray-50/50' : ''}>
               <th className={`sticky right-0 z-10 text-right p-2 font-bold text-gray-700 border-b border-gray-100 leading-tight ${i % 2 ? 'bg-gray-50' : 'bg-white'}`} title={f.hint}>
-                <span className="block">
-                  {f.icon} {f.label}
+                <span className="flex items-center gap-1.5">
+                  <Icon name={f.icon} size={14} className="text-gray-500" /> {f.label}
                 </span>
                 <span className="block text-[9px] font-medium text-gray-400">{f.hint}</span>
               </th>
@@ -144,8 +145,8 @@ function ViewSwitch({ view, setView }: { view: 'cards' | 'table'; setView: (v: '
   return (
     <div className="inline-flex bg-gray-100 rounded-xl p-1 text-[11px] font-black">
       {([
-        ['cards', '🗂️ כרטיסים'],
-        ['table', '📊 טבלה'],
+        ['cards', 'כרטיסים'],
+        ['table', 'טבלה'],
       ] as const).map(([k, label]) => (
         <button
           key={k}

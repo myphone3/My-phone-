@@ -59,7 +59,7 @@ export default function ProductCard({ product }: { product: any }) {
     <div className="bg-white p-3 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition flex flex-col justify-between group" dir="rtl">
       <Link href={`/product/${product.id}`} className="block">
         <div className="h-40 w-full bg-gray-50 rounded-xl flex items-center justify-center p-2 relative overflow-hidden">
-          <CardOverlay product={product} />
+          <CardOverlay product={product} withKosher />
           {onSale && (
             <span className="absolute top-1.5 left-1.5 bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-lg z-10">
               מבצע 🔥

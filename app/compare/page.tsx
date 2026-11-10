@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Icon from '@/components/Icon';
 import { supabase } from '@/lib/supabase';
 import { COMPARE_EVENT, COMPARE_MAX, clearCompare, getCompare, removeFromCompare } from '@/lib/shop';
 import { showAddedToCart } from '@/lib/toast';
@@ -113,7 +114,7 @@ export default function ComparePage() {
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-6" dir="rtl">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">⚖️ השוואת מוצרים</h1>
+          <h1 className="text-xl sm:text-2xl font-black text-gray-900 flex items-center gap-2"><Icon name="compare" size={26} className="text-orange-600" /> השוואת מוצרים</h1>
           <p className="text-xs text-gray-500 mt-1 pr-4">עד {COMPARE_MAX} מוצרים זה לצד זה</p>
         </div>
         {products.length > 0 && (
@@ -127,7 +128,7 @@ export default function ComparePage() {
         <p className="text-center py-20 text-gray-500">טוען...</p>
       ) : products.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-3xl border p-8 space-y-3 shadow-sm">
-          <div className="text-5xl">⚖️</div>
+          <div className="flex justify-center text-gray-300"><Icon name="compare" size={56} strokeWidth={1.3} /></div>
           <p className="font-black text-gray-900">עוד לא בחרתם מוצרים להשוואה</p>
           <p className="text-sm text-gray-500">לחצו על &quot;השוואה&quot; בכרטיס של מוצר, ואפשר להוסיף עד {COMPARE_MAX}</p>
           <Link href="/" className="inline-block bg-orange-600 text-white px-5 py-2.5 rounded-xl text-xs font-black mt-2">לבחירת מוצרים</Link>

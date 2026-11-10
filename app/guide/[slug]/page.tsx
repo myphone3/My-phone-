@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Icon from '@/components/Icon';
 import { notFound } from 'next/navigation';
 import { GUIDES, GUIDE_CATEGORIES, getGuide } from '@/lib/guides';
 import { WhatsAppIcon } from '@/components/Logos';
@@ -40,19 +41,19 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
 
       <article className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 sm:p-10 space-y-5">
         <header className="space-y-2">
-          <span className="text-5xl">{g.emoji}</span>
+          <span className="w-14 h-14 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center"><Icon name={g.emoji} size={30} /></span>
           <h1 className="text-2xl sm:text-3xl font-black text-gray-900 leading-tight">{g.title}</h1>
           <p className="text-sm text-gray-500">{g.excerpt}</p>
           <div className="flex gap-2 flex-wrap">
-            {cat && <span className="text-[11px] font-bold bg-orange-50 text-orange-800 px-2 py-0.5 rounded-lg">{cat.emoji} {cat.title}</span>}
-            <span className="text-[11px] font-bold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-lg">⏱️ {g.minutes} דק׳ קריאה</span>
+            {cat && <span className="text-[11px] font-bold bg-orange-50 text-orange-800 px-2 py-0.5 rounded-lg inline-flex items-center gap-1"><Icon name={cat.emoji} size={12} /> {cat.title}</span>}
+            <span className="text-[11px] font-bold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-lg">{g.minutes} דק׳ קריאה</span>
           </div>
         </header>
 
         {/* השורה התחתונה */}
         {g.keyPoints?.length > 0 && (
           <div className="bg-green-50 border border-green-200 rounded-2xl p-4 space-y-1.5">
-            <span className="block text-xs font-black text-green-900">✅ בקצרה</span>
+            <span className="flex items-center gap-1.5 text-xs font-black text-green-900"><Icon name="check" size={14} /> בקצרה</span>
             {g.keyPoints.map((k) => (
               <p key={k} className="text-sm text-green-950 flex gap-2">
                 <span className="text-green-600 font-black shrink-0">✓</span>
@@ -65,7 +66,7 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
         {/* תוכן העניינים */}
         {headings.length >= 3 && (
           <nav className="bg-gray-50 rounded-2xl p-4 text-sm" aria-label="תוכן העניינים">
-            <span className="block text-xs font-black text-gray-700 mb-1.5">📑 במדריך הזה</span>
+            <span className="flex items-center gap-1.5 text-xs font-black text-gray-700 mb-1.5"><Icon name="book" size={14} /> במדריך הזה</span>
             <ol className="space-y-1">
               {headings.map((h, i) => (
                 <li key={h}>
@@ -109,7 +110,7 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
               case 'tip':
                 return (
                   <p key={i} className="bg-orange-50 border-r-4 border-orange-500 rounded-xl p-4 text-sm text-orange-950">
-                    💡 {b.text}
+                    <span className="font-black">טיפ: </span>{b.text}
                   </p>
                 );
               case 'table':
@@ -117,7 +118,7 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
               case 'cta':
                 return (
                   <Link key={i} href={b.href} className="block text-center bg-orange-600 hover:bg-orange-700 text-white py-3.5 rounded-2xl text-sm font-black transition">
-                    {b.label}
+                    {b.label} ←
                   </Link>
                 );
             }
@@ -145,7 +146,7 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {others.map((o) => (
             <Link key={o.slug} href={`/guide/${o.slug}`} className="bg-white border border-gray-100 hover:border-orange-300 rounded-2xl p-4 transition">
-              <span className="text-2xl">{o.emoji}</span>
+              <span className="text-orange-600"><Icon name={o.emoji} size={24} /></span>
               <span className="block text-sm font-black text-gray-900 mt-1 leading-snug">{o.title}</span>
               <span className="block text-[11px] text-gray-500 mt-1">{o.minutes} דק׳ קריאה</span>
             </Link>
