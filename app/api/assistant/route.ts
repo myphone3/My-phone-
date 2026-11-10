@@ -4,7 +4,7 @@ import { BUSINESS } from '@/lib/business';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 // הנציג החכם (AI) של החנות: עונה ללקוחות וממליץ על מכשירים, רק מתוך המוצרים שבאמת יש באתר.
 // המפתח (GEMINI_API_KEY) נשאר בשרת.
@@ -99,7 +99,7 @@ let modelsCache: { at: number; list: string[] } | null = null;
 async function fallbackModels(apiKey: string): Promise<string[]> {
   if (modelsCache && Date.now() - modelsCache.at < 60 * 60 * 1000) return modelsCache.list;
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key=${apiKey}`);
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key=${apiKey}`, { signal: AbortSignal.timeout(4000) });
     const data = await res.json();
     const list: string[] = (data.models || [])
       .filter((m: any) => (m.supportedGenerationMethods || []).includes('generateContent'))
@@ -120,33 +120,36 @@ async function fallbackModels(apiKey: string): Promise<string[]> {
 }
 
 const busy = (status: number, msg: string) => status === 429 || status === 503 || status === 500 || /high demand|overloaded|unavailable|try again/i.test(msg);
-const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function callModel(apiKey: string, model: string, contents: any[]) {
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents, generationConfig: { responseMimeType: 'application/json', temperature: 0.4 } }),
-  });
-  const data = await res.json().catch(() => ({}));
-  return { ok: res.ok, status: res.status, data, message: String(data?.error?.message || '') };
+// כל ניסיון מוגבל בזמן, כדי שמודל עמוס לא יתקע את כל השיחה
+async function callModel(apiKey: string, model: string, contents: any[], ms: number) {
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents, generationConfig: { responseMimeType: 'application/json', temperature: 0.4 } }),
+      signal: AbortSignal.timeout(ms),
+    });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, data, message: String(data?.error?.message || '') };
+  } catch (e: any) {
+    return { ok: false, status: 504, data: null, message: e?.name === 'TimeoutError' ? 'timeout' : String(e?.message || e) };
+  }
 }
 
 async function generate(apiKey: string, contents: any[]) {
+  const deadline = Date.now() + 45_000;
+  const left = (max: number) => Math.max(0, Math.min(max, deadline - Date.now()));
   let last = '';
-  // ניסיון ראשון + ניסיון חוזר על המודל הראשי
-  for (const delay of [0, 900]) {
-    if (delay) await wait(delay);
-    const r = await callModel(apiKey, MAIN_MODEL, contents);
-    if (r.ok) return r.data;
-    last = r.message;
-    if (!busy(r.status, r.message)) break;
-  }
-  // מודלים חלופיים
-  for (const model of await fallbackModels(apiKey)) {
-    const r = await callModel(apiKey, model, contents);
+  // המודל הראשי, ואם הוא עמוס מיד עוברים למודלים חלופיים (ובסוף עוד ניסיון אחד על הראשי)
+  const order = [MAIN_MODEL, ...(await fallbackModels(apiKey)), MAIN_MODEL];
+  for (const model of order) {
+    const ms = left(14_000);
+    if (ms < 3000) break;
+    const r = await callModel(apiKey, model, contents, ms);
     if (r.ok) return r.data;
     last = `${model}: ${r.message}`;
+    if (!busy(r.status, r.message) && r.status !== 504 && r.status !== 404 && r.status !== 400) break;
   }
   throw new Error(last || 'AI error');
 }
