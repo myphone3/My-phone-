@@ -173,7 +173,7 @@ export default function AssistantFloat() {
     <>
       {/* העיגול הקטן: בצבעי הלוגו של החנות */}
       <div
-        className="fixed left-[1.625rem] bottom-[5.6rem] [body[data-consent=open]_&]:bottom-[8.35rem] z-40 flex items-center gap-2 group"
+        className="fixed left-[0.875rem] bottom-[5rem] [body[data-consent=open]_&]:bottom-[8.35rem] z-40 flex items-center gap-2 group"
         dir="ltr"
         data-float
         style={{ translate: '0 calc(-1 * var(--float-shift, 0px))', transition: 'translate 300ms ease, transform 150ms ease' }}
@@ -209,7 +209,7 @@ export default function AssistantFloat() {
           data-float-open
           aria-label="הנציג החכם"
           dir="rtl"
-          className="fixed z-50 left-4 right-4 sm:right-auto bottom-[9.75rem] [body[data-consent=open]_&]:bottom-[12.5rem] sm:w-[380px] h-[min(560px,calc(100vh-12rem))] bg-white rounded-3xl shadow-2xl border-2 border-pink-100 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-150"
+          className="fixed z-50 left-4 right-4 sm:right-auto bottom-[9rem] [body[data-consent=open]_&]:bottom-[12.5rem] sm:w-[380px] h-[min(560px,calc(100vh-12rem))] bg-white rounded-3xl shadow-2xl border-2 border-pink-100 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-150"
         >
           {/* כותרת */}
           <div className="bg-gradient-to-l from-orange-500 via-pink-500 to-purple-600 text-white px-4 py-3 flex items-center gap-3 shrink-0">
