@@ -58,11 +58,8 @@ export default function CartPage() {
   const [showCityList, setShowCityList] = useState(false);
   const [showStreetList, setShowStreetList] = useState(false);
 
-  // פרטי אשראי
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardExpiry, setCardExpiry] = useState('');
-  const [cardCvv, setCardCvv] = useState('');
-  const [cardHolderId, setCardHolderId] = useState('');
+  // אישור הלקוח לתיאום התשלום (עד שיחובר ספק סליקה, התשלום מתואם בטלפון אחרי ההזמנה)
+  const [paymentAck, setPaymentAck] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   // נעילה מיידית נגד לחיצה כפולה (ה-state מתעדכן רק ברינדור הבא)
@@ -303,8 +300,8 @@ export default function CartPage() {
       return;
     }
 
-    if (!cardNumber || cardNumber.length < 12 || !cardExpiry || !cardCvv || !cardHolderId) {
-      showToast('נא למלא את כל פרטי האשראי ותעודת הזהות להשלמת התשלום', { kind: 'error' });
+    if (!paymentAck) {
+      showToast('נא לאשר שנציג יחזור אליך לתיאום התשלום', { kind: 'error' });
       return;
     }
 
@@ -401,11 +398,13 @@ export default function CartPage() {
               ✓
             </div>
           </div>
-          <h2 className="text-2xl font-black text-gray-900 mb-1.5">התשלום בוצע בהצלחה!</h2>
+          <h2 className="text-2xl font-black text-gray-900 mb-1.5">ההזמנה התקבלה בהצלחה!</h2>
           <p className="text-sm text-gray-600 leading-relaxed mb-5">
             תודה שקנית ב-NEW PHONE 🧡
             <br />
             אישור הזמנה נשלח למייל שלך.
+            <br />
+            נציג שלנו יחזור אליך בהקדם לתיאום התשלום ומועד המשלוח.
           </p>
           <div className="inline-block bg-orange-50 border border-dashed border-orange-300 text-orange-700 font-black rounded-xl px-4 py-2 text-sm mb-5">
             מספר הזמנה: <span dir="ltr">#{orderNumber(placedOrder.id)}</span>
@@ -463,14 +462,14 @@ export default function CartPage() {
       {/* כותרת ושלבים */}
       <div className="flex items-center justify-between border-b pb-4">
         <h1 className="text-2xl font-black text-gray-900 border-r-4 border-orange-600 pr-3">
-          {step === 'cart' ? 'עגלת קניות' : 'קופה ותשלום אשראי'}
+          {step === 'cart' ? 'עגלת קניות' : 'סיום הזמנה'}
         </h1>
 
         {cartItems.length > 0 && (
           <div className="flex items-center gap-2 text-xs font-bold">
             <span className={step === 'cart' ? 'text-orange-600 underline' : 'text-gray-400'}>1. עגלה</span>
             <span className="text-gray-300">➔</span>
-            <span className={step === 'checkout' ? 'text-orange-600 underline' : 'text-gray-400'}>2. תשלום</span>
+            <span className={step === 'checkout' ? 'text-orange-600 underline' : 'text-gray-400'}>2. פרטים וסיום</span>
           </div>
         )}
       </div>
@@ -626,7 +625,7 @@ export default function CartPage() {
             }}
             className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-2xl text-sm font-black transition shadow-md cursor-pointer flex items-center justify-center gap-2"
           >
-            <span>המשך לתשלום</span>
+            <span>המשך להזמנה</span>
             <span>➔</span>
           </button>
         </div>
@@ -823,9 +822,9 @@ export default function CartPage() {
             )}
           </div>
 
-          {/* 3. פירוט מחירים ותשלום באשראי מאובטח */}
+          {/* 3. פירוט מחירים ותיאום תשלום */}
           <div className="bg-white rounded-3xl border p-6 shadow-sm space-y-5">
-            <h3 className="font-black text-sm border-r-4 border-orange-600 pr-2">3. פירוט מחירים ותשלום באשראי מאובטח</h3>
+            <h3 className="font-black text-sm border-r-4 border-orange-600 pr-2">3. פירוט מחירים ותשלום</h3>
 
             {/* פירוט המחירים */}
             <div className="space-y-2 text-xs bg-gray-50 p-4 rounded-2xl border">
@@ -875,65 +874,28 @@ export default function CartPage() {
               </div>
             </div>
 
-            {/* שדות פרטי אשראי ותעודת זהות */}
+            {/* תיאום תשלום: האתר לא גובה ולא שומר פרטי אשראי. נציג חוזר ללקוח להשלמת התשלום */}
             <div className="space-y-3 bg-orange-50/40 p-4 rounded-2xl border border-orange-100">
               <h4 className="text-xs font-black text-gray-800 flex items-center gap-1.5">
                 <Icon name="card" size={14} className="text-orange-600" />
-                <span>הזנת פרטי כרטיס אשראי</span>
+                <span>איך משלמים?</span>
               </h4>
-
-              <div>
-                <label className="block text-[11px] font-bold text-gray-700 mb-1">מספר כרטיס אשראי <span className="text-red-500">*</span></label>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                אחרי שליחת ההזמנה, נציג של NEW PHONE יחזור אליך בטלפון או בוואטסאפ לתיאום התשלום (אשראי או העברה) ומועד המשלוח.
+                אין צורך להזין פרטי אשראי באתר, והם לא נשמרים אצלנו.
+              </p>
+              <label className="flex items-start gap-2.5 bg-white border border-orange-200 rounded-xl p-3 cursor-pointer">
                 <input
-                  type="text"
-                  maxLength={19}
-                  value={cardNumber}
-                  onChange={(e) => setCardNumber(e.target.value)}
-                  placeholder="XXXX XXXX XXXX XXXX"
-                  className="w-full bg-white border rounded-xl p-3 text-xs outline-none focus:border-orange-600 tracking-widest font-mono"
+                  type="checkbox"
+                  checked={paymentAck}
+                  onChange={(e) => setPaymentAck(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 accent-orange-600 shrink-0"
                   required
                 />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-gray-700 mb-1">תוקף (MM/YY) <span className="text-red-500">*</span></label>
-                  <input
-                    type="text"
-                    maxLength={5}
-                    value={cardExpiry}
-                    onChange={(e) => setCardExpiry(e.target.value)}
-                    placeholder="MM/YY"
-                    className="w-full bg-white border rounded-xl p-3 text-xs outline-none focus:border-orange-600 text-center font-mono"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-gray-700 mb-1">CVV (3 ספרות בגב) <span className="text-red-500">*</span></label>
-                  <input
-                    type="password"
-                    maxLength={4}
-                    value={cardCvv}
-                    onChange={(e) => setCardCvv(e.target.value)}
-                    placeholder="123"
-                    className="w-full bg-white border rounded-xl p-3 text-xs outline-none focus:border-orange-600 text-center font-mono"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-gray-700 mb-1">תעודת זהות של בעל הכרטיס <span className="text-red-500">*</span></label>
-                <input
-                  type="text"
-                  maxLength={9}
-                  value={cardHolderId}
-                  onChange={(e) => setCardHolderId(e.target.value)}
-                  placeholder="012345678"
-                  className="w-full bg-white border rounded-xl p-3 text-xs outline-none focus:border-orange-600 font-mono"
-                  required
-                />
-              </div>
+                <span className="text-xs text-gray-800 font-bold leading-relaxed">
+                  הבנתי. ההזמנה תישמר, ונציג יחזור אליי לתיאום התשלום
+                </span>
+              </label>
             </div>
 
             <button
@@ -941,7 +903,7 @@ export default function CartPage() {
               disabled={submitting}
               className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-2xl text-sm font-black transition shadow-md cursor-pointer flex items-center justify-center gap-2"
             >
-              <span>{submitting ? 'מעבד תשלום...' : `שלם ₪${totalPrice.toFixed(0)} באשראי מאובטח`}</span>
+              <span>{submitting ? 'שולח את ההזמנה...' : `שליחת ההזמנה (₪${totalPrice.toFixed(0)})`}</span>
             </button>
           </div>
 

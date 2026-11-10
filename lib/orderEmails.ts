@@ -79,17 +79,17 @@ export function orderConfirmationEmail(order: Order, ordersUrl: string) {
     subject: `✅ ההזמנה שלך התקבלה – מספר ${number} | NEW PHONE`,
     html: layout({
       title: 'תודה על ההזמנה!',
-      subtitle: 'ההזמנה שלך התקבלה והתשלום בוצע בהצלחה',
+      subtitle: 'ההזמנה שלך התקבלה בהצלחה',
       body: `
         <p style="margin:0 0 12px;">שלום ${firstName(order)},</p>
-        <p style="margin:0 0 14px;">תודה שבחרת ב-NEW PHONE. קיבלנו את ההזמנה שלך, והיא כבר בדרך לטיפול הצוות שלנו. ברגע שההזמנה תצא למשלוח, נעדכן אותך במייל.</p>
+        <p style="margin:0 0 14px;">תודה שבחרת ב-NEW PHONE. קיבלנו את ההזמנה שלך, ונציג שלנו יחזור אליך בהקדם לתיאום התשלום. ברגע שההזמנה תצא למשלוח, נעדכן אותך במייל.</p>
         <span style="display:inline-block; background:#fff7ed; border:1px dashed #fdba74; color:#c2410c; font-weight:900; border-radius:10px; padding:6px 12px; font-size:13px;">מספר הזמנה: #${number}</span>
         ${itemsTable(order)}
         ${addressBox(order)}
         ${button(ordersUrl, 'צפייה בהזמנה שלי')}
         <p style="font-size:12px; color:#6b7280; margin:0;">📎 סיכום ההזמנה מצורף כקובץ PDF.</p>`,
     }),
-    text: `שלום ${order.customer_name || ''}, תודה על ההזמנה! ההזמנה שלך (#${number}) התקבלה והתשלום בוצע בהצלחה. סה"כ: ${formatMoney(orderTotals(order).total)}. סיכום ההזמנה מצורף כקובץ PDF. לצפייה בהזמנה: ${ordersUrl}`,
+    text: `שלום ${order.customer_name || ''}, תודה על ההזמנה! ההזמנה שלך (#${number}) התקבלה, ונציג יחזור אליך לתיאום התשלום. סה"כ: ${formatMoney(orderTotals(order).total)}. סיכום ההזמנה מצורף כקובץ PDF. לצפייה בהזמנה: ${ordersUrl}`,
   };
 }
 

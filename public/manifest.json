@@ -2,15 +2,15 @@
   "name": "NEW PHONE",
   "short_name": "NEW PHONE",
   "description": "הפלאפון החדש שלך - מכשירים כשרים וסלולר",
+  "lang": "he",
+  "dir": "rtl",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#f97316",
+  "theme_color": "#ea580c",
   "icons": [
-    {
-      "src": "/Logo.JPG",
-      "sizes": "192x192 512x512",
-      "type": "image/jpeg"
-    }
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

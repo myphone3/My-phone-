@@ -90,7 +90,7 @@ export default function CompleteTheKit({ cartItems }: { cartItems: any[] }) {
           <div key={p.id} className="bg-gray-50 rounded-xl border border-gray-100 p-2 flex flex-col gap-2">
             <Link href={`/product/${p.id}`} className="block">
               <div className="h-20 bg-white rounded-lg flex items-center justify-center p-1">
-                {(p.image_url || p.images?.[0]) && <img src={p.image_url || p.images?.[0]} alt={p.name} className="max-h-full object-contain" />}
+                {(p.image_url || p.images?.[0]) && <img loading="lazy" decoding="async" src={p.image_url || p.images?.[0]} alt={p.name} className="max-h-full object-contain" />}
               </div>
               <span className="block text-[11px] font-bold text-gray-800 mt-1.5 line-clamp-2 leading-snug" dir="auto">
                 {p.name}

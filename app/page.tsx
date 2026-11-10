@@ -12,11 +12,21 @@ import FaqList from '@/components/FaqList';
 import Reviews from '@/components/Reviews';
 import KosherExplainer from '@/components/KosherExplainer';
 import { versionExtra as getVersionExtra } from '@/lib/versionPrice';
+import { useRouter } from 'next/navigation';
+
+// מבצע אמיתי: מחיר מבצע חיובי ונמוך מהמחיר הרגיל
+const isOnSale = (p: any) => Number(p?.sale_price) > 0 && Number(p.sale_price) < Number(p?.price);
+const finalPrice = (p: any) => (isOnSale(p) ? Number(p.sale_price) : Number(p?.price) || 0);
+
+// משתמשים שביקשו פחות תנועה לא מקבלים גלילה אוטומטית
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 // כמה מוצרים מוצגים בדף הבית (השאר בעמוד "כל המוצרים")
 const HOME_PRODUCTS = 12;
 
 function StoreContent() {
+  const router = useRouter();
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
@@ -31,6 +41,7 @@ function StoreContent() {
 
   const [upsellModalOpen, setUpsellModalOpen] = useState(false);
   const [addedProductName, setAddedProductName] = useState('');
+  const [addedProductId, setAddedProductId] = useState('');
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const catScrollRef = useRef<HTMLDivElement>(null);
@@ -42,7 +53,7 @@ function StoreContent() {
 
   useEffect(() => {
     const container = scrollRef.current;
-    if (!container || brands.length === 0) return;
+    if (!container || brands.length === 0 || prefersReducedMotion()) return;
 
     let animationFrameId: number;
     let lastInteractionTime = 0;
@@ -85,7 +96,7 @@ function StoreContent() {
 
   useEffect(() => {
     const container = catScrollRef.current;
-    if (!container || categories.length <= 4) return;
+    if (!container || categories.length <= 4 || prefersReducedMotion()) return;
 
     let animationFrameId: number;
     let lastInteractionTime = 0;
@@ -148,10 +159,10 @@ function StoreContent() {
   }, [settings]);
 
   useEffect(() => {
-    if (banners.length <= 1) return;
+    if (banners.length <= 1 || prefersReducedMotion()) return;
     const interval = setInterval(() => {
       setCurrentBanner((prev) => (prev + 1) % banners.length);
-    }, 4000);
+    }, 5000);
     return () => clearInterval(interval);
   }, [banners.length]);
 
@@ -159,18 +170,9 @@ function StoreContent() {
     try {
       setLoading(true);
       
-      let fetchedKosher: any[] = [];
-      const [k1, k2, k3] = await Promise.all([
-        supabase.from('kosher').select('*'),
-        supabase.from('kosher_certifications').select('*'),
-        supabase.from('kosher_options').select('*')
-      ]);
-
-      if (k3.data && k3.data.length > 0) fetchedKosher = k3.data;
-      else if (k1.data && k1.data.length > 0) fetchedKosher = k1.data;
-      else if (k2.data && k2.data.length > 0) fetchedKosher = k2.data;
-
-      const [prodRes, catRes, brandRes, bannerRes, settingsRes] = await Promise.all([
+      // כל הבקשות במקביל (הכשרויות נשמרות בטבלה kosher_options, כמו בפאנל הניהול)
+      const [kosherRes, prodRes, catRes, brandRes, bannerRes, settingsRes] = await Promise.all([
+        supabase.from('kosher_options').select('*'),
         supabase.from('products').select('*').or('is_published.is.null,is_published.eq.true').order('created_at', { ascending: false }),
         supabase.from('categories').select('*'),
         supabase.from('brands').select('*'),
@@ -181,7 +183,7 @@ function StoreContent() {
       if (prodRes.data) setProducts(prodRes.data);
       if (catRes.data) setCategories(catRes.data);
       if (brandRes.data) setBrands(brandRes.data);
-      setKosherList(fetchedKosher);
+      setKosherList(kosherRes.data || []);
       if (settingsRes.data) setSettings(settingsRes.data);
 
       if (bannerRes.data && bannerRes.data.length > 0) {
@@ -264,17 +266,21 @@ function StoreContent() {
   const handleQuickAddToCart = (product: any, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    const versions = product.versions || product.product_versions || [];
+    // למוצר עם כמה גרסאות הלקוח צריך לבחור גרסה, ולכן עוברים לעמוד המוצר במקום להוסיף גרסה אקראית
+    if (Array.isArray(versions) && versions.length > 1) {
+      router.push(`/product/${product.id}`);
+      return;
+    }
     try {
       const cart = JSON.parse(localStorage.getItem('cart') || '[]');
       const colors = product.product_colors || product.colors || [];
-      const versions = product.versions || product.product_versions || [];
       
       const firstColor = colors[0] || {};
       const firstVersion = versions[0] || {};
       
-      const finalPrice = product.sale_price || product.price || 0;
       const versionExtra = getVersionExtra(product, firstVersion);
-      const unitPrice = Number(finalPrice) + Number(versionExtra);
+      const unitPrice = finalPrice(product) + Number(versionExtra);
 
       const colorName = typeof firstColor === 'object' ? firstColor?.name : firstColor || '';
       const versionName = typeof firstVersion === 'object' ? firstVersion?.name : firstVersion || '';
@@ -304,6 +310,7 @@ function StoreContent() {
       window.dispatchEvent(new Event('cartUpdated'));
 
       setAddedProductName(product.name);
+      setAddedProductId(String(product.id));
       setUpsellModalOpen(true);
 
     } catch (err) {
@@ -319,22 +326,18 @@ function StoreContent() {
   };
 
   const scrollingBrands = [...brands, ...brands, ...brands, ...brands];
-  const saleProducts = products.filter(p => p.sale_price && Number(p.sale_price) > 0 && Number(p.sale_price) < Number(p.price));
+  const saleProducts = products.filter(isOnSale);
+  // הצעות בחלון "נוסף לעגלה": מוצרים במבצע, בלי המוצר שנוסף עכשיו
+  const upsellProducts = saleProducts.filter((p) => String(p.id) !== addedProductId).slice(0, 2);
 
   const isPromoActive = settings?.threshold_active && 
     (!settings?.announcement_end_time || (timeLeft && !timeLeft.isExpired));
 
   return (
     <div className="space-y-0 pb-16" dir="rtl">
+      <h1 className="sr-only">NEW PHONE: מכשירים כשרים, תומכי כשר, סמארטפונים, נגנים ואביזרים</h1>
 
       <style>{`
-        .no-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-        .no-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
         @keyframes subtle-pulse {
           0%, 100% { transform: scale(1); }
           50% { transform: scale(1.025); }
@@ -372,7 +375,7 @@ function StoreContent() {
                   href={`/brand/${encodeURIComponent(brand.name)}`}
                   className="w-24 h-12 flex items-center justify-center flex-shrink-0 opacity-85 hover:opacity-100 transition cursor-pointer"
                 >
-                  <img src={brand.image_url} alt={brand.name} className="max-h-full max-w-full object-contain pointer-events-none" />
+                  <img loading="lazy" decoding="async" src={brand.image_url} alt={brand.name} className="max-h-full max-w-full object-contain pointer-events-none" />
                 </Link>
               )
             ))}
@@ -444,6 +447,8 @@ function StoreContent() {
                 <button
                   key={idx}
                   onClick={(e) => { e.preventDefault(); setCurrentBanner(idx); }}
+                  aria-label={`באנר ${idx + 1} מתוך ${banners.length}`}
+                  aria-current={currentBanner === idx}
                   className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${currentBanner === idx ? 'w-6 bg-orange-500' : 'w-2 bg-white/40'}`}
                 />
               ))}
@@ -476,12 +481,14 @@ function StoreContent() {
             <div className="relative">
               <button 
                 onClick={() => scrollContainer(catScrollRef, 'right')}
+                aria-label="גלילה ימינה"
                 className="hidden sm:flex absolute -right-4 top-1/2 -translate-y-1/2 z-20 bg-white/80 hover:bg-white text-gray-800 w-9 h-9 rounded-full shadow-md items-center justify-center border border-gray-200 transition backdrop-blur-xs cursor-pointer opacity-0 group-hover:opacity-100"
               >
                 ➔
               </button>
               <button 
                 onClick={() => scrollContainer(catScrollRef, 'left')}
+                aria-label="גלילה שמאלה"
                 className="hidden sm:flex absolute -left-4 top-1/2 -translate-y-1/2 z-20 bg-white/80 hover:bg-white text-gray-800 w-9 h-9 rounded-full shadow-md items-center justify-center border border-gray-200 transition backdrop-blur-xs cursor-pointer opacity-0 group-hover:opacity-100"
               >
                 ➔
@@ -500,7 +507,7 @@ function StoreContent() {
                   >
                     <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-white flex items-center justify-center overflow-hidden group-hover:scale-105 transition shadow-xs border border-orange-500/30">
                       {cat.image_url ? (
-                        <img src={cat.image_url} alt={cat.name} className="w-full h-full object-contain p-2.5 bg-white pointer-events-none" />
+                        <img loading="lazy" decoding="async" src={cat.image_url} alt={cat.name} className="w-full h-full object-contain p-2.5 bg-white pointer-events-none" />
                       ) : (
                         <span className="text-3xl">📦</span>
                       )}
@@ -525,12 +532,14 @@ function StoreContent() {
             <div className="relative">
               <button 
                 onClick={() => scrollContainer(saleScrollRef, 'right')}
+                aria-label="גלילה ימינה"
                 className="hidden sm:flex absolute -right-3 top-1/2 -translate-y-1/2 z-20 bg-white/90 hover:bg-white text-gray-800 w-9 h-9 rounded-full shadow-md items-center justify-center border border-gray-200 transition backdrop-blur-xs cursor-pointer opacity-0 group-hover:opacity-100"
               >
                 ➔
               </button>
               <button 
                 onClick={() => scrollContainer(saleScrollRef, 'left')}
+                aria-label="גלילה שמאלה"
                 className="hidden sm:flex absolute -left-3 top-1/2 -translate-y-1/2 z-20 bg-white/90 hover:bg-white text-gray-800 w-9 h-9 rounded-full shadow-md items-center justify-center border border-gray-200 transition backdrop-blur-xs cursor-pointer opacity-0 group-hover:opacity-100"
               >
                 ➔
@@ -558,7 +567,7 @@ function StoreContent() {
                           <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-lg shadow-xs z-10">
                             מבצע
                           </span>
-                          <img 
+                          <img loading="lazy" decoding="async" 
                             src={primaryImg} 
                             alt={product.name} 
                             className="w-full h-full object-contain transition duration-300 group-hover:scale-105" 
@@ -566,7 +575,7 @@ function StoreContent() {
                           <div className="absolute top-2 right-2 flex flex-col gap-1 z-10">
                             {brandLogo && (
                               <div className="w-7 h-7 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border flex items-center justify-center">
-                                <img src={brandLogo} alt="" className="w-full h-full object-contain" />
+                                <img loading="lazy" decoding="async" src={brandLogo} alt="" className="w-full h-full object-contain" />
                               </div>
                             )}
                           </div>
@@ -626,7 +635,18 @@ function StoreContent() {
             )}
           </div>
 
-          {products.length === 0 ? (
+          {loading && products.length === 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6" aria-busy="true" aria-label="טוען מוצרים">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-3xl border-2 border-orange-50 p-4 space-y-3 animate-pulse">
+                  <div className="h-40 sm:h-52 bg-gray-100 rounded-2xl" />
+                  <div className="h-3 bg-gray-100 rounded w-4/5" />
+                  <div className="h-3 bg-gray-100 rounded w-2/5" />
+                  <div className="h-8 bg-orange-100 rounded-xl" />
+                </div>
+              ))}
+            </div>
+          ) : products.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-3xl border p-8 space-y-3 shadow-sm">
               <span className="text-4xl">📦</span>
               <p className="text-gray-500 font-medium">אין מוצרים זמינים כרגע.</p>
@@ -652,19 +672,19 @@ function StoreContent() {
                     <Link href={`/product/${product.id}`} className="block space-y-3">
                       <div className="h-40 sm:h-52 w-full bg-gray-50 rounded-2xl flex items-center justify-center relative overflow-hidden group">
                         <CardOverlay product={product} />
-                        {product.sale_price && (
+                        {isOnSale(product) && (
                           <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-lg shadow-xs z-10">
                             מבצע 🔥
                           </span>
                         )}
 
-                        <img 
+                        <img loading="lazy" decoding="async" 
                           src={activeImage} 
                           alt={product.name} 
                           className={`w-full h-full object-contain transition duration-300 group-hover:scale-105 ${hasHoverImage ? 'group-hover:opacity-0' : ''}`} 
                         />
                         {hasHoverImage && (
-                          <img 
+                          <img loading="lazy" decoding="async" 
                             src={secondaryImg} 
                             alt={product.name} 
                             className="absolute inset-0 w-full h-full object-contain opacity-0 group-hover:opacity-100 transition duration-300 group-hover:scale-105" 
@@ -674,12 +694,12 @@ function StoreContent() {
                         <div className="absolute top-2 right-2 flex flex-col gap-1.5 z-10">
                           {brandLogo && (
                             <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center">
-                              <img src={brandLogo} alt="" className="w-full h-full object-contain" />
+                              <img loading="lazy" decoding="async" src={brandLogo} alt="" className="w-full h-full object-contain" />
                             </div>
                           )}
                           {kosherLogo && (
                             <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center">
-                              <img src={kosherLogo} alt="Kosher" className="w-full h-full object-contain" />
+                              <img loading="lazy" decoding="async" src={kosherLogo} alt="Kosher" className="w-full h-full object-contain" />
                             </div>
                           )}
                         </div>
@@ -715,7 +735,7 @@ function StoreContent() {
                                 title={colorName}
                               >
                                 {colorImg && (
-                                  <img src={colorImg} alt={colorName} className="w-full h-full object-cover rounded-md" />
+                                  <img loading="lazy" decoding="async" src={colorImg} alt={colorName} className="w-full h-full object-cover rounded-md" />
                                 )}
                               </button>
                             );
@@ -727,10 +747,10 @@ function StoreContent() {
                         <div>
                           <span className="text-xs text-gray-400 block">מחיר</span>
                           <div className="flex items-center gap-2">
-                            <span className={`text-base font-black ${product.sale_price ? 'text-orange-600' : 'text-gray-900'}`}>
-                              ₪{product.sale_price || product.price || 0}
+                            <span className={`text-base font-black ${isOnSale(product) ? 'text-orange-600' : 'text-gray-900'}`}>
+                              ₪{finalPrice(product)}
                             </span>
-                            {product.sale_price && (
+                            {isOnSale(product) && (
                               <span className="text-xs text-gray-400 line-through">
                                 ₪{product.price}
                               </span>
@@ -841,23 +861,23 @@ function StoreContent() {
               <p className="text-xs text-gray-500 font-medium truncate px-4">"{addedProductName}"</p>
             </div>
 
-            <div className="space-y-3">
+            {upsellProducts.length > 0 && <div className="space-y-3">
               <span className="text-xs font-bold text-gray-800 block flex items-center gap-1.5">
                 <span>🔥</span>
-                <span>לקוחות שקנו את זה הוסיפו גם:</span>
+                <span>עוד מבצעים שכדאי להכיר:</span>
               </span>
 
               <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto no-scrollbar">
-                {saleProducts.slice(0, 2).map((promoProduct) => (
+                {upsellProducts.map((promoProduct) => (
                   <div key={promoProduct.id} className="bg-gray-50 border rounded-2xl p-2.5 flex flex-col justify-between text-right space-y-2">
-                    <img 
+                    <img loading="lazy" decoding="async" 
                       src={getProductImage(promoProduct)} 
                       alt={promoProduct.name} 
                       className="w-full h-20 object-contain bg-white rounded-xl p-1" 
                     />
                     <div>
                       <h4 className="text-[11px] font-bold text-gray-900 truncate">{promoProduct.name}</h4>
-                      <span className="text-xs font-black text-orange-600">₪{promoProduct.sale_price || promoProduct.price}</span>
+                      <span className="text-xs font-black text-orange-600">₪{finalPrice(promoProduct)}</span>
                     </div>
                     <Link 
                       href={`/product/${promoProduct.id}`}
@@ -869,7 +889,7 @@ function StoreContent() {
                   </div>
                 ))}
               </div>
-            </div>
+            </div>}
 
             <div className="flex gap-2 pt-2">
               <button
