@@ -41,7 +41,7 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
         )}
       </nav>
 
-      <article className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 sm:p-10 space-y-5">
+      <article className="bg-white rounded-3xl border-2 border-orange-100 shadow-sm p-6 sm:p-10 space-y-5">
         <header className="space-y-2">
           <span className="flex items-center gap-2">
             <span className="w-14 h-14 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center"><Icon name={g.emoji} size={30} /></span>
@@ -156,7 +156,7 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
         <h2 className="font-black text-gray-900">עוד מדריכים</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {others.map((o) => (
-            <Link key={o.slug} href={`/guide/${o.slug}`} className="bg-white border border-gray-100 hover:border-orange-300 rounded-2xl p-4 transition">
+            <Link key={o.slug} href={`/guide/${o.slug}`} className="bg-white border-2 border-orange-100 hover:border-orange-300 rounded-2xl p-4 transition">
               <span className="text-orange-600"><Icon name={o.emoji} size={24} /></span>
               <span className="block text-sm font-black text-gray-900 mt-1 leading-snug">{o.title}</span>
               <span className="block text-[11px] text-gray-500 mt-1">{o.minutes} דק׳ קריאה</span>

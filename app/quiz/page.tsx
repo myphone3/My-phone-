@@ -82,7 +82,8 @@ function stepsFor(a: Answers, products: any[]): StepKey[] {
   if (a.level === 'kosher' && askCert) steps.push('cert');
   if (a.level === 'support' || a.level === 'unsure' || a.level === 'open') steps.push('needs');
   if (askBudget) steps.push('budget');
-  steps.push('extras');
+  // "עוד משהו חשוב?" רק אם יש מכשירים שמתאימים לפחות לאחת התוספות
+  if (!products.length || EXTRAS.some((e) => pool.some((p) => e.re.test(textOf(p))))) steps.push('extras');
   return steps;
 }
 
@@ -94,6 +95,14 @@ const NEED_OPTIONS: { key: FeatureKey; label: string; icon: React.ReactNode; not
   { key: 'navigation', label: 'Waze / מוביט', icon: 'map', note: 'כשר פליי' },
 ];
 
+
+const NEED_RE: Record<string, RegExp> = {
+  sms: /sms|הודעות/i,
+  camera: /מצלמה|camera/i,
+  music: /נגן|mp3|שירים|שיעורים/i,
+  whatsapp: /וואטסאפ|ווטסאפ|whatsapp/i,
+  navigation: /waze|ווייז|ניווט|מוביט/i,
+};
 
 const EXTRAS: { key: string; label: string; icon: string; re: RegExp; reason: string }[] = [
   { key: 'battery', label: 'סוללה חזקה', icon: 'battery', re: /סוללה|mah|battery/i, reason: 'סוללה חזקה' },
@@ -324,6 +333,22 @@ export default function QuizPage() {
   const phoneCerts = useMemo(() => certsIn(products.filter((p) => kindOf(p) === 'kosher')), [products]);
   const phoneCertName = phoneCerts[0] || PHONE_CERT;
   const budgets = useMemo(() => budgetsFor(pool) || [], [pool]);
+  // רק אפשרויות שיש להן מכשיר בחנות (לפי הגרסאות והתיאור של המוצרים מהסוג שנבחר)
+  const needOptions = useMemo(() => {
+    const ok = NEED_OPTIONS.filter((n) =>
+      pool.some((p) => {
+        if (kindOf(p) === 'open') return true;
+        const names = versionsOf(p);
+        if (names.length) return names.some((v) => resolveVersion(v, versionRows).features[n.key] === 'yes');
+        return NEED_RE[n.key].test(textOf(p));
+      })
+    );
+    return ok.length ? ok : NEED_OPTIONS;
+  }, [pool, versionRows]);
+  const extraOptions = useMemo(() => {
+    const ok = EXTRAS.filter((e) => pool.some((p) => e.re.test(textOf(p))));
+    return ok.length ? ok : EXTRAS;
+  }, [pool]);
   const logoOf = (name?: string) => kosherList.find((k) => String(k.name).trim() === String(name || '').trim())?.image_url || '';
   const kosherPlayLogo = versionRows.find((r) => /כשר ?פליי/.test(r?.name) && r?.image_url)?.image_url;
 
@@ -495,7 +520,7 @@ export default function QuizPage() {
                 <p className="text-xs text-gray-500 mt-1">אפשר לבחור כמה. שיחות יש בכל מכשיר. לפי זה נבחר לכם את הגרסה המדויקת</p>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                {NEED_OPTIONS.map((n) => (
+                {needOptions.map((n) => (
                   <OptionButton key={n.key} selected={(answers.needs || []).includes(n.key)} onClick={() => toggle('needs', n.key)}>
                     {typeof n.icon === 'string' ? <Emoji c={n.icon} /> : n.icon}
                     <span>{n.label}</span>
@@ -542,7 +567,7 @@ export default function QuizPage() {
                 <p className="text-xs text-gray-500 mt-1">לא חובה, אפשר לבחור כמה</p>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                {EXTRAS.map((e) => (
+                {extraOptions.map((e) => (
                   <OptionButton key={e.key} selected={(answers.extras || []).includes(e.key)} onClick={() => toggle('extras', e.key)}>
                     <Emoji c={e.icon} /> {e.label}
                   </OptionButton>

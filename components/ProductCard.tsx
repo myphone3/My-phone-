@@ -56,7 +56,7 @@ export default function ProductCard({ product }: { product: any }) {
   };
 
   return (
-    <div className="bg-white p-3 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition flex flex-col justify-between group" dir="rtl">
+    <div className="bg-white p-3 rounded-2xl border-2 border-orange-100 hover:border-orange-300 shadow-sm hover:shadow-md transition flex flex-col justify-between group" dir="rtl">
       <Link href={`/product/${product.id}`} className="block">
         <div className="h-40 w-full bg-gray-50 rounded-xl flex items-center justify-center p-2 relative overflow-hidden">
           <CardOverlay product={product} withKosher />

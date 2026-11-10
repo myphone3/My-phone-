@@ -647,7 +647,7 @@ function StoreContent() {
                 return (
                   <div 
                     key={product.id} 
-                    className="bg-white rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between p-4 hover:shadow-xl transition-all duration-300"
+                    className="bg-white rounded-3xl border-2 border-orange-100 hover:border-orange-300 shadow-sm flex flex-col justify-between p-4 hover:shadow-xl transition-all duration-300"
                   >
                     <Link href={`/product/${product.id}`} className="block space-y-3">
                       <div className="h-40 sm:h-52 w-full bg-gray-50 rounded-2xl flex items-center justify-center relative overflow-hidden group">

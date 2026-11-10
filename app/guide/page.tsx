@@ -19,7 +19,7 @@ export default function GuidesPage() {
       {/* קפיצה לנושא */}
       <nav className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4" aria-label="נושאים">
         {GUIDE_CATEGORIES.map((c) => (
-          <a key={c.key} href={`#${c.key}`} className="shrink-0 bg-white border border-gray-200 hover:border-orange-300 px-3 py-1.5 rounded-full text-xs font-bold text-gray-700 inline-flex items-center gap-1.5">
+          <a key={c.key} href={`#${c.key}`} className="shrink-0 bg-orange-50 border-2 border-orange-200 hover:border-orange-400 px-3 py-1.5 rounded-full text-xs font-bold text-gray-700 inline-flex items-center gap-1.5">
             <Icon name={c.emoji} size={14} className="text-orange-600" /> {c.title}
           </a>
         ))}
@@ -51,7 +51,7 @@ export default function GuidesPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {list.map((g) => (
-                <Link key={g.slug} href={`/guide/${g.slug}`} className="flex gap-4 bg-white border border-gray-100 hover:border-orange-300 hover:shadow-sm rounded-2xl p-4 transition group">
+                <Link key={g.slug} href={`/guide/${g.slug}`} className="flex gap-4 bg-white border-2 border-orange-100 hover:border-orange-300 hover:shadow-sm rounded-2xl p-4 transition group">
                   <span className="w-12 h-12 shrink-0 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center"><Icon name={g.emoji} size={24} /></span>
                   <span className="min-w-0 space-y-1">
                     <span className="block font-black text-gray-900 group-hover:text-orange-700 transition leading-snug">{g.title}</span>

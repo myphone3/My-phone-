@@ -6,10 +6,12 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import ProductCard from '@/components/ProductCard';
 import Icon from '@/components/Icon';
+import SmartFilters from '@/components/SmartFilters';
+import { EMPTY_FACETS, FacetState, applyFacets } from '@/lib/facets';
 
 // כל המוצרים בחנות: סינון לפי קטגוריה וכשרות, ומיון לפי מחיר
 
-const priceOf = (p: any) => Number(p.sale_price && Number(p.sale_price) < Number(p.price) ? p.sale_price : p.price) || 0;
+const priceOf = (p: any): number => Number(p.sale_price && Number(p.sale_price) < Number(p.price) ? p.sale_price : p.price) || 0;
 
 const SORTS = [
   { key: 'new', label: 'החדשים ביותר' },
@@ -22,10 +24,9 @@ function CatalogContent() {
   const router = useRouter();
   const params = useSearchParams();
   const [products, setProducts] = useState<any[] | null>(null);
-  const [kosherList, setKosherList] = useState<any[]>([]);
+  const [facets, setFacets] = useState<FacetState>(EMPTY_FACETS);
 
   const category = params.get('category') || '';
-  const kosher = params.get('kosher') || '';
   const sort = params.get('sort') || 'new';
   const q = params.get('q') || '';
 
@@ -36,11 +37,10 @@ function CatalogContent() {
       .or('is_published.is.null,is_published.eq.true')
       .order('created_at', { ascending: false })
       .then(({ data }) => setProducts(data || []));
-    supabase
-      .from('kosher_options')
-      .select('name, image_url')
-      .then(({ data }) => setKosherList(data || []));
   }, []);
+
+  // בהחלפת קטגוריה הסינונים מתאפסים: לכל קטגוריה יש סינונים משלה
+  useEffect(() => setFacets(EMPTY_FACETS), [category]);
 
   const setParam = (key: string, value: string) => {
     const next = new URLSearchParams(params.toString());
@@ -55,24 +55,19 @@ function CatalogContent() {
     all.forEach((p) => p.category && count.set(p.category, (count.get(p.category) || 0) + 1));
     return Array.from(count.entries()).sort((a, b) => b[1] - a[1]);
   }, [all]);
-  // רק כשרויות שיש להן מוצרים
-  const certs = useMemo(() => {
-    const used = new Set(all.map((p) => String(p.kosher || '').trim()).filter(Boolean));
-    return kosherList.filter((k) => used.has(String(k.name).trim()));
-  }, [all, kosherList]);
+  // המוצרים של הקטגוריה (והחיפוש): מהם נבנים הסינונים
+  const scope = useMemo(
+    () => all.filter((p) => (!category || p.category === category) && (!q || String(p.name || '').toLowerCase().includes(q.toLowerCase()))),
+    [all, category, q]
+  );
 
   const list = useMemo(() => {
-    let out = all.filter(
-      (p) =>
-        (!category || p.category === category) &&
-        (!kosher || String(p.kosher || '').trim() === kosher) &&
-        (!q || String(p.name || '').toLowerCase().includes(q.toLowerCase()))
-    );
+    let out = applyFacets(scope, facets);
     if (sort === 'low') out = [...out].sort((a, b) => priceOf(a) - priceOf(b));
     if (sort === 'high') out = [...out].sort((a, b) => priceOf(b) - priceOf(a));
     if (sort === 'sale') out = [...out].sort((a, b) => Number(!!(b.sale_price && Number(b.sale_price) < Number(b.price))) - Number(!!(a.sale_price && Number(a.sale_price) < Number(a.price))));
     return out;
-  }, [all, category, kosher, sort, q]);
+  }, [scope, facets, sort]);
 
   const chip = (active: boolean) =>
     `shrink-0 text-xs font-bold px-3 py-1.5 rounded-full border-2 transition cursor-pointer whitespace-nowrap ${
@@ -119,28 +114,14 @@ function CatalogContent() {
             </button>
           ))}
         </div>
-        {certs.length > 0 && (
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-            <span className="text-[11px] font-black text-gray-500 shrink-0">כשרות:</span>
-            {certs.map((k) => (
-              <button
-                key={k.name}
-                type="button"
-                onClick={() => setParam('kosher', kosher === k.name ? '' : k.name)}
-                className={`${chip(kosher === k.name)} inline-flex items-center gap-1.5`}
-              >
-                {k.image_url && <img src={k.image_url} alt="" className="w-5 h-5 object-contain bg-white rounded" />}
-                {k.name}
-              </button>
-            ))}
-          </div>
-        )}
         {q && (
           <button type="button" onClick={() => setParam('q', '')} className="text-xs font-bold text-orange-700 inline-flex items-center gap-1 cursor-pointer">
             <Icon name="x" size={12} /> חיפוש: {q}
           </button>
         )}
       </div>
+
+      {products && <SmartFilters products={scope} value={facets} onChange={setFacets} resultCount={list.length} />}
 
       {!products ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
@@ -152,7 +133,10 @@ function CatalogContent() {
         <div className="text-center py-16 bg-white rounded-3xl border-2 border-dashed border-orange-200 space-y-2">
           <p className="flex justify-center text-gray-300"><Icon name="search" size={40} /></p>
           <p className="font-black text-gray-900">לא נמצאו מוצרים</p>
-          <button type="button" onClick={() => router.replace('/catalog')} className="text-xs font-bold text-orange-700 underline cursor-pointer">
+          <button type="button" onClick={() => {
+              setFacets(EMPTY_FACETS);
+              router.replace('/catalog');
+            }} className="text-xs font-bold text-orange-700 underline cursor-pointer">
             ניקוי הסינון
           </button>
         </div>
