@@ -4,6 +4,7 @@ import { BUSINESS } from '@/lib/business';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
 
 // הנציג החכם (AI) של החנות: עונה ללקוחות וממליץ על מכשירים, רק מתוך המוצרים שבאמת יש באתר.
 // המפתח (GEMINI_API_KEY) נשאר בשרת.
@@ -91,6 +92,65 @@ const RULES = `אתה "הנציג החכם" של חנות NEW PHONE: חנות מ
 החזר JSON בלבד, בדיוק במבנה: {"reply": "הטקסט ללקוח", "productIds": ["id של מוצר מומלץ", ...]}
 productIds: רק מזהים מהרשימה, ורק כשאתה ממליץ על מוצרים מסוימים (אחרת רשימה ריקה).`;
 
+// המודל הראשי (כמו בעוזר ה-AI בפאנל). כשהוא עמוס, מנסים שוב ואז עוברים למודל Flash אחר שזמין במפתח
+const MAIN_MODEL = 'gemini-3.8-flash';
+let modelsCache: { at: number; list: string[] } | null = null;
+
+async function fallbackModels(apiKey: string): Promise<string[]> {
+  if (modelsCache && Date.now() - modelsCache.at < 60 * 60 * 1000) return modelsCache.list;
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key=${apiKey}`);
+    const data = await res.json();
+    const list: string[] = (data.models || [])
+      .filter((m: any) => (m.supportedGenerationMethods || []).includes('generateContent'))
+      .map((m: any) => String(m.name || '').replace(/^models\//, ''))
+      .filter((n: string) => /^gemini-[\d.]+-flash(-lite)?$/.test(n) && n !== MAIN_MODEL)
+      // החדשים קודם, ו-flash לפני flash-lite
+      .sort((a: string, b: string) => {
+        const va = parseFloat(a.split('-')[1]);
+        const vb = parseFloat(b.split('-')[1]);
+        return vb - va || Number(a.includes('lite')) - Number(b.includes('lite'));
+      })
+      .slice(0, 4);
+    modelsCache = { at: Date.now(), list };
+    return list;
+  } catch {
+    return [];
+  }
+}
+
+const busy = (status: number, msg: string) => status === 429 || status === 503 || status === 500 || /high demand|overloaded|unavailable|try again/i.test(msg);
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function callModel(apiKey: string, model: string, contents: any[]) {
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contents, generationConfig: { responseMimeType: 'application/json', temperature: 0.4 } }),
+  });
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, data, message: String(data?.error?.message || '') };
+}
+
+async function generate(apiKey: string, contents: any[]) {
+  let last = '';
+  // ניסיון ראשון + ניסיון חוזר על המודל הראשי
+  for (const delay of [0, 900]) {
+    if (delay) await wait(delay);
+    const r = await callModel(apiKey, MAIN_MODEL, contents);
+    if (r.ok) return r.data;
+    last = r.message;
+    if (!busy(r.status, r.message)) break;
+  }
+  // מודלים חלופיים
+  for (const model of await fallbackModels(apiKey)) {
+    const r = await callModel(apiKey, model, contents);
+    if (r.ok) return r.data;
+    last = `${model}: ${r.message}`;
+  }
+  throw new Error(last || 'AI error');
+}
+
 export async function POST(request: Request) {
   try {
     const ip = (request.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
@@ -124,13 +184,7 @@ export async function POST(request: Request) {
       ...messages.map((m) => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.text }] })),
     ];
 
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-3.8-flash:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents, generationConfig: { responseMimeType: 'application/json', temperature: 0.4 } }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data?.error?.message || 'AI error');
+    const data = await generate(apiKey, contents);
 
     const text: string = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     let reply = '';
