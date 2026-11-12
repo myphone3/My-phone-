@@ -17,6 +17,10 @@ import ProductUrgency from '@/components/ProductUrgency';
 import { CompareButton, DeliveryEstimate, ProductBadges } from '@/components/ProductExtras';
 import { setCurrentProduct, track } from '@/lib/track';
 import { whatsappAboutProduct } from '@/lib/shop';
+import { addRecent } from '@/lib/recent';
+import { getBrands, getKosherOptions, getProduct } from '@/lib/productPrefetch';
+import RecentlyViewed from '@/components/RecentlyViewed';
+import { ProductPageSkeleton } from '@/components/Skeleton';
 
 function ProductDetailContent() {
   const params = useParams();
@@ -51,6 +55,26 @@ function ProductDetailContent() {
   const [showUpsellModal, setShowUpsellModal] = useState(false);
   const [upsellTargetProduct, setUpsellTargetProduct] = useState<any>(null);
 
+  // פס "הוספה לעגלה" קבוע בתחתית המסך בנייד, כשכפתור ההוספה הרגיל כבר למעלה מחוץ למסך
+  const addBtnRef = useRef<HTMLButtonElement>(null);
+  const [showStickyBar, setShowStickyBar] = useState(false);
+  useEffect(() => {
+    const el = addBtnRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver(([entry]) => setShowStickyBar(!entry.isIntersecting && entry.boundingClientRect.top < 0));
+    io.observe(el);
+    return () => io.disconnect();
+  }, [product, loading]);
+  useEffect(() => {
+    // הכפתורים הצפים עולים מעל הפס, כדי שלא יסתירו אותו
+    const on = showStickyBar && window.matchMedia('(max-width: 767px)').matches;
+    if (on) document.body.dataset.stickyBar = 'on';
+    else delete document.body.dataset.stickyBar;
+    return () => {
+      delete document.body.dataset.stickyBar;
+    };
+  }, [showStickyBar]);
+
   useEffect(() => {
     if (productId) {
       fetchProductAndMetaData();
@@ -77,9 +101,10 @@ function ProductDetailContent() {
       setLoading(true);
 
       const [prodRes, brandRes, kosherRes] = await Promise.all([
-        supabase.from('products').select('*').eq('id', productId).single(),
-        supabase.from('brands').select('*'),
-        supabase.from('kosher_options').select('*')
+        // אם הלקוח נגע בכרטיס המוצר, הנתונים כבר בדרך (טעינה מראש)
+        getProduct(productId),
+        getBrands(),
+        getKosherOptions()
       ]);
 
       if (prodRes.error || !prodRes.data) {
@@ -90,6 +115,7 @@ function ProductDetailContent() {
       const data = prodRes.data;
       setProduct(data);
       setCurrentProduct(String(data.id));
+      addRecent(String(data.id));
       track('product_view', { product_id: String(data.id) });
       setActiveTab(data.description ? 'desc' : data.specs ? 'specs' : 'faq');
       if (brandRes.data) setBrandsList(brandRes.data);
@@ -145,7 +171,7 @@ function ProductDetailContent() {
   };
 
   if (loading) {
-    return <div className="text-center py-32 text-gray-500 font-medium">טוען פרטי מוצר...</div>;
+    return <ProductPageSkeleton />;
   }
 
   if (!product) {
@@ -347,12 +373,12 @@ function ProductDetailContent() {
         <span className="text-gray-900 truncate max-w-[220px]" title={product.name}>{product.name}</span>
       </div>
 
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-3 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
         
         {/* תמונות המוצר */}
         <div className="space-y-4">
           <div
-            className="h-72 sm:h-96 w-full bg-gray-50 rounded-2xl flex items-center justify-center p-4 relative overflow-hidden"
+            className="h-[min(92vw,26rem)] sm:h-96 w-full bg-gray-50 rounded-2xl flex items-center justify-center p-2 sm:p-4 relative overflow-hidden"
             onTouchStart={(e) => (swipeX.current = e.touches[0].clientX)}
             onTouchEnd={(e) => {
               if (swipeX.current === null) return;
@@ -389,7 +415,7 @@ function ProductDetailContent() {
             {/* לוגו מותג וכשרות */}
             <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
               {brandLogo && (
-                <div className="w-10 h-10 bg-white/90 backdrop-blur-sm rounded-xl p-1.5 shadow border border-gray-100 flex items-center justify-center">
+                <div className="w-14 h-14 bg-white/90 backdrop-blur-sm rounded-xl p-1.5 shadow border border-gray-100 flex items-center justify-center">
                   <img src={brandLogo} alt="" className="w-full h-full object-contain" />
                 </div>
               )}
@@ -427,7 +453,7 @@ function ProductDetailContent() {
         </div>
 
         {/* פרטי המוצר ורכישה */}
-        <div className="space-y-6">
+        <div className="space-y-6 px-2 pb-2 sm:px-0 sm:pb-0">
           
           {/* קטגוריה ואחריות */}
           <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -600,6 +626,7 @@ function ProductDetailContent() {
           </div>
 
           <button
+            ref={addBtnRef}
             onClick={() => handleAddToCart(false)}
             className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-2xl font-black text-sm transition shadow-md cursor-pointer flex items-center justify-center gap-2"
           >
@@ -708,6 +735,8 @@ function ProductDetailContent() {
         </div>
       )}
 
+      <RecentlyViewed excludeId={String(product.id)} className="bg-white p-5 sm:p-6 rounded-3xl border shadow-sm" />
+
       {/* אזור לשוניות (תיאור מלא / מפרט מלא / שאלות נפוצות) */}
       <div ref={detailsRef} className="bg-white p-6 sm:p-8 rounded-3xl border shadow-sm space-y-6 scroll-mt-6">
         <div className="flex border-b gap-4">
@@ -749,6 +778,44 @@ function ProductDetailContent() {
             <SimpleMarkdown text={product.specs} />
           )}
           {activeTab === 'faq' && <FaqList productId={product.id} />}
+        </div>
+      </div>
+
+      {/* פס קנייה קבוע בנייד */}
+      <div
+        aria-hidden={!showStickyBar}
+        className={`md:hidden fixed inset-x-0 bottom-0 [body[data-consent=open]_&]:bottom-11 z-30 bg-white/95 backdrop-blur-md border-t border-orange-100 shadow-[0_-6px_20px_-8px_rgba(0,0,0,0.15)] transition-transform duration-300 ${showStickyBar ? 'translate-y-0' : 'translate-y-full pointer-events-none'}`}
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        <div className="flex items-center gap-3 px-3 py-2.5">
+          {activeImage && (
+            <span className="w-11 h-11 shrink-0 bg-gray-50 rounded-xl border border-gray-100 overflow-hidden flex items-center justify-center p-0.5">
+              <img src={activeImage} alt="" className="max-w-full max-h-full object-contain" />
+            </span>
+          )}
+          <span className="flex-1 min-w-0">
+            <span className="block text-[11px] font-bold text-gray-700 truncate" dir="auto">{product.name}</span>
+            <span className="flex items-baseline gap-1.5">
+              <span className="text-base font-black text-orange-600">₪{finalPrice}</span>
+              {Number(product.sale_price) > 0 && regularPrice > finalPrice && <span className="text-[11px] text-gray-400 line-through">₪{regularPrice}</span>}
+            </span>
+          </span>
+          <button
+            type="button"
+            tabIndex={showStickyBar ? 0 : -1}
+            onClick={() => {
+              // חסרה בחירת צבע או גרסה: מחזירים את הלקוח לאפשרויות
+              if (!validateSelections()) {
+                addBtnRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+              }
+              handleAddToCart(false);
+            }}
+            className="shrink-0 bg-orange-600 active:bg-orange-700 text-white px-5 py-3 rounded-2xl font-black text-sm shadow-md cursor-pointer flex items-center gap-1.5"
+          >
+            <Icon name="cart" size={17} />
+            הוספה לעגלה
+          </button>
         </div>
       </div>
 
@@ -812,7 +879,7 @@ function ProductDetailContent() {
 
 export default function ProductPage() {
   return (
-    <Suspense fallback={<div className="text-center py-32 text-gray-500 font-medium">טוען...</div>}>
+    <Suspense fallback={<ProductPageSkeleton />}>
       <ProductDetailContent />
     </Suspense>
   );

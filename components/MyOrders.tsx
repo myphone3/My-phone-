@@ -15,6 +15,7 @@ import {
   statusBadge,
 } from '@/lib/orders';
 import { showToast } from '@/lib/toast';
+import { ListSkeleton } from '@/components/Skeleton';
 
 // תמונה של המוצר הראשון בהזמנה
 function firstImage(order: Order) {
@@ -36,7 +37,7 @@ export async function downloadOrderPdf(order: Order) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function StatusTrack({ status }: { status?: string | null }) {
+export function StatusTrack({ status }: { status?: string | null }) {
   if (status === 'מבוטל') return null;
   const current = orderStepIndex(status);
   return (
@@ -210,7 +211,7 @@ export default function MyOrders() {
   };
 
   if (loading) {
-    return <div className="text-center py-16 text-gray-500 text-sm font-medium">טוען הזמנות...</div>;
+    return <ListSkeleton />;
   }
 
   if (loadFailed) {
@@ -240,6 +241,12 @@ export default function MyOrders() {
         >
           הרשמה לאתר עם Google
         </button>
+        <p className="text-xs text-gray-500">
+          הזמנתם בלי להירשם?{' '}
+          <Link href="/track" className="text-orange-700 font-black underline underline-offset-2">
+            מעקב הזמנה עם מספר הזמנה וטלפון
+          </Link>
+        </p>
       </div>
     );
   }

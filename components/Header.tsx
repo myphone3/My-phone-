@@ -5,7 +5,8 @@ import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import Icon from './Icon';
 import CategoriesMenu from './CategoriesMenu';
-import { usePathname, useRouter } from 'next/navigation';
+import SearchBox from './SearchBox';
+import { usePathname } from 'next/navigation';
 import { COMPARE_EVENT, getCompare } from '@/lib/shop';
 
 // כמה זמן אחרי הכניסה לאתר מוצג פופאפ ההצטרפות (רק פעם אחת בביקור)
@@ -13,11 +14,12 @@ const WELCOME_DELAY_MS = 20000;
 
 export default function Header() {
   const pathname = usePathname();
-  const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [cartCount, setCartCount] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
+  // מונה שעולה בכל הוספה לעגלה, כדי להפעיל מחדש את קפיצת האייקון
+  const [cartBump, setCartBump] = useState(0);
+  const lastCartCount = useRef<number | null>(null);
   
   const [promoConfig, setPromoConfig] = useState<any>(null);
   const [giftProduct, setGiftProduct] = useState<any>(null);
@@ -105,6 +107,8 @@ export default function Header() {
         const cart = JSON.parse(localStorage.getItem('cart') || '[]');
         const totalItems = cart.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
         setCartCount(totalItems);
+        if (lastCartCount.current !== null && totalItems > lastCartCount.current) setCartBump((n) => n + 1);
+        lastCartCount.current = totalItems;
       } catch {
         setCartCount(0);
       }
@@ -273,13 +277,6 @@ export default function Header() {
       }
       return next;
     });
-  };
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
   };
 
   const getProductImage = (p: any) => {
@@ -772,9 +769,11 @@ export default function Header() {
               className="relative p-2 bg-orange-50/40 hover:bg-orange-50 border-2 border-orange-200 text-orange-700 rounded-xl transition shadow-2xs flex items-center justify-center shrink-0 font-bold ml-2 cursor-pointer"
               title="עגלה"
             >
-              <Icon name="cart" size={22} />
+              <span key={`c${cartBump}`} className={cartBump ? 'cart-bump inline-flex' : 'inline-flex'}>
+                <Icon name="cart" size={22} />
+              </span>
               {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-orange-600 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center font-black border-2 border-white shadow-md">
+                <span key={`n${cartBump}`} className={`${cartBump ? 'cart-count-pop ' : ''}absolute -top-2 -right-2 bg-orange-600 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center font-black border-2 border-white shadow-md`}>
                   {cartCount}
                 </span>
               )}
@@ -786,22 +785,7 @@ export default function Header() {
           {/* שורה תחתונה: חיפוש */}
           <div className="flex items-stretch gap-2 pt-2">
           <CategoriesMenu />
-          <form onSubmit={handleSearchSubmit} className="relative flex-1 min-w-0">
-            <input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="חיפוש מוצרים, מכשירים, נגנים..."
-              aria-label="חיפוש מוצרים"
-              type="search"
-              enterKeyHint="search"
-              className="w-full bg-white border-2 border-orange-200 hover:border-orange-300 focus:border-orange-500 rounded-2xl py-2.5 pr-4 pl-10 text-xs font-medium text-gray-800 shadow-2xs outline-none transition"
-            />
-            <button type="submit" aria-label="חיפוש" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-600 transition cursor-pointer">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </button>
-          </form>
+          <SearchBox />
           </div>
 
         </div>

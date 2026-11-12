@@ -10,6 +10,7 @@ const LINKS = [
   { href: '/guide', label: 'מדריכים: כשר, תומך כשר וגרסאות', icon: 'book' },
   { href: '/quiz', label: 'איזה מכשיר מתאים לי?', icon: 'compass' },
   { href: '/compare', label: 'השוואת מוצרים', icon: 'compare' },
+  { href: '/track', label: 'מעקב הזמנה', icon: 'truck' },
   { href: '/terms', label: 'תקנון האתר' },
   { href: '/returns', label: 'ביטולים והחזרות' },
   { href: '/privacy', label: 'מדיניות פרטיות' },

@@ -48,6 +48,8 @@ export default function FloatDodge() {
     const baseRects = (): Rect[] => {
       const M = 4;
       return Array.from(document.querySelectorAll<HTMLElement>('[data-float]'))
+        // כפתור מוסתר (למשל "חזרה למעלה" לפני גלילה) לא נחשב
+        .filter((el) => Number(getComputedStyle(el).opacity) > 0.1)
         .map((el) => el.getBoundingClientRect())
         .filter((r) => r.width > 0)
         .map((r) => ({ top: r.top + shift - M, bottom: r.bottom + shift + M, left: r.left - M, right: r.right + M }));
@@ -112,6 +114,9 @@ export default function FloatDodge() {
     const check = () => {
       // כשחלון הצ'אט פתוח, לא מזיזים כלום
       if (document.querySelector('[data-float-open]')) return;
+      // הכפתורים עדיין בתנועה (למשל עולים מעל פס הקנייה): בודקים שוב כשהם נעצרים
+      const floats = Array.from(document.querySelectorAll<HTMLElement>('[data-float]'));
+      if (floats.some((el) => el.getAnimations?.().some((a) => a.playState === 'running'))) return schedule();
       const base = baseRects();
       if (!base.length) return;
       const max = window.innerHeight * MAX_SHARE;
@@ -145,12 +150,16 @@ export default function FloatDodge() {
     // תוכן שנטען אחרי הכניסה לעמוד (מוצרים, תמונות, חלונות) יכול לשנות מה נמצא מאחורי הכפתורים
     const observer = new MutationObserver(schedule);
     observer.observe(document.body, { childList: true, subtree: true });
+    // שינוי מצב בגוף העמוד (פס עוגיות, פס קנייה) מזיז את הכפתורים
+    const bodyObserver = new MutationObserver(schedule);
+    bodyObserver.observe(body, { attributes: true, attributeFilter: ['data-consent', 'data-sticky-bar'] });
 
     return () => {
       if (timer) clearTimeout(timer);
       window.removeEventListener('scroll', schedule);
       window.removeEventListener('resize', schedule);
       observer.disconnect();
+      bodyObserver.disconnect();
     };
   }, [pathname]);
 

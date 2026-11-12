@@ -48,7 +48,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       { name: 'ראשי', icon: '🏠', href: '/admin' },
       { name: 'הזמנות', icon: '📋', href: '/admin/orders' },
       { name: 'מוצרים', icon: '📦', href: '/admin/products' },
-      { name: 'לקוחות', icon: '👥', href: '/admin/customers' },
+      { name: 'לקוחות ומיילים', icon: '👥', href: '/admin/customers' },
       { name: 'סטטיסטיקה', icon: '📈', href: '/admin/analytics' },
       { name: 'דוחות', icon: '📊', href: '/admin/reports' },
     ],
@@ -56,7 +56,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       { name: 'מבצעים וקופונים', icon: '🎟️', href: '/admin/coupons' },
       { name: 'קישורי פרסום', icon: '📣', href: '/admin/campaigns' },
       { name: 'באנרים', icon: '🪧', href: '/admin/banners' },
-      { name: 'מיילים', icon: '✉️', href: '/admin/email' },
     ],
     [
       { name: 'ביקורות', icon: '⭐', href: '/admin/reviews' },

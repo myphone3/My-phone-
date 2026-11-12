@@ -52,3 +52,15 @@ export async function isAdminRequest(request: Request) {
   const { data, error } = await supabase.rpc('is_admin');
   return !error && data === true;
 }
+
+// חיבור לבסיס הנתונים בשם המנהל המחובר (לפונקציות admin_*). מחזיר null אם הבקשה לא ממנהל
+export async function adminDb(request: Request) {
+  const token = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
+  if (!token) return null;
+  const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false },
+  });
+  const { data, error } = await db.rpc('is_admin');
+  return !error && data === true ? db : null;
+}

@@ -91,3 +91,53 @@ body {
 body[data-consent='open'] {
   padding-bottom: calc(44px + env(safe-area-inset-bottom));
 }
+
+/* פס הקנייה הקבוע בנייד (עמוד מוצר): הכפתורים הצפים עולים מעליו */
+body[data-sticky-bar='on'] {
+  --float-base: calc(68px + env(safe-area-inset-bottom));
+}
+
+/* צורות טעינה בכתום של האתר, עם ברק עדין שעובר עליהן */
+.skeleton {
+  display: block;
+  background: linear-gradient(100deg, #ffedd5 30%, #fff7ed 50%, #ffedd5 70%);
+  background-size: 300% 100%;
+  animation: skeleton-shine 1.4s ease-in-out infinite;
+}
+@keyframes skeleton-shine {
+  from { background-position: 100% 0; }
+  to { background-position: 0 0; }
+}
+
+/* מעבר חלק בין עמודים: התוכן החדש נכנס בעדינות.
+   רק שקיפות (בלי תזוזה), כדי שחלונות ופסים קבועים בתוך העמוד יישארו צמודים למסך */
+.page-enter {
+  animation: page-enter 240ms ease-out backwards;
+}
+@keyframes page-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* אייקון העגלה קופץ כשמוסיפים מוצר */
+.cart-bump {
+  animation: cart-bump 600ms cubic-bezier(.3, 1.6, .5, 1);
+}
+@keyframes cart-bump {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.28) rotate(-8deg); }
+  55% { transform: scale(0.94) rotate(4deg); }
+  100% { transform: scale(1); }
+}
+.cart-count-pop {
+  animation: cart-count-pop 500ms cubic-bezier(.3, 1.8, .5, 1);
+}
+@keyframes cart-count-pop {
+  0% { transform: scale(0.4); }
+  60% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton, .page-enter, .cart-bump, .cart-count-pop { animation: none; }
+}

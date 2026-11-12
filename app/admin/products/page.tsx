@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { fetchAll } from '@/lib/fetchAll';
+import { compressImage } from '@/lib/compressImage';
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -173,7 +174,8 @@ export default function AdminProductsPage() {
     const bucketsToTry = ['products', 'media', 'public', 'images', 'uploads', 'product-images'];
 
     for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+      // תמונה גדולה מוקטנת אוטומטית, כדי שהאתר ייטען מהר בנייד
+      const file = await compressImage(files[i]);
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}_${i}.${fileExt}`;
       const filePath = `products/${fileName}`;

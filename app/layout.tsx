@@ -12,6 +12,8 @@ import SiteTracker from '../components/SiteTracker';
 import ConsentBanner from '../components/ConsentBanner';
 import AssistantFloat from '../components/AssistantFloat';
 import FloatDodge from '../components/FloatDodge';
+import PrefetchOnTouch from '../components/PrefetchOnTouch';
+import BackToTop from '../components/BackToTop';
 import { Suspense } from 'react';
 import { getSiteSettings } from '@/lib/siteSettings';
 import { SITE_NAME, SITE_URL, jsonLdString, organizationJsonLd } from '@/lib/seo';
@@ -91,6 +93,8 @@ export default function RootLayout({
         <SiteTracker />
         <AssistantFloat />
         <FloatDodge />
+        <PrefetchOnTouch />
+        <BackToTop />
         <ConsentBanner />
 
       </body>

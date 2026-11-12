@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { compressImage } from '@/lib/compressImage';
 
 // לשוניות הספרייה. כל לשונית נקבעת לפי טבלאות במסד שמכילות את התמונה.
 // tables = שמות טבלאות מוכרים, keywords = מילים שמזהות טבלאות נוספות אוטומטית
@@ -160,7 +161,8 @@ export default function AdminMedia() {
     try {
       setUploading(true);
       for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+        // תמונה גדולה מוקטנת אוטומטית, כדי שהאתר ייטען מהר בנייד
+        const file = await compressImage(files[i]);
         const fileExt = file.name.split('.').pop();
         const fileName = `media_${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
         

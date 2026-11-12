@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { COMPARE_EVENT, COMPARE_MAX, clearCompare, getCompare, removeFromCompare } from '@/lib/shop';
 import { showAddedToCart } from '@/lib/toast';
 import { versionName } from '@/lib/versionPrice';
+import { ProductGridSkeleton } from '@/components/Skeleton';
 
 const asArray = (val: any): any[] => {
   if (Array.isArray(val)) return val;
@@ -125,7 +126,7 @@ export default function ComparePage() {
       </div>
 
       {ids === null ? (
-        <p className="text-center py-20 text-gray-500">טוען...</p>
+        <ProductGridSkeleton count={3} className="!grid-cols-3" />
       ) : products.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-3xl border p-8 space-y-3 shadow-sm">
           <div className="flex justify-center text-gray-300"><Icon name="compare" size={56} strokeWidth={1.3} /></div>

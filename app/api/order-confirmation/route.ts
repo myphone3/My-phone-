@@ -51,7 +51,7 @@ export async function POST(request: Request) {
         readFile(path.join(publicDir, PDF_ASSET_PATHS.logo)).catch(() => undefined),
       ]);
       const pdf = await buildOrderPdf(order, { regular, bold, logo });
-      const email = orderConfirmationEmail(order, `${origin}/cart?tab=orders`);
+      const email = orderConfirmationEmail(order, `${origin}/track?n=${orderNumber(order.id)}`);
       await transport.sendMail({
         from,
         to: order.email,

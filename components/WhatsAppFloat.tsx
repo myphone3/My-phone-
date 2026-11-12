@@ -17,7 +17,7 @@ export default function WhatsAppFloat() {
       onClick={() => track('whatsapp_click')}
       aria-label="שיחה בוואטסאפ"
       data-float
-      style={{ translate: '0 calc(-1 * var(--float-shift, 0px))', transition: 'translate 300ms ease, transform 150ms ease' }}
+      style={{ translate: '0 calc(-1 * (var(--float-shift, 0px) + var(--float-base, 0px)))', transition: 'translate 300ms ease, transform 150ms ease' }}
       className="fixed bottom-3 [body[data-consent=open]_&]:bottom-16 left-3 z-40 w-14 h-14 rounded-full bg-white/30 backdrop-blur-md border border-[#25D366]/50 hover:bg-white/50 hover:scale-110 transition shadow-lg flex items-center justify-center"
     >
       <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true" fill="#25D366">
