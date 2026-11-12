@@ -224,6 +224,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 .sheet { position: fixed; inset: auto 0 0 0; z-index: 21; background: var(--surface); border-radius: 20px 20px 0 0; max-height: 90vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
   padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px));
   padding-top: 16px; padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -10px 30px rgba(0,0,0,.18); }
+/* swipe-down to close: grab handle on bottom sheets */
+.sheet:not(.full)::before { content: ""; position: absolute; top: 6px; left: 50%; transform: translateX(-50%); width: 42px; height: 5px; border-radius: 3px; background: var(--line); z-index: 3; pointer-events: none; }
+.sheet.dragging { transition: none !important; animation: none !important; }
 .sheet.full { inset: 0; border-radius: 0; max-height: none; padding-top: calc(24px + env(safe-area-inset-top, 0px)); }
 .sheet-inner { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
 .sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
@@ -2745,6 +2748,57 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   function hide() { if (openSheet) openSheet.hidden = true; $("scrim").hidden = true; openSheet = null; }
   $("scrim").addEventListener("click", hide);
   $$("[data-close]").forEach(function (b) { b.addEventListener("click", hide); });
+  // swipe a bottom sheet down to close it (like dismissing a story)
+  (function () {
+    var drag = null;
+    function closeSwiped(sheet) {
+      var closer = sheet.querySelector(".sheet-head .icon-btn");
+      if (closer) closer.click(); else hide();
+      sheet.style.transform = ""; sheet.style.transition = ""; $("scrim").style.opacity = ""; $("scrim").style.transition = "";
+    }
+    $$(".sheet:not(.full)").forEach(function (sheet) {
+      sheet.addEventListener("touchstart", function (ev) {
+        if (ev.touches.length !== 1 || sheet.hidden) { drag = null; return; }
+        var t = ev.target;
+        if (t.closest && t.closest('input[type="range"], textarea, select')) { drag = null; return; }
+        var y = ev.touches[0].clientY, top = sheet.getBoundingClientRect().top;
+        drag = { sheet: sheet, x: ev.touches[0].clientX, y: y, dy: 0, t: Date.now(), on: false,
+          fromHead: y - top < 70 || sheet.scrollTop <= 0 };
+      }, { passive: true });
+      sheet.addEventListener("touchmove", function (ev) {
+        if (!drag || drag.sheet !== sheet) return;
+        var dx = ev.touches[0].clientX - drag.x, dy = ev.touches[0].clientY - drag.y;
+        if (!drag.on) {
+          if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) { drag = null; return; }
+          if (dy < -6) { drag = null; return; }
+          if (dy > 8 && drag.fromHead && (sheet.scrollTop <= 0 || drag.y - sheet.getBoundingClientRect().top < 70)) {
+            drag.on = true; drag.y += 8; drag.t = Date.now(); dy -= 8; sheet.classList.add("dragging");
+          } else return;
+        }
+        ev.preventDefault();
+        drag.dy = Math.max(0, dy);
+        sheet.style.transform = "translateY(" + drag.dy + "px)";
+        $("scrim").style.opacity = String(Math.max(0, 1 - drag.dy / (sheet.offsetHeight || 400)));
+      }, { passive: false });
+      function end() {
+        if (!drag || drag.sheet !== sheet) return;
+        var d = drag; drag = null;
+        if (!d.on) return;
+        sheet.classList.remove("dragging");
+        var v = d.dy / Math.max(1, Date.now() - d.t);
+        sheet.style.transition = "transform .2s ease-out"; $("scrim").style.transition = "opacity .2s ease-out";
+        if (d.dy > Math.min(140, sheet.offsetHeight * 0.3) || (v > 0.6 && d.dy > 40)) {
+          sheet.style.transform = "translateY(100%)"; $("scrim").style.opacity = "0";
+          setTimeout(function () { closeSwiped(sheet); }, 200);
+        } else {
+          sheet.style.transform = ""; $("scrim").style.opacity = "";
+          setTimeout(function () { sheet.style.transition = ""; $("scrim").style.transition = ""; }, 220);
+        }
+      }
+      sheet.addEventListener("touchend", end);
+      sheet.addEventListener("touchcancel", end);
+    });
+  })();
   document.addEventListener("keydown", function (ev) { if (ev.key === "Escape" && openSheet && openSheet.id !== "loginSheet" && openSheet.id !== "lockSheet" && openSheet.id !== "needSheet") hide(); });
 
   // ---------- login / signup ----------
