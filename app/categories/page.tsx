@@ -3,6 +3,7 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import { PageSkeleton } from '@/components/Skeleton';
 
 function AllCategoriesAndBrandsContent() {
   const [categories, setCategories] = useState<any[]>([]);
@@ -33,8 +34,13 @@ function AllCategoriesAndBrandsContent() {
 
   if (loading) {
     return (
-      <div className="text-center py-24 font-bold text-sm text-gray-600" dir="rtl">
-        טוען את הקטגוריות והמותגים... ⏳
+      <div className="max-w-6xl mx-auto px-4 py-8 space-y-6" dir="rtl" role="status" aria-label="טוען">
+        <span className="skeleton h-8 w-48 rounded-lg" />
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <span key={i} className="skeleton h-32 rounded-3xl" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -121,7 +127,7 @@ function AllCategoriesAndBrandsContent() {
                 href={`/brand/${encodeURIComponent(brand.name)}`}
                 className="bg-white rounded-3xl border border-gray-100 p-4 flex flex-col items-center justify-center gap-3 shadow-sm hover:shadow-md hover:border-orange-300 transition group"
               >
-                <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center p-2 rounded-2xl bg-gray-50 group-hover:scale-105 transition">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center p-2 rounded-2xl bg-gray-50 group-hover:scale-105 transition">
                   {brand.image_url ? (
                     <img
                       src={brand.image_url}
@@ -146,7 +152,7 @@ function AllCategoriesAndBrandsContent() {
 
 export default function AllCategoriesAndBrandsPage() {
   return (
-    <Suspense fallback={<div className="text-center py-20 font-bold text-sm text-gray-600">טוען נתונים...</div>}>
+    <Suspense fallback={<PageSkeleton />}>
       <AllCategoriesAndBrandsContent />
     </Suspense>
   );

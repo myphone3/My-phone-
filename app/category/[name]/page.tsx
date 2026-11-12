@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { versionExtra as getVersionExtra } from '@/lib/versionPrice';
+import { PageSkeleton, ProductGridSkeleton } from '@/components/Skeleton';
 
 function CategoryContent() {
   const params = useParams();
@@ -187,7 +188,7 @@ function CategoryContent() {
         {!loading && <SmartFilters products={products} value={facets} onChange={setFacets} resultCount={filteredProducts.length} />}
 
         {loading ? (
-          <div className="text-center py-20 text-gray-500 font-medium">טוען מוצרים...</div>
+          <ProductGridSkeleton />
         ) : filteredProducts.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-3xl border p-8 space-y-3 shadow-sm">
             <span className="text-4xl">📦</span>
@@ -375,7 +376,7 @@ function CategoryContent() {
 
 export default function CategoryPage() {
   return (
-    <Suspense fallback={<div className="text-center py-20 text-gray-500 font-medium">טוען קטגוריה...</div>}>
+    <Suspense fallback={<PageSkeleton />}>
       <CategoryContent />
     </Suspense>
   );

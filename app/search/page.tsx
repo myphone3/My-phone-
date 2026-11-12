@@ -7,6 +7,8 @@ import { BUSINESS } from '@/lib/business';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import { searchProducts } from '@/lib/search';
+import { PageSkeleton, ProductGridSkeleton } from '@/components/Skeleton';
 
 function SearchResultsContent() {
   const searchParams = useSearchParams();
@@ -23,16 +25,8 @@ function SearchResultsContent() {
     setLoading(true);
     const { data } = await supabase.from('products').select('*').or('is_published.is.null,is_published.eq.true');
     if (data) {
-      const filtered = data.filter((p) => {
-        if (!query.trim()) return true;
-        const q = query.toLowerCase();
-        return (
-          p.name?.toLowerCase().includes(q) ||
-          p.brand?.toLowerCase().includes(q) ||
-          p.category?.toLowerCase().includes(q) ||
-          p.description?.toLowerCase().includes(q)
-        );
-      });
+      // חיפוש חכם: עברית/אנגלית, שגיאות כתיב קטנות, והתוצאות הכי מתאימות ראשונות
+      const filtered = searchProducts(data, query);
       setProducts(filtered);
       if (query.trim()) track('search', { query: query.trim().slice(0, 100), results: filtered.length });
     }
@@ -57,7 +51,7 @@ function SearchResultsContent() {
       </div>
 
       {loading ? (
-        <div className="text-center py-20 text-gray-500 font-medium">מחפש מוצרים...</div>
+        <ProductGridSkeleton />
       ) : products.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-3xl border p-8 space-y-3 shadow-sm">
           <span className="text-4xl">🔍</span>
@@ -163,7 +157,7 @@ function SearchResultsContent() {
 
 export default function SearchPage() {
   return (
-    <Suspense fallback={<div className="text-center py-20 font-bold text-sm text-gray-600">טוען תוצאות חיפוש...</div>}>
+    <Suspense fallback={<PageSkeleton />}>
       <SearchResultsContent />
     </Suspense>
   );

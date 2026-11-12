@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { showAddedToCart } from '@/lib/toast';
 import { versionExtra as getVersionExtra } from '@/lib/versionPrice';
+import { ProductGridSkeleton } from '@/components/Skeleton';
 
 export default function BrandPage() {
   const params = useParams();
@@ -144,7 +145,7 @@ export default function BrandPage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-20 font-bold text-sm text-gray-600">טוען מוצרים...</div>
+        <ProductGridSkeleton />
       ) : products.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-3xl border p-8 space-y-3 shadow-sm">
           <span className="text-4xl">📦</span>
@@ -193,7 +194,7 @@ export default function BrandPage() {
 
                     <div className="absolute top-2 right-2 flex flex-col gap-1.5 z-10">
                       {brandLogo && (
-                        <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center">
+                        <div className="w-10 h-10 bg-white/90 backdrop-blur-sm rounded-xl p-1 shadow border border-gray-100 flex items-center justify-center">
                           <img loading="lazy" decoding="async" src={brandLogo} alt="" className="w-full h-full object-contain" />
                         </div>
                       )}

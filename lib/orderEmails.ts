@@ -155,6 +155,33 @@ export function abandonedCartEmail(opts: { name?: string | null; items: SavedCar
   return { subject: 'שכחת משהו בעגלה? המוצרים שלך מחכים 🛒', html };
 }
 
+// מייל מבצעים/עדכון ללקוחות שאישרו קבלת מבצעים. תמיד עם קישור הסרה אישי
+export function campaignEmail(opts: { name?: string | null; subject: string; message: string; buttonText?: string; buttonUrl?: string; unsubscribeUrl?: string }) {
+  const first = escapeHtml((opts.name || '').trim().split(/\s+/)[0] || '');
+  // שורות ריקות מפרידות פסקאות, ושורה חדשה נשמרת
+  const paragraphs = escapeHtml(opts.message)
+    .split(/\n{2,}/)
+    .map((p) => `<p style="margin:0 0 12px;">${p.replace(/\n/g, '<br />')}</p>`)
+    .join('');
+  const html = layout({
+    title: escapeHtml(opts.subject),
+    subtitle: 'NEW PHONE · הפלאפון החדש שלך',
+    body: `
+      ${first ? `<p style="margin:0 0 10px;">שלום ${first},</p>` : ''}
+      ${paragraphs}
+      ${opts.buttonUrl ? button(escapeHtml(opts.buttonUrl), escapeHtml(opts.buttonText || 'לאתר')) : ''}
+      ${
+        opts.unsubscribeUrl
+          ? `<p style="margin:14px 0 0; font-size:11px; color:#9ca3af; text-align:center;">
+        קיבלת את המייל כי אישרת לקבל מאיתנו מבצעים ועדכונים.
+        <a href="${opts.unsubscribeUrl}" style="color:#9ca3af;">להסרה מרשימת הדיוור</a>
+      </p>`
+          : ''
+      }`,
+  });
+  return { subject: opts.subject, html };
+}
+
 // בקשת ביקורת: נשלחת פעם אחת אחרי שההזמנה נמסרה (מייל שירות על הקנייה, בלי פרסום)
 export function reviewRequestEmail(opts: { name?: string | null; reviewUrl: string; whatsappUrl: string }) {
   const first = escapeHtml((opts.name || '').trim().split(/\s+/)[0] || 'לקוח יקר');

@@ -8,6 +8,7 @@ import ProductCard from '@/components/ProductCard';
 import Icon from '@/components/Icon';
 import SmartFilters from '@/components/SmartFilters';
 import { EMPTY_FACETS, FacetState, applyFacets } from '@/lib/facets';
+import { PageSkeleton } from '@/components/Skeleton';
 
 // כל המוצרים בחנות: סינון לפי קטגוריה וכשרות, ומיון לפי מחיר
 
@@ -153,7 +154,7 @@ function CatalogContent() {
 
 export default function CatalogPage() {
   return (
-    <Suspense fallback={<div className="text-center py-20 font-bold text-sm text-gray-600">טוען את המוצרים...</div>}>
+    <Suspense fallback={<PageSkeleton />}>
       <CatalogContent />
     </Suspense>
   );

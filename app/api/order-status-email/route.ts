@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { mailTransport } from '@/lib/mailer';
 import { orderStatusEmail } from '@/lib/orderEmails';
-import { Order } from '@/lib/orders';
+import { Order, orderNumber } from '@/lib/orders';
 
 export const runtime = 'nodejs';
 
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     }
 
     // הסטטוס נלקח מההזמנה השמורה, לא מהבקשה
-    const email = orderStatusEmail(order as Order, order.status || 'חדש', `${new URL(request.url).origin}/cart?tab=orders`);
+    const email = orderStatusEmail(order as Order, order.status || 'חדש', `${new URL(request.url).origin}/track?n=${orderNumber((order as Order).id)}`);
     await mailTransport().sendMail({
       from: `"NEW PHONE" <${process.env.GMAIL_USER}>`,
       to: order.email,

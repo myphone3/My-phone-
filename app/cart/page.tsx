@@ -574,6 +574,29 @@ export default function CartPage() {
             )}
           </div>
 
+          {/* פס התקדמות למשלוח חינם. מופיע רק כשהמבצע פעיל בפאנל (מבצעים ← מעל סכום), לפי הסכום שהוגדר שם */}
+          {isPromoActive && (
+            <div className={`rounded-2xl p-4 space-y-2 border ${isFreeShippingEligible ? 'bg-green-50 border-green-200' : 'bg-white border-orange-200'}`}>
+              <b className="text-sm font-black text-gray-900 flex items-center gap-2">
+                <Icon name="truck" size={18} className={isFreeShippingEligible ? 'text-green-600' : 'text-orange-600'} />
+                {isFreeShippingEligible ? (
+                  <span>מגיע לך משלוח חינם! 🎉</span>
+                ) : (
+                  <span>
+                    עוד <span className="text-orange-600">₪{Math.ceil(thresholdMin - subtotalPrice)}</span> ומקבלים משלוח חינם
+                  </span>
+                )}
+              </b>
+              <div className={`h-2.5 rounded-full overflow-hidden ${isFreeShippingEligible ? 'bg-green-100' : 'bg-orange-100'}`}>
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${isFreeShippingEligible ? 'bg-green-500' : 'bg-gradient-to-l from-orange-600 to-orange-400'}`}
+                  style={{ width: `${Math.min(100, Math.round((subtotalPrice / Math.max(thresholdMin, 1)) * 100))}%` }}
+                />
+              </div>
+              {!isFreeShippingEligible && <p className="text-[11px] text-gray-500">משלוח חינם בקנייה מעל ₪{thresholdMin}</p>}
+            </div>
+          )}
+
           {/* חסר סכום למתנה / להנחה */}
           {welcomeState === 'below' && (
             <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 space-y-2">

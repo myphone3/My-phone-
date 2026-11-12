@@ -142,7 +142,8 @@ export default function AssistantFloat() {
 
   useEffect(() => setOpen(false), [pathname]);
 
-  if (pathname?.startsWith('/admin')) return null;
+  // בעגלה ובתשלום הנציג לא מוצג, כדי שלא יסיח את הדעת בזמן התשלום (וואטסאפ נשאר לעזרה)
+  if (pathname?.startsWith('/admin') || pathname?.startsWith('/cart')) return null;
 
   const send = async (text: string) => {
     const t = text.trim();
@@ -173,10 +174,10 @@ export default function AssistantFloat() {
     <>
       {/* העיגול הקטן: בצבעי הלוגו של החנות */}
       <div
-        className="fixed left-[1.625rem] bottom-[5.6rem] [body[data-consent=open]_&]:bottom-[8.35rem] z-40 flex items-center gap-2 group"
+        className="fixed left-[0.875rem] bottom-[5rem] [body[data-consent=open]_&]:bottom-[8.35rem] z-40 flex items-center gap-2 group"
         dir="ltr"
         data-float
-        style={{ translate: '0 calc(-1 * var(--float-shift, 0px))', transition: 'translate 300ms ease, transform 150ms ease' }}
+        style={{ translate: '0 calc(-1 * (var(--float-shift, 0px) + var(--float-base, 0px)))', transition: 'translate 300ms ease, transform 150ms ease' }}
       >
         <button
           type="button"
@@ -208,8 +209,9 @@ export default function AssistantFloat() {
           role="dialog"
           data-float-open
           aria-label="הנציג החכם"
+          style={{ translate: '0 calc(-1 * var(--float-base, 0px))' }}
           dir="rtl"
-          className="fixed z-50 left-4 right-4 sm:right-auto bottom-[9.75rem] [body[data-consent=open]_&]:bottom-[12.5rem] sm:w-[380px] h-[min(560px,calc(100vh-12rem))] bg-white rounded-3xl shadow-2xl border-2 border-pink-100 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-150"
+          className="fixed z-50 left-4 right-4 sm:right-auto bottom-[9rem] [body[data-consent=open]_&]:bottom-[12.5rem] sm:w-[380px] h-[min(560px,calc(100vh-12rem))] bg-white rounded-3xl shadow-2xl border-2 border-pink-100 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-150"
         >
           {/* כותרת */}
           <div className="bg-gradient-to-l from-orange-500 via-pink-500 to-purple-600 text-white px-4 py-3 flex items-center gap-3 shrink-0">
