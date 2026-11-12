@@ -97,6 +97,10 @@ const PAGE_NAMES: [RegExp, string][] = [
   [/^\/quiz/, 'שאלון התאמה'],
   [/^\/compare/, 'השוואה'],
   [/^\/(terms|privacy|returns|accessibility)/, 'עמוד מידע'],
+  [/^\/track/, 'מעקב הזמנה'],
+  [/^\/guide/, 'מדריכים'],
+  [/^\/about/, 'אודות'],
+  [/^\/catalog/, 'כל המוצרים'],
 ];
 function pageName(path?: string | null, product?: string | null) {
   if (!path) return '';
@@ -122,7 +126,23 @@ const EVENT_LABELS: Record<string, string> = {
   favorite: '♥ שמר במועדפים',
   quiz_done: '🧭 סיים את השאלון',
   whatsapp_click: '💬 לחץ על וואטסאפ',
+  assistant_open: '✨ פתח את הנציג החכם',
+  track_order: '🚚 בדק מעקב הזמנה',
 };
+
+// מה המבקר עושה עכשיו, לפי העמוד והפעולה האחרונה
+function activityNow(s: any) {
+  const path = String(s.path || '');
+  if (s.last_action === 'checkout_start' && path.startsWith('/cart')) return { text: '💳 בקופה, ממלא פרטים', tone: 'bg-green-100 text-green-800' };
+  if (path.startsWith('/cart')) return { text: '🛒 בעגלה', tone: 'bg-amber-100 text-amber-900' };
+  if (s.last_action === 'add_to_cart') return { text: '🛒 הוסיף עכשיו לעגלה', tone: 'bg-amber-100 text-amber-900' };
+  if (path.startsWith('/product/')) return { text: '👀 מסתכל על מוצר', tone: 'bg-blue-50 text-blue-800' };
+  if (s.last_action === 'search' || path.startsWith('/search')) return { text: '🔎 מחפש', tone: 'bg-purple-50 text-purple-800' };
+  if (path.startsWith('/quiz')) return { text: '🧭 בשאלון ההתאמה', tone: 'bg-purple-50 text-purple-800' };
+  return { text: '🚶 מסתובב באתר', tone: 'bg-gray-100 text-gray-600' };
+}
+
+const place = (v: any) => [v?.city, v?.country && v.country !== 'IL' ? v.country : ''].filter(Boolean).join(', ');
 
 // ===== רכיבי תצוגה קטנים =====
 
@@ -177,7 +197,7 @@ function BarList({ rows, format = fmt, empty = 'אין נתונים עדיין' 
 // ===== הדף =====
 
 export default function AnalyticsPage() {
-  const [tab, setTab] = useState<Tab>('summary');
+  const [tab, setTab] = useState<Tab>('live');
   const [period, setPeriod] = useState<PeriodKey>('7');
   const [custom, setCustom] = useState(() => ({ from: dayInput(addDays(new Date(), -6)), to: dayInput(new Date()) }));
   const [data, setData] = useState<any>(null);
@@ -227,12 +247,12 @@ export default function AnalyticsPage() {
     if (tab === 'visitors') loadVisitors();
   }, [tab, loadVisitors]);
 
-  // "עכשיו באתר" מתרענן כל 15 שניות
+  // "עכשיו באתר" מתרענן כל 10 שניות
   useEffect(() => {
     loadLive();
     const t = setInterval(() => {
       if (document.visibilityState === 'visible') loadLive();
-    }, 15000);
+    }, 10000);
     return () => clearInterval(t);
   }, [loadLive]);
 
@@ -246,6 +266,8 @@ export default function AnalyticsPage() {
   const funnel = data?.funnel || {};
   const online: any[] = live?.online || [];
   const openCarts: any[] = live?.open_carts || [];
+  const feed: any[] = live?.feed || [];
+  const today: any = live?.today || {};
 
   const products: any[] = useMemo(() => {
     const list = [...(data?.products || [])].map((p: any) => ({
@@ -370,37 +392,162 @@ export default function AnalyticsPage() {
       {/* ===== עכשיו באתר ===== */}
       {tab === 'live' && (
         <div className="space-y-4">
-          <Card title={`🟢 גולשים באתר ברגע זה (${online.length})`} action={<span className="text-[10px] text-gray-400">מתרענן כל 15 שניות</span>}>
-            {online.length === 0 ? (
-              <p className="text-xs text-gray-400 py-6 text-center">אין כרגע גולשים באתר</p>
-            ) : (
-              <ul className="divide-y divide-orange-50">
-                {online.map((s) => (
-                  <li key={s.session_id}>
-                    <button onClick={() => openTimeline(s)} className="w-full text-right py-3 flex items-center gap-3 hover:bg-orange-50/50 -mx-2 px-2 rounded-xl cursor-pointer">
-                      <span className={`w-9 h-9 rounded-full shrink-0 flex items-center justify-center font-black text-sm ${s.name || s.email ? 'bg-orange-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
-                        {s.name || s.email ? String(s.name || s.email).charAt(0).toUpperCase() : '?'}
-                      </span>
-                      <span className="flex-1 min-w-0">
-                        <span className="block text-sm font-black text-gray-900 truncate">{visitorLabel(s)}</span>
-                        <span className="block text-[11px] text-gray-500 truncate">
-                          נמצא ב: <b className="text-gray-700">{pageName(s.path, s.product)}</b>
+          {/* היום עד עכשיו */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className="bg-green-600 text-white rounded-2xl p-3 relative overflow-hidden">
+              <span className="block text-[11px] font-bold opacity-90">באתר ברגע זה</span>
+              <span className="flex items-center gap-2 text-3xl font-black tabular-nums">
+                <span className="relative flex w-3 h-3">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-white opacity-75 animate-ping" />
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-white" />
+                </span>
+                {online.length}
+              </span>
+              <span className="block text-[11px] opacity-90">
+                {online.filter((s) => String(s.path || '').startsWith('/cart')).length} בעגלה / בקופה
+              </span>
+            </div>
+            <Tile label="מבקרים היום" value={fmt(today.visitors ?? live?.today_visitors)} sub={today.returning ? `${fmt(today.returning)} חוזרים` : undefined} />
+            <Tile label="הזמנות היום" value={fmt(today.orders)} sub={money(today.revenue)} tone="text-green-700" />
+            <Tile
+              label="אחוז המרה היום"
+              value={`${pct(n(today.ordered), n(today.visitors))}%`}
+              sub={`${fmt(today.ordered)} מתוך ${fmt(today.visitors)} מבקרים הזמינו`}
+            />
+          </div>
+
+          {/* משפך היום */}
+          {live?.today && (
+            <Card title="🪜 המסלול של הגולשים היום">
+              <div className="space-y-2">
+                {[
+                  { label: 'נכנסו לאתר', v: n(today.visitors) },
+                  { label: 'צפו במוצר', v: n(today.viewed_product) },
+                  { label: 'הוסיפו לעגלה', v: n(today.added_to_cart) },
+                  { label: 'התחילו תשלום', v: n(today.started_checkout) },
+                  { label: 'הזמינו', v: n(today.ordered) },
+                ].map((row, i, all) => {
+                  const base = Math.max(1, all[0].v);
+                  const prev = i > 0 ? all[i - 1].v : 0;
+                  return (
+                    <div key={row.label}>
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="font-bold text-gray-800">{row.label}</span>
+                        <span className="tabular-nums text-gray-600">
+                          <b className="text-gray-900">{fmt(row.v)}</b>
+                          {i > 0 && prev > 0 && <span className="text-gray-400"> · {pct(row.v, prev)}% מהשלב הקודם</span>}
                         </span>
-                        <span className="block text-[10px] text-gray-400 truncate">
-                          {s.device} · {s.browser} · הגיע מ{s.source || 'ישיר'} · {fmt(s.page_views)} עמודים · {duration((new Date(s.last_seen).getTime() - new Date(s.started_at).getTime()) / 1000)} באתר
-                        </span>
-                      </span>
-                      {n(s.cart_items) > 0 && (
-                        <span className="shrink-0 text-[11px] font-black bg-amber-100 text-amber-900 px-2 py-1 rounded-lg">
-                          🛒 {s.cart_items} · {money(s.cart_value)}
-                        </span>
-                      )}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
+                      </div>
+                      <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${i === all.length - 1 ? 'bg-green-500' : 'bg-orange-500'}`}
+                          style={{ width: `${Math.max(row.v ? 2 : 0, (row.v / base) * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-gray-500">
+                היום גם: {fmt(today.page_views)} צפיות בעמודים · {fmt(today.searches)} חיפושים · {fmt(today.whatsapp)} לחיצות על וואטסאפ
+              </p>
+            </Card>
+          )}
+
+          <div className="grid lg:grid-cols-5 gap-4">
+            {/* מי באתר עכשיו */}
+            <div className="lg:col-span-3 min-w-0">
+              <Card title={`🟢 מי באתר עכשיו (${online.length})`} action={<span className="text-[10px] text-gray-400">מתרענן כל 10 שניות</span>}>
+                {online.length === 0 ? (
+                  <p className="text-xs text-gray-400 py-6 text-center">אין כרגע גולשים באתר</p>
+                ) : (
+                  <ul className="divide-y divide-orange-50">
+                    {online.map((s) => {
+                      const act = activityNow(s);
+                      return (
+                        <li key={s.session_id}>
+                          <button onClick={() => openTimeline(s)} className="w-full text-right py-3 flex items-start gap-3 hover:bg-orange-50/50 -mx-2 px-2 rounded-xl cursor-pointer">
+                            <span className={`w-9 h-9 rounded-full shrink-0 flex items-center justify-center font-black text-sm ${s.name || s.email ? 'bg-orange-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                              {s.name || s.email ? String(s.name || s.email).charAt(0).toUpperCase() : '?'}
+                            </span>
+                            <span className="flex-1 min-w-0">
+                              <span className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-sm font-black text-gray-900 truncate">{visitorLabel(s)}</span>
+                                {s.returning && <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">חוזר</span>}
+                                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${act.tone}`}>{act.text}</span>
+                              </span>
+                              <span className="block text-[11px] text-gray-500 truncate">
+                                נמצא ב: <b className="text-gray-700">{pageName(s.path, s.product)}</b>
+                              </span>
+                              <span className="block text-[10px] text-gray-400 truncate">
+                                {place(s) ? `📍 ${place(s)} · ` : ''}
+                                {s.device} · {s.browser} · הגיע מ{s.source || 'ישיר'} · {fmt(s.page_views)} עמודים ·{' '}
+                                {duration((new Date(s.last_seen).getTime() - new Date(s.started_at).getTime()) / 1000)} באתר
+                              </span>
+                            </span>
+                            {n(s.cart_items) > 0 && (
+                              <span className="shrink-0 text-[11px] font-black bg-amber-100 text-amber-900 px-2 py-1 rounded-lg">
+                                🛒 {s.cart_items} · {money(s.cart_value)}
+                              </span>
+                            )}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </Card>
+            </div>
+
+            {/* מה קורה עכשיו */}
+            <div className="lg:col-span-2 min-w-0">
+              <Card title="⚡ מה קורה באתר" action={<span className="text-[10px] text-gray-400">6 השעות האחרונות</span>}>
+                {feed.length === 0 ? (
+                  <p className="text-xs text-gray-400 py-6 text-center">עוד אין פעולות</p>
+                ) : (
+                  <ol className="max-h-[28rem] overflow-y-auto -mx-1 px-1 space-y-0">
+                    {feed.map((e, i) => (
+                      <li key={`${e.created_at}-${i}`}>
+                        <button
+                          onClick={() => openTimeline(e)}
+                          className={`w-full text-right flex gap-2.5 py-2 text-xs border-r-2 pr-2.5 cursor-pointer hover:bg-orange-50/50 rounded-l-lg ${
+                            e.type === 'order' ? 'border-green-500 bg-green-50/60' : e.type === 'add_to_cart' || e.type === 'checkout_start' ? 'border-amber-400' : 'border-orange-100'
+                          }`}
+                        >
+                          <span className="text-[10px] text-gray-400 w-12 shrink-0 tabular-nums pt-0.5">{ago(e.created_at)}</span>
+                          <span className="min-w-0">
+                            <span className="font-bold text-gray-800">{EVENT_LABELS[e.type] || e.type}</span>{' '}
+                            <span className="text-gray-500" dir="auto">
+                              {e.type === 'search' ? `"${e.query}" (${fmt(e.results)} תוצאות)` : e.product ? e.product : e.type === 'page_view' ? pageName(e.path) : ''}
+                              {e.value ? ` · ${money(e.value)}` : ''}
+                            </span>
+                            <span className="block text-[10px] text-gray-400 truncate">
+                              {visitorLabel(e)}
+                              {e.city ? ` · 📍 ${e.city}` : ''}
+                              {e.device ? ` · ${e.device}` : ''}
+                            </span>
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </Card>
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            <Card title="📍 מאיפה הגולשים היום">
+              <BarList rows={(live?.cities_today || []).map((c: any) => ({ label: c.city, value: n(c.n) }))} empty="עוד אין נתוני מיקום" />
+              <p className="text-[10px] text-gray-400">לפי העיר של חיבור האינטרנט (משוער), בלי לשמור כתובת IP.</p>
+            </Card>
+            <Card title="🔗 מאיפה הגיעו היום">
+              <BarList
+                rows={(live?.sources_today || []).map((c: any) => ({ label: c.source, value: n(c.n), note: n(c.ordered) ? `${fmt(c.ordered)} הזמינו` : undefined }))}
+                empty="עוד אין כניסות היום"
+              />
+            </Card>
+          </div>
 
           <Card title={`🛒 עגלות פתוחות ב-24 השעות האחרונות (${openCarts.length})`}>
             <p className="text-[11px] text-gray-500 -mt-1">לקוחות שהוסיפו מוצרים לעגלה ועוד לא הזמינו. שווי כולל: {money(openCarts.reduce((a, c) => a + n(c.cart_value), 0))}</p>
@@ -413,7 +560,10 @@ export default function AnalyticsPage() {
                     <button onClick={() => openTimeline(c)} className="w-full text-right py-2.5 flex items-center justify-between gap-3 hover:bg-orange-50/50 -mx-2 px-2 rounded-xl cursor-pointer">
                       <span className="min-w-0">
                         <span className="block text-sm font-bold text-gray-900 truncate">{visitorLabel(c)}</span>
-                        <span className="block text-[11px] text-gray-400">{ago(c.last_seen)}</span>
+                        <span className="block text-[11px] text-gray-400">
+                          {ago(c.last_seen)}
+                          {c.city ? ` · 📍 ${c.city}` : ''}
+                        </span>
                       </span>
                       <span className="text-xs font-black text-gray-800 shrink-0">
                         {c.cart_items} מוצרים · {money(c.cart_value)}
@@ -423,7 +573,13 @@ export default function AnalyticsPage() {
                 ))}
               </ul>
             )}
-            <p className="text-[10px] text-gray-400">לקוחות רשומים שאישרו דיוור מקבלים תזכורת אוטומטית במייל.</p>
+            <p className="text-[10px] text-gray-400">
+              לקוחות רשומים שאישרו דיוור מקבלים תזכורת אוטומטית במייל (ניתן לכבות ב
+              <Link href="/admin/customers" className="text-orange-700 font-bold underline">
+                לקוחות ומיילים
+              </Link>
+              ).
+            </p>
           </Card>
         </div>
       )}
@@ -731,7 +887,7 @@ export default function AnalyticsPage() {
                         {n(v.sessions) > 1 && <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded mr-1.5">חוזר · {v.sessions} ביקורים</span>}
                       </span>
                       <span className="block text-[11px] text-gray-500 truncate">
-                        {v.device || ''} · הגיע מ{v.source || 'ישיר'} · {fmt(v.page_views)} עמודים · {fmt(v.products)} מוצרים
+                        {v.city ? `📍 ${v.city} · ` : ''}{v.device || ''} · הגיע מ{v.source || 'ישיר'} · {fmt(v.page_views)} עמודים · {fmt(v.products)} מוצרים
                       </span>
                     </span>
                     <span className="shrink-0 text-left">
