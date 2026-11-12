@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import OrderAlerts from '@/components/admin/OrderAlerts';
+import LiveBadge from '@/components/admin/LiveBadge';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || '';
@@ -119,6 +120,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           ))}
           <span className="shrink-0 w-px h-6 bg-orange-200 mx-1" aria-hidden="true" />
           <OrderAlerts />
+          <LiveBadge />
         </div>
       </nav>
 
