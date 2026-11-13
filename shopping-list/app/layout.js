@@ -4,7 +4,7 @@ export const metadata = {
   title: 'רשימת קניות משותפת',
   description: 'רשימת קניות משותפת בזמן אמת',
   manifest: '/manifest.json',
-  icons: { icon: '/icon.svg', apple: '/icon.svg' },
+  icons: { icon: '/icon.svg', apple: '/icon-192.png' },
   appleWebApp: { capable: true, title: 'קניות', statusBarStyle: 'default' },
 };
 

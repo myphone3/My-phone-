@@ -63,7 +63,7 @@ textarea.input { height: auto; min-height: 140px; padding: 12px 14px; resize: ve
 .check.found { background: var(--green); border-color: var(--green); color: #fff; }
 .check.missing { background: var(--red); border-color: var(--red); color: #fff; }
 .check.partial { background: var(--amber); border-color: var(--amber); color: #fff; }
-.check.check { background: var(--blue); border-color: var(--blue); color: #fff; }
+.check.ask { background: var(--blue); border-color: var(--blue); color: #fff; }
 
 .badge { display: inline-flex; align-items: center; gap: 3px; padding: 1px 8px; border-radius: 99px; font-size: 12px; font-weight: 700; }
 .b-found { background: var(--green-soft); color: var(--green); }
