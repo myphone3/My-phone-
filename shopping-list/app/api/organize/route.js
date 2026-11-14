@@ -8,27 +8,46 @@ export const maxDuration = 30;
 
 const CATS = CATEGORIES.map((c) => c.id);
 
-async function ask(req, system, user) {
+async function viaGemini(key, system, user) {
+  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+    method: 'POST',
+    signal: AbortSignal.timeout(20000),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: system }] },
+      contents: [{ role: 'user', parts: [{ text: user }] }],
+      generationConfig: { temperature: 0, responseMimeType: 'application/json' },
+    }),
+  });
+  if (!r.ok) throw new Error('gemini ' + r.status);
+  const j = await r.json();
+  return JSON.parse(j.candidates?.[0]?.content?.parts?.[0]?.text || '{}');
+}
+
+async function viaGateway(req, system, user) {
   const token = process.env.AI_GATEWAY_API_KEY || req.headers.get('x-vercel-oidc-token') || process.env.VERCEL_OIDC_TOKEN;
   if (!token) throw new Error('no ai token');
-  const ctl = new AbortController();
-  const t = setTimeout(() => ctl.abort(), 20000);
-  try {
-    const r = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', {
-      method: 'POST',
-      signal: ctl.signal,
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: process.env.AI_MODEL || 'google/gemini-2.5-flash-lite',
-        temperature: 0,
-        response_format: { type: 'json_object' },
-        messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
-      }),
-    });
-    if (!r.ok) throw new Error('ai ' + r.status + ' ' + (await r.text()).slice(0, 200));
-    const j = await r.json();
-    return JSON.parse(j.choices?.[0]?.message?.content || '{}');
-  } finally { clearTimeout(t); }
+  const r = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', {
+    method: 'POST',
+    signal: AbortSignal.timeout(20000),
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: process.env.AI_MODEL || 'google/gemini-2.5-flash-lite',
+      temperature: 0,
+      response_format: { type: 'json_object' },
+      messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
+    }),
+  });
+  if (!r.ok) throw new Error('ai ' + r.status);
+  const j = await r.json();
+  return JSON.parse(j.choices?.[0]?.message?.content || '{}');
+}
+
+// עדיפות: מפתח Gemini אם הוגדר, אחרת Vercel AI Gateway
+function ask(req, system, user) {
+  const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
+  return key ? viaGemini(key, system, user) : viaGateway(req, system, user);
 }
 
 export async function POST(req) {
@@ -54,6 +73,6 @@ export async function POST(req) {
     }
     return Response.json({ error: 'nothing to do' }, { status: 400 });
   } catch (e) {
-    return Response.json({ error: 'ai-unavailable', detail: String(e.message || e).slice(0, 200) }, { status: 503 });
+    return Response.json({ error: 'ai-unavailable', detail: String(e.message || e).slice(0, 60) }, { status: 503 });
   }
 }

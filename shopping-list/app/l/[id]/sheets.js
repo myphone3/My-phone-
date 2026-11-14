@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { CATEGORIES, CAT_EMOJI } from '@/lib/catalog';
-import { parseText, enTermFor, fmtQty } from '@/lib/parse';
+import { parseText, enTermFor, fmtQty, splitSpoken } from '@/lib/parse';
 import { compressImage } from '@/lib/image';
 import { getPref, setPref } from '@/lib/local';
 import {
@@ -271,7 +271,8 @@ export function ItemSheet({ item, me, listId, list, participants, history, onClo
 /* ---------- הוספת רשימה ---------- */
 
 export function PasteSheet({ initial, ai, listId, onClose, onAdd }) {
-  const [text, setText] = useState(initial || '');
+  // בהקלטה: קודם פירוק מהיר לפי המילון, ואז (אם יש) הבינה המלאכותית משפרת
+  const [text, setText] = useState(() => (ai && initial ? splitSpoken(initial).join('\n') : initial || ''));
   const [sugg, setSugg] = useState([]);
   const [aiCats, setAiCats] = useState({}); // שם → {category, emoji} מהבינה המלאכותית
   const [busy, setBusy] = useState('');

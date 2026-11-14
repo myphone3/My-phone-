@@ -1,4 +1,4 @@
-import { classify, CAT_EMOJI } from './catalog';
+import { classify, CAT_EMOJI, DICT } from './catalog';
 
 // מספרים בעברית שאנשים כותבים ברשימות
 const WORD_NUM = {
@@ -145,4 +145,39 @@ export function fmtQty(q) {
   const n = Number(q);
   if (n === 0.5) return '½';
   return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+}
+
+// פירוק דיבור בלי בינה מלאכותית: "חלב לחם ושתי עגבניות ונייר טואלט"
+// → ["חלב","לחם","שתי עגבניות","נייר טואלט"]. מוצרים מרובי מילים מזוהים לפי המילון.
+export function splitSpoken(text) {
+  const multi = new Set(DICT_PHRASES());
+  const starts = new Set(DICT_PHRASES().map((p) => p.split(' ')[0]));
+  const toks = text.replace(/[,.،]/g, ' ').split(/\s+/).filter(Boolean);
+  const isNum = (w) => numOf(w) != null;
+  const strip = (w) => (w.length > 2 && w[0] === 'ו' && (isNum(w.slice(1)) || unitOf(w.slice(1)) != null || classify(w.slice(1)) || starts.has(w.slice(1))) ? w.slice(1) : w);
+  const out = [];
+  let i = 0;
+  while (i < toks.length) {
+    const parts = [];
+    let w = strip(toks[i]);
+    if (w === 'גם' || w === 'עוד' || w === 'של') { i++; continue; }
+    while (i < toks.length && (isNum(w) || (unitOf(w) && unitOf(w) !== '') || w === 'של')) { parts.push(w); i++; w = strip(toks[i] || ''); }
+    if (i >= toks.length) { if (parts.length) out.push(parts.join(' ')); break; }
+    // מוצר של 3/2 מילים מהמילון
+    let took = 1;
+    for (const n of [3, 2]) {
+      const phrase = [w, ...toks.slice(i + 1, i + n)].join(' ');
+      if (i + n <= toks.length && multi.has(phrase)) { w = phrase; took = n; break; }
+    }
+    parts.push(w);
+    i += took;
+    out.push(parts.join(' '));
+  }
+  return out;
+}
+
+let _phrases = null;
+function DICT_PHRASES() {
+  if (!_phrases) _phrases = DICT.filter((d) => d.kw.includes(' ')).map((d) => d.kw);
+  return _phrases;
 }

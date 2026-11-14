@@ -1,22 +1,35 @@
-// חיפוש תמונות לפריט. אם הוגדרו מפתחות של גוגל — חיפוש תמונות גוגל, אחרת Openverse (חינמי, בלי מפתח).
+// חיפוש תמונות לפריט. אם הוגדרו מפתחות של גוגל — חיפוש תמונות גוגל, אחרת Wikimedia Commons (חינמי, בלי מפתח).
 export const runtime = 'edge';
 
 async function google(q) {
   const key = process.env.GOOGLE_API_KEY, cx = process.env.GOOGLE_CSE_ID;
   if (!key || !cx) return null;
   const u = `https://www.googleapis.com/customsearch/v1?searchType=image&num=8&safe=active&gl=il&key=${key}&cx=${cx}&q=${encodeURIComponent(q)}`;
-  const r = await fetch(u);
+  const r = await fetch(u, { signal: withTimeout(6000) });
   if (!r.ok) return null;
   const j = await r.json();
   return (j.items || []).map((i) => ({ thumb: i.image?.thumbnailLink || i.link, url: i.link }));
 }
 
-async function openverse(q) {
-  const u = `https://api.openverse.org/v1/images/?page_size=8&mature=false&q=${encodeURIComponent(q)}`;
-  const r = await fetch(u, { headers: { 'User-Agent': 'shopping-list-app' } });
+function withTimeout(ms) {
+  const c = new AbortController();
+  setTimeout(() => c.abort(), ms);
+  return c.signal;
+}
+
+// Wikimedia Commons — חינמי, מהיר, בלי מפתח
+async function commons(q) {
+  const u = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=12' +
+    `&gsrsearch=${encodeURIComponent(q + ' filetype:bitmap')}&prop=imageinfo&iiprop=url|mime&iiurlwidth=240`;
+  const r = await fetch(u, { signal: withTimeout(6000), headers: { 'User-Agent': 'shopping-list-app/1.0' } });
   if (!r.ok) return [];
   const j = await r.json();
-  return (j.results || []).map((i) => ({ thumb: i.thumbnail || i.url, url: i.url }));
+  return Object.values(j.query?.pages || {})
+    .sort((a, b) => (a.index || 0) - (b.index || 0))
+    .map((p) => p.imageinfo?.[0])
+    .filter((i) => i && /image\/(jpeg|png|webp)/.test(i.mime || ''))
+    .slice(0, 8)
+    .map((i) => ({ thumb: i.thumburl || i.url, url: i.url }));
 }
 
 export async function GET(req) {
@@ -28,9 +41,9 @@ export async function GET(req) {
     let images = await google(q);
     let source = 'google';
     if (!images || !images.length) {
-      source = 'openverse';
-      images = await openverse(en || q);
-      if (!images.length && en) images = await openverse(q);
+      source = 'commons';
+      images = await commons(en || q);
+      if (!images.length && en) images = await commons(q);
     }
     return Response.json({ images, source }, { headers: { 'Cache-Control': 'public, s-maxage=86400' } });
   } catch {
