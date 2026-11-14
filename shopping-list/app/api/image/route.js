@@ -1,6 +1,6 @@
 // חיפוש תמונות לפריט: גוגל (אם יוגדר מנוע חיפוש), אחרת Open Food Facts — מאגר מוצרי מזון עם מוצרים ישראליים
 // בחיפוש בעברית — ואם לא נמצא, Wikimedia Commons.
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 async function google(q) {
   const key = process.env.GOOGLE_API_KEY, cx = process.env.GOOGLE_CSE_ID;
@@ -72,11 +72,11 @@ export async function GET(req) {
       if (!images.length && productOnly) return Response.json({ images: [], source: '' });
       if (!images.length) {
         source = 'commons';
-        images = await commons(en || q).catch(() => []);
-        if (!images.length && en) images = await commons(q).catch(() => []);
+        // ב-Wikimedia רק לפי המונח באנגלית (בעברית יוצאות תוצאות מוזרות, למשל "חלב" = העיר חלב)
+        images = en ? await commons(en).catch(() => []) : [];
       }
     }
-    return Response.json({ images, source }, { headers: { 'Cache-Control': 'public, s-maxage=86400' } });
+    return Response.json({ images, source }, images.length ? { headers: { 'Cache-Control': 'public, s-maxage=86400' } } : {});
   } catch {
     return Response.json({ images: [] });
   }
