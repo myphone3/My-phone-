@@ -93,7 +93,7 @@ export async function POST(req) {
             const ai = await askAI(req, PROMPT + '\n\nמתכון מאתר (JSON):\n' + JSON.stringify({ ...out, image: undefined }).slice(0, 15000));
             const first = Array.isArray(ai?.recipes) && ai.recipes[0];
             if (first) return Response.json({ recipes: [{ ...clean(first, 0), photo: null, image: out.image, source_url: url.href }] });
-          } catch {}
+          } catch (e) { console.error('import ai failed', e?.message || e); }
           return Response.json({ recipes: [{ ...out, source_url: url.href }] });
         }
       }

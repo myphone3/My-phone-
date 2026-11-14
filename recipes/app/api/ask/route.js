@@ -30,7 +30,8 @@ ${history ? '\nשיחה קודמת:\n' + history : ''}
   try {
     const answer = await askAI(req, prompt, [], false);
     return Response.json({ answer: String(answer || '').trim().slice(0, 2000) });
-  } catch {
-    return Response.json({ error: 'השף לא זמין כרגע, נסו שוב עוד רגע' }, { status: 502 });
+  } catch (e) {
+    console.error('ask failed', e?.message || e);
+    return Response.json({ error: 'השף לא זמין כרגע, נסו שוב עוד רגע', detail: String(e?.message || e).slice(0, 200) }, { status: 502 });
   }
 }
