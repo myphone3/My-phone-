@@ -345,11 +345,11 @@ function useFit(deps) {
   useEffect(() => {
     const el = box.current;
     if (!el) return;
-    let s = 1.15;
+    let s = 2;
     const fits = () => el.scrollHeight <= el.clientHeight + 1 && el.scrollWidth <= el.clientWidth + 1
       && [...el.querySelectorAll('[data-fit]')].every((c) => c.scrollHeight <= c.clientHeight + 1 && c.scrollWidth <= c.clientWidth + 1);
     const run = () => {
-      s = 1.15;
+      s = 2;
       el.style.setProperty('--fs', s);
       for (let i = 0; i < 40 && !fits() && s > 0.42; i++) { s = Math.round((s - 0.03) * 100) / 100; el.style.setProperty('--fs', s); }
       setScale(s);
