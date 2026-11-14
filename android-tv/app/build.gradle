@@ -1,0 +1,34 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'app.matkonim.tv'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'app.matkonim.tv'
+        minSdk 23
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+
+    // מפתח חתימה קבוע — כדי שאפשר יהיה לעדכן את האפליקציה בלי להסיר אותה
+    signingConfigs {
+        release {
+            storeFile file('matkonim-tv.keystore')
+            storePassword 'matkonimtv'
+            keyAlias 'matkonim'
+            keyPassword 'matkonimtv'
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
