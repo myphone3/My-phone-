@@ -3,8 +3,8 @@ import './globals.css';
 export const metadata = {
   title: 'רשימת קניות משותפת',
   description: 'רשימת קניות משותפת בזמן אמת',
-  manifest: '/manifest.json?v=3',
-  icons: { icon: [{ url: '/icon-192.png?v=3', sizes: '192x192', type: 'image/png' }], apple: '/apple-touch-icon.png?v=3' },
+  manifest: '/manifest.json?v=4',
+  icons: { icon: [{ url: '/icon-192.png?v=4', sizes: '192x192', type: 'image/png' }], apple: '/apple-touch-icon.png?v=4' },
   appleWebApp: { capable: true, title: 'קניות', statusBarStyle: 'default' },
 };
 
