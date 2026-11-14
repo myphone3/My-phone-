@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { CATEGORIES, CAT_EMOJI } from '@/lib/catalog';
 import { parseText, enTermFor, fmtQty, splitSpoken } from '@/lib/parse';
 import { compressImage } from '@/lib/image';
+import { findImages as searchImages } from '@/lib/images';
 import { getPref, setPref } from '@/lib/local';
 import {
   DEFAULT_ORDER, catOrderOf, listAsText, autoSplit, assigneeOf, shekel, unitPrice, fmtDate,
@@ -115,8 +116,7 @@ export function ItemSheet({ item, me, listId, list, participants, history, onClo
   async function findImages() {
     setImgs('loading');
     try {
-      const r = await fetch(`/api/image?q=${encodeURIComponent(item.name)}&en=${encodeURIComponent(enTermFor(item.name) || '')}`);
-      const j = await r.json();
+      const j = await searchImages(item.name);
       setImgs(j.images || []);
     } catch { setImgs([]); }
   }

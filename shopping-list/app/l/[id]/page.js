@@ -10,7 +10,7 @@ import {
   ItemSheet, PasteSheet, MenuSheet, NameSheet, SplitSheet, StoreSheet, STATUS, colorFor,
 } from './sheets';
 import { ReceiptSheet, TripsSheet } from './receipt';
-import { enTermFor } from '@/lib/parse';
+import { findImages } from '@/lib/images';
 
 const STATUS_RANK = { need: 0, check: 1, partial: 2, missing: 3, found: 4 };
 
@@ -131,9 +131,8 @@ export default function ListPage() {
     imgTried.current.add(next.id);
     const t = setTimeout(async () => {
       try {
-        const r = await fetch(`/api/image?q=${encodeURIComponent(next.name)}&en=${encodeURIComponent(enTermFor(next.name) || '')}`);
-        const j = await r.json();
-        const img = j.source === 'openfoodfacts' && j.images?.[0]?.thumb;
+        const j = await findImages(next.name, { productOnly: true });
+        const img = j.images?.[0]?.thumb;
         if (img) update(next, { image_url: img });
       } catch {}
     }, 1500);
