@@ -70,6 +70,7 @@ export function TvHome({ data, cast }) {
   const phoneLink = typeof location !== 'undefined' && data?.kitchen ? `${location.origin}/?k=${data.kitchen.id}` : '';
   const qr = useQr(phoneLink, 300);
   const phones = cast.peers.filter((p) => p.role === 'phone').length;
+  const today = ((data?.kitchen?.plan || {})[todayKey()] || []).map((id) => recipes.find((r) => r.id === id)).filter(Boolean);
   return (
     <div className="tv-home" style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 }}>
       <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
@@ -84,10 +85,20 @@ export function TvHome({ data, cast }) {
           </div>
         )}
       </div>
+      {today.length > 0 && (
+        <div className="tv-today">
+          <span className="lbl">📅 בתפריט היום</span>
+          {today.map((r, i) => (
+            <button key={r.id} data-nav="" data-autofocus={i === 0 ? '' : undefined} className="tv-today-item" onClick={() => cast.update({ screen: 'recipe', recipeId: r.id, step: 0, servings: null, checked: {}, page: 0 })}>
+              {r.image_url ? <img src={r.image_url} alt="" /> : <span>{emojiFor(r)}</span>}<b>{r.title}</b>
+            </button>
+          ))}
+        </div>
+      )}
       {!recipes.length && <p className="sub" style={{ fontSize: '1.6rem', marginTop: '4rem', textAlign: 'center' }}>📖 עוד אין מתכונים. הוסיפו מתכון מהטלפון — מ-PDF, מתמונה או מצילום.</p>}
       <div className="tv-rail">
         {recipes.map((r, i) => (
-          <button key={r.id} className="tv-card" data-nav="" data-autofocus={i === 0 ? '' : undefined}
+          <button key={r.id} className="tv-card" data-nav="" data-autofocus={i === 0 && !today.length ? '' : undefined}
             onClick={() => cast.update({ screen: 'recipe', recipeId: r.id, step: 0, servings: null, checked: {}, page: 0 })}>
             <div className="ph">{r.image_url ? <img src={r.image_url} alt="" /> : emojiFor(r)}</div>
             <div className="t">{r.favorite ? '❤️ ' : ''}{r.title}</div>
@@ -126,6 +137,7 @@ export function TvRecipe({ recipe, cast }) {
         </div>
         <div className="tv-btns">
           <button className="tv-btn primary" data-nav="" data-autofocus="" onClick={() => cast.update({ screen: 'cook' })}>👩‍🍳 מתחילים לבשל</button>
+          <button className="tv-btn" data-nav="" onClick={() => cast.update({ screen: 'ingredients' })}>🧺 מצרכים</button>
           {recipe.source_images?.length > 0 && <button className="tv-btn" data-nav="" onClick={() => cast.update({ screen: 'original', page: 0 })}>📄 המקור</button>}
           <button className="tv-btn" data-nav="" onClick={() => cast.update({ screen: 'home', recipeId: null })}>🏠</button>
         </div>
@@ -204,7 +216,7 @@ export function TvCook({ recipe, cast }) {
         ) : (
           <div className="next" style={{ color: 'var(--herb)' }}><span>🎉</span><b>זה השלב האחרון — בתיאבון!</b></div>
         )}
-        <div className="tv-hint"><span><kbd>◀</kbd> הבא</span><span><kbd>▶</kbd> הקודם</span><span><kbd>OK</kbd> טיימר</span><span><kbd>חזור</kbd> למתכון</span></div>
+        <div className="tv-hint"><span><kbd>◀</kbd> הבא</span><span><kbd>▶</kbd> הקודם</span><span><kbd>OK</kbd> טיימר</span><span><kbd>▼</kbd> מצרכים</span><span><kbd>חזור</kbd> למתכון</span></div>
       </div>
       <div className="tv-panel">
         <h2>🧺 מצרכים</h2>
@@ -251,3 +263,76 @@ export function TvTimers({ timers, now }) {
     </div>
   );
 }
+
+// ---- מצרכים בגדול (להכנת הכל מראש) ----
+export function TvIngredients({ recipe, cast }) {
+  const s = cast.state;
+  const { servings, factor } = useFactor(recipe, s);
+  const ing = groups(recipe.ingredients);
+  const checked = s.checked || {};
+  const total = ing.reduce((a, g) => a + g.items.length, 0);
+  const done = Object.values(checked).filter(Boolean).length;
+  return (
+    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <div className="where" style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '1.3rem', marginBottom: '1rem' }}>
+        <b style={{ fontSize: '2rem' }}>🧺 {recipe.title}</b>
+        {servings ? <span className="tv-pill">{servings} מנות{factor !== 1 ? ' (מחושב)' : ''}</span> : null}
+        <span style={{ marginInlineStart: 'auto', color: 'var(--muted)' }}>{done} מתוך {total} מוכנים</span>
+      </div>
+      <div className="tv-ing-cols">
+        {ing.map((g, gi) => (
+          <div key={gi} className="tv-ing-group">
+            {g.title && <div className="tv-gt" style={{ fontSize: '1.3rem' }}>{g.title}</div>}
+            {g.items.map((item, i) => {
+              const key = `${gi}-${i}`;
+              return (
+                <button key={key} data-nav="" data-autofocus={gi === 0 && i === 0 ? '' : undefined} className={'tv-ing big' + (checked[key] ? ' done' : '')}
+                  onClick={() => cast.update((st) => ({ checked: { ...(st.checked || {}), [key]: !(st.checked || {})[key] } }))}>
+                  <span className="ck">{checked[key] ? '✓' : ''}</span><span>{scaleText(item, factor)}</span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      <div className="tv-hint"><span><kbd>OK</kbd> סימון</span><span><kbd>חזור</kbd> למתכון</span></div>
+    </div>
+  );
+}
+
+// ---- תשובת השף על המסך ----
+export function TvChef({ chef, onClose }) {
+  useEffect(() => { const t = setTimeout(onClose, 45000); return () => clearTimeout(t); }, [chef, onClose]);
+  return (
+    <div className="tv-chef">
+      <div className="q">👩‍🍳 {chef.q}</div>
+      <div className="a">{chef.a}</div>
+      <small>חזור / OK לסגירה</small>
+    </div>
+  );
+}
+
+// ---- שומר מסך: תמונות המתכונים ושעון ----
+export function TvIdle({ data }) {
+  const pics = (data?.recipes || []).filter((r) => r.image_url);
+  const [i, setI] = useState(0);
+  useEffect(() => { const iv = setInterval(() => setI((x) => x + 1), 9000); return () => clearInterval(iv); }, []);
+  const r = pics.length ? pics[i % pics.length] : null;
+  const [t, setT] = useState('');
+  useEffect(() => { const f = () => setT(new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })); f(); const iv = setInterval(f, 10000); return () => clearInterval(iv); }, []);
+  const d = new Date().toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' });
+  return (
+    <div className="tv-idle">
+      {r && <img key={r.id} src={r.image_url} alt="" />}
+      <div className="shade" />
+      <div className="txt">
+        <div className="clock-big">{t}</div>
+        <div className="date">{d}</div>
+        {r && <div className="rt">{r.title}</div>}
+        <div className="hint">לחצו על כפתור כלשהו בשלט</div>
+      </div>
+    </div>
+  );
+}
+
+export const todayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

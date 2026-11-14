@@ -1,7 +1,7 @@
 'use client';
 import { useRef, useState } from 'react';
 import { filesToPages, uploadPages, extractRecipes, cropCover } from '@/lib/importer';
-import { saveRecipe } from '@/lib/api';
+import { saveRecipe, importFromUrl } from '@/lib/api';
 import { emptyRecipe } from '@/lib/recipe';
 import { Sheet } from './ui';
 
@@ -11,6 +11,7 @@ export default function AddSheet({ kitchenId, onClose, replace, changed, say }) 
   const [pdfText, setPdfText] = useState('');
   const [text, setText] = useState('');
   const [status, setStatus] = useState('');
+  const [url, setUrl] = useState('');
   const gallery = useRef();
   const camera = useRef();
 
@@ -69,6 +70,25 @@ export default function AddSheet({ kitchenId, onClose, replace, changed, say }) 
     }
   };
 
+  const runUrl = async () => {
+    setStage('busy');
+    setStatus('קוראים את המתכון מהאתר... (עד חצי דקה)');
+    try {
+      const recipes = await importFromUrl(url.trim());
+      if (!recipes.length) throw new Error('לא מצאנו מתכון בדף הזה');
+      const toDraft = (r) => { const { image, photo, ...rest } = r; return { ...rest, image_url: image || '', source_images: [] }; };
+      if (recipes.length === 1) { replace({ name: 'edit', draft: toDraft(recipes[0]) }); return; }
+      for (const r of recipes) await saveRecipe(kitchenId, toDraft(r));
+      await changed();
+      say(`נשמרו ${recipes.length} מתכונים ✓`);
+      onClose();
+    } catch (e) {
+      say(e.message || 'לא הצלחנו לייבא');
+      setStage('url');
+    }
+  };
+  const pasteUrl = async () => { try { const t = await navigator.clipboard.readText(); if (t) setUrl(t.trim()); } catch {} };
+
   return (
     <Sheet onClose={stage === 'busy' ? () => {} : onClose}>
       <input ref={gallery} type="file" accept="image/*,application/pdf,.pdf" multiple hidden onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }} />
@@ -82,6 +102,9 @@ export default function AddSheet({ kitchenId, onClose, replace, changed, say }) 
           </button>
           <button className="option" onClick={() => camera.current?.click()}>
             <span className="oi">📷</span><span><b>צילום מתכון</b><small>מספר בישול, מחברת או דף</small></span>
+          </button>
+          <button className="option" onClick={() => setStage('url')}>
+            <span className="oi">🔗</span><span><b>קישור לאתר מתכונים</b><small>מעתיקים את הכתובת ומדביקים</small></span>
           </button>
           <button className="option" onClick={() => setStage('text')}>
             <span className="oi">📋</span><span><b>הדבקת טקסט</b><small>מהודעה, מאתר או ממסמך</small></span>
@@ -104,6 +127,18 @@ export default function AddSheet({ kitchenId, onClose, replace, changed, say }) 
           </div>
           <p className="muted small">המתכון ממשיך בעמוד נוסף? הוסיפו עוד צילום או קובץ.</p>
           <button className="btn primary big block" disabled={!pages.length && !pdfText} onClick={() => run(false)}>✨ סדרו לי את המתכון</button>
+        </>
+      )}
+
+      {stage === 'url' && (
+        <>
+          <h3>מתכון מאתר</h3>
+          <div className="row">
+            <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." dir="ltr" inputMode="url" autoFocus />
+            <button className="btn" onClick={pasteUrl}>הדבקה</button>
+          </div>
+          <button className="btn primary big block" style={{ marginTop: 12 }} disabled={!/^https?:\/\/\S+\.\S+/.test(url.trim())} onClick={runUrl}>✨ ייבוא המתכון</button>
+          <p className="muted small">עובד עם רוב אתרי המתכונים (גם בעברית וגם באנגלית — יתורגם לעברית).</p>
         </>
       )}
 

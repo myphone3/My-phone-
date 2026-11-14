@@ -1,13 +1,15 @@
 'use client';
-import { useState } from 'react';
-import { groups, scaleText, fmtMinutes, flatSteps } from '@/lib/recipe';
+import { useEffect, useState } from 'react';
+import { groups, scaleText, fmtMinutes, flatSteps, recipeText, shareText } from '@/lib/recipe';
 import { useRecipeSession } from '@/lib/session';
-import { setFavorite, deleteRecipe } from '@/lib/api';
+import { setFavorite, deleteRecipe, patchRecipe } from '@/lib/api';
 import { emojiFor } from './ui';
 
-export default function RecipeView({ recipe, cast, follow, go, back, kitchenId, changed, say }) {
+export default function RecipeView({ recipe, cast, follow, go, back, kitchenId, changed, say, openSheet }) {
   const { s, set, active, show } = useRecipeSession(cast, recipe, follow);
   const [viewer, setViewer] = useState(null);
+  const [notes, setNotes] = useState(recipe.notes || '');
+  useEffect(() => { setNotes(recipe.notes || ''); }, [recipe.id, recipe.notes]);
   const base = Number(recipe.servings) || null;
   const servings = s.servings ?? base;
   const factor = base && servings ? servings / base : 1;
@@ -26,6 +28,13 @@ export default function RecipeView({ recipe, cast, follow, go, back, kitchenId, 
   const remove = async () => {
     if (!confirm(`למחוק את "${recipe.title}"?`)) return;
     try { await deleteRecipe(kitchenId, recipe.id); await changed(); if (active) cast.update({ screen: 'home', recipeId: null }); back(); say('המתכון נמחק'); } catch { say('לא נמחק, נסו שוב'); }
+  };
+  const patch = async (p) => { try { await patchRecipe(kitchenId, recipe.id, p); await changed(); } catch { say('לא נשמר, נסו שוב'); } };
+  const share = () => shareText(recipeText(recipe, factor), recipe.title);
+  const shopping = () => {
+    const need = ing.flatMap((g, gi) => g.items.map((item, i) => (checked[`${gi}-${i}`] ? null : scaleText(item, factor)))).filter(Boolean);
+    if (!need.length) { say('כל המצרכים מסומנים — אין מה לקנות 🙂'); return; }
+    shareText(`🛒 קניות ל${recipe.title}:\n` + need.map((x) => '• ' + x).join('\n'), 'רשימת קניות');
   };
   const startCook = () => {
     if (active || follow) cast.update({ screen: 'cook', recipeId: recipe.id, step: s.step || 0, servings: s.servings ?? null, checked: s.checked || {} });
@@ -52,6 +61,8 @@ export default function RecipeView({ recipe, cast, follow, go, back, kitchenId, 
         {recipe.cook_minutes ? <span className="pill">🔥 בישול {fmtMinutes(recipe.cook_minutes)}</span> : null}
         {recipe.category && <span className="pill">{recipe.category}</span>}
         {(recipe.tags || []).map((t) => <span key={t} className="pill">{t}</span>)}
+        {recipe.cooked_count > 0 && <span className="pill">👩‍🍳 בושל {recipe.cooked_count === 1 ? 'פעם אחת' : `${recipe.cooked_count} פעמים`}</span>}
+        {recipe.rating ? <span className="pill">{'⭐'.repeat(recipe.rating)}</span> : null}
       </div>
 
       <div className="actions">
@@ -61,6 +72,13 @@ export default function RecipeView({ recipe, cast, follow, go, back, kitchenId, 
         <button className="btn primary big" onClick={startCook}>👩‍🍳 מתחילים לבשל</button>
       </div>
       {!cast.tvOnline && <p className="muted small" style={{ textAlign: 'center', margin: '4px 0 0' }}>הטלוויזיה לא מחוברת כרגע — אפשר לבשל גם מהטלפון</p>}
+      <div className="toolbar">
+        <button onClick={share}><span>📤</span>שיתוף</button>
+        <button onClick={shopping}><span>🛒</span>רשימת קניות</button>
+        <button onClick={() => openSheet('plan-add', { id: recipe.id })}><span>📅</span>לתפריט</button>
+        <button onClick={() => openSheet('chef', { id: recipe.id })}><span>👩‍🍳</span>שאלה לשף</button>
+      </div>
+      {recipe.notes && <div className="tip" style={{ marginTop: 10 }}>📝 {recipe.notes}</div>}
 
       <div className="row" style={{ marginTop: 22, alignItems: 'flex-end' }}>
         <h2 className="h2 grow" style={{ margin: 0 }}>🧺 מצרכים</h2>
@@ -129,6 +147,19 @@ export default function RecipeView({ recipe, cast, follow, go, back, kitchenId, 
           </div>
         </>
       )}
+
+      <h2 className="h2">⭐ הדירוג וההערות שלי</h2>
+      <div className="box" style={{ padding: 14 }}>
+        <div className="row">
+          <span className="grow muted small">כמה אהבתם?</span>
+          <div className="stars">
+            {[1, 2, 3, 4, 5].map((n) => <button key={n} className={(recipe.rating || 0) >= n ? 'on' : ''} onClick={() => patch({ rating: recipe.rating === n ? null : n })} aria-label={`${n} כוכבים`}>⭐</button>)}
+          </div>
+        </div>
+        <textarea style={{ marginTop: 10, minHeight: 70 }} value={notes} onChange={(e) => setNotes(e.target.value)} onBlur={() => notes !== (recipe.notes || '') && patch({ notes })}
+          placeholder="למשל: בפעם הבאה פחות סוכר, 5 דקות יותר בתנור..." />
+      </div>
+      {recipe.source_url && <a className="btn block" style={{ marginTop: 14 }} href={recipe.source_url} target="_blank" rel="noreferrer">🔗 המתכון באתר המקורי</a>}
 
       <button className="btn danger block" style={{ marginTop: 30 }} onClick={remove}>🗑️ מחיקת המתכון</button>
 

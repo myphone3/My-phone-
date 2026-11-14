@@ -127,3 +127,38 @@ export function ingredientsForStep(recipe, stepText) {
 export function emptyRecipe() {
   return { title: '', description: '', category: '', tags: [], servings: null, prep_minutes: null, cook_minutes: null, image_url: '', source_images: [], ingredients: [{ title: '', items: [] }], steps: [{ title: '', items: [] }], tips: [], favorite: false };
 }
+
+// טקסט יפה לשיתוף בוואטסאפ
+export function recipeText(r, factor = 1) {
+  const lines = [`🍽️ *${r.title}*`];
+  if (r.description) lines.push(r.description);
+  const meta = [r.servings ? `${fmtNum(r.servings * factor)} מנות` : '', fmtMinutes(totalMinutes(r))].filter(Boolean).join(' · ');
+  if (meta) lines.push(meta);
+  lines.push('', '*מצרכים:*');
+  groups(r.ingredients).forEach((g) => { if (g.title) lines.push(`_${g.title}_`); g.items.forEach((i) => lines.push('• ' + scaleText(i, factor))); });
+  lines.push('', '*אופן ההכנה:*');
+  let n = 0;
+  groups(r.steps).forEach((g) => { if (g.title) lines.push(`_${g.title}_`); g.items.forEach((i) => lines.push(`${++n}. ${i}`)); });
+  const tips = (r.tips || []).filter(Boolean);
+  if (tips.length) { lines.push('', '*טיפים:*'); tips.forEach((t) => lines.push('💡 ' + t)); }
+  return lines.join('\n');
+}
+
+export async function shareText(text, title) {
+  try {
+    if (navigator.share) { await navigator.share({ title, text }); return true; }
+  } catch (e) { if (e?.name === 'AbortError') return true; }
+  window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+  return true;
+}
+
+export const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+export function nextDays(n = 7) {
+  const out = [];
+  const d = new Date();
+  for (let i = 0; i < n; i++) {
+    const x = new Date(d.getFullYear(), d.getMonth(), d.getDate() + i);
+    out.push({ key: dayKey(x), label: i === 0 ? 'היום' : i === 1 ? 'מחר' : x.toLocaleDateString('he-IL', { weekday: 'long' }), date: x.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' }) });
+  }
+  return out;
+}

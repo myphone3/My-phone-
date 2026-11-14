@@ -70,6 +70,7 @@ export default function Editor({ draft, kitchenId, back, replace, changed, say }
         steps: r.steps.map((g) => ({ title: g.title.trim(), items: toItems(g.text) })).filter((g) => g.items.length),
         tips: toItems(r.tipsText),
         favorite: !!r.favorite,
+        source_url: r.source_url || null,
       };
       const saved = await saveRecipe(kitchenId, payload);
       await changed();

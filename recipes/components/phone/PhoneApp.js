@@ -14,6 +14,9 @@ import AddSheet from './AddSheet';
 import MusicSheet from './MusicSheet';
 import TvSheet from './TvSheet';
 import SettingsSheet from './SettingsSheet';
+import MiniPlayer from './MiniPlayer';
+import ChefSheet from './ChefSheet';
+import { PlanView, PlanAddSheet, PlanPickSheet } from './Plan';
 
 function Welcome({ onCreate, busy }) {
   const [name, setName] = useState('המתכונים של המשפחה');
@@ -66,6 +69,7 @@ export default function PhoneApp() {
   const cast = useCast(kitchenId, 'phone', (ev, payload) => {
     if (ev === 'library') load();
     if (ev === 'musicInfo') setMusicInfo(payload);
+    if (ev === 'musicCmd') window.dispatchEvent(new CustomEvent('rc-music-remote', { detail: payload }));
   });
 
   // פתיחה: קישור משפחתי (?k=) או קוד מהטלוויזיה (?pair=)
@@ -120,7 +124,7 @@ export default function PhoneApp() {
   const recipes = data?.recipes || [];
   const byId = useMemo(() => Object.fromEntries(recipes.map((r) => [r.id, r])), [recipes]);
   const now = useNow(cast.state.timers?.length > 0);
-  useAlarms(cast.state.timers, now);
+  const alarms = useAlarms(cast.state.timers, now);
 
   if (!ready) return null;
   if (!kitchenId) return <Welcome onCreate={create} busy={busy} />;
@@ -135,6 +139,7 @@ export default function PhoneApp() {
       {view.name === 'recipe' && (recipe ? <RecipeView {...common} recipe={recipe} /> : <Missing back={back} loading={!data} />)}
       {view.name === 'cook' && (recipe ? <CookView {...common} recipe={recipe} /> : <Missing back={back} loading={!data} />)}
       {view.name === 'edit' && <Editor {...common} draft={view.draft || byId[view.editId]} />}
+      {view.name === 'plan' && <PlanView {...common} />}
 
       {showFloatTimers && (
         <div className="float-timers"><Timers timers={cast.state.timers} update={cast.update} now={now} /></div>
@@ -143,7 +148,12 @@ export default function PhoneApp() {
       {view.sheet === 'add' && <AddSheet {...common} onClose={back} />}
       {view.sheet === 'music' && <MusicSheet {...common} info={musicInfo} onClose={back} />}
       {view.sheet === 'tv' && <TvSheet {...common} onClose={back} />}
+      {view.sheet === 'chef' && recipe && <ChefSheet recipe={recipe} cast={cast} step={view.step} initial={view.q} onClose={back} />}
+      {view.sheet === 'plan-add' && recipe && <PlanAddSheet {...common} recipe={recipe} onClose={back} />}
+      {view.sheet === 'plan-pick' && <PlanPickSheet {...common} day={view.day} dayLabel={view.dayLabel} onClose={back} />}
       {view.sheet === 'settings' && <SettingsSheet {...common} setFollow={setFollow} onClose={back} onLeave={() => { setKitchenId(null); setKid(null); setData(null); }} />}
+      <MiniPlayer cast={cast} info={musicInfo} setInfo={setMusicInfo} duck={alarms.length > 0} hidden={view.name === 'edit'}
+        openMusic={() => (view.sheet === 'music' ? null : openSheet('music'))} />
       {toast && <div className="toast">{toast}</div>}
     </>
   );
