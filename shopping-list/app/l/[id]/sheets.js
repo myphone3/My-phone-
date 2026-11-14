@@ -555,44 +555,6 @@ export function StoreSheet({ list, onClose, onSave }) {
   );
 }
 
-/* ---------- היסטוריית קניות ---------- */
-
-export function TripsSheet({ listId, onClose }) {
-  const [trips, setTrips] = useState(null);
-  useEffect(() => { supabase.rpc('sl_trips_list', { p_list: listId }).then(({ data }) => setTrips(data || [])); }, [listId]);
-  const withTotal = (trips || []).filter((t) => Number(t.total) > 0);
-  const avg = withTotal.length ? withTotal.reduce((s, t) => s + Number(t.total), 0) / withTotal.length : 0;
-  return (
-    <Sheet onClose={onClose}>
-      <h3>📊 קניות קודמות</h3>
-      {trips === null && <div className="muted">טוען…</div>}
-      {trips?.length === 0 && (
-        <div className="muted">עוד אין היסטוריה. כשמסיימים קנייה לוחצים בתפריט על "🔄 קנייה חדשה" — והסיכום (כולל הסכום) נשמר כאן. כדאי לרשום מחירים בפריטים כדי להשוות.</div>
-      )}
-      {avg > 0 && <div className="alert" style={{ marginTop: 0, marginBottom: 10 }}>בממוצע קנייה עולה <b>{shekel(avg)}</b></div>}
-      {trips?.map((t, k) => {
-        const prev = trips[k + 1];
-        const d = prev && Number(prev.total) > 0 && Number(t.total) > 0 ? Number(t.total) - Number(prev.total) : 0;
-        return (
-          <div key={t.id} className="card" style={{ padding: 12, marginBottom: 8 }}>
-            <div className="row">
-              <div className="grow">
-                <b>{new Date(t.at).toLocaleDateString('he-IL', { weekday: 'short', day: 'numeric', month: 'numeric' })}</b>
-                {t.store && <span className="muted small"> · {t.store}</span>}
-                <div className="muted small">{t.found} פריטים נקנו{t.missing ? ` · ${t.missing} היו חסרים` : ''}</div>
-              </div>
-              <div style={{ textAlign: 'left' }}>
-                <div style={{ fontWeight: 800, fontSize: 18 }}>{Number(t.total) > 0 ? shekel(t.total) : '—'}</div>
-                {Math.abs(d) >= 1 && <div className="small" style={{ color: d > 0 ? 'var(--red)' : 'var(--green)' }}>{d > 0 ? '+' : '−'}{shekel(Math.abs(d))}</div>}
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </Sheet>
-  );
-}
-
 /* ---------- תפריט ---------- */
 
 function b64ToUint8(b64) {
@@ -648,7 +610,8 @@ export function MenuSheet({ list, items, id, me, wake, store, onWake, onClose, o
         <button onClick={share}><span className="ic">➕</span>הזמן משתתפים לרשימה</button>
         <button onClick={() => open('split')}><span className="ic">👥</span>חלוקה בין אנשים — מי מביא מה</button>
         <button onClick={() => open('store')}><span className="ic">📍</span>סניף וסדר מחלקות{store ? `: ${store.name}` : ' (לא חובה)'}</button>
-        <button onClick={() => open('trips')}><span className="ic">📊</span>קניות קודמות והשוואת מחירים</button>
+        <button onClick={() => open('receipt')}><span className="ic">🧾</span>צלם חשבונית — מחירים לכל מוצר</button>
+        <button onClick={() => open('trips')}><span className="ic">📊</span>קניות קודמות, חשבוניות והשוואת מחירים</button>
         <button onClick={togglePush}><span className="ic">{push ? '🔔' : '🔕'}</span>התראות לטלפון: {push ? 'פועל' : 'כבוי'}</button>
         <button onClick={() => onWake(!wake)}><span className="ic">{wake ? '🔆' : '🔅'}</span>המסך לא נכבה בזמן קנייה: {wake ? 'פועל' : 'כבוי'}</button>
         <button onClick={() => wa(listAsText(list, items, { onlyLeft: true }))}><span className="ic">💬</span>שלח בוואטסאפ את מה שנשאר לקנות</button>
@@ -661,7 +624,7 @@ export function MenuSheet({ list, items, id, me, wake, store, onWake, onClose, o
         <button onClick={() => copy(listAsText(list, items), 'הרשימה הועתקה')}><span className="ic">📄</span>העתק את כל הרשימה כטקסט</button>
         <button onClick={() => { const n = prompt('שם הרשימה', list?.name || ''); if (n) onRename(n); }}><span className="ic">✏️</span>שנה שם רשימה</button>
         <button onClick={onChangeName}><span className="ic">🙂</span>השם שלי: {me || '—'}</button>
-        <button onClick={() => { if (confirm('לסיים את הקנייה? הסיכום והמחירים יישמרו, מה שנמצא יימחק, ומה שחסר יישאר לפעם הבאה.')) onNewTrip(false); }}>
+        <button onClick={() => { if (confirm('לסיים את הקנייה? הסיכום והמחירים יישמרו, מה שנמצא יימחק, ומה שחסר יישאר לפעם הבאה.\n\nטיפ: אם עוד לא צילמתם חשבונית — כדאי לפני.')) onNewTrip(false); }}>
           <span className="ic">🔄</span>סיימנו — קנייה חדשה (משאיר את מה שחסר)
         </button>
         <button style={{ color: 'var(--red)' }} onClick={() => { if (confirm('למחוק את כל הפריטים ברשימה?')) onNewTrip(true); }}>

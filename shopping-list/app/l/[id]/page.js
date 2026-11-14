@@ -7,8 +7,10 @@ import { parseText, fmtQty } from '@/lib/parse';
 import { getMyName, setMyName, rememberList, getPref, setPref } from '@/lib/local';
 import { catOrderOf, assigneeOf, currentStore, keyOf, shekel, unitPrice } from '@/lib/order';
 import {
-  ItemSheet, PasteSheet, MenuSheet, NameSheet, SplitSheet, StoreSheet, TripsSheet, STATUS, colorFor,
+  ItemSheet, PasteSheet, MenuSheet, NameSheet, SplitSheet, StoreSheet, STATUS, colorFor,
 } from './sheets';
+import { ReceiptSheet, TripsSheet } from './receipt';
+import { enTermFor } from '@/lib/parse';
 
 const STATUS_RANK = { need: 0, check: 1, partial: 2, missing: 3, found: 4 };
 
@@ -29,7 +31,7 @@ export default function ListPage() {
   const [filter, setFilter] = useState('all');
   const [openId, setOpenId] = useState(null);
   const [paste, setPaste] = useState(null); // { text, ai } או null
-  const [sheet, setSheet] = useState(null); // 'menu' | 'split' | 'store' | 'trips'
+  const [sheet, setSheet] = useState(null); // 'menu' | 'split' | 'store' | 'trips' | 'receipt'
   const [quick, setQuick] = useState('');
   const [toast, setToast] = useState('');
   const [people, setPeople] = useState([]);
@@ -119,6 +121,25 @@ export default function ListPage() {
     document.addEventListener('visibilitychange', onVis);
     return () => { document.removeEventListener('visibilitychange', onVis); lock?.release?.(); };
   }, [wake]);
+
+  // תמונה אוטומטית לפריטים שהוספתי (אחד בכל פעם, כדי לא להעמיס)
+  const imgTried = useRef(new Set());
+  useEffect(() => {
+    if (!me || loading) return;
+    const next = items.find((i) => !i.image_url && !i.photo_url && i.added_by === me && i.status !== 'found' && !imgTried.current.has(i.id));
+    if (!next) return;
+    imgTried.current.add(next.id);
+    const t = setTimeout(async () => {
+      try {
+        const r = await fetch(`/api/image?q=${encodeURIComponent(next.name)}&en=${encodeURIComponent(enTermFor(next.name) || '')}`);
+        const j = await r.json();
+        const img = j.source === 'openfoodfacts' && j.images?.[0]?.thumb;
+        if (img) update(next, { image_url: img });
+      } catch {}
+    }, 1500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, me, loading]);
 
   const broadcast = (payload) => chan.current?.send({ type: 'broadcast', event: 'change', payload: { ...payload, by: meRef.current } });
 
@@ -334,6 +355,20 @@ export default function ListPage() {
         </div>
       ))}
 
+      {!loading && counts.total > 0 && counts.found + counts.missing === counts.total && (
+        <div className="alert" style={{ background: 'var(--green-soft)' }}>
+          <div style={{ fontSize: 34 }}>🎉</div>
+          <div className="grow">
+            <div style={{ fontWeight: 800 }}>סיימתם את הרשימה!</div>
+            <div className="small muted">צלמו את החשבונית — המחירים של כל מוצר יישמרו להשוואה בפעם הבאה</div>
+            <div className="row" style={{ marginTop: 6 }}>
+              <button className="btn sm primary" onClick={() => setSheet('receipt')}>🧾 צלם חשבונית</button>
+              <button className="btn sm" onClick={() => setSheet('menu')}>🔄 קנייה חדשה</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {loading && <div className="empty"><div className="big">⏳</div></div>}
       {!loading && items.length === 0 && (
         <div className="empty">
@@ -415,7 +450,18 @@ export default function ListPage() {
       {sheet === 'store' && (
         <StoreSheet list={list} onClose={() => setSheet(null)} onSave={(patch) => updateList(patch)} />
       )}
-      {sheet === 'trips' && <TripsSheet listId={id} onClose={() => setSheet(null)} />}
+      {sheet === 'trips' && <TripsSheet listId={id} onClose={() => setSheet(null)} onReceipt={() => setSheet('receipt')} />}
+      {sheet === 'receipt' && (
+        <ReceiptSheet listId={id} list={list} items={items} prices={prices} me={me} say={say} onClose={() => setSheet(null)}
+          onSaved={async (total) => {
+            setSheet(null);
+            await load(); await loadPrices();
+            const msg = `🧾 ${me} צילם חשבונית${total ? ` — ${shekel(total)}` : ''}`;
+            broadcast({ reload: true, msg });
+            notify(msg);
+            say('המחירים נשמרו 👍 אפשר להשוות ב"קניות קודמות"');
+          }} />
+      )}
       {askName && (
         <NameSheet initial={me} onSave={(n) => {
           setMyName(n); setAskName(false);

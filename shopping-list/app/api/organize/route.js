@@ -2,28 +2,12 @@
 // 1) text: הקלטה קולית / טקסט חופשי → שורה לכל פריט
 // 2) names: מוצרים שהמילון לא הכיר → מחלקה ואימוג'י
 import { CATEGORIES } from '@/lib/catalog';
+import { gemini, hasGemini } from '@/lib/gemini';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
 
 const CATS = CATEGORIES.map((c) => c.id);
-
-async function viaGemini(key, system, user) {
-  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
-  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
-    method: 'POST',
-    signal: AbortSignal.timeout(20000),
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: system }] },
-      contents: [{ role: 'user', parts: [{ text: user }] }],
-      generationConfig: { temperature: 0, responseMimeType: 'application/json' },
-    }),
-  });
-  if (!r.ok) throw new Error('gemini ' + r.status);
-  const j = await r.json();
-  return JSON.parse(j.candidates?.[0]?.content?.parts?.[0]?.text || '{}');
-}
 
 async function viaGateway(req, system, user) {
   const token = process.env.AI_GATEWAY_API_KEY || req.headers.get('x-vercel-oidc-token') || process.env.VERCEL_OIDC_TOKEN;
@@ -44,10 +28,9 @@ async function viaGateway(req, system, user) {
   return JSON.parse(j.choices?.[0]?.message?.content || '{}');
 }
 
-// עדיפות: מפתח Gemini אם הוגדר, אחרת Vercel AI Gateway
+// עדיפות: מפתח Gemini (אותו מפתח של החנות), אחרת Vercel AI Gateway
 function ask(req, system, user) {
-  const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
-  return key ? viaGemini(key, system, user) : viaGateway(req, system, user);
+  return hasGemini() ? gemini({ system, parts: [{ text: user }] }) : viaGateway(req, system, user);
 }
 
 export async function POST(req) {
