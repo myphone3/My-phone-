@@ -135,7 +135,7 @@ export default function ListPage() {
         const img = j.images?.[0]?.thumb;
         if (img) update(next, { image_url: img });
       } catch {}
-    }, 1500);
+    }, imgTried.current.size <= 1 ? 800 : 6500); // לאט — המאגר מגביל כמות חיפושים בדקה
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, me, loading]);

@@ -18,6 +18,16 @@ function withTimeout(ms) {
   return c.signal;
 }
 
+// החיפוש החדש של Open Food Facts (פחות חסום משרתים משותפים)
+async function offSearch(q) {
+  const u = `https://search.openfoodfacts.org/search?page_size=12&langs=he,en&q=${encodeURIComponent(q)}`;
+  const r = await fetch(u, { signal: withTimeout(6000), headers: { 'User-Agent': 'shopping-list-app/1.0' } });
+  if (!r.ok) return [];
+  const j = await r.json().catch(() => null);
+  return ((j && j.hits) || []).filter((p) => p.image_front_small_url).slice(0, 8)
+    .map((p) => ({ thumb: p.image_front_small_url, url: p.image_front_url || p.image_front_small_url, title: p.product_name || '' }));
+}
+
 // Open Food Facts — תמונות אמיתיות של מוצרים ישראליים, חיפוש בעברית
 async function openFoodFacts(q) {
   const u = 'https://il.openfoodfacts.org/cgi/search.pl?json=1&page_size=12&fields=product_name,image_front_small_url,image_front_url' +
@@ -50,13 +60,16 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const q = (searchParams.get('q') || '').slice(0, 80);
   const en = (searchParams.get('en') || '').slice(0, 80);
+  const productOnly = searchParams.get('po') === '1';
   if (!q) return Response.json({ images: [] });
   try {
     let images = await google(q);
     let source = 'google';
     if (!images || !images.length) {
       source = 'openfoodfacts';
-      images = await openFoodFacts(q).catch(() => []);
+      images = await offSearch(q).catch(() => []);
+      if (!images.length) images = await openFoodFacts(q).catch(() => []);
+      if (!images.length && productOnly) return Response.json({ images: [], source: '' });
       if (!images.length) {
         source = 'commons';
         images = await commons(en || q).catch(() => []);

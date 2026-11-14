@@ -12,21 +12,10 @@ async function offClassic(q) {
     .map((p) => ({ thumb: p.image_front_small_url, url: p.image_front_url || p.image_front_small_url, title: p.product_name || '' }));
 }
 
-async function offNew(q) {
-  const u = 'https://search.openfoodfacts.org/search?page_size=12&langs=he,en&q=' + encodeURIComponent(q);
-  const r = await fetch(u, { signal: tm(6000) });
-  const j = await r.json();
-  return (j.hits || []).filter((p) => p.image_front_small_url)
-    .map((p) => ({ thumb: p.image_front_small_url, url: p.image_front_url || p.image_front_small_url, title: p.product_name || '' }));
-}
-
 export async function findImages(name, { productOnly = false } = {}) {
-  for (const f of [offClassic, offNew]) {
-    try { const r = await f(name); if (r.length) return { images: r.slice(0, 8), source: 'openfoodfacts' }; } catch {}
-  }
-  if (productOnly) return { images: [], source: '' };
+  try { const r = await offClassic(name); if (r.length) return { images: r.slice(0, 8), source: 'openfoodfacts' }; } catch {}
   try {
-    const r = await fetch(`/api/image?q=${encodeURIComponent(name)}&en=${encodeURIComponent(enTermFor(name) || '')}`);
+    const r = await fetch(`/api/image?q=${encodeURIComponent(name)}&en=${encodeURIComponent(enTermFor(name) || '')}${productOnly ? '&po=1' : ''}`);
     return await r.json();
   } catch { return { images: [], source: '' }; }
 }
