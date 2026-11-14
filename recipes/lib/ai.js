@@ -45,8 +45,24 @@ async function viaGateway(req, content, json) {
 }
 
 
+// דרך השרת של החנות (משתמש במפתח Gemini של החנות, שנשאר שם)
+async function viaStore(parts, json) {
+  const r = await fetch(process.env.STORE_AI_URL, {
+    method: 'POST',
+    signal: AbortSignal.timeout(58000),
+    headers: { 'Content-Type': 'application/json', 'x-recipes-secret': process.env.RECIPES_AI_SECRET || '' },
+    body: JSON.stringify({ contents: [{ role: 'user', parts }], generationConfig: { temperature: json ? 0.1 : 0.5, ...(json ? { responseMimeType: 'application/json' } : {}) } }),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error('store ai ' + r.status + ' ' + (j.error || ''));
+  const t = j.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';
+  return json ? JSON.parse(t.replace(/^```(?:json)?\s*|\s*```$/g, '') || '{}') : t;
+}
+
 export function askAI(req, prompt, images = [], json = true) {
   const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
+  const geminiParts = [{ text: prompt }, ...images.map((data) => ({ inline_data: { mime_type: 'image/jpeg', data } }))];
+  if (!key && process.env.STORE_AI_URL) return viaStore(geminiParts, json);
   return key
     ? viaGemini(key, [{ text: prompt }, ...images.map((data) => ({ inline_data: { mime_type: 'image/jpeg', data } }))], json)
     : viaGateway(req, [{ type: 'text', text: prompt }, ...images.map((d) => ({ type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + d } }))], json);
