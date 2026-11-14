@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import InstallButton from '@/components/InstallButton';
 import { getMyLists, getMyName, rememberList, setMyName, forgetList } from '@/lib/local';
 
 export default function Home() {
@@ -43,6 +44,8 @@ export default function Home() {
         <h1 className="title" style={{ fontSize: 28, whiteSpace: 'normal' }}>רשימת קניות משותפת</h1>
         <div className="muted">כותבים או מדביקים מהוואטסאפ, מסתובבים בחנות, וכולם רואים בזמן אמת מה נמצא</div>
       </div>
+
+      <InstallButton />
 
       {lists.length > 0 && (
         <div className="card" style={{ padding: 6, marginBottom: 16 }}>
