@@ -8,8 +8,9 @@ import { flatSteps, detectMinutes } from '@/lib/recipe';
 import { addTimer, useNow, useAlarms, removeTimer } from '@/lib/timers';
 import { unlockAudio } from '@/lib/sound';
 import { setMusic } from '@/lib/music';
-import { TvPair, TvHome, TvRecipe, TvCook, TvOriginal, TvTimers, TvIngredients, TvChef, TvIdle, Clock } from './TvScreens';
+import { TvPair, TvHome, TvRecipe, TvCook, TvOriginal, TvTimers, TvIngredients, TvChef, TvIdle, TvBoard, Clock } from './TvScreens';
 import TvMusic from './TvMusic';
+import { useKeepAwake } from '@/lib/awake';
 
 const IDLE_MS = 4 * 60 * 1000;
 
@@ -26,6 +27,7 @@ export default function TvApp() {
   const musicCmd = useRef(() => {});
   const noticeT = useRef();
 
+  useKeepAwake(true);
   const say = (m) => { setNotice(m); clearTimeout(noticeT.current); noticeT.current = setTimeout(() => setNotice(''), 3000); };
   const poke = () => { lastAct.current = Date.now(); setIdle(false); };
 
@@ -70,10 +72,10 @@ export default function TvApp() {
   useEffect(() => {
     const iv = setInterval(() => {
       const busy = screen !== 'home' || s.timers?.length;
-      if (!busy && Date.now() - lastAct.current > IDLE_MS) setIdle(true);
+      if (s.saver && !busy && Date.now() - lastAct.current > IDLE_MS) setIdle(true);
     }, 15000);
     return () => clearInterval(iv);
-  }, [screen, s.timers?.length]);
+  }, [screen, s.timers?.length, s.saver]);
 
   useEffect(() => { if (s.recipeId && data && !recipe) load(); }, [s.recipeId, data, recipe, load]);
   useEffect(() => { const t = setTimeout(() => focusFirst(), 60); return () => clearTimeout(t); }, [screen, s.recipeId, !!data]);
@@ -119,6 +121,12 @@ export default function TvApp() {
       if (KEY.isRight(e)) { if (page > 0) cast.update({ page: page - 1 }); e.preventDefault(); return; }
       if (KEY.isBack(e) || KEY.isOk(e)) { cast.update({ screen: 'recipe' }); e.preventDefault(); return; }
     }
+    if (screen === 'board') {
+      if (KEY.isBack(e)) { cast.update({ screen: 'recipe' }); e.preventDefault(); return; }
+      if (KEY.isOk(e)) { cast.update({ screen: 'cook' }); e.preventDefault(); return; }
+      e.preventDefault();
+      return;
+    }
     if (screen === 'ingredients' && KEY.isBack(e)) { cast.update({ screen: 'recipe' }); e.preventDefault(); return; }
     if (screen === 'recipe' && KEY.isBack(e)) { cast.update({ screen: 'home', recipeId: null }); e.preventDefault(); return; }
     const el = document.activeElement;
@@ -158,6 +166,7 @@ export default function TvApp() {
         {data && screen === 'recipe' && recipe && <TvRecipe recipe={recipe} cast={cast} />}
         {data && screen === 'cook' && recipe && <TvCook recipe={recipe} cast={cast} />}
         {data && screen === 'ingredients' && recipe && <TvIngredients recipe={recipe} cast={cast} />}
+        {data && screen === 'board' && recipe && <TvBoard recipe={recipe} cast={cast} />}
         {data && screen === 'original' && recipe && <TvOriginal recipe={recipe} cast={cast} />}
       </div>
 

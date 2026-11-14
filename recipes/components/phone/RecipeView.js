@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { groups, scaleText, fmtMinutes, flatSteps, recipeText, shareText } from '@/lib/recipe';
-import { useRecipeSession } from '@/lib/session';
+import { useRecipeSession, tvMode } from '@/lib/session';
 import { setFavorite, deleteRecipe, patchRecipe } from '@/lib/api';
 import { emojiFor } from './ui';
 
@@ -66,12 +66,19 @@ export default function RecipeView({ recipe, cast, follow, go, back, kitchenId, 
       </div>
 
       <div className="actions">
-        <button className={'btn big ' + (onTv ? 'herb' : 'soft')} onClick={() => show('recipe')}>
+        <button className={'btn big ' + (onTv ? 'herb' : 'soft')} onClick={() => show(tvMode(), { boardHL: false })}>
           📺 {onTv ? 'מוצג בטלוויזיה' : 'הצגה בטלוויזיה'}
         </button>
         <button className="btn primary big" onClick={startCook}>👩‍🍳 מתחילים לבשל</button>
       </div>
       {!cast.tvOnline && <p className="muted small" style={{ textAlign: 'center', margin: '4px 0 0' }}>הטלוויזיה לא מחוברת כרגע — אפשר לבשל גם מהטלפון</p>}
+      {cast.tvOnline && (
+        <div className="seg" style={{ marginTop: 10 }}>
+          <button className={onTv && cast.state.screen === 'board' ? 'on' : ''} onClick={() => show('board', { boardHL: false })}>📋 הכל על המסך</button>
+          <button className={onTv && cast.state.screen === 'recipe' ? 'on' : ''} onClick={() => show('recipe')}>🖼️ עם תמונה</button>
+          <button className={onTv && cast.state.screen === 'ingredients' ? 'on' : ''} onClick={() => show('ingredients')}>🧺 מצרכים</button>
+        </div>
+      )}
       <div className="toolbar">
         <button onClick={share}><span>📤</span>שיתוף</button>
         <button onClick={shopping}><span>🛒</span>רשימת קניות</button>

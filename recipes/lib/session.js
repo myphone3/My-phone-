@@ -1,6 +1,9 @@
 'use client';
 // מצב המתכון הפתוח (שלב, סימוני מצרכים, מנות). כשהמתכון מוצג בטלוויזיה — משותף איתה.
 import { useCallback, useEffect, useState } from 'react';
+import { read } from './local';
+
+export const tvMode = () => read('rc_tvmode', 'board');
 
 export function useRecipeSession(cast, recipe, follow) {
   const active = cast.state.recipeId === recipe.id;
@@ -8,7 +11,7 @@ export function useRecipeSession(cast, recipe, follow) {
 
   // "הטלוויזיה עוקבת": פתיחת מתכון בטלפון פותחת אותו גם בטלוויזיה
   useEffect(() => {
-    if (follow && !active) cast.update({ screen: 'recipe', recipeId: recipe.id, step: 0, servings: null, checked: {}, page: 0 });
+    if (follow && !active) cast.update({ screen: tvMode(), recipeId: recipe.id, step: 0, servings: null, checked: {}, page: 0, boardHL: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recipe.id, follow]);
 

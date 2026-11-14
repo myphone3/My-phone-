@@ -360,3 +360,24 @@ html.tv .yt-blocked { font-size: .85rem; }
 .day .it { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
 .day .it img, .day .it .em { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; flex: none; }
 .pick { max-height: 50vh; overflow-y: auto; }
+
+/* ---------- כל המתכון על מסך אחד (קבוע, בלי תזוזה) ---------- */
+.tv-board { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; font-size: calc(1rem * var(--fs, 1)); }
+.tv-board * { animation: none !important; transition: none !important; }
+.tv-board .bh { display: flex; align-items: baseline; gap: 1.6em; border-bottom: .12em solid var(--line); padding-bottom: .5em; margin-bottom: .8em; flex: none; }
+.tv-board h1 { font-size: 2.1em; margin: 0; line-height: 1.15; }
+.tv-board .bm { display: flex; gap: 1.2em; color: var(--muted); font-size: 1.1em; font-weight: 600; }
+.tv-board .bb { flex: 1; min-height: 0; display: flex; gap: 2.2em; }
+.tv-board .bi { width: 27%; flex: none; background: rgba(255, 246, 236, .04); border: 1px solid var(--line); border-radius: 1em; padding: .9em 1.1em; overflow: hidden; }
+.tv-board .bs { flex: 1; min-width: 0; column-gap: 2.2em; column-fill: balance; height: 100%; }
+.tv-board .bt { font-weight: 800; font-size: 1.3em; margin-bottom: .4em; color: var(--ink); }
+.tv-board .bgt { color: var(--accent); font-weight: 800; font-size: 1.05em; margin: .7em 0 .25em; break-after: avoid; }
+.tv-board .bit { display: flex; gap: .55em; font-size: 1.12em; line-height: 1.35; padding: .22em 0; }
+.tv-board .bit .ck { width: 1em; height: 1em; border-radius: .25em; border: .12em solid var(--line); flex: none; margin-top: .2em; font-size: .85em; display: flex; align-items: center; justify-content: center; color: #120e0b; }
+.tv-board .bit.done { color: var(--muted); text-decoration: line-through; }
+.tv-board .bit.done .ck { background: var(--herb); border-color: var(--herb); }
+.tv-board .bsec { break-inside: auto; }
+.tv-board .bst { display: flex; gap: .65em; font-size: 1.15em; line-height: 1.42; padding: .32em .4em; break-inside: avoid; border-radius: .5em; }
+.tv-board .bst b { color: var(--accent); min-width: 1.3em; flex: none; font-variant-numeric: tabular-nums; }
+.tv-board .bst.cur { background: var(--accent-soft); outline: .1em solid var(--accent); }
+.tv-board .bst.btip { color: var(--muted); }

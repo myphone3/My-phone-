@@ -137,6 +137,7 @@ export function TvRecipe({ recipe, cast }) {
         </div>
         <div className="tv-btns">
           <button className="tv-btn primary" data-nav="" data-autofocus="" onClick={() => cast.update({ screen: 'cook' })}>👩‍🍳 מתחילים לבשל</button>
+          <button className="tv-btn" data-nav="" onClick={() => cast.update({ screen: 'board' })}>📋 הכל על המסך</button>
           <button className="tv-btn" data-nav="" onClick={() => cast.update({ screen: 'ingredients' })}>🧺 מצרכים</button>
           {recipe.source_images?.length > 0 && <button className="tv-btn" data-nav="" onClick={() => cast.update({ screen: 'original', page: 0 })}>📄 המקור</button>}
           <button className="tv-btn" data-nav="" onClick={() => cast.update({ screen: 'home', recipeId: null })}>🏠</button>
@@ -336,3 +337,89 @@ export function TvIdle({ data }) {
 }
 
 export const todayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+// ---- כל המתכון על מסך אחד: בלי תזוזה ובלי גלילה, הגופן מתכווץ עד שהכל נכנס ----
+function useFit(deps) {
+  const box = useRef(null);
+  const [scale, setScale] = useState(1);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    let s = 1.15;
+    const fits = () => el.scrollHeight <= el.clientHeight + 1 && el.scrollWidth <= el.clientWidth + 1
+      && [...el.querySelectorAll('[data-fit]')].every((c) => c.scrollHeight <= c.clientHeight + 1 && c.scrollWidth <= c.clientWidth + 1);
+    const run = () => {
+      s = 1.15;
+      el.style.setProperty('--fs', s);
+      for (let i = 0; i < 40 && !fits() && s > 0.42; i++) { s = Math.round((s - 0.03) * 100) / 100; el.style.setProperty('--fs', s); }
+      setScale(s);
+    };
+    run();
+    const t = setTimeout(run, 400); // אחרי טעינת תמונות/גופנים
+    window.addEventListener('resize', run);
+    return () => { clearTimeout(t); window.removeEventListener('resize', run); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+  return { box, scale };
+}
+
+export function TvBoard({ recipe, cast }) {
+  const s = cast.state;
+  const { servings, factor } = useFactor(recipe, s);
+  const ing = groups(recipe.ingredients);
+  const steps = groups(recipe.steps);
+  const checked = s.checked || {};
+  const total = steps.reduce((a, g) => a + g.items.length, 0);
+  const cols = total > 14 ? 3 : total > 6 ? 2 : 1;
+  const cur = s.boardHL ? (s.step ?? -1) : -1;
+  const { box } = useFit([recipe.id, factor, cols, JSON.stringify(checked).length]);
+  let n = 0;
+  return (
+    <div className="tv-board" ref={box} style={{ '--fs': 1 }}>
+      <div className="bh">
+        <h1>{recipe.title}</h1>
+        <div className="bm">
+          {servings ? <span>🍽️ {servings} מנות</span> : null}
+          {recipe.prep_minutes ? <span>🔪 {fmtMinutes(recipe.prep_minutes)}</span> : null}
+          {recipe.cook_minutes ? <span>🔥 {fmtMinutes(recipe.cook_minutes)}</span> : null}
+        </div>
+      </div>
+      <div className="bb">
+        <div className="bi" data-fit="">
+          <div className="bt">🧺 מצרכים</div>
+          {ing.map((g, gi) => (
+            <div key={gi} className="bg">
+              {g.title && <div className="bgt">{g.title}</div>}
+              {g.items.map((item, i) => {
+                const key = `${gi}-${i}`;
+                return <div key={key} className={'bit' + (checked[key] ? ' done' : '')}><span className="ck">{checked[key] ? '✓' : ''}</span><span>{scaleText(item, factor)}</span></div>;
+              })}
+            </div>
+          ))}
+        </div>
+        <div className="bs" data-fit="" style={{ columnCount: cols }}>
+          <div className="bt">📝 אופן ההכנה</div>
+          {steps.map((g, gi) => (
+            <div key={gi} className="bsec">
+              {g.title && <div className="bgt">{g.title}</div>}
+              {g.items.map((t, i) => {
+                const idx = n++;
+                return (
+                  <div key={i} className={'bst' + (idx === cur ? ' cur' : '')}>
+                    <b>{idx + 1}</b><span>{t}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+          {(recipe.tips || []).filter(Boolean).length > 0 && (
+            <div className="bsec">
+              <div className="bgt">💡 טיפים</div>
+              {recipe.tips.filter(Boolean).map((t, i) => <div key={i} className="bst btip"><b>•</b><span>{t}</span></div>)}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

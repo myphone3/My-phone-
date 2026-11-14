@@ -40,7 +40,8 @@ export default function CookView({ recipe, cast, follow, back, now, kitchenId, s
   }, []);
 
   useEffect(() => {
-    if (active && !['cook', 'original', 'ingredients'].includes(cast.state.screen)) cast.update({ screen: 'cook' });
+    if (active && !['cook', 'original', 'ingredients', 'board'].includes(cast.state.screen)) cast.update({ screen: 'cook' });
+    else if (active && cast.state.screen === 'board') cast.update({ boardHL: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
 
@@ -116,8 +117,8 @@ export default function CookView({ recipe, cast, follow, back, now, kitchenId, s
       {cast.tvOnline && (
         <div className="seg" style={{ marginBottom: 14 }}>
           <button className={tvScreen === 'cook' ? 'on' : ''} onClick={() => show('cook', { step })}>שלב בגדול</button>
+          <button className={tvScreen === 'board' ? 'on' : ''} onClick={() => show('board', { step, boardHL: true })}>הכל</button>
           <button className={tvScreen === 'ingredients' ? 'on' : ''} onClick={() => show('ingredients', { step })}>מצרכים</button>
-          <button className={tvScreen === 'recipe' ? 'on' : ''} onClick={() => show('recipe', { step })}>מתכון מלא</button>
           {recipe.source_images?.length > 0 && <button className={tvScreen === 'original' ? 'on' : ''} onClick={() => show('original', { step })}>מקור</button>}
         </div>
       )}
