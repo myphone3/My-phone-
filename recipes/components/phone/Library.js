@@ -92,8 +92,12 @@ export default function Library({ data, recipes, cast, go, openSheet, say }) {
 
       {data && recipes.length > 0 && !q && !cat && (
         <>
-          <div className="toolbar" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+          {cast.state.screen === 'multi' && cast.state.multi?.ids?.length > 0 && (
+            <button className="btn herb big block" style={{ marginTop: 12 }} onClick={() => go({ name: 'multi' })}>👩‍🍳 חזרה לבישול המשותף ({cast.state.multi.ids.length} מתכונים)</button>
+          )}
+          <div className="toolbar">
             <button onClick={() => go({ name: 'plan' })}><span>📅</span>תפריט השבוע</button>
+            <button onClick={() => openSheet('multi-pick')}><span>🍽️</span>כמה מתכונים יחד</button>
             <button onClick={surprise}><span>🎲</span>מה לבשל היום?</button>
             <button onClick={() => openSheet('music')}><span>🎶</span>מוזיקה לבישול</button>
           </div>

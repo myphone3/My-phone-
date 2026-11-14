@@ -8,9 +8,10 @@ import { flatSteps, detectMinutes } from '@/lib/recipe';
 import { addTimer, useNow, useAlarms, removeTimer } from '@/lib/timers';
 import { unlockAudio } from '@/lib/sound';
 import { setMusic } from '@/lib/music';
-import { TvPair, TvHome, TvRecipe, TvCook, TvOriginal, TvTimers, TvIngredients, TvChef, TvIdle, TvBoard, Clock } from './TvScreens';
+import { TvPair, TvHome, TvRecipe, TvCook, TvOriginal, TvTimers, TvIngredients, TvChef, TvIdle, TvBoard, TvMulti, Clock } from './TvScreens';
 import TvMusic from './TvMusic';
 import { useKeepAwake } from '@/lib/awake';
+import { cachedKitchen, storeKitchen } from '@/lib/offline';
 
 const IDLE_MS = 4 * 60 * 1000;
 
@@ -23,6 +24,7 @@ export default function TvApp() {
   const [chef, setChef] = useState(null);
   const [remoteInfo, setRemoteInfo] = useState(null);
   const [idle, setIdle] = useState(false);
+  const [offline, setOffline] = useState(false);
   const lastAct = useRef(Date.now());
   const musicCmd = useRef(() => {});
   const noticeT = useRef();
@@ -44,12 +46,22 @@ export default function TvApp() {
 
   const load = useCallback(async () => {
     if (!kid) return;
+    setData((cur) => cur || cachedKitchen(kid));
     try {
       const d = await getKitchen(kid);
       if (d === null) { setKitchenId(null); setKid(null); return; }
       setData(d);
-    } catch {}
+      setOffline(false);
+      storeKitchen(kid, d);
+    } catch { setOffline(true); }
   }, [kid]);
+  useEffect(() => {
+    const on = () => load();
+    const off = () => setOffline(true);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
+  }, [load]);
   useEffect(() => { load(); const iv = setInterval(load, 5 * 60 * 1000); return () => clearInterval(iv); }, [load]);
 
   const cast = useCast(kid, 'tv', (ev, payload) => {
@@ -63,7 +75,9 @@ export default function TvApp() {
   });
   const s = cast.state;
   const recipe = s.recipeId ? data?.recipes?.find((r) => r.id === s.recipeId) : null;
-  const screen = recipe ? s.screen : 'home';
+  const screen = s.screen === 'multi' && s.multi?.ids?.length ? 'multi' : recipe ? s.screen : 'home';
+  const screenRef = useRef(screen);
+  screenRef.current = screen;
   const now = useNow(s.timers?.length > 0);
   const alarms = useAlarms(s.timers, now);
 
@@ -121,6 +135,17 @@ export default function TvApp() {
       if (KEY.isRight(e)) { if (page > 0) cast.update({ page: page - 1 }); e.preventDefault(); return; }
       if (KEY.isBack(e) || KEY.isOk(e)) { cast.update({ screen: 'recipe' }); e.preventDefault(); return; }
     }
+    if (screen === 'multi') {
+      const m = s.multi, ids = m.ids, fi = Math.max(0, ids.indexOf(m.focus));
+      const rec = data?.recipes?.find((r) => r.id === ids[fi]);
+      const n = rec ? flatSteps(rec).length : 0, cur = m.steps?.[ids[fi]] || 0;
+      const setStep = (v) => cast.update({ multi: { ...m, steps: { ...(m.steps || {}), [ids[fi]]: Math.max(0, Math.min(n - 1, v)) } } });
+      if (KEY.isLeft(e)) { cast.update({ multi: { ...m, focus: ids[Math.min(ids.length - 1, fi + 1)] } }); e.preventDefault(); return; }
+      if (KEY.isRight(e)) { cast.update({ multi: { ...m, focus: ids[Math.max(0, fi - 1)] } }); e.preventDefault(); return; }
+      if (KEY.isOk(e) || KEY.isDown(e)) { setStep(cur + 1); e.preventDefault(); return; }
+      if (KEY.isUp(e)) { setStep(cur - 1); e.preventDefault(); return; }
+      if (KEY.isBack(e)) { cast.update({ screen: 'home', multi: null }); e.preventDefault(); return; }
+    }
     if (screen === 'board') {
       if (KEY.isBack(e)) { cast.update({ screen: 'recipe' }); e.preventDefault(); return; }
       if (KEY.isOk(e)) { cast.update({ screen: 'cook' }); e.preventDefault(); return; }
@@ -138,6 +163,18 @@ export default function TvApp() {
     const dir = KEY.isLeft(e) ? 'left' : KEY.isRight(e) ? 'right' : KEY.isUp(e) ? 'up' : KEY.isDown(e) ? 'down' : null;
     if (dir) { moveFocus(dir); e.preventDefault(); }
   };
+  // אפליקציית אנדרואיד: כפתור חזור. מחזיר false במסך הבית כדי שהאפליקציה תצא
+  useEffect(() => {
+    window.__tvBack = () => {
+      const ev = new KeyboardEvent('keydown', { key: 'Escape' });
+      const before = JSON.stringify([screenRef.current, !!document.querySelector('.tv-alarm,.tv-chef,.tv-idle,.tv-start')]);
+      if (screenRef.current === 'home' && before.endsWith('false]')) return false;
+      keys.current?.(ev);
+      return true;
+    };
+    if (/MatkonimTV/.test(navigator.userAgent)) setStarted((x) => x || 1);
+    return () => { delete window.__tvBack; };
+  }, []);
   useEffect(() => {
     const h = (e) => keys.current?.(e);
     window.addEventListener('keydown', h);
@@ -157,7 +194,7 @@ export default function TvApp() {
       <div className="tv-top">
         <span className="brand">🍳 {data?.kitchen?.name || 'מתכונים בגדול'}</span>
         <span style={{ flex: 1 }} />
-        <span className={'tv-badge' + (phones ? ' on' : '')}><span className="dot" style={{ width: '.6rem', height: '.6rem', borderRadius: '50%', background: 'currentColor' }} />{phones ? (phones > 1 ? `${phones} טלפונים מחוברים` : 'הטלפון מחובר') : cast.online ? 'ממתין לטלפון' : 'מתחבר...'}</span>
+        <span className={'tv-badge' + (phones ? ' on' : '')}><span className="dot" style={{ width: '.6rem', height: '.6rem', borderRadius: '50%', background: 'currentColor' }} />{offline ? '📴 בלי אינטרנט — מתכונים שמורים' : phones ? (phones > 1 ? `${phones} טלפונים מחוברים` : 'הטלפון מחובר') : cast.online ? 'ממתין לטלפון' : 'מתחבר...'}</span>
         <Clock />
       </div>
       <div className="tv-main">
@@ -166,6 +203,7 @@ export default function TvApp() {
         {data && screen === 'recipe' && recipe && <TvRecipe recipe={recipe} cast={cast} />}
         {data && screen === 'cook' && recipe && <TvCook recipe={recipe} cast={cast} />}
         {data && screen === 'ingredients' && recipe && <TvIngredients recipe={recipe} cast={cast} />}
+        {data && screen === 'multi' && <TvMulti data={data} cast={cast} now={now} />}
         {data && screen === 'board' && recipe && <TvBoard recipe={recipe} cast={cast} />}
         {data && screen === 'original' && recipe && <TvOriginal recipe={recipe} cast={cast} />}
       </div>

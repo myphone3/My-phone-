@@ -381,3 +381,26 @@ html.tv .yt-blocked { font-size: .85rem; }
 .tv-board .bst b { color: var(--accent); min-width: 1.3em; flex: none; font-variant-numeric: tabular-nums; }
 .tv-board .bst.cur { background: var(--accent-soft); outline: .1em solid var(--accent); }
 .tv-board .bst.btip { color: var(--muted); }
+
+.offline-bar { position: fixed; top: 0; inset-inline: 0; z-index: 70; background: #3b2a0d; color: #fde68a; text-align: center; font-size: 13px; font-weight: 700; padding: 6px 10px calc(6px); }
+.nut-hero { text-align: center; padding: 10px 0 16px; }
+.nut-hero b { display: block; font-size: 52px; font-weight: 900; color: var(--accent); line-height: 1; }
+.nut-hero span { color: var(--muted); font-size: 14px; }
+.nut-row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px dashed var(--line); }
+.nut-row:last-child { border-bottom: 0; }
+
+.tv-multi { flex: 1; min-height: 0; display: grid; gap: 1.4rem; }
+.tv-mcol { background: var(--card); border: .12rem solid var(--line); border-radius: 1.3rem; padding: 1.2rem 1.3rem; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.tv-mcol.focus { border-color: var(--accent); box-shadow: 0 0 0 .15rem var(--accent); }
+.tv-mcol .mh { display: flex; align-items: center; gap: .8rem; }
+.tv-mcol .mh img, .tv-mcol .mh span { width: 3.2rem; height: 3.2rem; border-radius: .7rem; object-fit: cover; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; flex: none; }
+.tv-mcol .mh b { font-size: 1.3rem; line-height: 1.2; }
+.tv-mcol .prog { display: flex; gap: .2rem; margin: .9rem 0 .5rem; }
+.tv-mcol .prog i { flex: 1; height: .35rem; border-radius: .2rem; background: var(--line); }
+.tv-mcol .prog i.past { background: var(--accent); opacity: .5; }
+.tv-mcol .prog i.cur { background: var(--accent); }
+.tv-mcol .ms { color: var(--accent); font-weight: 700; font-size: .95rem; }
+.tv-mcol p { font-size: 1.75rem; line-height: 1.4; font-weight: 600; margin: .8rem 0; flex: 1; overflow: hidden; }
+.tv-mcol p.long { font-size: 1.35rem; }
+.tv-mcol .mt { background: var(--accent-soft); color: var(--accent); border-radius: .7rem; padding: .4rem .8rem; font-weight: 800; font-size: 1.3rem; font-variant-numeric: tabular-nums; margin-bottom: .5rem; align-self: flex-start; }
+.tv-mcol .mn { color: var(--muted); font-size: 1rem; border-top: 1px dashed var(--line); padding-top: .6rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

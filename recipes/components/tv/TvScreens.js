@@ -423,3 +423,34 @@ export function TvBoard({ recipe, cast }) {
     </div>
   );
 }
+
+// ---- כמה מתכונים במקביל: עמודה לכל מתכון ----
+export function TvMulti({ data, cast, now }) {
+  const m = cast.state.multi;
+  const list = (m?.ids || []).map((id) => data?.recipes?.find((r) => r.id === id)).filter(Boolean);
+  if (!list.length) return <p style={{ fontSize: '1.6rem', color: 'var(--muted)' }}>אין מתכונים בבישול המשותף</p>;
+  return (
+    <div className="tv-multi" style={{ gridTemplateColumns: `repeat(${list.length}, 1fr)` }}>
+      {list.map((r) => {
+        const steps = flatSteps(r);
+        const i = Math.min(m.steps?.[r.id] || 0, Math.max(0, steps.length - 1));
+        const cur = steps[i], next = steps[i + 1];
+        const len = cur?.text.length || 0;
+        const timers = (cast.state.timers || []).filter((t) => t.label?.startsWith(r.title.slice(0, 18)));
+        return (
+          <div key={r.id} className={'tv-mcol' + (m.focus === r.id ? ' focus' : '')}>
+            <div className="mh">
+              {r.image_url ? <img src={r.image_url} alt="" /> : <span>{emojiFor(r)}</span>}
+              <b>{r.title}</b>
+            </div>
+            <div className="prog">{steps.map((_, k) => <i key={k} className={k < i ? 'past' : k === i ? 'cur' : ''} />)}</div>
+            <div className="ms">שלב {i + 1} מתוך {steps.length}{cur?.section ? ` · ${cur.section}` : ''}</div>
+            <p className={len > 160 ? 'long' : ''}>{cur?.text}</p>
+            {timers.map((t) => <div key={t.id} className="mt">⏱️ {fmtClock(remaining(t, now))}</div>)}
+            {next ? <div className="mn">הבא: {next.text}</div> : <div className="mn" style={{ color: 'var(--herb)' }}>🎉 שלב אחרון</div>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}

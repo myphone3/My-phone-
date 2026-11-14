@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createKitchen, getKitchen } from '@/lib/api';
 import { useCast, pairTv } from '@/lib/cast';
 import { getKitchenId, setKitchenId, read, write } from '@/lib/local';
+import { cachedKitchen, storeKitchen } from '@/lib/offline';
 import { useNow, useAlarms } from '@/lib/timers';
 import { unlockAudio } from '@/lib/sound';
 import { Timers } from './ui';
@@ -16,6 +17,8 @@ import TvSheet from './TvSheet';
 import SettingsSheet from './SettingsSheet';
 import MiniPlayer from './MiniPlayer';
 import ChefSheet from './ChefSheet';
+import { ShoppingSheet, NutritionSheet, ShareSheet } from './Extras';
+import { MultiView, MultiPickSheet } from './Multi';
 import { PlanView, PlanAddSheet, PlanPickSheet } from './Plan';
 
 function Welcome({ onCreate, busy }) {
@@ -44,6 +47,7 @@ export default function PhoneApp() {
   const [view, setView] = useState({ name: 'library' });
   const [toast, setToast] = useState('');
   const [busy, setBusy] = useState(false);
+  const [offline, setOffline] = useState(false);
   const [follow, setFollowState] = useState(true);
   const [musicInfo, setMusicInfo] = useState(null);
   const pairCode = useRef(null);
@@ -57,14 +61,25 @@ export default function PhoneApp() {
 
   const load = useCallback(async (id = kitchenId) => {
     if (!id) return;
+    setData((cur) => cur || cachedKitchen(id));
     try {
       const d = await getKitchen(id);
       if (!d) { say('ספר המתכונים לא נמצא'); return; }
       setData(d);
+      setOffline(false);
+      storeKitchen(id, d);
     } catch {
-      say('אין חיבור כרגע, נסו שוב');
+      setOffline(true);
+      if (!cachedKitchen(id)) say('אין חיבור כרגע, נסו שוב');
     }
   }, [kitchenId, say]);
+  useEffect(() => {
+    const on = () => { setOffline(false); load(); };
+    const off = () => setOffline(true);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
+  }, [load]);
 
   const cast = useCast(kitchenId, 'phone', (ev, payload) => {
     if (ev === 'library') load();
@@ -131,7 +146,7 @@ export default function PhoneApp() {
 
   const common = { kitchenId, data, recipes, cast, go, back, replace, openSheet, say, changed, follow, now };
   const recipe = view.id ? byId[view.id] : null;
-  const showFloatTimers = cast.state.timers?.length > 0 && view.name !== 'cook';
+  const showFloatTimers = cast.state.timers?.length > 0 && view.name !== 'cook' && view.name !== 'multi';
 
   return (
     <>
@@ -140,6 +155,7 @@ export default function PhoneApp() {
       {view.name === 'cook' && (recipe ? <CookView {...common} recipe={recipe} /> : <Missing back={back} loading={!data} />)}
       {view.name === 'edit' && <Editor {...common} draft={view.draft || byId[view.editId]} />}
       {view.name === 'plan' && <PlanView {...common} />}
+      {view.name === 'multi' && <MultiView {...common} />}
 
       {showFloatTimers && (
         <div className="float-timers"><Timers timers={cast.state.timers} update={cast.update} now={now} /></div>
@@ -149,11 +165,16 @@ export default function PhoneApp() {
       {view.sheet === 'music' && <MusicSheet {...common} info={musicInfo} onClose={back} />}
       {view.sheet === 'tv' && <TvSheet {...common} onClose={back} />}
       {view.sheet === 'chef' && recipe && <ChefSheet recipe={recipe} cast={cast} step={view.step} initial={view.q} onClose={back} />}
+      {view.sheet === 'multi-pick' && <MultiPickSheet {...common} preset={view.preset} onClose={back} />}
+      {view.sheet === 'shopping' && recipe && <ShoppingSheet recipe={recipe} cast={cast} say={say} onClose={back} />}
+      {view.sheet === 'nutrition' && recipe && <NutritionSheet recipe={recipe} kitchenId={kitchenId} changed={changed} onClose={back} />}
+      {view.sheet === 'share' && recipe && <ShareSheet recipe={recipe} kitchenId={kitchenId} say={say} onClose={back} />}
       {view.sheet === 'plan-add' && recipe && <PlanAddSheet {...common} recipe={recipe} onClose={back} />}
       {view.sheet === 'plan-pick' && <PlanPickSheet {...common} day={view.day} dayLabel={view.dayLabel} onClose={back} />}
       {view.sheet === 'settings' && <SettingsSheet {...common} setFollow={setFollow} onClose={back} onLeave={() => { setKitchenId(null); setKid(null); setData(null); }} />}
       <MiniPlayer cast={cast} info={musicInfo} setInfo={setMusicInfo} duck={alarms.length > 0} hidden={view.name === 'edit'}
         openMusic={() => (view.sheet === 'music' ? null : openSheet('music'))} />
+      {offline && <div className="offline-bar">📴 אין אינטרנט — מוצגים המתכונים השמורים בטלפון</div>}
       {toast && <div className="toast">{toast}</div>}
     </>
   );

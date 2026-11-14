@@ -1,9 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { groups, scaleText, fmtMinutes, flatSteps, recipeText, shareText } from '@/lib/recipe';
+import { groups, scaleText, fmtMinutes, flatSteps } from '@/lib/recipe';
 import { useRecipeSession, tvMode } from '@/lib/session';
 import { setFavorite, deleteRecipe, patchRecipe } from '@/lib/api';
 import { emojiFor } from './ui';
+import { useDishPhoto } from './Extras';
 
 export default function RecipeView({ recipe, cast, follow, go, back, kitchenId, changed, say, openSheet }) {
   const { s, set, active, show } = useRecipeSession(cast, recipe, follow);
@@ -30,12 +31,7 @@ export default function RecipeView({ recipe, cast, follow, go, back, kitchenId, 
     try { await deleteRecipe(kitchenId, recipe.id); await changed(); if (active) cast.update({ screen: 'home', recipeId: null }); back(); say('המתכון נמחק'); } catch { say('לא נמחק, נסו שוב'); }
   };
   const patch = async (p) => { try { await patchRecipe(kitchenId, recipe.id, p); await changed(); } catch { say('לא נשמר, נסו שוב'); } };
-  const share = () => shareText(recipeText(recipe, factor), recipe.title);
-  const shopping = () => {
-    const need = ing.flatMap((g, gi) => g.items.map((item, i) => (checked[`${gi}-${i}`] ? null : scaleText(item, factor)))).filter(Boolean);
-    if (!need.length) { say('כל המצרכים מסומנים — אין מה לקנות 🙂'); return; }
-    shareText(`🛒 קניות ל${recipe.title}:\n` + need.map((x) => '• ' + x).join('\n'), 'רשימת קניות');
-  };
+  const photo = useDishPhoto({ recipe, kitchenId, changed, say });
   const startCook = () => {
     if (active || follow) cast.update({ screen: 'cook', recipeId: recipe.id, step: s.step || 0, servings: s.servings ?? null, checked: s.checked || {} });
     go({ name: 'cook', id: recipe.id });
@@ -79,12 +75,15 @@ export default function RecipeView({ recipe, cast, follow, go, back, kitchenId, 
           <button className={onTv && cast.state.screen === 'ingredients' ? 'on' : ''} onClick={() => show('ingredients')}>🧺 מצרכים</button>
         </div>
       )}
-      <div className="toolbar">
-        <button onClick={share}><span>📤</span>שיתוף</button>
-        <button onClick={shopping}><span>🛒</span>רשימת קניות</button>
+      <div className="toolbar" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        <button onClick={() => openSheet('share', { id: recipe.id })}><span>📤</span>שיתוף לחברים</button>
+        <button onClick={() => openSheet('shopping', { id: recipe.id })}><span>🛒</span>רשימת קניות</button>
         <button onClick={() => openSheet('plan-add', { id: recipe.id })}><span>📅</span>לתפריט</button>
         <button onClick={() => openSheet('chef', { id: recipe.id })}><span>👩‍🍳</span>שאלה לשף</button>
+        <button onClick={photo.pick} disabled={photo.busy}><span>📸</span>{photo.busy ? 'שומר...' : 'צילום המנה'}</button>
+        <button onClick={() => openSheet('nutrition', { id: recipe.id })}><span>🥗</span>ערכים תזונתיים</button>
       </div>
+      {photo.el}
       {recipe.notes && <div className="tip" style={{ marginTop: 10 }}>📝 {recipe.notes}</div>}
 
       <div className="row" style={{ marginTop: 22, alignItems: 'flex-end' }}>
@@ -152,6 +151,20 @@ export default function RecipeView({ recipe, cast, follow, go, back, kitchenId, 
               <button key={u} onClick={() => setViewer(i)}><img src={u} alt={`עמוד ${i + 1}`} loading="lazy" /></button>
             ))}
           </div>
+        </>
+      )}
+
+      {recipe.gallery?.length > 0 && (
+        <>
+          <h2 className="h2">📸 המנות שהכנתי</h2>
+          <div className="thumbs">
+            {recipe.gallery.map((u) => (
+              <button key={u} className={'thumb-wrap' + (recipe.image_url === u ? ' sel' : '')} onClick={() => recipe.image_url !== u && confirm('לקבוע את התמונה הזו כתמונה הראשית?') && patch({ image_url: u })}>
+                <img src={u} alt="" loading="lazy" />
+              </button>
+            ))}
+          </div>
+          <p className="muted small" style={{ margin: '4px 2px' }}>לחצו על תמונה כדי לקבוע אותה כתמונה הראשית</p>
         </>
       )}
 

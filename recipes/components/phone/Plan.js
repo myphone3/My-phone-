@@ -57,7 +57,12 @@ export function PlanView(props) {
               <button className="mini" onClick={() => remove(d.key, r.id)} aria-label="הסרה">✕</button>
             </div>
           ))}
-          <button className="btn soft" style={{ minHeight: 36, fontSize: 14, marginTop: 4 }} onClick={() => openSheet('plan-pick', { day: d.key, dayLabel: d.label })}>＋ הוספת מתכון</button>
+          <div className="row" style={{ marginTop: 4 }}>
+            <button className="btn soft" style={{ minHeight: 36, fontSize: 14 }} onClick={() => openSheet('plan-pick', { day: d.key, dayLabel: d.label })}>＋ הוספת מתכון</button>
+            {(plan[d.key] || []).filter((id) => byId[id]).length > 1 && (
+              <button className="btn" style={{ minHeight: 36, fontSize: 14 }} onClick={() => openSheet('multi-pick', { preset: (plan[d.key] || []).filter((id) => byId[id]).slice(0, 4) })}>👩‍🍳 לבשל הכל יחד</button>
+            )}
+          </div>
         </div>
       ))}
       <button className="btn primary big block" style={{ marginTop: 10 }} disabled={!planned.length} onClick={shopping}>🛒 רשימת קניות לכל השבוע</button>

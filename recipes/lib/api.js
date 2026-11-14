@@ -43,3 +43,17 @@ export async function askChef(recipe, question, history, step) {
   if (!r.ok) throw new Error(j.error || 'השף לא זמין כרגע');
   return j.answer;
 }
+
+export const shareRecipe = (kitchen, id) => rpc('rc_share_recipe', { p_kitchen: kitchen, p_id: id });
+export const getShare = (code) => rpc('rc_get_share', { p_code: code });
+
+export async function fetchNutrition(recipe) {
+  const r = await fetch('/api/nutrition', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title: recipe.title, servings: recipe.servings, ingredients: recipe.ingredients }),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || 'לא הצלחנו לחשב כרגע');
+  return j.nutrition;
+}

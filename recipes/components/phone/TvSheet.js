@@ -19,6 +19,10 @@ export default function TvSheet({ cast, kitchenId, say, onClose }) {
     <Sheet onClose={onClose}>
       <h3>📺 חיבור לטלוויזיה</h3>
       {cast.tvOnline && <div className="tip">✓ הטלוויזיה מחוברת עכשיו. כל מה שתפתחו כאן יופיע עליה.</div>}
+      <a className="option" href="/tv-app" style={{ textDecoration: 'none', color: 'inherit' }}>
+        <span className="oi">📲</span><span><b>יש לכם Android TV / Google TV / Fire TV?</b><small>התקינו את האפליקציה לטלוויזיה — המסך לא נכבה ועובד גם בלי אינטרנט</small></span>
+      </a>
+      <p className="muted small" style={{ margin: '4px 2px 8px' }}>או דרך הדפדפן של הטלוויזיה (סמסונג, LG ושאר הטלוויזיות):</p>
       <ol style={{ paddingInlineStart: 22, lineHeight: 1.7, margin: '6px 0 14px' }}>
         <li>בטלוויזיה פותחים את <b>הדפדפן</b> (Internet / Browser)</li>
         <li>כותבים בשורת הכתובת: <b dir="ltr" style={{ background: 'var(--accent-soft)', padding: '2px 8px', borderRadius: 8 }}>{host}</b></li>
