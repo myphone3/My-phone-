@@ -50,9 +50,10 @@ async function viaGateway(req, content, json) {
 async function viaStore(parts, imageUrls, json) {
   const r = await fetch(process.env.STORE_AI_URL, {
     method: 'POST',
-    signal: AbortSignal.timeout(58000),
+    signal: AbortSignal.timeout(115000),
     headers: { 'Content-Type': 'application/json', 'x-recipes-secret': process.env.RECIPES_AI_SECRET || '' },
-    body: JSON.stringify({ contents: [{ role: 'user', parts }], imageUrls, generationConfig: { temperature: json ? 0.1 : 0.5, ...(json ? { responseMimeType: 'application/json' } : {}) } }),
+    // בלי "חשיבה" ארוכה — קריאת מתכון לא צריכה אותה, וכך התשובה מהירה בהרבה
+    body: JSON.stringify({ contents: [{ role: 'user', parts }], imageUrls, generationConfig: { temperature: json ? 0.1 : 0.5, thinkingConfig: { thinkingBudget: 0 }, ...(json ? { responseMimeType: 'application/json' } : {}) } }),
   });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error('store ai ' + r.status + ' ' + (j.error || ''));

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 // שירות פנימי לאפליקציית המתכונים (matkonim): משתמש במפתח Gemini של החנות,
 // בלי שהמפתח יוצא מהשרת. מוגן בסיסמה משותפת (RECIPES_AI_SECRET) — אחרים לא יכולים להשתמש.
@@ -30,6 +30,7 @@ async function fallbackModels(apiKey: string): Promise<string[]> {
 }
 
 export async function POST(request: Request) {
+  const started = Date.now();
   const secret = process.env.RECIPES_AI_SECRET;
   if (!secret || request.headers.get('x-recipes-secret') !== secret) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
@@ -58,25 +59,36 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'images: ' + String(e?.message || e) }, { status: 502 });
     }
   }
-  const payload = JSON.stringify({ contents: body.contents, generationConfig: body.generationConfig || {} });
+  const generationConfig = body.generationConfig || {};
+  const payload = JSON.stringify({ contents: body.contents, generationConfig });
+  const { thinkingConfig, ...rest } = generationConfig;
+  const plainPayload = thinkingConfig ? JSON.stringify({ contents: body.contents, generationConfig: rest }) : '';
   if (payload.length > 9_000_000) return NextResponse.json({ error: 'too big' }, { status: 413 });
 
   // משאירים זמן גם למודל גיבוי אם הראשי איטי
-  const deadline = Date.now() + 54_000;
+  const deadline = started + 112_000;
   let last = '';
   const models = [MAIN_MODEL, ...(await fallbackModels(apiKey))];
   for (let i = 0; i < models.length; i++) {
     const model = models[i];
-    const ms = Math.min(i === 0 ? 30_000 : 40_000, deadline - Date.now());
+    const ms = Math.min(i === 0 ? 60_000 : 50_000, deadline - Date.now());
     if (ms < 4000) break;
     try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+      const call = (body: string, t: number) => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: payload,
-        signal: AbortSignal.timeout(ms),
+        body,
+        signal: AbortSignal.timeout(t),
       });
-      const data = await res.json().catch(() => ({}));
+      let res = await call(payload, ms);
+      let data = await res.json().catch(() => ({}));
+      // מודל שלא תומך בהגדרת "חשיבה" — מנסים שוב בלעדיה
+      if (res.status === 400 && plainPayload && /think/i.test(String(data?.error?.message || ''))) {
+        const left = Math.min(ms, deadline - Date.now());
+        if (left < 4000) break;
+        res = await call(plainPayload, left);
+        data = await res.json().catch(() => ({}));
+      }
       if (res.ok) return NextResponse.json(data);
       last = `${model}: ${res.status} ${String(data?.error?.message || '').slice(0, 120)}`;
     } catch (e: any) {

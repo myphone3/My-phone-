@@ -36,7 +36,7 @@ export default function AddSheet({ kitchenId, onClose, replace, changed, say }) 
     let urls = [];
     try {
       if (!useText && pages.length) urls = await uploadPages(kitchenId, pages, setStatus);
-      setStatus('קוראים את המתכון ומסדרים לפי שלבים... (עד חצי דקה)');
+      setStatus('קוראים את המתכון ומסדרים לפי שלבים... (יכול לקחת עד דקה)');
       const recipes = await extractRecipes({ images: urls, text: useText ? text : pdfText });
       if (!recipes.length) {
         replace({ name: 'edit', draft: { ...emptyRecipe(), source_images: urls, image_url: urls[0] || '', note: 'לא זיהינו מתכון בצורה אוטומטית. אפשר להקליד אותו כאן — עמודי המקור נשמרו למטה.' } });
