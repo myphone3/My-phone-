@@ -568,11 +568,6 @@ export function MenuSheet({ list, items, id, me, wake, store, onWake, onClose, o
   const missing = items.filter((i) => i.status === 'missing' || i.status === 'partial');
   const [push, setPush] = useState(() => getPref('push_' + id, false));
 
-  async function share() {
-    const text = `בוא/י להצטרף לרשימת הקניות "${list?.name}" — כל מה שנמצא מתעדכן אצל כולם:\n${link}`;
-    if (navigator.share) { try { await navigator.share({ title: list?.name, text }); return; } catch { return; } }
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-  }
   async function copy(t, msg) {
     try { await navigator.clipboard.writeText(t); say(msg); } catch { say('לא הצלחתי להעתיק'); }
   }
@@ -606,24 +601,26 @@ export function MenuSheet({ list, items, id, me, wake, store, onWake, onClose, o
   return (
     <Sheet onClose={onClose}>
       <h3>{list?.name}</h3>
+
+      <div className="menu-sec">👥 שיתוף</div>
       <div className="menu-list">
-        <button onClick={share}><span className="ic">➕</span>הזמן משתתפים לרשימה</button>
-        <button onClick={() => open('split')}><span className="ic">👥</span>חלוקה בין אנשים — מי מביא מה</button>
-        <button onClick={() => open('store')}><span className="ic">📍</span>סניף וסדר מחלקות{store ? `: ${store.name}` : ' (לא חובה)'}</button>
-        <button onClick={() => open('receipt')}><span className="ic">🧾</span>צלם חשבונית — מחירים לכל מוצר</button>
-        <button onClick={() => open('trips')}><span className="ic">📊</span>קניות קודמות, חשבוניות והשוואת מחירים</button>
-        <button onClick={togglePush}><span className="ic">{push ? '🔔' : '🔕'}</span>התראות לטלפון: {push ? 'פועל' : 'כבוי'}</button>
-        <button onClick={() => onWake(!wake)}><span className="ic">{wake ? '🔆' : '🔅'}</span>המסך לא נכבה בזמן קנייה: {wake ? 'פועל' : 'כבוי'}</button>
+        <button onClick={() => open('share')}><span className="ic">➕</span>שיתוף הרשימה וצירוף חברים</button>
+        <button onClick={() => open('split')}><span className="ic">🧩</span>חלוקה — מי מביא מה</button>
         <button onClick={() => wa(listAsText(list, items, { onlyLeft: true }))}><span className="ic">💬</span>שלח בוואטסאפ את מה שנשאר לקנות</button>
         {missing.length > 0 && (
           <button onClick={() => wa(`❌ *חסר ב${list?.name}:*\n` + missing.map((i) => `• ${i.name}${i.status === 'partial' ? ` (נמצאו ${fmtQty(i.found_qty || 0)}/${fmtQty(i.qty)})` : ''}`).join('\n'))}>
             <span className="ic">❌</span>שלח רשימת חסרים ({missing.length})
           </button>
         )}
-        <button onClick={() => copy(link, 'הקישור הועתק')}><span className="ic">🔗</span>העתק קישור לרשימה</button>
-        <button onClick={() => copy(listAsText(list, items), 'הרשימה הועתקה')}><span className="ic">📄</span>העתק את כל הרשימה כטקסט</button>
-        <button onClick={() => { const n = prompt('שם הרשימה', list?.name || ''); if (n) onRename(n); }}><span className="ic">✏️</span>שנה שם רשימה</button>
-        <button onClick={onChangeName}><span className="ic">🙂</span>השם שלי: {me || '—'}</button>
+      </div>
+
+      <div className="menu-sec">📝 הרשימה</div>
+      <div className="menu-list">
+        <button onClick={() => { const n = prompt('שם הרשימה', list?.name || ''); if (n && n.trim()) onRename(n.trim()); }}><span className="ic">✏️</span>שינוי שם הרשימה</button>
+        <button onClick={() => open('store')}><span className="ic">📍</span>סניף וסדר מחלקות{store ? `: ${store.name}` : ' (לא חובה)'}</button>
+        <button onClick={() => open('receipt')}><span className="ic">🧾</span>צלם חשבונית — מחירים לכל מוצר</button>
+        <button onClick={() => open('trips')}><span className="ic">📊</span>קניות קודמות והשוואת מחירים</button>
+        <button onClick={() => copy(listAsText(list, items), 'הרשימה הועתקה')}><span className="ic">📄</span>העתק את הרשימה כטקסט</button>
         <button onClick={() => { if (confirm('לסיים את הקנייה? הסיכום והמחירים יישמרו, מה שנמצא יימחק, ומה שחסר יישאר לפעם הבאה.\n\nטיפ: אם עוד לא צילמתם חשבונית — כדאי לפני.')) onNewTrip(false); }}>
           <span className="ic">🔄</span>סיימנו — קנייה חדשה (משאיר את מה שחסר)
         </button>
@@ -631,22 +628,84 @@ export function MenuSheet({ list, items, id, me, wake, store, onWake, onClose, o
           <span className="ic">🗑️</span>רוקן את כל הרשימה
         </button>
       </div>
+
+      <div className="menu-sec">⚙️ הגדרות</div>
+      <div className="menu-list">
+        <button onClick={onChangeName}><span className="ic">🙂</span>השם שלי: {me && me !== 'אורח' ? me : 'לא נקבע'}</button>
+        <button onClick={togglePush}><span className="ic">{push ? '🔔' : '🔕'}</span>התראות לטלפון: {push ? 'פועל' : 'כבוי'}</button>
+        <button onClick={() => onWake(!wake)}><span className="ic">{wake ? '🔆' : '🔅'}</span>המסך לא נכבה בזמן קנייה: {wake ? 'פועל' : 'כבוי'}</button>
+        <button onClick={() => { window.location.href = '/'; }}><span className="ic">🏠</span>כל הרשימות שלי / רשימה חדשה</button>
+      </div>
     </Sheet>
   );
 }
 
-export function NameSheet({ initial, onSave }) {
+// שיתוף: מסך אחד ברור — שולחים קישור, ורואים מי כבר ברשימה
+export function ShareSheet({ list, id, me, hasName, participants, online, onClose, onSplit, onChangeName, say }) {
+  const link = typeof window !== 'undefined' ? `${window.location.origin}/l/${id}` : '';
+  const text = `הוזמנת לרשימת הקניות "${list?.name || ''}" 🛒\nלוחצים על הקישור, מוסיפים מה שצריך, וכל מה שנמצא מתעדכן אצל כולם:\n${link}`;
+
+  async function shareNative() {
+    if (navigator.share) { try { await navigator.share({ title: list?.name, text }); } catch {} return; }
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  }
+  async function copy() {
+    try { await navigator.clipboard.writeText(link); say('הקישור הועתק — אפשר להדביק לכל מי שרוצים'); } catch { say('לא הצלחתי להעתיק'); }
+  }
+  const onlineSet = new Set(online);
+
+  return (
+    <Sheet onClose={onClose}>
+      <h3>👥 שיתוף הרשימה</h3>
+      <div className="share-card">
+        <div style={{ fontWeight: 800 }}>מצרפים חברים בשלב אחד</div>
+        <div className="small muted" style={{ marginTop: 2 }}>שולחים להם את הקישור. מי שלוחץ עליו — נמצא ברשימה ורואה הכל בזמן אמת. בלי הרשמה.</div>
+        <button className="btn primary block" style={{ marginTop: 12 }} onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')}>
+          💬 שלח הזמנה בוואטסאפ
+        </button>
+        <div className="row" style={{ marginTop: 8 }}>
+          <button className="btn grow" onClick={shareNative}>📤 שיתוף אחר</button>
+          <button className="btn grow" onClick={copy}>🔗 העתק קישור</button>
+        </div>
+      </div>
+
+      <div className="menu-sec">מי ברשימה</div>
+      {participants.length ? (
+        <div className="share-card" style={{ background: 'var(--bg)' }}>
+          <div className="avatars" style={{ margin: 0 }}>
+            {participants.map((p) => (
+              <span key={p} className="who">
+                <span className="avatar" style={{ background: colorFor(p) }}>{p[0]}</span>
+                {p}{p === me ? ' (אני)' : ''}{onlineSet.has(p) && p !== me ? ' 🟢' : ''}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="muted small">עוד אף אחד לא הצטרף. שלחו את הקישור 👆</div>
+      )}
+      {!hasName && (
+        <button className="btn block" style={{ marginTop: 10 }} onClick={onChangeName}>🙂 הוסף את השם שלי כדי שיראו אותי</button>
+      )}
+      {participants.length > 1 && (
+        <button className="btn block" style={{ marginTop: 10 }} onClick={onSplit}>🧩 חלוקה — מי מביא מה</button>
+      )}
+    </Sheet>
+  );
+}
+
+export function NameSheet({ initial, onSave, onClose }) {
   const [n, setN] = useState(initial || '');
   return (
-    <div className="sheet-bg">
-      <div className="sheet">
-        <div className="grab" />
-        <h3>👋 איך קוראים לך?</h3>
-        <div className="muted small" style={{ marginBottom: 10 }}>כדי שכולם יראו מי מצא מה ומי מביא מה</div>
-        <input className="input" value={n} onChange={(e) => setN(e.target.value)} autoFocus maxLength={30} placeholder="השם שלך"
-          onKeyDown={(e) => { if (e.key === 'Enter' && n.trim()) onSave(n.trim()); }} />
-        <button className="btn primary block" style={{ marginTop: 12 }} disabled={!n.trim()} onClick={() => onSave(n.trim())}>המשך</button>
+    <Sheet onClose={onClose}>
+      <h3>🙂 השם שלי</h3>
+      <div className="muted small" style={{ marginBottom: 10 }}>נשמר בטלפון הזה לכל הרשימות. כך החברים יראו מי הוסיף, מי מצא ומי מביא מה.</div>
+      <input className="input" value={n} onChange={(e) => setN(e.target.value)} autoFocus maxLength={30} placeholder="למשל: דוד"
+        onKeyDown={(e) => { if (e.key === 'Enter' && n.trim()) onSave(n.trim()); }} />
+      <div className="row" style={{ marginTop: 12 }}>
+        <button className="btn primary grow" disabled={!n.trim()} onClick={() => onSave(n.trim())}>שמור</button>
+        <button className="btn" onClick={onClose}>לא עכשיו</button>
       </div>
-    </div>
+    </Sheet>
   );
 }

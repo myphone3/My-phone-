@@ -7,7 +7,7 @@ import { parseText, fmtQty } from '@/lib/parse';
 import { getMyName, setMyName, rememberList, getPref, setPref } from '@/lib/local';
 import { catOrderOf, assigneeOf, currentStore, keyOf, shekel, unitPrice } from '@/lib/order';
 import {
-  ItemSheet, PasteSheet, MenuSheet, NameSheet, SplitSheet, StoreSheet, STATUS, colorFor,
+  ItemSheet, PasteSheet, MenuSheet, NameSheet, ShareSheet, SplitSheet, StoreSheet, STATUS, colorFor,
 } from './sheets';
 import { ReceiptSheet, TripsSheet } from './receipt';
 import { findImages } from '@/lib/images';
@@ -28,10 +28,12 @@ export default function ListPage() {
   const [notFound, setNotFound] = useState(false);
   const [me, setMe] = useState('');
   const [askName, setAskName] = useState(false);
+  const [hasName, setHasName] = useState(true);
+  const [nameHint, setNameHint] = useState(false);
   const [filter, setFilter] = useState('all');
   const [openId, setOpenId] = useState(null);
   const [paste, setPaste] = useState(null); // { text, ai } או null
-  const [sheet, setSheet] = useState(null); // 'menu' | 'split' | 'store' | 'trips' | 'receipt'
+  const [sheet, setSheet] = useState(null); // 'menu' | 'share' | 'split' | 'store' | 'trips' | 'receipt'
   const [quick, setQuick] = useState('');
   const [toast, setToast] = useState('');
   const [people, setPeople] = useState([]);
@@ -77,9 +79,12 @@ export default function ListPage() {
 
   // טעינה + זמן אמת
   useEffect(() => {
-    const n = getMyName();
+    // לא שואלים שם בכל כניסה. בלי שם מופיעים כ"אורח", ואפשר להוסיף שם בהגדרות
+    const saved = getMyName();
+    const n = saved || 'אורח';
     setMe(n); meRef.current = n;
-    if (!n) setAskName(true);
+    setHasName(!!saved);
+    setNameHint(!saved && !getPref('name_hint_off', false));
     setWake(getPref('wake', false));
     load();
     loadPrices();
@@ -280,6 +285,7 @@ export default function ListPage() {
     if (me) s.add(me);
     for (const i of items) { if (i.added_by) s.add(i.added_by); if (i.done_by) s.add(i.done_by); if (i.assigned_to) s.add(i.assigned_to); }
     for (const v of Object.values(list?.assignments || {})) if (v) s.add(v);
+    s.delete('אורח');
     return [...s];
   }, [people, me, items, list]);
 
@@ -322,6 +328,7 @@ export default function ListPage() {
               <div key={p} className="avatar" style={{ background: colorFor(p) }}>{p[0]}</div>
             ))}
           </div>
+          <button className="icon-btn" onClick={() => setSheet('share')} aria-label="שיתוף וחברים ברשימה">👥</button>
           <button className="icon-btn" onClick={() => setSheet('menu')} aria-label="תפריט">⋯</button>
         </div>
         <div className="progress" style={{ marginTop: 10 }}><div style={{ width: pct + '%' }} /></div>
@@ -339,6 +346,16 @@ export default function ListPage() {
           <button className="chip" onClick={() => setSheet('split')}>👥 חלוקה</button>
         </div>
       </div>
+
+      {nameHint && (
+        <div className="alert" style={{ background: 'var(--amber-soft)' }}>
+          <div style={{ fontSize: 26 }}>🙂</div>
+          <div className="grow small">כדי שהחברים יראו מי מצא מה — אפשר להוסיף את השם שלך (פעם אחת, לא חובה)</div>
+          <button className="btn sm primary" onClick={() => setAskName(true)}>הוסף שם</button>
+          <button className="muted" style={{ padding: 6 }} aria-label="סגור"
+            onClick={() => { setNameHint(false); setPref('name_hint_off', true); }}>✕</button>
+        </div>
+      )}
 
       {pending.map((i) => (
         <div key={i.id} className="alert">
@@ -442,6 +459,10 @@ export default function ListPage() {
           }}
           onChangeName={() => { setSheet(null); setAskName(true); }} />
       )}
+      {sheet === 'share' && (
+        <ShareSheet list={list} id={id} me={me} hasName={hasName} participants={participants} online={people}
+          onClose={() => setSheet(null)} say={say} onSplit={() => setSheet('split')} onChangeName={() => { setSheet(null); setAskName(true); }} />
+      )}
       {sheet === 'split' && (
         <SplitSheet list={list} items={items} me={me} participants={participants} onClose={() => setSheet(null)}
           onSave={(assignments, msg) => updateList({ assignments }, msg)} notify={notify} />
@@ -462,8 +483,8 @@ export default function ListPage() {
           }} />
       )}
       {askName && (
-        <NameSheet initial={me} onSave={(n) => {
-          setMyName(n); setAskName(false);
+        <NameSheet initial={hasName ? me : ''} onClose={() => setAskName(false)} onSave={(n) => {
+          setMyName(n); setAskName(false); setPref('name_hint_off', true);
           window.location.reload(); // מתחבר מחדש עם השם החדש
         }} />
       )}
