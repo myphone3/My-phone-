@@ -83,11 +83,12 @@ export async function POST(request: Request) {
       let res = await call(payload);
       let data = await res.json().catch(() => ({}));
       if (res.status === 400 && plainPayload && /think/i.test(String(data?.error?.message || ''))) {
+        console.log(`recipes-ai ${model} rejected thinking setting: ${String(data?.error?.message || '').slice(0, 120)}`);
         res = await call(plainPayload);
         data = await res.json().catch(() => ({}));
       }
       if (!res.ok) throw new Error(`${res.status} ${String(data?.error?.message || '').slice(0, 120)}`);
-      console.log(`recipes-ai ok ${model} ${Date.now() - t0}ms images=${imageUrls.length}`);
+      console.log(`recipes-ai ok ${model} ${Date.now() - t0}ms images=${imageUrls.length} thoughts=${data?.usageMetadata?.thoughtsTokenCount ?? 0} out=${data?.usageMetadata?.candidatesTokenCount ?? '?'}`);
       return data;
     } catch (e: any) {
       const why = e?.name === 'TimeoutError' ? 'timeout' : e?.name === 'AbortError' ? 'aborted' : String(e?.message || e);
