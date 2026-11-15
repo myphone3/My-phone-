@@ -53,7 +53,7 @@ async function viaStore(parts, imageUrls, json) {
     signal: AbortSignal.timeout(115000),
     headers: { 'Content-Type': 'application/json', 'x-recipes-secret': process.env.RECIPES_AI_SECRET || '' },
     // בלי "חשיבה" ארוכה — קריאת מתכון לא צריכה אותה, וכך התשובה מהירה בהרבה
-    body: JSON.stringify({ contents: [{ role: 'user', parts }], imageUrls, generationConfig: { temperature: json ? 0.1 : 0.5, thinkingConfig: { thinkingLevel: 'low' }, ...(json ? { responseMimeType: 'application/json' } : {}) } }),
+    body: JSON.stringify({ contents: [{ role: 'user', parts }], imageUrls, generationConfig: { temperature: json ? 0.1 : 0.5, thinkingConfig: { thinkingBudget: 0 }, ...(json ? { responseMimeType: 'application/json' } : {}) } }),
   });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error('store ai ' + r.status + ' ' + (j.error || ''));

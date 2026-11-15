@@ -8,6 +8,8 @@ export const maxDuration = 120;
 // בלי שהמפתח יוצא מהשרת. מוגן בסיסמה משותפת (RECIPES_AI_SECRET) — אחרים לא יכולים להשתמש.
 
 const MAIN_MODEL = 'gemini-3.8-flash';
+// נבדק: 3.6-flash קורא 10 עמודים בכ-12 שניות (בלי "חשיבה"), כשהחדשים יותר לוקחים 90+ שניות או עמוסים
+const FAST_MODEL = 'gemini-3.6-flash';
 const IMAGE_URL = /^https:\/\/[a-z0-9]+\.supabase\.co\/storage\/v1\/object\/public\/rc-photos\//;
 let modelsCache: { at: number; list: string[] } | null = null;
 
@@ -67,7 +69,7 @@ export async function POST(request: Request) {
 
   // משאירים זמן גם למודל גיבוי אם הראשי איטי
   const deadline = started + 112_000;
-  const models = [MAIN_MODEL, ...(await fallbackModels(apiKey))];
+  const models = [FAST_MODEL, MAIN_MODEL, ...(await fallbackModels(apiKey))].filter((m, i, a) => a.indexOf(m) === i);
   const errors: string[] = [];
 
   // שליחה למודל אחד (עם ניסיון חוזר בלי הגדרת "חשיבה" אם המודל לא תומך בה)

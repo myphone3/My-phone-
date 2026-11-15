@@ -1,6 +1,6 @@
 // קריאת מתכון מתמונות / עמודי PDF / טקסט בעזרת בינה מלאכותית.
 // עדיפות: מפתח Gemini אם הוגדר, אחרת Vercel AI Gateway (עובד אוטומטית ב-Vercel).
-import { PROMPT, str, clean } from '@/lib/recipeAi';
+import { PROMPT, str, clean, recipesFrom } from '@/lib/recipeAi';
 import { askAI } from '@/lib/ai';
 
 export const runtime = 'nodejs';
@@ -17,7 +17,9 @@ export async function POST(req) {
   try {
     const intro = PROMPT + (text ? `\n\nטקסט מהמקור:\n${text}` : '') + (urls.length ? `\n\nמצורפות ${urls.length} תמונות (מספור מ-0 לפי הסדר).` : '');
     const out = await askAI(req, intro, urls);
-    const recipes = (Array.isArray(out?.recipes) ? out.recipes : out?.title ? [out] : []).slice(0, 12).map((r) => clean(r, urls.length));
+    const found = recipesFrom(out);
+    if (!found.length) console.log('extract: no recipes in answer', JSON.stringify(out).slice(0, 300));
+    const recipes = found.slice(0, 12).map((r) => clean(r, urls.length));
     return Response.json({ recipes });
   } catch (e) {
     console.error('extract failed', e);
