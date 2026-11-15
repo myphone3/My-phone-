@@ -24,6 +24,18 @@ export const PROMPT = `אתה עוזר שמסדר מתכונים. קיבלת צ�
 - אם בעמודים יש כמה מתכונים שונים, החזר כל אחד בנפרד במערך recipes.
 - אם אין מתכון בכלל, החזר {"recipes":[]}.`;
 
+// מוציא את רשימת המתכונים מהתשובה, גם אם המודל החזיר אותה בצורה קצת שונה
+export function recipesFrom(out) {
+  if (typeof out === 'string') { try { out = JSON.parse(out); } catch { return []; } }
+  if (Array.isArray(out)) return out.length === 1 && Array.isArray(out[0]?.recipes) ? out[0].recipes : out.filter((r) => r && typeof r === 'object');
+  if (!out || typeof out !== 'object') return [];
+  if (Array.isArray(out.recipes)) return out.recipes;
+  if (out.recipe && typeof out.recipe === 'object') return [out.recipe];
+  if (out.title) return [out];
+  const arr = Object.values(out).find((v) => Array.isArray(v) && v.some((r) => r?.title));
+  return arr || [];
+}
+
 export const str = (v, n = 400) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
 export const num = (v) => (v === null || v === undefined || v === '' || !isFinite(+v) ? null : Math.round(+v * 10) / 10);
 export const list = (v, n = 80) => (Array.isArray(v) ? v.map((x) => str(String(x ?? ''), 500)).filter(Boolean).slice(0, n) : []);

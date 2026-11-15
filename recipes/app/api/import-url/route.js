@@ -1,6 +1,6 @@
 // ייבוא מתכון מקישור לאתר מתכונים: קודם מהנתונים המובנים של האתר (JSON-LD), אחרת קריאה חכמה של הטקסט
 import { askAI } from '@/lib/ai';
-import { PROMPT, clean, str } from '@/lib/recipeAi';
+import { PROMPT, clean, str, recipesFrom } from '@/lib/recipeAi';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -105,7 +105,7 @@ export async function POST(req) {
   const text = decode(html.replace(/<(script|style|nav|footer|header|noscript|svg)[\s\S]*?<\/\1>/gi, ' ')).slice(0, 16000);
   try {
     const out = await askAI(req, PROMPT + '\n\nטקסט מדף אינטרנט (התעלם מפרסומות ותפריטים):\n' + str(text, 16000));
-    const recipes = (Array.isArray(out?.recipes) ? out.recipes : []).slice(0, 3).map((r) => ({ ...clean(r, 0), photo: null, image: og, source_url: url.href }));
+    const recipes = recipesFrom(out).slice(0, 3).map((r) => ({ ...clean(r, 0), photo: null, image: og, source_url: url.href }));
     return Response.json({ recipes });
   } catch {
     return Response.json({ error: 'לא הצלחנו לקרוא את המתכון מהאתר' }, { status: 502 });
