@@ -1,7 +1,7 @@
 'use client';
 import { useMemo, useState } from 'react';
 import { dayKey } from '@/lib/recipe';
-import { emojiFor, metaLine } from './ui';
+import { emojiFor, metaLine, Loader } from './ui';
 
 const SORTS = [
   ['new', 'חדשים'],
@@ -79,7 +79,7 @@ export default function Library({ data, recipes, cast, go, openSheet, say }) {
         )}
       </div>
 
-      {!data && <div className="busy"><div className="spinner" /></div>}
+      {!data && <div className="busy"><Loader /></div>}
 
       {data && !recipes.length && (
         <div className="empty">

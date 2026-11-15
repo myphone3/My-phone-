@@ -129,6 +129,15 @@ label.f { display: block; font-size: 13px; font-weight: 600; color: var(--muted)
 .option small { color: var(--muted); font-size: 13px; }
 
 .busy { text-align: center; padding: 40px 10px; }
+.loader { display: block; margin: 0 auto 16px; animation: ld-bob 1.8s ease-in-out infinite; filter: drop-shadow(0 6px 14px rgba(217, 98, 43, 0.28)); }
+.loader .ld-lid { transform-box: view-box; transform-origin: 196px 250px; animation: ld-lid 1.8s ease-in-out infinite; }
+.loader .ld-steam path { opacity: 0; animation: ld-steam 1.8s ease-out infinite; }
+.loader .ld-steam .s2 { animation-delay: 0.12s; }
+.loader .ld-steam .s3 { animation-delay: 0.24s; }
+@keyframes ld-lid { 0%, 12% { transform: none; } 38%, 62% { transform: translate(-2px, -12px) rotate(-24deg); } 80% { transform: translateY(3px); } 88%, 100% { transform: none; } }
+@keyframes ld-steam { 0%, 22% { opacity: 0; transform: translateY(14px); } 42% { opacity: 1; } 72% { opacity: 0; transform: translateY(-30px); } 100% { opacity: 0; transform: translateY(-30px); } }
+@keyframes ld-bob { 0%, 100% { transform: translateY(0) scale(1); } 85% { transform: translateY(0) scale(1); } 90% { transform: translateY(1px) scale(1.04, 0.97); } }
+@media (prefers-reduced-motion: reduce) { .loader, .loader .ld-lid, .loader .ld-steam path { animation-duration: 3.6s; } }
 .spinner { width: 46px; height: 46px; border-radius: 50%; border: 4px solid var(--accent-soft); border-top-color: var(--accent); animation: spin 0.9s linear infinite; margin: 0 auto 16px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
