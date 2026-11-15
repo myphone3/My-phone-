@@ -8,6 +8,7 @@ export const maxDuration = 60;
 // בלי שהמפתח יוצא מהשרת. מוגן בסיסמה משותפת (RECIPES_AI_SECRET) — אחרים לא יכולים להשתמש.
 
 const MAIN_MODEL = 'gemini-3.8-flash';
+const IMAGE_URL = /^https:\/\/[a-z0-9]+\.supabase\.co\/storage\/v1\/object\/public\/rc-photos\//;
 let modelsCache: { at: number; list: string[] } | null = null;
 
 async function fallbackModels(apiKey: string): Promise<string[]> {
@@ -38,13 +39,35 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null);
   if (!body || !Array.isArray(body.contents)) return NextResponse.json({ error: 'bad body' }, { status: 400 });
+
+  // תמונות שנשלחו כקישורים (מאחסון התמונות של אפליקציית המתכונים) — מורידים כאן כדי שהבקשה תישאר קטנה
+  const imageUrls: string[] = (Array.isArray(body.imageUrls) ? body.imageUrls : [])
+    .filter((u: unknown) => typeof u === 'string' && IMAGE_URL.test(u))
+    .slice(0, 10);
+  if (imageUrls.length) {
+    try {
+      const images = await Promise.all(imageUrls.map(async (u) => {
+        const r = await fetch(u, { signal: AbortSignal.timeout(12_000) });
+        if (!r.ok) throw new Error('image ' + r.status);
+        return Buffer.from(await r.arrayBuffer()).toString('base64');
+      }));
+      const first = body.contents[0] || { role: 'user', parts: [] };
+      first.parts = [...(first.parts || []), ...images.map((data) => ({ inline_data: { mime_type: 'image/jpeg', data } }))];
+      body.contents[0] = first;
+    } catch (e: any) {
+      return NextResponse.json({ error: 'images: ' + String(e?.message || e) }, { status: 502 });
+    }
+  }
   const payload = JSON.stringify({ contents: body.contents, generationConfig: body.generationConfig || {} });
   if (payload.length > 9_000_000) return NextResponse.json({ error: 'too big' }, { status: 413 });
 
-  const deadline = Date.now() + 55_000;
+  // משאירים זמן גם למודל גיבוי אם הראשי איטי
+  const deadline = Date.now() + 54_000;
   let last = '';
-  for (const model of [MAIN_MODEL, ...(await fallbackModels(apiKey))]) {
-    const ms = Math.min(40_000, deadline - Date.now());
+  const models = [MAIN_MODEL, ...(await fallbackModels(apiKey))];
+  for (let i = 0; i < models.length; i++) {
+    const model = models[i];
+    const ms = Math.min(i === 0 ? 30_000 : 40_000, deadline - Date.now());
     if (ms < 4000) break;
     try {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {

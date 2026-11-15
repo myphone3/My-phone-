@@ -15,14 +15,9 @@ export async function POST(req) {
   if (!urls.length && !text) return Response.json({ error: 'אין מה לקרוא' }, { status: 400 });
 
   try {
-    const images = await Promise.all(urls.map(async (u) => {
-      const r = await fetch(u, { signal: AbortSignal.timeout(15000) });
-      if (!r.ok) throw new Error('image ' + r.status);
-      return Buffer.from(await r.arrayBuffer()).toString('base64');
-    }));
-    const intro = PROMPT + (text ? `\n\nטקסט מהמקור:\n${text}` : '') + (images.length ? `\n\nמצורפות ${images.length} תמונות (מספור מ-0 לפי הסדר).` : '');
-    const out = await askAI(req, intro, images);
-    const recipes = (Array.isArray(out?.recipes) ? out.recipes : out?.title ? [out] : []).slice(0, 12).map((r) => clean(r, images.length));
+    const intro = PROMPT + (text ? `\n\nטקסט מהמקור:\n${text}` : '') + (urls.length ? `\n\nמצורפות ${urls.length} תמונות (מספור מ-0 לפי הסדר).` : '');
+    const out = await askAI(req, intro, urls);
+    const recipes = (Array.isArray(out?.recipes) ? out.recipes : out?.title ? [out] : []).slice(0, 12).map((r) => clean(r, urls.length));
     return Response.json({ recipes });
   } catch (e) {
     console.error('extract failed', e);
