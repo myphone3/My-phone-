@@ -2,7 +2,7 @@
 import { askAI } from '@/lib/ai';
 
 export const runtime = 'nodejs';
-export const maxDuration = 40;
+export const maxDuration = 60;
 
 const n = (v) => (v === null || v === undefined || v === '' || !isFinite(+v) ? null : Math.round(+v));
 
