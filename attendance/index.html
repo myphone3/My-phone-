@@ -1,0 +1,2238 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>שעון נוכחות</title>
+<meta name="description" content="שעון נוכחות לעובד: כניסה ויציאה, הפסקות, שעות נוספות, סיכום חודשי ודוח לבוס.">
+<meta name="theme-color" content="#0E7A5D">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="שעון נוכחות">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one-column phone app — a punch-clock card on top, bottom tab bar, the boss report as a formal sheet */
+:root {
+  --bg: #EAF0ED; --surface: #FFFFFF; --surface-2: #F4F7F5; --ink: #12241F; --muted: #5A6B66; --line: #D3DDD9;
+  --accent: #0E7A5D; --accent-ink: #FFFFFF; --accent-soft: #D3ECE3; --punch: #C8470E; --punch-soft: #FBE2D4;
+  --warn: #9A6A00; --danger: #B42318;
+  --shadow: 0 1px 2px rgba(18,36,31,.06), 0 6px 20px rgba(18,36,31,.06);
+  --f-display: "Rubik", "Arial Hebrew", Arial, sans-serif;
+  --f-body: "Rubik", "Arial Hebrew", "Segoe UI", Arial, sans-serif;
+  --f-num: "Rubik", "Segoe UI", Arial, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0E1614; --surface: #16211E; --surface-2: #1C2925; --ink: #E4EEEA; --muted: #93A6A0;
+    --line: #2A3A36; --accent: #3DC79E; --accent-ink: #06231A; --accent-soft: #173A30;
+    --punch: #FF8B52; --punch-soft: #3E2418; --warn: #E6B54A; --danger: #FF7A6E;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: env(safe-area-inset-top, 0px) calc(84px + env(safe-area-inset-bottom, 0px));
+}
+[hidden] { display: none !important; }
+.app { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.num, .mono { font-family: var(--f-num); font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 600; margin: 0; text-wrap: balance; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button:disabled { opacity: .6; cursor: default; }
+
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 16px; }
+.brand { display: flex; flex-direction: column; min-width: 0; }
+.brand h1 { font-size: 22px; line-height: 1.1; }
+.brand .who { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sync { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.sync::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.sync.cloud::before { background: var(--accent); }
+.sync.err::before { background: var(--danger); }
+.sync.saving::before { background: var(--warn); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; box-shadow: var(--shadow); }
+.card h3 { font-size: 17px; margin-bottom: 10px; }
+.card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.card-head h3 { margin: 0; }
+.label { font-size: 12px; color: var(--muted); letter-spacing: .02em; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+
+.clock { text-align: center; padding: 22px 16px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.clock .now { font-size: 14px; color: var(--muted); }
+.clock .now b { font-family: var(--f-num); color: var(--ink); font-weight: 600; }
+.punch {
+  width: 196px; height: 196px; max-width: 100%; border-radius: 50%; border: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 2px; background: var(--accent); color: var(--accent-ink);
+  box-shadow: 0 0 0 10px var(--accent-soft), 0 10px 30px rgba(14,122,93,.25); transition: transform .12s ease;
+}
+.punch:active { transform: scale(.97); }
+.punch span { font-family: var(--f-display); font-size: 40px; font-weight: 600; line-height: 1; }
+.punch small { font-size: 13px; opacity: .85; }
+.status { display: inline-flex; gap: 8px; align-items: center; padding: 4px 12px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 600; font-size: 13px; }
+.status.break { background: var(--punch-soft); color: var(--punch); }
+.status .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: pulse 1.6s infinite; }
+@keyframes pulse { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .status .dot { animation: none; } .punch { transition: none; } }
+.elapsed { font-size: clamp(44px, 14vw, 64px); font-weight: 600; line-height: 1; letter-spacing: -.02em; }
+.earn { font-size: 15px; color: var(--muted); }
+.earn b { color: var(--ink); }
+.progress { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.progress .track { height: 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); overflow: hidden; display: flex; }
+.progress .fill { background: var(--accent); height: 100%; }
+.progress .over { background: var(--punch); height: 100%; }
+.progress .txt { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); gap: 8px; }
+.breaks { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center; font-size: 13px; }
+.bchip { display: inline-flex; align-items: center; gap: 4px; background: var(--punch-soft); color: var(--punch); border: 0; border-radius: 999px; padding: 3px 4px 3px 10px; font-weight: 600; font-size: 13px; }
+.bchip span.x { width: 20px; height: 20px; border-radius: 50%; display: inline-grid; place-items: center; background: rgba(0,0,0,.08); font-size: 13px; line-height: 1; }
+.btn-row { display: flex; gap: 10px; width: 100%; flex-wrap: wrap; }
+.btn-row > * { flex: 1 1 140px; }
+.btn { border: 1px solid var(--line); background: var(--surface-2); border-radius: 12px; padding: 12px 14px; font-weight: 600; min-height: 48px; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.out { background: var(--punch); border-color: var(--punch); color: #fff; font-family: var(--f-display); font-size: 20px; font-weight: 600; }
+.btn.ghost { background: transparent; }
+.btn.danger { color: var(--danger); background: transparent; }
+.btn.sm { min-height: 38px; padding: 6px 12px; font-size: 14px; border-radius: 10px; }
+.btn.block { width: 100%; }
+.link { background: none; border: 0; color: var(--accent); font-weight: 600; padding: 4px; text-decoration: underline; text-underline-offset: 3px; }
+
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.stat { background: var(--surface-2); border-radius: 12px; padding: 10px 12px; min-width: 0; }
+.stat .v { font-family: var(--f-num); font-size: 20px; font-weight: 600; direction: ltr; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat.hero { background: var(--accent); color: var(--accent-ink); grid-column: 1 / -1; order: -1; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.stat.hero .label { color: inherit; opacity: .85; }
+.stat.hero .v { font-size: 26px; }
+
+.pnav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pnav h2 { font-size: 22px; text-align: center; }
+.pnav .sub { font-size: 12px; color: var(--muted); text-align: center; display: block; font-family: var(--f-body); }
+.pnav button { width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font-size: 20px; }
+
+.chart-wrap { overflow-x: auto; padding-bottom: 4px; }
+.chart { display: flex; align-items: flex-end; gap: 3px; height: 130px; min-width: 100%; position: relative; padding-top: 6px; }
+.bar { flex: 1 0 9px; display: flex; flex-direction: column-reverse; align-items: stretch; height: 100%; position: relative; }
+.bar i { display: block; border-radius: 3px 3px 0 0; }
+.bar i.reg { background: var(--accent); }
+.bar i.ot { background: var(--punch); }
+.bar i.reg + i.ot { margin-bottom: 1px; }
+.bar.we::after { content: ""; position: absolute; inset: 0; background: var(--surface-2); z-index: -1; border-radius: 3px; }
+.bar.today { outline: 1px dashed var(--muted); outline-offset: 1px; border-radius: 3px; }
+.xlab { display: flex; gap: 3px; min-width: 100%; }
+.xlab span { flex: 1 0 9px; font-size: 9px; color: var(--muted); text-align: center; font-family: var(--f-num); }
+.tline { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--muted); opacity: .6; pointer-events: none; }
+.tline span { position: absolute; left: 0; top: -15px; font-size: 10px; color: var(--muted); background: var(--surface); padding: 0 3px; font-family: var(--f-num); }
+.legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); margin-top: 8px; flex-wrap: wrap; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-inline-end: 5px; vertical-align: -1px; }
+
+.kv { display: flex; flex-direction: column; }
+.kv .r { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.kv .r:last-child { border-bottom: 0; }
+.kv .r .k { min-width: 0; }
+.kv .r .v { font-family: var(--f-num); direction: ltr; white-space: nowrap; }
+.kv .r.total { font-weight: 700; font-size: 17px; border-top: 2px solid var(--ink); border-bottom: 0; margin-top: 4px; padding-top: 10px; }
+.kv .r.total .v { color: var(--accent); }
+
+.days { display: flex; flex-direction: column; gap: 8px; }
+.day { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; }
+.day-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface-2); }
+.day-h .d { font-weight: 600; }
+.day-h .d small { color: var(--muted); font-weight: 400; margin-inline-start: 6px; }
+.day-h .t { text-align: left; font-size: 13px; }
+.shift { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-top: 1px solid var(--line); width: 100%; background: none; border-inline: 0; border-bottom: 0; text-align: right; }
+.shift:hover { background: var(--surface-2); }
+.shift .tm { font-family: var(--f-num); direction: ltr; unicode-bidi: isolate; font-size: 14px; }
+.shift .meta { color: var(--muted); font-size: 12px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shift .h { font-family: var(--f-num); font-size: 14px; }
+.chip { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--punch-soft); color: var(--punch); font-weight: 600; white-space: nowrap; }
+.chip.n { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+.chips { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.empty { text-align: center; padding: 26px 12px; color: var(--muted); display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.empty b { color: var(--ink); font-size: 16px; }
+.banner { background: var(--punch-soft); color: var(--ink); border-radius: 12px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; flex-wrap: wrap; }
+
+.sheet { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 20px 16px; box-shadow: var(--shadow); }
+.sheet-h { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-bottom: 2px solid var(--ink); padding-bottom: 12px; margin-bottom: 12px; }
+.sheet-h h2 { font-size: 24px; }
+.sheet-h .meta { font-size: 13px; color: var(--muted); display: grid; grid-template-columns: auto auto; gap: 2px 10px; }
+.sheet-h .meta b { color: var(--ink); font-weight: 600; }
+.tbl-wrap { overflow-x: auto; margin: 0 -4px; }
+table.rep { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 560px; }
+table.rep th { text-align: right; font-size: 11px; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--ink); padding: 6px; white-space: nowrap; }
+table.rep td { padding: 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.rep td.n { font-family: var(--f-num); font-variant-numeric: tabular-nums; direction: ltr; text-align: right; }
+table.rep tr.we td { background: var(--surface-2); }
+table.rep tfoot td { font-weight: 700; border-top: 2px solid var(--ink); border-bottom: 0; }
+.sign { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 28px; font-size: 13px; color: var(--muted); }
+.sign div { border-top: 1px solid var(--ink); padding-top: 6px; }
+.export { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.export .btn { display: flex; flex-direction: column; align-items: flex-start; gap: 0; text-align: right; }
+.export .btn small { font-weight: 400; color: var(--muted); font-size: 12px; }
+.export .btn.primary small { color: inherit; opacity: .85; }
+@media (max-width: 400px) { .export { grid-template-columns: 1fr; } }
+
+.form { display: flex; flex-direction: column; gap: 12px; }
+.fld { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fld label { font-size: 13px; font-weight: 600; }
+.fld .hint { font-size: 12px; color: var(--muted); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
+input, select, textarea {
+  font: inherit; color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 12px; min-height: 46px; width: 100%; min-width: 0; font-size: 16px;
+}
+input[type="time"], input[type="date"], input[type="number"], input[type="datetime-local"], input[type="tel"], input[type="email"] { font-family: var(--f-num); direction: ltr; text-align: right; }
+.switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; cursor: pointer; }
+.switch input { width: 46px; min-height: 26px; height: 26px; appearance: none; -webkit-appearance: none; border-radius: 999px; background: var(--line); position: relative; padding: 0; border: 0; flex: none; cursor: pointer; }
+.switch input::after { content: ""; position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: right .15s; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+.switch input:checked { background: var(--accent); }
+.switch input:checked::after { right: 23px; }
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.seg button { border: 1px solid var(--line); background: var(--surface-2); border-radius: 10px; padding: 8px 4px; font-size: 13px; font-weight: 600; min-height: 42px; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.quick { display: flex; gap: 6px; flex-wrap: wrap; }
+.quick button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 12px; font-size: 13px; font-weight: 600; min-height: 34px; }
+.calc-preview { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; font-size: 14px; display: flex; justify-content: space-between; gap: 10px; }
+.err-msg { color: var(--danger); font-size: 14px; min-height: 1em; }
+.ok-msg { background: var(--accent-soft); color: var(--ink); border-radius: 10px; padding: 12px; font-size: 14px; }
+
+/* auth */
+.auth { min-height: calc(100vh - 120px); display: flex; flex-direction: column; justify-content: center; gap: 18px; padding-block: 24px; }
+.auth-logo { display: flex; align-items: center; gap: 12px; }
+.auth-logo img { width: 52px; height: 52px; border-radius: 14px; }
+.auth-logo h1 { font-size: 28px; line-height: 1.1; }
+.auth-tabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--surface-2); border-radius: 12px; padding: 4px; gap: 4px; border: 1px solid var(--line); }
+.auth-tabs button { border: 0; background: transparent; border-radius: 9px; padding: 10px; font-weight: 600; color: var(--muted); }
+.auth-tabs button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.loading { display: grid; place-items: center; min-height: 60vh; color: var(--muted); }
+
+.overlay { position: fixed; inset: 0; background: rgba(8,16,14,.5); z-index: 40; display: flex; align-items: flex-end; justify-content: center; padding-top: env(safe-area-inset-top, 0px); }
+.modal { background: var(--surface); width: 100%; max-width: 560px; max-height: 92%; overflow-y: auto; border-radius: 18px 18px 0 0;
+  padding: 18px max(16px, env(safe-area-inset-right, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 14px; }
+@media (min-width: 600px) { .overlay { align-items: center; } .modal { border-radius: 18px; } }
+.modal h3 { font-size: 20px; }
+.modal-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.modal-actions .btn { flex: 1 1 120px; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(92px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 12px; z-index: 50; font-size: 14px; max-width: calc(100% - 32px); box-shadow: var(--shadow); }
+textarea.copy { min-height: 180px; font-family: var(--f-num); font-size: 13px; direction: rtl; }
+.bgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.bgrid button { border: 1px solid var(--line); background: var(--surface-2); border-radius: 12px; padding: 12px 4px; font-weight: 600; font-family: var(--f-num); }
+.bgrid button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.cd-label { font-size: 14px; color: var(--muted); font-weight: 600; }
+.cd-label.over { color: var(--punch); }
+.elapsed.over { color: var(--punch); }
+.worked-line { font-size: 14px; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+.worked-line b { color: var(--ink); font-family: var(--f-num); font-weight: 600; }
+.alert-card { background: var(--punch); color: #fff; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--shadow); }
+.alert-card h3 { font-size: 20px; }
+.alert-card .btn { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.35); color: #fff; }
+.alert-card .btn.solid { background: #fff; color: var(--punch); border-color: #fff; }
+.dial-wrap { position: relative; width: min(250px, 72vw); aspect-ratio: 1; max-width: 100%; }
+.dial { width: 100%; height: 100%; display: block; }
+.dial .d-track { fill: none; stroke: var(--surface-2); stroke-width: 14; }
+.dial .d-arc { fill: none; stroke: var(--accent); stroke-width: 14; stroke-linecap: round; transition: stroke-dasharray .4s, stroke-dashoffset .4s; }
+.dial .d-arc.over { stroke: var(--punch); }
+.dial .d-tick { stroke: var(--muted); stroke-width: 2; opacity: .55; }
+.dial .d-hand { stroke: var(--ink); stroke-width: 3; stroke-linecap: round; }
+.dial .d-hub { fill: var(--surface); stroke: var(--ink); stroke-width: 3; }
+.dial #d-hand { transition: transform .4s; transform-origin: 110px 110px; }
+@media (prefers-reduced-motion: reduce) { .dial .d-arc, .dial #d-hand { transition: none; } }
+.dial-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.dial-center .tl { font-size: 13px; font-weight: 700; color: var(--accent); }
+.dial-center .tv { font-family: var(--f-num); font-variant-numeric: tabular-nums; direction: ltr; font-weight: 600; font-size: clamp(28px, 9vw, 38px); line-height: 1.1; }
+.dial-center .ts { font-size: 12px; color: var(--muted); }
+.dial-wrap.over .tl, .dial-wrap.over .tv { color: var(--punch); }
+.entry-alt { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface-2); border-radius: 999px; padding: 8px 16px; font-weight: 600; }
+.timers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+.timers.one { grid-template-columns: 1fr; }
+.tblock { background: var(--surface-2); border: 1px solid var(--line); border-radius: 14px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+.tblock .tl { font-size: 13px; color: var(--muted); font-weight: 600; }
+.tblock .tv { font-family: var(--f-num); font-variant-numeric: tabular-nums; direction: ltr; font-weight: 600; font-size: clamp(28px, 8.5vw, 42px); line-height: 1.1; letter-spacing: -.02em; }
+.timers.one .tblock { background: transparent; border: 0; padding: 0; }
+.timers.one .tv { font-size: clamp(44px, 14vw, 64px); }
+.tblock.cd { background: var(--accent-soft); border-color: transparent; }
+.tblock.cd .tl { color: var(--accent); }
+.tblock.cd.over { background: var(--punch-soft); }
+.tblock.cd.over .tl, .tblock.cd.over .tv { color: var(--punch); }
+.tblock .ts { font-size: 12px; color: var(--muted); }
+.jobchips { display: flex; gap: 6px; flex-wrap: wrap; }
+.jobchips button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 14px; font-weight: 600; font-size: 14px; min-height: 38px; }
+.jobchips button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.jtag { display: inline-block; font-size: 11px; padding: 0 7px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); color: var(--muted); font-weight: 600; margin-inline-start: 6px; }
+.net { margin-top: 12px; background: var(--surface-2); border-radius: 12px; padding: 10px 12px; }
+.net summary { cursor: pointer; display: flex; justify-content: space-between; gap: 10px; font-weight: 600; list-style: none; }
+.net summary::-webkit-details-marker { display: none; }
+.net summary .v { font-family: var(--f-num); direction: ltr; }
+.net .kv .r { padding: 6px 0; font-size: 14px; }
+.status-chip { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; }
+.status-chip.pending { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+.status-chip.approved { background: var(--accent-soft); color: var(--accent); }
+.status-chip.rejected { background: var(--punch-soft); color: var(--punch); }
+.sent-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.sent { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 8px; font-size: 14px; }
+.days-pick { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.days-pick button { border: 1px solid var(--line); background: var(--surface-2); border-radius: 10px; padding: 8px 0; font-weight: 600; }
+.days-pick button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.joblist { display: flex; flex-direction: column; gap: 10px; }
+.jobrow { display: grid; grid-template-columns: 1fr 110px 40px; gap: 8px; align-items: end; }
+.jobrow .x { height: 46px; border: 1px solid var(--line); background: var(--surface-2); border-radius: 10px; color: var(--danger); font-size: 18px; }
+.goal { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.goal .track { height: 8px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); overflow: hidden; }
+.goal .fill { height: 100%; background: var(--accent); }
+.goal .txt { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); gap: 8px; }
+
+.nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 30; background: var(--surface); border-top: 1px solid var(--line);
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  padding: 6px max(8px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
+.nav button { background: none; border: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; border-radius: 10px; color: var(--muted); font-size: 12px; font-weight: 600; position: relative; }
+.nav button svg { width: 22px; height: 22px; }
+.nav button[aria-current="page"] { color: var(--accent); background: var(--accent-soft); }
+.modes { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 4px; gap: 4px; }
+.modes button { border: 0; background: transparent; border-radius: 9px; padding: 8px 4px; font-weight: 600; font-size: 14px; color: var(--muted); display: flex; flex-direction: column; align-items: center; line-height: 1.2; }
+.modes button small { font-weight: 400; font-size: 11px; }
+.modes button[aria-pressed="true"] { background: var(--surface); color: var(--accent); box-shadow: var(--shadow); }
+.mode-note { font-size: 13px; color: var(--muted); text-align: center; margin: -4px 0 0; }
+.today-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%; }
+.today-strip div { background: var(--surface-2); border-radius: 12px; padding: 8px; display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.today-strip .label { font-size: 11px; }
+.today-strip b { font-family: var(--f-num); font-variant-numeric: tabular-nums; direction: ltr; font-size: 17px; font-weight: 600; white-space: nowrap; }
+.btn.brk { background: var(--punch-soft); border-color: transparent; color: var(--punch); }
+.hbars { display: flex; flex-direction: column; gap: 8px; }
+.hbar { display: grid; grid-template-columns: 62px 1fr auto; gap: 8px; align-items: center; font-size: 13px; background: none; border: 0; padding: 0; text-align: right; width: 100%; }
+.hbar .tr { height: 14px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.hbar .tr i { display: block; height: 100%; background: var(--accent); opacity: .55; border-radius: 999px; }
+.hbar.cur .tr i { opacity: 1; }
+.hbar.cur span:first-child { font-weight: 700; }
+.hbar .v { font-family: var(--f-num); direction: ltr; white-space: nowrap; }
+.delta { font-size: 13px; font-weight: 700; }
+.delta.up { color: var(--accent); }
+.delta.down { color: var(--punch); }
+.plan-big { font-family: var(--f-num); direction: ltr; font-size: 30px; font-weight: 600; line-height: 1.1; }
+.hist { display: flex; flex-direction: column; }
+.hist button { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; border: 0; border-bottom: 1px solid var(--line); background: none; text-align: right; width: 100%; }
+.hist button:last-child { border-bottom: 0; }
+.share-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+@media (max-width: 400px) { .share-grid { grid-template-columns: 1fr; } }
+.hero-panel { background: linear-gradient(150deg, #0E7A5D 0%, #0A5E48 100%); color: #fff; border-radius: 20px; padding: 20px 18px; box-shadow: 0 10px 30px rgba(14,122,93,.28); display: flex; flex-direction: column; gap: 14px; }
+.hero-panel .hl { font-size: 13px; opacity: .85; }
+.hero-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,.18); }
+.hero-nav h2 { font-size: 20px; text-align: center; color: #fff; }
+.hero-nav h2 span { display: block; font-size: 12px; font-weight: 400; opacity: .8; font-family: var(--f-body); }
+.hero-nav button { width: 40px; height: 40px; border-radius: 12px; border: 1px solid rgba(255,255,255,.3); background: rgba(255,255,255,.12); color: #fff; font-size: 18px; flex: none; }
+.hero-sum { text-align: center; }
+.hero-panel .hero-sum .big { text-align: center; }
+.hero-panel .big { font-size: clamp(36px, 11vw, 46px); font-weight: 700; line-height: 1.05; direction: ltr; text-align: right; font-variant-numeric: tabular-nums; }
+.hero-panel .netline { font-size: 14px; opacity: .9; }
+.hero-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.hero-stats div { background: rgba(255,255,255,.12); border-radius: 12px; padding: 8px 10px; min-width: 0; }
+.hero-stats span { display: block; font-size: 11px; opacity: .85; }
+.hero-stats b { display: block; font-size: 18px; font-weight: 600; direction: ltr; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.hero-goal { background: rgba(255,255,255,.12); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+.hero-goal .track { height: 10px; border-radius: 999px; background: rgba(255,255,255,.2); overflow: hidden; }
+.hero-goal .fill { height: 100%; background: #fff; border-radius: 999px; }
+.hero-goal .row { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; }
+.hero-goal .need { font-size: 15px; }
+.hero-goal .need b { font-size: 20px; }
+.hero-rows { display: flex; flex-direction: column; }
+.hero-rows .r { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid rgba(255,255,255,.18); font-size: 14px; }
+.hero-rows .r small { display: block; opacity: .75; font-size: 12px; }
+.hero-rows .r b { direction: ltr; white-space: nowrap; font-weight: 600; }
+.hero-panel .hb { display: flex; gap: 8px; }
+.hero-panel .hb .btn { flex: 1; background: #fff; color: #0A5E48; border-color: #fff; }
+.vchart { display: flex; align-items: flex-end; gap: 8px; height: 170px; padding-top: 22px; }
+.vcol { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; background: none; border: 0; padding: 0; min-width: 0; }
+.vcol .vv { font-size: 11px; color: var(--muted); white-space: nowrap; direction: ltr; }
+.vcol .vb { width: 100%; max-width: 44px; border-radius: 8px 8px 3px 3px; background: var(--accent-soft); min-height: 3px; transition: height .3s; }
+.vcol.cur .vb { background: var(--accent); }
+.vcol.cur .vv { color: var(--accent); font-weight: 700; }
+.vlab { display: flex; gap: 8px; margin-top: 6px; }
+.vlab span { flex: 1; text-align: center; font-size: 12px; color: var(--muted); min-width: 0; }
+.vlab span.cur { color: var(--ink); font-weight: 700; }
+.cmp-sum { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.cmp-sum div { background: var(--surface-2); border-radius: 12px; padding: 8px 10px; }
+.cmp-sum b { display: block; direction: ltr; text-align: right; font-weight: 600; }
+details.fold > summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::after { content: "›"; font-size: 22px; color: var(--muted); transform: rotate(90deg); transition: transform .15s; }
+details.fold[open] > summary::after { transform: rotate(-90deg); }
+details.fold > summary h3 { margin: 0; }
+details.fold[open] > summary { margin-bottom: 10px; }
+.acc { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+.acc > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 12px; padding: 14px 16px; }
+.acc > summary::-webkit-details-marker { display: none; }
+.acc > summary .ic { width: 38px; height: 38px; border-radius: 11px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; flex: none; font-size: 18px; }
+.acc > summary .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.acc > summary .tx b { font-weight: 600; font-size: 15px; }
+.acc > summary .tx span { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acc > summary::after { content: "›"; font-size: 24px; color: var(--muted); transform: rotate(180deg); transition: transform .15s; }
+.acc[open] > summary::after { transform: rotate(90deg); }
+.acc[open] > summary { border-bottom: 1px solid var(--line); }
+.acc .acc-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+.acc-group { display: flex; flex-direction: column; gap: 8px; }
+.acc-title { font-size: 12px; color: var(--muted); font-weight: 600; margin: 6px 4px -2px; }
+.chat { display: flex; flex-direction: column; gap: 8px; }
+.bub { max-width: 88%; padding: 10px 13px; border-radius: 16px; font-size: 14px; line-height: 1.55; }
+.bub.bot { background: var(--surface-2); border: 1px solid var(--line); align-self: flex-start; border-start-start-radius: 4px; }
+.bub.me { background: var(--accent); color: var(--accent-ink); align-self: flex-end; border-start-end-radius: 4px; font-weight: 600; }
+.bub .kv .r { padding: 5px 0; font-size: 13px; }
+.bub.typing { color: var(--muted); font-style: italic; }
+.chat-input { display: flex; gap: 8px; align-items: flex-end; }
+.chat-input textarea { flex: 1; min-height: 46px; max-height: 120px; resize: none; }
+.chat-input .btn { flex: none; }
+.advisor-card { display: flex; align-items: center; gap: 12px; width: 100%; text-align: right; border: 1px solid var(--line); }
+.advisor-card .tx { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.advisor-card .ex { align-self: flex-start; margin-top: 4px; background: var(--accent-soft); color: var(--ink); border-radius: 14px 14px 14px 4px; padding: 6px 10px; font-size: 13px; }
+.advisor-card .go { color: var(--muted); font-size: 22px; }
+.advisor-card .ic { width: 44px; height: 44px; border-radius: 12px; background: var(--accent-soft); display: grid; place-items: center; font-size: 22px; flex: none; }
+.nav .live { width: 7px; height: 7px; border-radius: 50%; background: var(--punch); position: absolute; top: 6px; margin-inline-start: 18px; }
+</style>
+</head>
+<body>
+<div class="app" id="app"><div class="loading">טוען…</div></div>
+<nav class="nav" id="nav" aria-label="ניווט" hidden>
+  <button data-tab="clock" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg>נוכחות</button>
+  <button data-tab="month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>החודש</button>
+  <button data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>הגדרות</button>
+</nav>
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>window.supabase || document.write('<script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"><\/script>');</script>
+<script>
+(() => {
+"use strict";
+const SUPABASE_URL = "https://mkqjysfflavzfkckiuil.supabase.co";
+const SUPABASE_KEY = "sb_publishable_xCLvDfV3wAK4abkqlQrXBg_CXm39XfW";
+if (!window.supabase) { document.getElementById("app").innerHTML = '<div class="loading">אין חיבור לאינטרנט. התחברו לרשת ורעננו את הדף.</div>'; return; }
+const VAPID_PUBLIC_KEY = "BDkAqMwSEPvFdiv8bnFRWcfBaYC50lFX6A5k0IZcBVRrxH2dLrq59L20N0sfDhdW-iT6TFku_6wnlaNfoHRIGr8";
+// the boss opens /?r=<token> without an account and sees only that report
+const bossToken = (() => { try { const r = new URLSearchParams(location.search).get("r"); return /^[0-9a-f-]{36}$/i.test(r || "") ? r : null; } catch (e) { return null; } })();
+let bossData = null;
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: "attendance-auth" } });
+
+// ---------- helpers ----------
+const $ = (s, el = document) => el.querySelector(s);
+const pad = n => String(n).padStart(2, "0");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+const MONTHS = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+const DAYS = ["א׳","ב׳","ג׳","ד׳","ה׳","ו׳","ש׳"];
+const TYPES = { work: "עבודה", vacation: "חופשה", sick: "מחלה" };
+// the app is built for workers who keep Shabbat: no work is recorded on Saturday and there are no Saturday rates
+const isShabbat = ds => weekday(ds) === 6;
+const WEEK = DAYS.slice(0, 6);
+
+const localDS = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const localHM = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const todayDS = () => localDS(new Date());
+const parseDS = ds => ds.split("-").map(Number);
+const utc = (y, m, d) => new Date(Date.UTC(y, m - 1, d));
+const utcDS = d => `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+const weekday = ds => { const [y, m, d] = parseDS(ds); return utc(y, m, d).getUTCDay(); };
+const daysIn = (y, m) => new Date(Date.UTC(y, m, 0)).getUTCDate();
+const toMin = hm => { const [h, m] = String(hm || "0:0").split(":").map(Number); return (h || 0) * 60 + (m || 0); };
+const minToHM = min => { min = ((Math.round(min) % 1440) + 1440) % 1440; return `${pad(Math.floor(min / 60))}:${pad(min % 60)}`; };
+const fmtHM = min => { min = Math.round(min); const s = min < 0 ? "-" : ""; min = Math.abs(min); return `${s}${Math.floor(min / 60)}:${pad(min % 60)}`; };
+const fmtDec = min => (Math.round(min / 60 * 100) / 100).toFixed(2);
+const fmtDate = ds => { const [y, m, d] = parseDS(ds); return `${d}.${m}.${String(y).slice(2)}`; };
+const fmtDateLong = ds => { const [, m, d] = parseDS(ds); return `${d} ב${MONTHS[m - 1]}`; };
+function money(x) {
+  const cur = state.settings.currency || "₪";
+  const n = Math.abs(Math.round(x * 100) / 100).toLocaleString("he-IL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${x < 0 ? "-" : ""}${cur}${n}`;
+}
+const normPhone = p => String(p || "").replace(/[^\d+]/g, "");
+const validPhone = p => /^(\+?\d{9,15})$/.test(normPhone(p));
+const validEmail = e => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(e || "").trim());
+
+// ---------- state ----------
+const DEFAULT_SETTINGS = {
+  name: "", employer: "", rate: 0, currency: "₪", shiftHours: 8,
+  otEnabled: true, otThreshold: 8.6, ot1Span: 2,
+  weekendOn: false, weekendRate: 150,
+  travelOn: false, travelPerDay: 0, periodStart: 1,
+  vacPct: 100, sickPct: 100, onboarded: false,
+  countdownOn: true, askPlan: false, entryMode: "clock", alertBefore: true, goalAmount: 0,
+  dailyGoalHours: 0, workDays: [0, 1, 2, 3, 4], jobPct: 100, breaksOn: true, autoBreakOn: false, autoBreakMin: 30,
+  bossPhone: "", bossEmail: "",
+  jobs: [], netOn: true, creditPoints: 2.25, pensionPct: 6,
+  pushOn: false, remindOn: false, remindTime: "08:00", remindDays: [0, 1, 2, 3, 4]
+};
+const freshState = () => ({ v: 4, updatedAt: 0, settings: { ...DEFAULT_SETTINGS }, shifts: [], active: null, adjustments: [], sample: false });
+function normalize(s) {
+  s = JSON.parse(JSON.stringify(s || {}));
+  const n = freshState();
+  const out = { ...n, ...s, settings: { ...n.settings, ...(s.settings || {}) },
+    shifts: Array.isArray(s.shifts) ? s.shifts : [], adjustments: Array.isArray(s.adjustments) ? s.adjustments : [],
+    active: s.active && s.active.start ? s.active : null };
+  if (out.active && !Array.isArray(out.active.breaks)) out.active = { ...out.active, breaks: [] };
+  if (s.settings && s.settings.travelPerDay > 0 && s.settings.travelOn === undefined) out.settings.travelOn = true;
+  // v3: a plain clock-in only counts worked time; the countdown is opt-in
+  if (!(s.v >= 3)) out.settings.entryMode = "clock";
+  // v4: three modes on the attendance tab — free clock, countdown timer, daily goal
+  if (!["clock", "timer", "goal"].includes(out.settings.entryMode)) out.settings.entryMode = out.settings.entryMode === "ask" ? "timer" : "clock";
+  if (!Array.isArray(out.settings.workDays)) out.settings.workDays = [...DEFAULT_SETTINGS.workDays];
+  // no Shabbat: drop Saturday from every day list and the old "Shabbat / holiday" shift type
+  out.settings.weekendOn = false;
+  out.settings.workDays = out.settings.workDays.filter(d => d !== 6);
+  if (!out.settings.workDays.length) out.settings.workDays = [...DEFAULT_SETTINGS.workDays];
+  if (Array.isArray(out.settings.remindDays)) out.settings.remindDays = out.settings.remindDays.filter(d => d !== 6);
+  out.shifts = out.shifts.map(x => x.type === "holiday" ? { ...x, type: "work" } : x);
+  out.v = 4;
+  return out;
+}
+let state = freshState();
+let session = null, account = null; // account = {phone, full_name, email}
+const ui = { tab: "clock", period: null, authMode: "login", authMsg: "", job: "all", reports: {} };
+try { const t = localStorage.getItem("attendance:tab"); if (["clock", "month", "settings"].includes(t)) ui.tab = t; } catch (e) {}
+const cacheKey = () => session ? "attendance:data:" + session.user.id : null;
+const saveCache = () => { try { if (cacheKey()) localStorage.setItem(cacheKey(), JSON.stringify(state)); } catch (e) {} };
+
+// ---------- cloud sync ----------
+let saving = false, dirty = false, saveTimer = null, syncState = "local";
+function setSync(s) { syncState = s; const el = $("#sync"); if (el) paintSync(el); }
+function paintSync(el) {
+  const map = { local: ["", "לא מחובר לרשת"], cloud: ["cloud", "מגובה בענן"], saving: ["saving", "שומר…"], err: ["err", "ממתין לרשת"] };
+  const [c, t] = map[syncState] || map.local;
+  el.className = "sync " + c; el.textContent = t;
+}
+function commit(msg, noRender) {
+  state.updatedAt = Date.now();
+  saveCache(); if (!noRender) render();
+  if (msg) toast(msg);
+  dirty = true; clearTimeout(saveTimer); saveTimer = setTimeout(flush, 500);
+}
+async function flush() {
+  if (saving || !dirty || !session) return;
+  saving = true; dirty = false; setSync("saving");
+  const payload = JSON.parse(JSON.stringify(state));
+  const { error } = await sb.from("attendance_accounts").update({ data: payload, full_name: state.settings.name || account?.full_name || "", updated_at: new Date().toISOString() }).eq("user_id", session.user.id);
+  saving = false;
+  if (error) { dirty = true; setSync("err"); setTimeout(flush, 5000 + Math.random() * 3000); return; }
+  setSync("cloud");
+  if (dirty) flush();
+}
+async function pullRemote() {
+  if (!session) return;
+  const { data, error } = await sb.from("attendance_accounts").select("phone, full_name, email, data").eq("user_id", session.user.id).maybeSingle();
+  if (error) { setSync("err"); return "error"; }
+  if (!data) return "missing";
+  account = { phone: data.phone, full_name: data.full_name, email: data.email };
+  const remote = data.data || {};
+  const rT = remote.updatedAt || 0;
+  if (rT > state.updatedAt) { state = normalize(remote); saveCache(); }
+  else if (rT < state.updatedAt) { dirty = true; flush(); }
+  if (!state.settings.name && data.full_name) state.settings = { ...state.settings, name: data.full_name };
+  setSync(dirty ? "saving" : "cloud");
+  return "ok";
+}
+async function createAccount(phone, fullName) {
+  const u = session.user;
+  const row = { user_id: u.id, phone: normPhone(phone), full_name: fullName || "", email: u.email, data: JSON.parse(JSON.stringify(state)) };
+  const { error } = await sb.from("attendance_accounts").insert(row);
+  if (error && error.code !== "23505") throw error;
+  account = { phone: row.phone, full_name: row.full_name, email: u.email };
+}
+window.addEventListener("online", () => { if (dirty) flush(); else pullRemote().then(() => render()); });
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) { if (dirty) flush(); return; }
+  if (!session) return;
+  if (!dirty && !saving) pullRemote().then(r => { if (r === "ok" && !$("#modal-root").firstChild) render(); });
+  else tick();
+});
+
+// ---------- boot / auth ----------
+async function startSession(s) {
+  session = s;
+  try { const c = localStorage.getItem(cacheKey()); state = c ? normalize(JSON.parse(c)) : freshState(); } catch (e) { state = freshState(); }
+  render(); // show cached data right away
+  const r = await pullRemote();
+  if (r === "missing") {
+    const meta = s.user.user_metadata || {};
+    if (meta.phone && validPhone(meta.phone)) {
+      if (!state.settings.name && meta.full_name) state.settings = { ...state.settings, name: meta.full_name };
+      try { await createAccount(meta.phone, meta.full_name || state.settings.name); setSync("cloud"); }
+      catch (e) { setSync("err"); }
+    } else { ui.needPhone = true; }
+  }
+  render();
+  if ((state.settings.pushOn || state.settings.remindOn) && pushSupported() && Notification.permission === "granted") enablePush(true);
+}
+function endSession() {
+  try { if (cacheKey()) localStorage.removeItem(cacheKey()); } catch (e) {}
+  session = null; account = null; state = freshState(); ui.needPhone = false; ui.authMode = "login";
+  render();
+}
+sb.auth.onAuthStateChange((event, s) => {
+  if (event === "PASSWORD_RECOVERY") { setTimeout(newPasswordModal, 50); }
+  if (event === "SIGNED_OUT") { endSession(); return; }
+  if (bossToken) return;
+  if (s && (!session || session.user.id !== s.user.id)) { startSession(s); return; }
+  if (s) session = s;
+});
+if (bossToken) { renderBoss(); loadBoss(); }
+else sb.auth.getSession().then(({ data }) => { if (data.session) { if (!session) startSession(data.session); } else render(); });
+
+function viewAuth() {
+  const m = ui.authMode;
+  const head = `<div class="auth-logo"><img src="/icon-192.png" alt=""><div><h1>שעון נוכחות</h1><div class="muted small">רישום שעות, חישוב שכר ודוח לבוס</div></div></div>`;
+  if (m === "sent") {
+    return `<div class="auth">${head}<section class="card form"><h3>כמעט סיימנו</h3>
+      <div class="ok-msg">שלחנו מייל אימות אל <b class="num">${esc(ui.authEmail || "")}</b>.<br>פתחו את המייל ולחצו על הקישור. אחר כך חזרו לכאן והתחברו עם המייל והסיסמה.</div>
+      <p class="muted small" style="margin:0">לא הגיע? בדקו בתיקיית הספאם או קידומי מכירות.</p>
+      <button class="btn primary block" data-auth="toLogin">להתחברות</button></section></div>`;
+  }
+  if (m === "forgot") {
+    return `<div class="auth">${head}<section class="card"><form class="form" id="forgot-form" novalidate><h3>איפוס סיסמה</h3>
+      <div class="fld"><label for="fg-email">המייל שאיתו נרשמתם</label><input type="email" id="fg-email" autocomplete="email" required value="${esc(ui.authEmail || "")}"></div>
+      <div class="err-msg" id="auth-err">${esc(ui.authMsg)}</div>
+      <button class="btn primary block" type="submit">שליחת קישור לאיפוס</button>
+      <button class="link" type="button" data-auth="toLogin">חזרה להתחברות</button></form></section></div>`;
+  }
+  const signup = m === "signup";
+  return `<div class="auth">${head}
+    <div class="auth-tabs" role="tablist"><button role="tab" aria-selected="${!signup}" data-auth="toLogin">התחברות</button><button role="tab" aria-selected="${signup}" data-auth="toSignup">הרשמה</button></div>
+    <section class="card"><form class="form" id="auth-form" novalidate>
+      ${signup ? `<div class="fld"><label for="au-name">שם מלא</label><input type="text" id="au-name" autocomplete="name" maxlength="50" required></div>
+      <div class="fld"><label for="au-phone">מספר טלפון</label><input type="tel" id="au-phone" autocomplete="tel" inputmode="tel" placeholder="050-0000000" required></div>` : ""}
+      <div class="fld"><label for="au-email">אימייל</label><input type="email" id="au-email" autocomplete="email" inputmode="email" required value="${esc(ui.authEmail || "")}"></div>
+      <div class="fld"><label for="au-pass">סיסמה</label><input type="password" id="au-pass" autocomplete="${signup ? "new-password" : "current-password"}" minlength="6" required>${signup ? `<span class="hint">לפחות 6 תווים</span>` : ""}</div>
+      <div class="err-msg" id="auth-err">${esc(ui.authMsg)}</div>
+      <button class="btn primary block" type="submit" id="auth-submit">${signup ? "יצירת חשבון" : "כניסה"}</button>
+      ${signup ? `<p class="muted small" style="margin:0">כל הנתונים שלכם נשמרים בחשבון. אם תחליפו טלפון או תמחקו את האפליקציה, פשוט התחברו שוב והכול יחזור.</p>` : `<button class="link" type="button" data-auth="toForgot">שכחתי סיסמה</button>`}
+    </form></section></div>`;
+}
+function viewNeedPhone() {
+  return `<div class="auth"><div class="auth-logo"><img src="/icon-192.png" alt=""><div><h1>עוד פרט אחד</h1><div class="muted small">${esc(session.user.email || "")}</div></div></div>
+    <section class="card"><form class="form" id="phone-form" novalidate>
+      <div class="fld"><label for="np-name">שם מלא</label><input type="text" id="np-name" autocomplete="name" maxlength="50" value="${esc(state.settings.name || (session.user.user_metadata || {}).full_name || "")}" required></div>
+      <div class="fld"><label for="np-phone">מספר טלפון</label><input type="tel" id="np-phone" autocomplete="tel" inputmode="tel" placeholder="050-0000000" required></div>
+      <div class="err-msg" id="auth-err"></div>
+      <button class="btn primary block" type="submit">המשך</button>
+      <button class="link" type="button" data-act="logout">התנתקות</button>
+    </form></section></div>`;
+}
+const authErr = msg => { const e = $("#auth-err"); if (e) e.textContent = msg; };
+function heAuthError(err) {
+  const m = (err && err.message || "").toLowerCase();
+  if (m.includes("invalid login")) return "המייל או הסיסמה לא נכונים";
+  if (m.includes("email not confirmed")) return "צריך לאשר את המייל קודם. חפשו את מייל האימות בתיבה שלכם.";
+  if (m.includes("already registered") || m.includes("already been registered")) return "המייל הזה כבר רשום. נסו להתחבר, או לחצו ״שכחתי סיסמה״.";
+  if (m.includes("password")) return "הסיסמה צריכה להיות לפחות 6 תווים";
+  if (m.includes("rate limit") || m.includes("too many")) return "יותר מדי ניסיונות. חכו כמה דקות ונסו שוב.";
+  if (m.includes("fetch") || m.includes("network")) return "אין חיבור לאינטרנט";
+  return "משהו השתבש. נסו שוב.";
+}
+document.addEventListener("submit", async e => {
+  const f = e.target; e.preventDefault();
+  if (f.id === "auth-form") {
+    const signup = ui.authMode === "signup";
+    const email = $("#au-email").value.trim(), pass = $("#au-pass").value;
+    ui.authEmail = email;
+    if (!validEmail(email)) return authErr("כתובת המייל לא תקינה");
+    if (pass.length < 6) return authErr("הסיסמה צריכה להיות לפחות 6 תווים");
+    let name = "", phone = "";
+    if (signup) {
+      name = $("#au-name").value.trim(); phone = $("#au-phone").value.trim();
+      if (!name) return authErr("מלאו שם מלא");
+      if (!validPhone(phone)) return authErr("מספר הטלפון לא תקין");
+    }
+    const btn = $("#auth-submit"); btn.disabled = true; authErr("");
+    if (signup) {
+      const { data, error } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: name, phone: normPhone(phone) }, emailRedirectTo: location.origin + "/" } });
+      btn.disabled = false;
+      if (error) return authErr(heAuthError(error));
+      if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) return authErr("המייל הזה כבר רשום. נסו להתחבר, או לחצו ״שכחתי סיסמה״.");
+      if (!data.session) { ui.authMode = "sent"; render(); }
+    } else {
+      const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+      btn.disabled = false;
+      if (error) return authErr(heAuthError(error));
+    }
+  } else if (f.id === "forgot-form") {
+    const email = $("#fg-email").value.trim(); ui.authEmail = email;
+    if (!validEmail(email)) return authErr("כתובת המייל לא תקינה");
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + "/" });
+    if (error) return authErr(heAuthError(error));
+    ui.authMode = "login"; ui.authMsg = ""; render(); toast("שלחנו קישור לאיפוס למייל");
+  } else if (f.id === "phone-form") {
+    const name = $("#np-name").value.trim(), phone = $("#np-phone").value.trim();
+    if (!name) return authErr("מלאו שם מלא");
+    if (!validPhone(phone)) return authErr("מספר הטלפון לא תקין");
+    state.settings = { ...state.settings, name };
+    try { await createAccount(phone, name); ui.needPhone = false; commit(); }
+    catch (err) { authErr("לא הצלחנו לשמור. בדקו חיבור לאינטרנט ונסו שוב."); }
+  }
+});
+function newPasswordModal() {
+  openModal(`<h3>בחירת סיסמה חדשה</h3>
+    <div class="fld"><label for="np-pass">סיסמה חדשה</label><input type="password" id="np-pass" autocomplete="new-password" minlength="6"></div>
+    <div class="err-msg" id="np-err"></div>
+    <div class="modal-actions"><button class="btn primary" id="np-save">שמירה</button></div>`, m => {
+    $("#np-save", m).onclick = async () => {
+      const p = $("#np-pass", m).value;
+      if (p.length < 6) { $("#np-err", m).textContent = "לפחות 6 תווים"; return; }
+      const { error } = await sb.auth.updateUser({ password: p });
+      if (error) { $("#np-err", m).textContent = heAuthError(error); return; }
+      closeModal(); toast("הסיסמה עודכנה");
+    };
+  });
+}
+
+// ---------- pay periods ----------
+const PS = () => Math.min(28, Math.max(1, Math.round(+state.settings.periodStart || 1)));
+function periodKeyOf(ds) {
+  const [y, m, d] = parseDS(ds);
+  if (PS() === 1 || d < PS()) return `${y}-${pad(m)}`;
+  const n = utc(y, m + 1, 1);
+  return `${n.getUTCFullYear()}-${pad(n.getUTCMonth() + 1)}`;
+}
+function periodRange(key) {
+  const [y, m] = key.split("-").map(Number);
+  if (PS() === 1) return [`${y}-${pad(m)}-01`, `${y}-${pad(m)}-${pad(daysIn(y, m))}`];
+  return [utcDS(utc(y, m - 1, PS())), `${y}-${pad(m)}-${pad(PS() - 1)}`];
+}
+function movePeriod(key, delta) { const [y, m] = key.split("-").map(Number); const d = utc(y, m + delta, 1); return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}`; }
+function periodLabel(key) { const [y, m] = key.split("-").map(Number); return `${MONTHS[m - 1]} ${y}`; }
+function periodSub(key) { if (PS() === 1) return ""; const [a, b] = periodRange(key); return `${fmtDate(a)} – ${fmtDate(b)}`; }
+function datesBetween(a, b) {
+  const out = []; const [y, m, d] = parseDS(a); const cur = utc(y, m, d);
+  while (utcDS(cur) <= b && out.length < 40) { out.push(utcDS(cur)); cur.setUTCDate(cur.getUTCDate() + 1); }
+  return out;
+}
+
+// ---------- calculations ----------
+const isLeave = s => s.type === "vacation" || s.type === "sick";
+function shiftMin(s) {
+  if (isLeave(s)) return Math.max(0, Math.round((+s.hours || 0) * 60));
+  let a = toMin(s.start), b = toMin(s.end);
+  if (b <= a) b += 1440;
+  return Math.max(0, b - a - (+s.breakMin || 0));
+}
+const isWeekendDate = () => false;
+// workplaces: the main one lives in settings.employer/rate, extra ones in settings.jobs
+function allJobs() {
+  const st = state.settings;
+  const extra = Array.isArray(st.jobs) ? st.jobs : [];
+  return [{ id: "main", name: st.employer || (extra.length ? "עבודה ראשית" : ""), rate: +st.rate || 0 }, ...extra.map(j => ({ id: j.id, name: j.name || "עבודה נוספת", rate: +j.rate || 0 }))];
+}
+const multiJob = () => allJobs().length > 1;
+const jobOf = id => allJobs().find(j => j.id === (id || "main")) || allJobs()[0];
+const jobFilter = () => (multiJob() && ui.job !== "all" && allJobs().some(j => j.id === ui.job)) ? ui.job : "all";
+function calcDay(ds, list, job) {
+  const st = state.settings, rate = (job || jobOf("main")).rate;
+  const work = list.filter(s => !isLeave(s));
+  const wMin = work.reduce((a, s) => a + shiftMin(s), 0);
+  const special = isWeekendDate(ds);
+  let reg = wMin, o1 = 0, o2 = 0;
+  if (st.otEnabled) {
+    const T = Math.max(0, +st.otThreshold || 0) * 60, span = Math.max(0, +st.ot1Span || 0) * 60;
+    reg = Math.min(wMin, T); o1 = Math.min(Math.max(wMin - T, 0), span); o2 = Math.max(wMin - T - span, 0);
+  }
+  const base = special ? (+st.weekendRate || 150) / 100 : 1;
+  const mults = [base, base + .25, base + .5];
+  const buckets = {};
+  [reg, o1, o2].forEach((mn, i) => { if (mn > 0) { const k = Math.round(mults[i] * 100); buckets[k] = (buckets[k] || 0) + mn; } });
+  const bucketPay = {};
+  [reg, o1, o2].forEach((mn, i) => { if (mn > 0) { const k = Math.round(mults[i] * 100); bucketPay[k] = (bucketPay[k] || 0) + rate * mn / 60 * mults[i]; } });
+  const workPay = [reg, o1, o2].reduce((a, mn, i) => a + rate * mn / 60 * mults[i], 0);
+  let vacMin = 0, sickMin = 0;
+  list.forEach(s => { if (s.type === "vacation") vacMin += shiftMin(s); if (s.type === "sick") sickMin += shiftMin(s); });
+  const vacPay = rate * vacMin / 60 * (+st.vacPct || 0) / 100;
+  const sickPay = rate * sickMin / 60 * (+st.sickPct || 0) / 100;
+  return { ds, list, job: job || jobOf("main"), wMin, reg, ot: o1 + o2, buckets, bucketPay, special, workPay, vacMin, sickMin, vacPay, sickPay, pay: workPay + vacPay + sickPay };
+}
+// overtime is counted per day and per workplace, each at its own rate
+function calcPeriod(key, filter = jobFilter()) {
+  const [a, b] = periodRange(key);
+  const by = {};
+  state.shifts.forEach(s => {
+    if (s.date < a || s.date > b) return;
+    const jid = jobOf(s.jobId).id;
+    if (filter !== "all" && jid !== filter) return;
+    const k = s.date + "|" + jid; (by[k] = by[k] || []).push(s);
+  });
+  const days = Object.keys(by).sort().map(k => {
+    by[k].sort((x, y) => (x.start || "").localeCompare(y.start || ""));
+    const [ds, jid] = k.split("|");
+    return calcDay(ds, by[k], jobOf(jid));
+  });
+  const t = { wMin: 0, buckets: {}, bucketPay: {}, workPay: 0, vacMin: 0, sickMin: 0, vacPay: 0, sickPay: 0, daysWorked: 0, otMin: 0 };
+  const workedDates = new Set();
+  days.forEach(d => {
+    t.wMin += d.wMin; t.workPay += d.workPay; t.vacMin += d.vacMin; t.sickMin += d.sickMin;
+    t.vacPay += d.vacPay; t.sickPay += d.sickPay; t.otMin += d.ot; if (d.wMin > 0) workedDates.add(d.ds);
+    for (const k in d.buckets) { t.buckets[k] = (t.buckets[k] || 0) + d.buckets[k]; t.bucketPay[k] = (t.bucketPay[k] || 0) + d.bucketPay[k]; }
+  });
+  t.daysWorked = workedDates.size;
+  t.travel = state.settings.travelOn ? t.daysWorked * (+state.settings.travelPerDay || 0) : 0;
+  t.adj = state.adjustments.filter(x => x.period === key && (filter === "all" || (x.jobId || "main") === filter));
+  t.adjSum = t.adj.reduce((a, x) => a + (+x.amount || 0), 0);
+  t.total = t.workPay + t.vacPay + t.sickPay + t.travel + t.adjSum;
+  t.allMin = t.wMin + t.vacMin + t.sickMin;
+  t.rates = [...new Set(days.map(d => d.job.rate))];
+  return { key, range: [a, b], days, t, filter, job: filter === "all" ? null : jobOf(filter) };
+}
+// net pay estimate: Israeli income tax brackets and credit point value (frozen 2025–2027), National Insurance + health
+const TAX_BRACKETS = [[7010, .10], [10060, .14], [16150, .20], [22440, .31], [46690, .35], [60130, .47], [Infinity, .50]];
+function netEstimate(gross) {
+  const st = state.settings;
+  const pension = Math.max(0, gross * (+st.pensionPct || 0) / 100);
+  let tax = 0, prev = 0;
+  for (const [top, r] of TAX_BRACKETS) { if (gross > prev) tax += (Math.min(gross, top) - prev) * r; prev = top; }
+  const credits = (+st.creditPoints || 0) * 242 + 0.35 * Math.min(pension, gross * 0.07);
+  tax = Math.max(0, tax - credits);
+  const low = Math.min(gross, 7522), high = Math.max(0, Math.min(gross, 50695) - 7522);
+  const bl = low * 0.0427 + high * 0.1217;
+  return { gross, tax, bl, pension, net: gross - tax - bl - pension };
+}
+// goal planner: how many hours a day reach the monthly goal, and what the job percentage would earn
+const FULL_TIME_WEEK = 42; // hours a week of a full-time job in Israel
+const MAX_DAY_MIN = 12 * 60; // above this a daily target is not realistic (and not legal) any more
+function planInfo(key) {
+  const st = state.settings, today = todayDS();
+  const goal = Math.max(0, +st.goalAmount || 0);
+  const wd = Array.isArray(st.workDays) && st.workDays.length ? st.workDays : DEFAULT_SETTINGS.workDays;
+  const [a, b] = periodRange(key);
+  const workDates = datesBetween(a, b).filter(ds => wd.includes(weekday(ds)));
+  const P = calcPeriod(key, "all"), t = P.t;
+  const travel = st.travelOn ? (+st.travelPerDay || 0) : 0;
+  const rate = t.wMin > 0 ? t.workPay / (t.wMin / 60) : jobOf("main").rate;
+  const todayPay = (P.days.filter(d => d.ds === today).reduce((x, d) => x + d.pay, 0)) + (P.days.some(d => d.ds === today && d.wMin > 0) ? travel : 0);
+  const current = a <= today && today <= b, past = b < today;
+  // days still ahead, today included: the daily target covers today too
+  const left = past ? [] : workDates.filter(ds => ds >= today);
+  const earnedBefore = current ? t.total - todayPay : t.total;
+  const leftMoney = Math.max(0, goal - earnedBefore);
+  const perDay = left.length ? leftMoney / left.length : 0;
+  const needMin = left.length ? Math.min(1440, minutesFor(leftMoney, left, jobOf("main").rate, travel) || 0) : 0;
+  const pct = Math.min(100, Math.max(1, +st.jobPct || 100));
+  const pctDayMin = FULL_TIME_WEEK * pct / 100 / wd.length * 60;
+  // by the base rate of the main job, with the same overtime rules as a real day (long days pass the overtime threshold)
+  const baseRate = jobOf("main").rate;
+  const pctMonth = workDates.reduce((x, ds) => x + dayPayFor(pctDayMin, ds, baseRate) + travel, 0);
+  // forecast: the pace so far, carried over the work days that are still ahead
+  const workedToday = P.days.some(d => d.ds === today && d.wMin > 0) || !!state.active;
+  const ahead = past ? 0 : workDates.filter(ds => ds > today || (ds === today && !workedToday)).length;
+  const avgDay = t.daysWorked ? (t.total - t.adjSum) / t.daysWorked : (workDates.length ? pctMonth / workDates.length : 0);
+  const forecast = t.total + avgDay * ahead;
+  return { goal, wd, workDates, rate, travel, left, leftMoney, perDay, needMin, pct, pctDayMin, pctMonth, forecast, ahead, current, past, earned: t.total, avgDay };
+}
+// pay for a day of `min` worked minutes on date ds, with the same overtime and Saturday rules as calcDay
+function dayPayFor(min, ds, rate) {
+  const st = state.settings, special = isWeekendDate(ds);
+  let reg = min, o1 = 0, o2 = 0;
+  if (st.otEnabled) {
+    const T = Math.max(0, +st.otThreshold || 0) * 60, span = Math.max(0, +st.ot1Span || 0) * 60;
+    reg = Math.min(min, T); o1 = Math.min(Math.max(min - T, 0), span); o2 = Math.max(min - T - span, 0);
+  }
+  const base = special ? (+st.weekendRate || 150) / 100 : 1;
+  return rate / 60 * (reg * base + o1 * (base + .25) + o2 * (base + .5));
+}
+// the same number of minutes every day that brings `target` money over `dates` (Infinity if a full day is not enough)
+function minutesFor(target, dates, rate, travel) {
+  if (!dates.length || !(rate > 0)) return null;
+  const total = m => dates.reduce((x, ds) => x + dayPayFor(m, ds, rate) + travel, 0);
+  if (total(0) >= target) return 0;
+  if (total(1440) < target) return Infinity;
+  let lo = 0, hi = 1440;
+  for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2; if (total(mid) >= target) hi = mid; else lo = mid; }
+  return Math.ceil(hi);
+}
+// the advisor: a short conversation that ends with a personal plan for the rest of the month
+function advise(goal, days, maxH) {
+  const key = periodKeyOf(todayDS()), today = todayDS(), [, b] = periodRange(key);
+  const pl = planInfo(key), rate = jobOf("main").rate, travel = pl.travel;
+  const earnedBefore = pl.earned - (pl.current ? (calcPeriod(key, "all").days.filter(d => d.ds === today).reduce((x, d) => x + d.pay, 0)) : 0);
+  const datesFor = set => datesBetween(today, b).filter(ds => set.includes(weekday(ds)));
+  const dates = datesFor(days);
+  const left = Math.max(0, goal - earnedBefore);
+  const need = minutesFor(left, dates, rate, travel);
+  const maxMin = maxH * 60;
+  const maxEarn = earnedBefore + dates.reduce((x, ds) => x + dayPayFor(maxMin, ds, rate) + travel, 0);
+  // which extra weekday would make it fit in the max hours
+  let extra = null;
+  if (need > maxMin) {
+    const set = [...days];
+    for (const d of [5, 0, 1, 2, 3, 4]) {
+      if (set.includes(d)) continue;
+      set.push(d);
+      const n = minutesFor(left, datesFor(set), rate, travel);
+      if (n <= maxMin) { extra = { added: set.filter(x => !days.includes(x)), need: n }; break; }
+    }
+  }
+  const scen = [3, 4, 5, 6].map(n => { const set = [0, 1, 2, 3, 4, 5].slice(0, n); return { n, need: minutesFor(left, datesFor(set), rate, travel), days: datesFor(set).length }; });
+  const pctDay = FULL_TIME_WEEK * pl.pct / 100 / Math.max(1, days.length) * 60;
+  const pctEarn = earnedBefore + dates.reduce((x, ds) => x + dayPayFor(pctDay, ds, rate) + travel, 0);
+  const schedule = dates.slice(0, 7).map(ds => ({ ds, min: need, pay: dayPayFor(need, ds, rate) + travel }));
+  return { key, rate, travel, earnedBefore, left, need, dates, maxMin, maxEarn, extra, scen, pct: pl.pct, pctDay, pctEarn, schedule };
+}
+function quickPlanModal() {
+  const st = state.settings, key = periodKeyOf(todayDS());
+  const last = calcPeriod(movePeriod(key, -1), "all").t.total;
+  const A = ui.adv = ui.adv || { step: 0, goal: +st.goalAmount || 0, days: [...(st.workDays || DEFAULT_SETTINGS.workDays)], maxH: 9 };
+  const bot = h => `<div class="bub bot">${h}</div>`, me = h => `<div class="bub me">${h}</div>`;
+  const daysTxt = d => d.map(i => DAYS[i]).join(" ");
+  const draw = m => {
+    let h = bot(`היי! אני היועץ של שעון הנוכחות 🧭<br>אעזור לך לתכנן כמה לעבוד כדי להגיע למשכורת שרוצים. זו רק המלצה, את התוכנית אפשר לשנות מתי שרוצים.`);
+    h += bot(`כמה תרצו להרוויח ב${esc(periodLabel(key))}? (ברוטו)`);
+    let input = "";
+    if (A.step === 0) {
+      const sug = [...new Set([+st.goalAmount, Math.round(last / 100) * 100, Math.round(last * 1.1 / 100) * 100, 5000, 8000].filter(v => v > 0))].slice(0, 4);
+      input = `<div class="quick">${sug.map(v => `<button type="button" data-g="${v}">${money(v)}</button>`).join("")}</div>
+        <div class="grid2" style="align-items:end"><div class="fld"><label for="ad-goal">סכום (${esc(st.currency)})</label><input type="number" id="ad-goal" min="1" step="100" inputmode="decimal" value="${A.goal || ""}"></div><button class="btn primary" id="ad-next">המשך</button></div>`;
+    } else {
+      h += me(money(A.goal));
+      h += bot("באילו ימים בשבוע אפשר לעבוד?");
+      if (A.step === 1) input = `<div class="days-pick" id="ad-days">${WEEK.map((d, i) => `<button type="button" data-d="${i}" aria-pressed="${A.days.includes(i)}">${d}</button>`).join("")}</div><button class="btn primary block" id="ad-next">המשך</button>`;
+      else {
+        h += me(daysTxt(A.days));
+        h += bot("ומקסימום כמה שעות ביום מתאים לך לעבוד?");
+        if (A.step === 2) input = `<div class="bgrid">${[5, 6, 7, 8, 9, 10, 11, 12].map(n => `<button type="button" data-mh="${n}" aria-pressed="${n === A.maxH}">${n} ש׳</button>`).join("")}</div>`;
+        else { h += me(`עד ${A.maxH} שעות`); h += planBubbles(advise(A.goal, A.days, A.maxH), A, bot); input = `<button class="btn primary block" id="ad-save">שמירת התוכנית והפעלת יעד יומי</button><button class="btn ghost block" id="ad-redo">שינוי התשובות</button>`; }
+      }
+    }
+    m.innerHTML = `<div class="card-head" style="margin:0"><h3>🧭 תוכנית מהירה</h3><button class="link" data-dismiss>סגירה</button></div><div class="chat" id="ad-chat">${h}</div><div class="form" style="gap:8px">${input}</div>`;
+    const chat = $("#ad-chat", m); chat.lastElementChild && chat.lastElementChild.scrollIntoView({ block: "nearest" });
+    const next = () => { A.step++; draw(m); };
+    m.querySelectorAll("[data-g]").forEach(b => b.onclick = () => { A.goal = +b.dataset.g; next(); });
+    m.querySelectorAll("[data-d]").forEach(b => b.onclick = () => { const d = +b.dataset.d; A.days = A.days.includes(d) ? A.days.filter(x => x !== d) : [...A.days, d].sort(); b.setAttribute("aria-pressed", A.days.includes(d)); });
+    m.querySelectorAll("[data-mh]").forEach(b => b.onclick = () => { A.maxH = +b.dataset.mh; next(); });
+    const nx = $("#ad-next", m); if (nx) nx.onclick = () => {
+      if (A.step === 0) { const v = +$("#ad-goal", m).value; if (!(v > 0)) { toast("כתבו סכום"); return; } A.goal = Math.round(v); }
+      if (A.step === 1 && !A.days.length) { toast("בחרו לפחות יום אחד"); return; }
+      next();
+    };
+    const rd = $("#ad-redo", m); if (rd) rd.onclick = () => { A.step = 0; draw(m); };
+    const sv = $("#ad-save", m); if (sv) sv.onclick = () => {
+      state.settings = { ...state.settings, goalAmount: A.goal, workDays: [...A.days], dailyGoalHours: 0, ...(state.active ? {} : { entryMode: "goal" }) };
+      ui.adv = null; closeModal(); commit("התוכנית נשמרה. בלשונית נוכחות תראו כמה נשאר כל יום");
+    };
+  };
+  openModal("", m => draw(m));
+}
+// AI advisor (Gemini, through /api/advisor): free chat with the worker's numbers as context
+function aiContext() {
+  const st = state.settings, key = periodKeyOf(todayDS()), P = calcPeriod(key, "all"), pl = planInfo(key);
+  const goal = +st.goalAmount || 0, days = st.workDays || DEFAULT_SETTINGS.workDays;
+  const r = advise(goal || Math.round(Math.max(P.t.total, calcPeriod(movePeriod(key, -1), "all").t.total) * 1.1 / 100) * 100, days, 12);
+  const hm = m => m === Infinity ? "impossible" : m == null ? null : fmtHM(m);
+  return {
+    today: `${todayDS()} (יום ${DAYS[weekday(todayDS())]})`, currency: st.currency,
+    pay: { hourlyRate: jobOf("main").rate, extraJobs: (st.jobs || []).map(j => ({ name: j.name, rate: j.rate })), shiftHours: +st.shiftHours,
+      overtime: st.otEnabled ? { afterHoursPerDay: +st.otThreshold, hoursAt125: +st.ot1Span } : "off", worksOnShabbat: false,
+      travelPerDay: st.travelOn ? +st.travelPerDay : 0, jobPct: pl.pct, workDays: days.map(i => DAYS[i]) },
+    thisPeriod: { label: periodLabel(key), range: periodRange(key), earnedGross: Math.round(P.t.total), hours: fmtHM(P.t.allMin), daysWorked: P.t.daysWorked,
+      overtimeHours: fmtHM(P.t.otMin), netEstimate: st.netOn && P.t.total > 0 ? Math.round(netEstimate(P.t.total).net) : null,
+      workDaysLeftInclToday: pl.left.length, forecastAtCurrentPace: Math.round(pl.forecast), shiftRunningNow: !!state.active },
+    goal: goal ? { amount: goal, stillMissing: Math.round(r.left), hoursPerDayNeeded: hm(r.need), onDays: r.dates.length } : "not set",
+    planFor: { amount: goal || "example (+10% on best recent month)", missing: Math.round(r.left), hoursPerDayByDaysPerWeek: r.scen.map(x => ({ daysPerWeek: x.n, workDaysLeft: x.days, hoursPerDay: hm(x.need) })),
+      ifWorkingAtJobPct: { hoursPerDay: fmtHM(r.pctDay), endOfMonthTotal: Math.round(r.pctEarn) } },
+    recentMonths: [1, 2, 3].map(i => { const k = movePeriod(key, -i), t = calcPeriod(k, "all").t; return { month: periodLabel(k), gross: Math.round(t.total), hours: fmtHM(t.allMin), days: t.daysWorked }; })
+  };
+}
+const aiText = t => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<i>$2</i>").replace(/\n/g, "<br>");
+function advisorModal() {
+  const C = ui.chat = ui.chat || [];
+  const st = state.settings;
+  const chips = [+st.goalAmount > 0 ? `כמה שעות ביום צריך כדי להגיע ל-${money(+st.goalAmount)}?` : "כמה אני צריך לעבוד כדי להרוויח 6,000 ₪?", "מה אם אעבוד רק 3 ימים בשבוע?", "איך אפשר להרוויח יותר החודש?", "איך כדאי לחלק את השעות בשבוע?"];
+  let busy = false;
+  const draw = m => {
+    const bub = x => `<div class="bub ${x.role === "model" ? "bot" : "me"}">${x.role === "model" ? aiText(x.text) : esc(x.text)}</div>`;
+    m.innerHTML = `<div class="card-head" style="margin:0"><h3>💬 צ׳אט עם יועץ המשכורת</h3><button class="link" data-dismiss>סגירה</button></div>
+      <div class="chat" id="ai-chat">
+        <div class="bub bot">היי! אני יועץ המשכורת, צ׳אט עם בינה מלאכותית. אני רואה את השעות, התעריף והיעד שלך. כתבו לי שאלה למטה, או בחרו אחת מהדוגמאות.</div>
+        ${C.map(bub).join("")}${busy ? `<div class="bub bot typing">חושב…</div>` : ""}
+      </div>
+      ${C.length ? "" : `<div class="quick">${chips.map(c => `<button type="button" data-q="${esc(c)}">${esc(c)}</button>`).join("")}</div>`}
+      <div class="chat-input"><textarea id="ai-in" rows="1" maxlength="1000" placeholder="כתבו שאלה…" ${busy ? "disabled" : ""}></textarea><button class="btn primary" id="ai-send" ${busy ? "disabled" : ""} aria-label="שליחה">שליחה</button></div>
+      <div class="btn-row"><button class="btn ghost sm" id="ai-quick">תוכנית מהירה צעד אחר צעד</button>${C.length ? `<button class="btn ghost sm" id="ai-clear">שיחה חדשה</button>` : ""}</div>`;
+    const chat = $("#ai-chat", m); if (chat.lastElementChild) chat.lastElementChild.scrollIntoView({ block: "nearest" });
+    const send = async text => {
+      text = String(text || "").trim(); if (!text || busy) return;
+      C.push({ role: "user", text }); busy = true; draw(m);
+      let reply;
+      try {
+        const r = await fetch("/api/advisor", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ messages: C, context: aiContext() }) });
+        const j = await r.json().catch(() => ({}));
+        if (r.ok && j.text) reply = j.text;
+        else reply = { no_key: "היועץ החכם עוד לא מחובר (חסר מפתח Gemini בשרת). בינתיים אפשר להשתמש ב״תוכנית מהירה״ למטה.", quota: "הגענו למכסה החינמית של היועץ להיום. נסו שוב מחר, או השתמשו ב״תוכנית מהירה״.", unauthorized: "צריך להתחבר מחדש כדי לדבר עם היועץ." }[j.error] || "משהו השתבש מול היועץ. נסו שוב עוד רגע.";
+      } catch (e) { reply = "אין חיבור לאינטרנט. נסו שוב כשיש רשת."; }
+      C.push({ role: "model", text: reply }); busy = false;
+      if ($("#ai-chat")) { draw(m); const i = $("#ai-in", m); if (i) i.focus(); }
+    };
+    m.querySelectorAll("[data-q]").forEach(b => b.onclick = () => send(b.dataset.q));
+    $("#ai-send", m).onclick = () => send($("#ai-in", m).value);
+    $("#ai-in", m).addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(e.target.value); } });
+    $("#ai-quick", m).onclick = () => { closeModal(); quickPlanModal(); };
+    const cl = $("#ai-clear", m); if (cl) cl.onclick = () => { C.length = 0; draw(m); };
+  };
+  openModal("", m => draw(m));
+}
+function planBubbles(r, A, bot) {
+  const H = m => `<b class="num">${fmtHM(m)}</b> ש׳`;
+  if (!(r.rate > 0)) return bot(`כדי לחשב צריך קודם להגדיר כמה מקבלים לשעה. אפשר בהגדרות ← שכר ומשמרת.`);
+  if (r.left <= 0) return bot(`כבר הגעת ל-${money(A.goal)} החודש! 🎉 כל שעה מעכשיו היא בונוס.`);
+  if (!r.dates.length) return bot(`לא נשארו החודש ימים מהימים שבחרת. נסו להוסיף ימים, או לתכנן לחודש הבא.`);
+  let out = bot(`הנה התוכנית שלך:<br>כדי להגיע ל-<b class="num">${money(A.goal)}</b> צריך לעבוד ${H(r.need)} ביום, ב-<b>${r.dates.length}</b> ימי העבודה שנשארו החודש (כולל היום).<br><span class="muted">${r.earnedBefore > 0 ? `כבר צברת ${money(r.earnedBefore)}, ו` : ""}חסר עוד ${money(r.left)}.</span>`);
+  if (r.need > r.maxMin) {
+    out += bot(`זה יותר מ-${A.maxH} השעות שמתאים לך. ${r.extra ? `אם תוסיפו את יום ${r.extra.added.map(d => DAYS[d]).join(" ו")} לעבודה, יספיקו ${H(r.extra.need)} ביום.` : "גם עם יותר ימים זה לא נכנס בגבול."}<br>ב-${A.maxH} שעות ביום בימים שבחרת תגיעו לבערך <b class="num">${money(r.maxEarn)}</b>.`);
+  } else {
+    out += bot(`זה נכנס בגבול של ${A.maxH} השעות שלך 👍${state.settings.otEnabled && r.need > (+state.settings.otThreshold || 0) * 60 ? `<br>שימו לב: אחרי ${+state.settings.otThreshold} שעות ביום השעות משולמות 125% ויותר, וזה כבר כלול בחישוב.` : ""}`);
+  }
+  out += bot(`ככה זה נראה בחלוקה אחרת:<div class="kv" style="margin-top:6px">${r.scen.map(x => `<div class="r"><span class="k">${x.n} ימים בשבוע <span class="muted small">(${x.days} ימים)</span></span><span class="v">${x.need === Infinity ? "לא אפשרי" : `${fmtHM(x.need)} ש׳${x.need <= r.maxMin ? " ✓" : ""}`}</span></div>`).join("")}</div>`);
+  out += bot(`הימים הקרובים לפי התוכנית:<div class="kv" style="margin-top:6px">${r.schedule.map(x => `<div class="r"><span class="k">${x.ds === todayDS() ? "היום" : `יום ${DAYS[weekday(x.ds)]}`} · ${fmtDate(x.ds)}</span><span class="v">${fmtHM(x.min)} · ${money(x.pay)}</span></div>`).join("")}</div>`);
+  out += bot(`ולהשוואה: במשרה של ${r.pct}% (${H(r.pctDay)} ביום בימים שבחרת) תסיימו את החודש בערך עם <b class="num">${money(r.pctEarn)}</b>.`);
+  return out;
+}
+const fixedBreakMin = a => (a.breaks || []).reduce((s, b) => s + (+b.min || 0), 0);
+function activeBreakMs(a, now = Date.now()) { return fixedBreakMin(a) * 60000 + (a.breakMs || 0) + (a.breakStart ? now - a.breakStart : 0); }
+function activeWorkedMs(now = Date.now()) {
+  const a = state.active; if (!a) return 0;
+  return Math.max(0, now - a.start - activeBreakMs(a, now));
+}
+
+// ---------- toast & modal ----------
+let toastTimer;
+function toast(msg) {
+  const r = $("#toast-root"); r.innerHTML = `<div class="toast" role="status">${esc(msg)}</div>`;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { r.innerHTML = ""; }, 2600);
+}
+let pendingRender = false;
+function openModal(html, onMount) {
+  const root = $("#modal-root");
+  root.innerHTML = `<div class="overlay"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`;
+  const ov = root.firstChild;
+  ov.addEventListener("click", e => { if (e.target === ov || e.target.closest("[data-dismiss]")) closeModal(); });
+  if (onMount) onMount(ov.firstChild);
+}
+function closeModal() { $("#modal-root").innerHTML = ""; if (pendingRender) { pendingRender = false; render(); } }
+document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#modal-root").firstChild) closeModal(); });
+function confirmBox(title, text, okLabel, onOk, danger) {
+  openModal(`<h3>${esc(title)}</h3><p class="muted" style="margin:0">${esc(text)}</p>
+    <div class="modal-actions"><button class="btn ${danger ? "out" : "primary"}" id="cf-ok" style="${danger ? "font-family:var(--f-body);font-size:15px;font-weight:600" : ""}">${esc(okLabel)}</button><button class="btn" data-dismiss>ביטול</button></div>`,
+    m => { $("#cf-ok", m).onclick = () => { closeModal(); onOk(); }; });
+}
+function showCopy(title, text) {
+  openModal(`<h3>${esc(title)}</h3><p class="muted small" style="margin:0">סמנו את הטקסט והעתיקו.</p>
+    <textarea class="copy" id="copy-area" readonly>${esc(text)}</textarea>
+    <div class="modal-actions"><button class="btn" data-dismiss>סגירה</button></div>`,
+    m => { const t = $("#copy-area", m); t.focus(); t.select(); });
+}
+
+// ---------- clock actions ----------
+// three ways to count: "clock" = free stopwatch, "timer" = countdown for this shift, "goal" = countdown to today's hours target
+const MODES = { clock: ["שעון חופשי", "סופר כמה עבדת"], timer: ["טיימר", "לאחור לסוף משמרת"], goal: ["יעד יומי", "עד יעד השעות"] };
+const entryMode = () => MODES[state.settings.entryMode] ? state.settings.entryMode : "clock";
+const activeMode = a => a.mode || (a.planMin ? "timer" : "clock");
+const timerMin = () => Math.round((+state.settings.shiftHours || 8) * 60);
+function todayDoneMin() { return state.shifts.filter(s => s.date === todayDS() && !isLeave(s)).reduce((t, s) => t + shiftMin(s), 0); }
+// today's target: set by hand, or derived from the monthly income goal, or the usual shift length
+function dailyGoalMin() {
+  const h = +state.settings.dailyGoalHours;
+  if (h > 0) return Math.round(h * 60);
+  const pl = planInfo(periodKeyOf(todayDS()));
+  if (pl.goal > 0 && pl.needMin > 0) return Math.round(Math.min(pl.needMin, MAX_DAY_MIN));
+  return timerMin();
+}
+const goalSource = () => +state.settings.dailyGoalHours > 0 ? "שהגדרת" : (planInfo(periodKeyOf(todayDS())).goal > 0 ? "לפי היעד החודשי" : "לפי אורך המשמרת");
+function goalPlanMin() { const left = dailyGoalMin() - todayDoneMin(); return left > 0 ? left : null; }
+function clockIn() {
+  if (isShabbat(todayDS())) { toast("שבת היום. לא רושמים עבודה בשבת"); return; }
+  const mode = entryMode();
+  let plan = null;
+  if (mode === "timer") plan = ui.timerPick || timerMin();
+  if (mode === "goal") { plan = goalPlanMin(); if (!plan) toast("כבר הגעת ליעד היומי. השעון יספור שעות נוספות"); }
+  if (multiJob()) { planModal(true, false, plan, mode); return; }
+  startShift(plan, null, mode);
+}
+function startShift(planMin, jobId, mode) {
+  const st = state.settings;
+  const breaks = st.autoBreakOn && +st.autoBreakMin > 0 ? [{ id: uid(), min: Math.round(+st.autoBreakMin), auto: true }] : [];
+  state.active = { start: Date.now(), breaks, breakMs: 0, breakStart: null, planMin: planMin || null, mode: mode || entryMode(), jobId: jobId || ui.lastJob || "main" };
+  ui.endAlert = null; ui.timerPick = null;
+  commit("כניסה נרשמה · " + localHM(new Date()));
+  if (planMin) askNotify();
+}
+// switching the counting mode, also in the middle of a shift
+function setMode(mode) {
+  state.settings = { ...state.settings, entryMode: mode };
+  const a = state.active;
+  if (!a) { commit(); return; }
+  if (mode === "timer") { state.active = { ...a, mode }; planModal(false); return; }
+  const planMin = mode === "goal" ? (goalPlanMin() || 1) : null;
+  state.active = { ...a, mode, planMin }; ui.endAlert = null;
+  commit(mode === "goal" ? `יעד היום: ${fmtHM(dailyGoalMin())} ש׳` : "שעון חופשי");
+}
+// planned shift length: how many hours the worker means to work today, counted down on the clock
+function planModal(starting, withPlan, presetPlan, presetMode) {
+  const st = state.settings, a = state.active;
+  const def = Math.round((+st.shiftHours || 8) * 60);
+  const cur = starting ? def : (a.planMin || def);
+  const showPlan = !starting || !!withPlan;
+  const lastJob = (state.shifts.filter(x => !isLeave(x)).sort((x, y) => (x.date + x.start).localeCompare(y.date + y.start)).pop() || {}).jobId || "main";
+  let pickJob = jobOf(lastJob).id;
+  openModal(`<h3>${starting ? (showPlan ? "טיימר להיום: כמה שעות?" : "כניסה למשמרת") : "טיימר למשמרת"}</h3>
+    ${starting && multiJob() ? `<div class="fld"><label>איפה עובדים היום?</label><div class="jobchips" id="p-job">${allJobs().map(j => `<button type="button" data-j="${esc(j.id)}" aria-pressed="${j.id === pickJob}">${esc(j.name)}</button>`).join("")}</div></div>` : ""}
+    <div id="p-plan" ${showPlan ? "" : "hidden"}>
+    <div class="form">
+    <p class="muted small" style="margin:0">השעון יספור לאחור עד סוף המשמרת ויתריע כשהזמן נגמר. כשהזמן נגמר הוא ממשיך לספור עד שתצאו. אפשר לשנות או לכבות בכל רגע.</p>
+    <div class="bgrid" id="p-grid">${[4, 5, 6, 7, 8, 9, 10, 12].map(h => `<button type="button" data-h="${h}" aria-pressed="${h * 60 === cur}">${h} ש׳</button>`).join("")}</div>
+    <div class="grid2">
+      <div class="fld"><label for="p-hours">מספר שעות</label><input type="number" id="p-hours" min="0.25" max="24" step="0.25" inputmode="decimal" value="${Math.round(cur / 60 * 100) / 100}"></div>
+      <div class="fld"><label for="p-end">או: לסיים בשעה</label><input type="time" id="p-end"></div>
+    </div>
+    <div class="calc-preview" id="p-prev"></div>
+    </div></div>
+    <div class="modal-actions"><button class="btn primary" id="p-go">${starting ? (showPlan ? "כניסה עם טיימר" : "כניסה") : "שמירה"}</button>${starting ? "" : `<button class="btn" data-dismiss>ביטול</button>`}</div>
+    ${showPlan ? `<button class="btn ghost" id="p-off">${starting ? "כניסה בלי טיימר (רק שעון שסופר כמה עבדתי)" : "כיבוי הטיימר"}</button>` : ""}`, m => {
+    m.querySelectorAll("#p-job button").forEach(b => b.onclick = () => { pickJob = b.dataset.j; m.querySelectorAll("#p-job button").forEach(x => x.setAttribute("aria-pressed", x === b)); });
+    const startTs = starting ? Date.now() : a.start;
+    const brk = () => starting ? 0 : activeBreakMs(a);
+    const hoursEl = $("#p-hours", m), endEl = $("#p-end", m);
+    const prev = () => {
+      const mins = Math.round((+hoursEl.value || 0) * 60);
+      m.querySelectorAll("#p-grid button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.h * 60 === mins));
+      $("#p-prev", m).innerHTML = mins > 0 ? `<span>סיום משוער</span><b class="num">${localHM(new Date(startTs + mins * 60000 + brk()))}</b>` : `<span>בחרו כמה שעות</span>`;
+    };
+    m.querySelectorAll("#p-grid button").forEach(b => b.onclick = () => { hoursEl.value = b.dataset.h; endEl.value = ""; prev(); });
+    hoursEl.addEventListener("input", () => { endEl.value = ""; prev(); });
+    endEl.addEventListener("input", () => {
+      if (!endEl.value) return;
+      const d = new Date(startTs); const [h, mm] = endEl.value.split(":").map(Number);
+      const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, mm).getTime();
+      let diff = end - startTs - brk(); if (diff <= 0) diff += 86400000;
+      hoursEl.value = Math.round(diff / 3600000 * 100) / 100; prev();
+    });
+    prev();
+    $("#p-go", m).onclick = () => {
+      const mins = Math.round((+hoursEl.value || 0) * 60);
+      if (showPlan && (!(mins > 0) || mins > 1440)) { toast("בחרו כמה שעות"); return; }
+      unlockAudio();
+      if (starting) {
+        if (!showPlan) { closeModal(); startShift(presetPlan || null, pickJob, presetMode); return; }
+        closeModal(); startShift(mins, pickJob, "timer");
+      } else { state.active = { ...state.active, planMin: mins, mode: "timer" }; ui.endAlert = null; closeModal(); commit(`הטיימר עודכן ל-${fmtHM(mins)} שעות`); askNotify(); }
+    };
+    const off = $("#p-off", m); if (off) off.onclick = () => {
+      if (starting) { closeModal(); startShift(null, pickJob, "clock"); }
+      else { state.active = { ...state.active, planMin: null, mode: "clock" }; state.settings = { ...state.settings, entryMode: "clock" }; ui.endAlert = null; closeModal(); commit("הטיימר כובה"); }
+    };
+  });
+}
+function timerPickModal() {
+  const cur = ui.timerPick || timerMin();
+  openModal(`<h3>כמה שעות לטיימר?</h3>
+    <p class="muted small" style="margin:0">לכניסה הבאה בלבד. את ברירת המחדל משנים בהגדרות (אורך משמרת).</p>
+    <div class="bgrid">${[4, 5, 6, 7, 8, 9, 10, 12].map(h => `<button type="button" data-h="${h}" aria-pressed="${h * 60 === cur}">${h} ש׳</button>`).join("")}</div>
+    <div class="fld"><label for="tp-h">או מספר שעות</label><input type="number" id="tp-h" min="0.25" max="24" step="0.25" inputmode="decimal" value="${Math.round(cur / 60 * 100) / 100}"></div>
+    <div class="modal-actions"><button class="btn primary" id="tp-ok">שמירה</button><button class="btn" data-dismiss>ביטול</button></div>`, m => {
+    m.querySelectorAll("[data-h]").forEach(b => b.onclick = () => { $("#tp-h", m).value = b.dataset.h; m.querySelectorAll("[data-h]").forEach(x => x.setAttribute("aria-pressed", x === b)); });
+    $("#tp-ok", m).onclick = () => {
+      const mins = Math.round((+$("#tp-h", m).value || 0) * 60);
+      if (!(mins > 0) || mins > 1440) { toast("בחרו כמה שעות"); return; }
+      ui.timerPick = mins; closeModal(); render();
+    };
+  });
+}
+function extendPlan(min) {
+  const a = state.active; if (!a || !a.planMin) return;
+  state.active = { ...a, planMin: a.planMin + min }; ui.endAlert = null;
+  commit(`הוספנו ${min} דק׳ למשמרת`);
+}
+
+// ---------- end-of-shift alerts ----------
+let actx = null;
+function unlockAudio() { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === "suspended") actx.resume(); } catch (e) {} }
+function beep() {
+  try {
+    if (!actx) return;
+    [0, .35, .7].forEach(t => {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.frequency.value = 880; o.connect(g); g.connect(actx.destination);
+      g.gain.setValueAtTime(.0001, actx.currentTime + t); g.gain.exponentialRampToValueAtTime(.3, actx.currentTime + t + .02);
+      g.gain.exponentialRampToValueAtTime(.0001, actx.currentTime + t + .25);
+      o.start(actx.currentTime + t); o.stop(actx.currentTime + t + .3);
+    });
+  } catch (e) {}
+}
+function askNotify() { try { if ("Notification" in window && Notification.permission === "default") Notification.requestPermission(); } catch (e) {} }
+async function notify(title, body) {
+  beep(); try { navigator.vibrate && navigator.vibrate([300, 150, 300, 150, 300]); } catch (e) {}
+  try {
+    if ("Notification" in window && Notification.permission === "granted") {
+      const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration();
+      if (reg) reg.showNotification(title, { body, icon: "/icon-192.png", badge: "/icon-192.png", tag: "shift-end", renotify: true, vibrate: [300, 150, 300] });
+      else new Notification(title, { body, icon: "/icon-192.png" });
+    }
+  } catch (e) {}
+}
+const alerted = new Set();
+function checkAlerts(remainingMs) {
+  const a = state.active; if (!a || !a.planMin) return;
+  const key = `${a.start}:${a.planMin}`;
+  if (state.settings.alertBefore && remainingMs > 0 && remainingMs <= 10 * 60000 && !alerted.has(key + ":pre")) {
+    alerted.add(key + ":pre");
+    if (remainingMs > 8 * 60000) notify("עוד 10 דקות מסיימים", "המשמרת מסתיימת ב-" + localHM(new Date(Date.now() + remainingMs)));
+  }
+  if (remainingMs <= 0 && !alerted.has(key + ":end")) {
+    alerted.add(key + ":end");
+    ui.endAlert = key;
+    if (remainingMs > -3 * 60000) {
+      if (activeMode(a) === "goal") notify("הגעת ליעד היומי", `השלמת ${fmtHM(dailyGoalMin())} שעות היום. לא לשכוח להחתים יציאה.`);
+      else notify("המשמרת הסתיימה", `עבדת ${fmtHM(a.planMin)} שעות כמו שתכננת. לא לשכוח להחתים יציאה.`);
+    }
+    if (ui.tab === "clock" && !$("#modal-root").firstChild) render();
+  }
+}
+function breakModal() {
+  const a = state.active;
+  openModal(`<h3>הוספת הפסקה ידנית</h3>
+    <p class="muted small" style="margin:0">שכחתם ללחוץ ״הפסקה״? בחרו כמה זמן היא נמשכה, והזמן יורד מהמשמרת.</p>
+    <div class="bgrid">${[5, 10, 15, 20, 30, 45, 60, 90].map(n => `<button data-min="${n}">${n} דק׳</button>`).join("")}</div>
+    <div class="grid2" style="align-items:end"><div class="fld"><label for="b-custom">זמן אחר (דקות)</label><input type="number" id="b-custom" min="1" max="600" step="1" inputmode="numeric"></div><button class="btn" id="b-add">הוספה</button></div>
+    <div class="modal-actions"><button class="btn" data-dismiss>סגירה</button></div>`, m => {
+    const add = n => {
+      n = Math.round(+n);
+      if (!(n > 0) || n > 600) { toast("הזינו מספר דקות"); return; }
+      state.active = { ...state.active, breaks: [...(state.active.breaks || []), { id: uid(), min: n }] };
+      closeModal(); commit(`נוספה הפסקה של ${n} דק׳`);
+    };
+    m.querySelectorAll("[data-min]").forEach(b => b.onclick = () => add(b.dataset.min));
+    $("#b-add", m).onclick = () => add($("#b-custom", m).value);
+  });
+}
+function startTimedBreak() { state.active = { ...state.active, breakStart: Date.now() }; commit("ההפסקה התחילה. השעון עצר"); }
+function endTimedBreak() {
+  const a = { ...state.active };
+  const ms = Date.now() - a.breakStart;
+  a.breakMs = (a.breakMs || 0) + ms; a.breakStart = null; state.active = a;
+  commit(`ההפסקה הסתיימה · ${Math.round(ms / 60000)} דק׳`);
+}
+function removeBreak(id) {
+  if (id === "timed") { state.active = { ...state.active, breakMs: 0 }; }
+  else state.active = { ...state.active, breaks: (state.active.breaks || []).filter(b => b.id !== id) };
+  commit("ההפסקה הוסרה");
+}
+function clockOut(at) {
+  const a = state.active; if (!a) return;
+  const now = at || Date.now();
+  const brkMs = Math.min(activeBreakMs(a, now), Math.max(0, now - a.start));
+  const worked = activeWorkedMs(now);
+  state.active = null; ui.endAlert = null;
+  if (worked < 60000) { commit("המשמרת הייתה קצרה מדקה ולא נשמרה"); return; }
+  const sd = new Date(a.start), ed = new Date(now);
+  const shift = { id: uid(), date: localDS(sd), start: localHM(sd), end: localHM(ed), breakMin: Math.round(brkMs / 60000), type: "work", note: "", jobId: jobOf(a.jobId).id };
+  if (shift.start === shift.end) shift.end = localHM(new Date(now + 60000));
+  state.shifts = [...state.shifts, shift];
+  commit(`יציאה נרשמה · ${fmtHM(shiftMin(shift))} שעות`);
+}
+function fixClockOut() {
+  const a = state.active;
+  const guess = new Date(a.start + ((a.planMin || Math.round((+state.settings.shiftHours || 8) * 60)) * 60000) + activeBreakMs(a));
+  openModal(`<h3>מתי יצאת?</h3>
+    <p class="muted small" style="margin:0">המשמרת נשארה פתוחה. רשמו את שעת היציאה האמיתית והיא תישמר נכון.</p>
+    <div class="fld"><label for="fx-end">שעת יציאה</label><input type="datetime-local" id="fx-end" value="${localDS(guess)}T${localHM(guess)}"></div>
+    <div class="modal-actions"><button class="btn primary" id="fx-save">רישום יציאה</button><button class="btn" data-dismiss>ביטול</button></div>`, m => {
+    $("#fx-save", m).onclick = () => {
+      const t = new Date($("#fx-end", m).value).getTime();
+      if (!isFinite(t) || t <= a.start || t > Date.now()) { toast("שעת יציאה לא תקינה"); return; }
+      const fixed = { ...state.active };
+      if (fixed.breakStart && fixed.breakStart > t) fixed.breakStart = null;
+      if (fixed.breakStart) { fixed.breakMs = (fixed.breakMs || 0) + (t - fixed.breakStart); fixed.breakStart = null; }
+      state.active = fixed; closeModal(); clockOut(t);
+    };
+  });
+}
+function editActive() {
+  const a = state.active; const d = new Date(a.start);
+  openModal(`<h3>תיקון שעת כניסה</h3>
+    <p class="muted small" style="margin:0">שכחתם להחתים בזמן? עדכנו מתי התחלתם לעבוד.</p>
+    <div class="fld"><label for="act-start">שעת כניסה</label><input type="datetime-local" id="act-start" value="${localDS(d)}T${localHM(d)}"></div>
+    <div class="modal-actions"><button class="btn primary" id="act-save">שמירה</button><button class="btn" data-dismiss>ביטול</button></div>
+    <button class="btn danger" id="act-discard">ביטול המשמרת הנוכחית (בלי לשמור)</button>`, m => {
+    $("#act-save", m).onclick = () => {
+      const v = $("#act-start", m).value; const t = v ? new Date(v).getTime() : NaN;
+      if (!isFinite(t) || t > Date.now()) { toast("שעת כניסה לא תקינה"); return; }
+      state.active = { ...state.active, start: t };
+      closeModal(); commit("שעת הכניסה עודכנה");
+    };
+    $("#act-discard", m).onclick = () => { closeModal(); confirmBox("לבטל את המשמרת?", "המשמרת שרצה עכשיו תימחק ולא תירשם.", "כן, לבטל", () => { state.active = null; commit("המשמרת בוטלה"); }, true); };
+  });
+}
+
+// ---------- shift form ----------
+function shiftForm(existing, presetDate) {
+  const st = state.settings, sh = +st.shiftHours || 8;
+  const s = existing ? { ...existing } : { id: uid(), date: presetDate || todayDS(), start: "08:00", end: minToHM(480 + sh * 60), breakMin: 0, type: "work", hours: sh, note: "" };
+  if (s.hours == null) s.hours = sh;
+  const lastWork = state.shifts.filter(x => !isLeave(x)).sort((x, y) => (x.date + x.start).localeCompare(y.date + y.start)).pop();
+  openModal(`<h3>${existing ? "עריכת משמרת" : "הוספת משמרת ידנית"}</h3>
+    <div class="form">
+      <div class="fld"><label>סוג</label><div class="seg" id="f-type" style="grid-template-columns:repeat(3,1fr)">${Object.entries(TYPES).map(([k, v]) => `<button type="button" data-v="${k}" aria-pressed="${s.type === k}">${v}</button>`).join("")}</div></div>
+      ${multiJob() ? `<div class="fld"><label for="f-job">מקום עבודה</label><select id="f-job">${allJobs().map(j => `<option value="${esc(j.id)}" ${jobOf(s.jobId).id === j.id ? "selected" : ""}>${esc(j.name)}</option>`).join("")}</select></div>` : ""}
+      <div class="fld"><label for="f-date">תאריך</label><input type="date" id="f-date" value="${esc(s.date)}"></div>
+      <div id="f-times" class="form">
+        <div class="grid2">
+          <div class="fld"><label for="f-start">כניסה</label><input type="time" id="f-start" value="${esc(s.start || "")}"></div>
+          <div class="fld"><label for="f-end">יציאה</label><input type="time" id="f-end" value="${esc(s.end || "")}"></div>
+        </div>
+        ${existing || !lastWork ? "" : `<button type="button" class="btn sm" id="f-same">כמו המשמרת הקודמת <span class="num">${esc(lastWork.start)}–${esc(lastWork.end)}</span>${+lastWork.breakMin ? ` · הפסקה ${lastWork.breakMin} דק׳` : ""}</button>`}
+        ${existing ? "" : `<div class="quick" id="f-len"><span class="muted small" style="align-self:center">משמרת של:</span>${[4, 6, 8, 9, 10, 12].map(h => `<button type="button" data-h="${h}">${h} ש׳</button>`).join("")}</div>`}
+        <div class="fld"><label for="f-break">הפסקות (סה״כ דקות)</label><input type="number" id="f-break" min="0" step="1" inputmode="numeric" value="${+s.breakMin || 0}">
+          <div class="quick" id="f-bq">${[5, 10, 15, 30].map(n => `<button type="button" data-b="${n}">+${n}</button>`).join("")}<button type="button" data-b="0">איפוס</button></div></div>
+      </div>
+      <div id="f-hours-wrap" class="fld"><label for="f-hours">שעות לתשלום</label><input type="number" id="f-hours" min="0" max="24" step="0.25" inputmode="decimal" value="${+s.hours}"></div>
+      <div class="fld"><label for="f-note">הערה (לא חובה)</label><input type="text" id="f-note" maxlength="120" placeholder="למשל: אצל לקוח, מילוי מקום" value="${esc(s.note || "")}"></div>
+      <div class="calc-preview" id="f-preview"></div>
+    </div>
+    <div class="modal-actions"><button class="btn primary" id="f-save">${existing ? "שמירת שינויים" : "הוספה"}</button><button class="btn" data-dismiss>ביטול</button></div>
+    ${existing ? `<button class="btn danger" id="f-del">מחיקת המשמרת</button>` : ""}`, m => {
+    let type = s.type;
+    const read = () => ({ ...s, type, jobId: $("#f-job", m) ? $("#f-job", m).value : (s.jobId || (jobFilter() !== "all" ? jobFilter() : "main")), date: $("#f-date", m).value, start: $("#f-start", m).value, end: $("#f-end", m).value,
+      breakMin: Math.max(0, Math.round(+$("#f-break", m).value || 0)), hours: Math.max(0, +$("#f-hours", m).value || 0), note: $("#f-note", m).value.trim() });
+    const sync = () => {
+      const leave = type === "vacation" || type === "sick";
+      $("#f-times", m).hidden = leave; $("#f-hours-wrap", m).hidden = !leave;
+      m.querySelectorAll("#f-type button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === type));
+      const r = read(); const mn = shiftMin(r);
+      const cross = !leave && r.start && r.end && toMin(r.end) <= toMin(r.start);
+      $("#f-preview", m).innerHTML = `<span>${leave ? "שעות" : "שעות עבודה נטו"}${cross ? ' <span class="chip n">עד למחרת</span>' : ""}</span><b class="num">${fmtHM(mn)}</b>`;
+    };
+    m.querySelectorAll("#f-type button").forEach(b => b.onclick = () => { type = b.dataset.v; sync(); });
+    m.querySelectorAll("#f-len button").forEach(b => b.onclick = () => { $("#f-end", m).value = minToHM(toMin($("#f-start", m).value || "08:00") + (+b.dataset.h) * 60 + (+$("#f-break", m).value || 0)); sync(); });
+    const same = $("#f-same", m); if (same) same.onclick = () => { $("#f-start", m).value = lastWork.start; $("#f-end", m).value = lastWork.end; $("#f-break", m).value = +lastWork.breakMin || 0; if (lastWork.note && !lastWork.note.includes("דוגמה")) $("#f-note", m).value = lastWork.note; sync(); };
+    m.querySelectorAll("#f-bq button").forEach(b => b.onclick = () => { const i = $("#f-break", m); i.value = +b.dataset.b === 0 ? 0 : (+i.value || 0) + (+b.dataset.b); sync(); });
+    m.querySelectorAll("input").forEach(i => i.addEventListener("input", sync));
+    sync();
+    $("#f-save", m).onclick = () => {
+      const r = read();
+      if (!r.date) { toast("בחרו תאריך"); return; }
+      if (isShabbat(r.date)) { toast("זה יום שבת. לא רושמים משמרות בשבת"); return; }
+      if (!isLeave(r)) {
+        if (!r.start || !r.end) { toast("מלאו שעת כניסה ויציאה"); return; }
+        if (shiftMin(r) <= 0) { toast("ההפסקה ארוכה מהמשמרת"); return; }
+        delete r.hours;
+      } else { if (!(r.hours > 0)) { toast("מלאו מספר שעות"); return; } r.start = ""; r.end = ""; r.breakMin = 0; }
+      state.shifts = existing ? state.shifts.map(x => x.id === r.id ? r : x) : [...state.shifts, r];
+      closeModal(); ui.period = periodKeyOf(r.date);
+      commit(existing ? "המשמרת עודכנה" : "המשמרת נוספה");
+    };
+    if (existing) $("#f-del", m).onclick = () => {
+      closeModal();
+      confirmBox("למחוק את המשמרת?", `${fmtDateLong(s.date)} · ${isLeave(s) ? TYPES[s.type] : `${s.start}–${s.end}`}`, "מחיקה", () => {
+        state.shifts = state.shifts.filter(x => x.id !== s.id); commit("המשמרת נמחקה");
+      }, true);
+    };
+  });
+}
+function adjForm(key, existing) {
+  const a = existing ? { ...existing } : { id: uid(), period: key, label: "", amount: "" };
+  const neg = existing && +existing.amount < 0;
+  openModal(`<h3>${existing ? "עריכת" : "הוספת"} תוספת / ניכוי</h3>
+    <p class="muted small" style="margin:0">בונוס, טיפים, החזר הוצאות, או מקדמה שכבר קיבלתם (ניכוי). חל על ${esc(periodLabel(key))}.</p>
+    <div class="seg" style="grid-template-columns:1fr 1fr" id="a-kind"><button type="button" data-v="+" aria-pressed="${!neg}">תוספת +</button><button type="button" data-v="-" aria-pressed="${neg}">ניכוי −</button></div>
+    <div class="grid2"><div class="fld"><label for="a-label">תיאור</label><input type="text" id="a-label" maxlength="60" placeholder="בונוס / מקדמה" value="${esc(a.label)}"></div>
+    <div class="fld"><label for="a-amount">סכום</label><input type="number" id="a-amount" min="0" step="0.01" inputmode="decimal" value="${a.amount === "" ? "" : Math.abs(+a.amount)}"></div></div>
+    <div class="modal-actions"><button class="btn primary" id="a-save">שמירה</button><button class="btn" data-dismiss>ביטול</button></div>
+    ${existing ? `<button class="btn danger" id="a-del">מחיקה</button>` : ""}`, m => {
+    let sign = neg ? -1 : 1;
+    m.querySelectorAll("#a-kind button").forEach(b => b.onclick = () => { sign = b.dataset.v === "-" ? -1 : 1; m.querySelectorAll("#a-kind button").forEach(x => x.setAttribute("aria-pressed", x === b)); });
+    $("#a-save", m).onclick = () => {
+      const amt = Math.abs(+$("#a-amount", m).value || 0); const label = $("#a-label", m).value.trim();
+      if (!amt) { toast("הזינו סכום"); return; }
+      const r = { ...a, label: label || (sign < 0 ? "ניכוי" : "תוספת"), amount: sign * amt };
+      state.adjustments = existing ? state.adjustments.map(x => x.id === r.id ? r : x) : [...state.adjustments, r];
+      closeModal(); commit("נשמר");
+    };
+    if (existing) $("#a-del", m).onclick = () => { state.adjustments = state.adjustments.filter(x => x.id !== a.id); closeModal(); commit("נמחק"); };
+  });
+}
+
+// ---------- boss approval ----------
+function reportSnapshot(P) {
+  const st = state.settings;
+  const rows = [];
+  P.days.forEach(d => d.list.forEach((s, i) => rows.push({
+    date: fmtDate(d.ds), day: DAYS[weekday(d.ds)], first: i === 0, type: TYPES[s.type], we: d.special,
+    start: isLeave(s) ? "" : s.start, end: isLeave(s) ? "" : s.end, brk: isLeave(s) ? "" : (+s.breakMin || 0),
+    hours: fmtHM(shiftMin(s)), pay: i === 0 ? money(d.pay) : "", note: s.note || "", job: multiJob() && P.filter === "all" ? d.job.name : ""
+  })));
+  return { v: 1, worker: st.name || "", phone: account ? account.phone : "", employer: reportEmployer(P), rate: reportRate(P),
+    periodLabel: periodLabel(P.key), range: `${fmtDate(P.range[0])} – ${fmtDate(P.range[1])}`,
+    rows, summary: summaryRows(P).map(([k, v]) => [k.trim(), v]), total: money(P.t.total), hours: fmtHM(P.t.allMin), rules: rulesNote() };
+}
+async function loadReports(key) {
+  if (!session) return;
+  const { data, error } = await sb.from("attendance_reports").select("token, job_id, status, approver_name, boss_note, responded_at, created_at").eq("period", key).order("created_at", { ascending: false });
+  if (error) return;
+  ui.reports[key] = data || [];
+  const el = $("#sent-list"); if (el && ui.period === key) el.innerHTML = sentList(calcPeriod(key));
+}
+const reportLink = token => `${location.origin}/?r=${token}`;
+function sentList(P) {
+  const list = ui.reports[P.key];
+  if (!list) { loadReports(P.key); return ""; }
+  const mine = list.filter(r => (r.job_id || "all") === P.filter);
+  if (!mine.length) return "";
+  return mine.map(r => {
+    const st = { pending: ["pending", "ממתין לאישור"], approved: ["approved", "אושר ✓"], rejected: ["rejected", "יש הערה"] }[r.status] || ["pending", r.status];
+    const when = new Date(r.responded_at || r.created_at);
+    return `<div class="sent"><span><span class="status-chip ${st[0]}">${st[1]}</span> ${r.approver_name ? esc(r.approver_name) + " · " : ""}<span class="muted small num">${fmtDate(localDS(when))} ${localHM(when)}</span>${r.boss_note ? `<br><span class="small">״${esc(r.boss_note)}״</span>` : ""}</span>
+      <button class="btn sm" data-sharelink="${esc(r.token)}">שליחת הקישור שוב</button></div>`;
+  }).join("");
+}
+async function sendApproval() {
+  const P = calcPeriod(ui.period);
+  if (!P.days.length) { toast("אין משמרות בחודש הזה"); return; }
+  const btn = $("#sh-approve"); if (btn) btn.disabled = true;
+  const { data, error } = await sb.from("attendance_reports").insert({ user_id: session.user.id, period: P.key, job_id: P.filter, snapshot: reportSnapshot(P) }).select("token").single();
+  if (btn) btn.disabled = false;
+  if (error || !data) { toast("לא הצלחנו ליצור קישור. בדקו חיבור לאינטרנט"); return; }
+  delete ui.reports[P.key];
+  shareApprovalLink(data.token, P);
+  render();
+}
+function shareApprovalLink(token, P) {
+  P = P || calcPeriod(ui.period);
+  const text = `שלום, זה דוח השעות שלי ל${periodLabel(P.key)}: ${P.t.allMin ? fmtHM(P.t.allMin) + " שעות, " : ""}${money(P.t.total)}.\nאפשר לראות את הפירוט ולאשר כאן:\n${reportLink(token)}`;
+  shareText(text, "דוח שעות לאישור");
+}
+
+async function loadBoss() {
+  const { data, error } = await sb.rpc("attendance_get_report", { p_token: bossToken });
+  bossData = error ? { error: true } : (data || { missing: true });
+  renderBoss();
+}
+function renderBoss() {
+  $("#nav").hidden = true;
+  const app = $("#app");
+  if (!bossData) { app.innerHTML = `<div class="loading">טוען את הדוח…</div>`; return; }
+  if (bossData.error) { app.innerHTML = `<div class="loading">אין חיבור לאינטרנט. רעננו את הדף.</div>`; return; }
+  if (bossData.missing) { app.innerHTML = `<div class="loading">הדוח לא נמצא. אולי העובד מחק אותו.</div>`; return; }
+  const r = bossData.snapshot || {}, rows = Array.isArray(r.rows) ? r.rows : [];
+  const hasJob = rows.some(x => x.job);
+  const status = bossData.status;
+  const respond = status === "pending" ? `<section class="card form"><h3>אישור השעות</h3>
+      <div class="fld"><label for="bs-name">השם שלך</label><input type="text" id="bs-name" maxlength="60" autocomplete="name"></div>
+      <div class="fld"><label for="bs-note">הערה לעובד (לא חובה)</label><textarea id="bs-note" maxlength="500" rows="2"></textarea></div>
+      <div class="err-msg" id="bs-err"></div>
+      <div class="btn-row"><button class="btn primary" data-boss="approve">אישור השעות</button><button class="btn" data-boss="reject">שליחת הערה בלי לאשר</button></div></section>`
+    : `<section class="card"><span class="status-chip ${esc(status)}">${status === "approved" ? "הדוח אושר ✓" : "נשלחה הערה"}</span>
+      <p style="margin:8px 0 0">${esc(bossData.approver_name || "")}${bossData.responded_at ? ` · <span class="num">${fmtDate(localDS(new Date(bossData.responded_at)))} ${localHM(new Date(bossData.responded_at))}</span>` : ""}</p>${bossData.boss_note ? `<p class="muted" style="margin:4px 0 0">״${esc(bossData.boss_note)}״</p>` : ""}</section>`;
+  app.innerHTML = `<header class="top"><div class="brand"><h1>דוח שעות לאישור</h1><span class="who">${esc(r.worker || "")}</span></div></header>
+    <article class="sheet">
+      <div class="sheet-h"><div><h2>${esc(r.periodLabel || "")}</h2><div class="muted small num">${esc(r.range || "")}</div></div>
+        <div class="meta"><span>עובד/ת:</span><b>${esc(r.worker || "—")}</b>${r.phone ? `<span>טלפון:</span><b class="num">${esc(r.phone)}</b>` : ""}<span>מעסיק:</span><b>${esc(r.employer || "—")}</b><span>תעריף:</span><b>${esc(r.rate || "")}</b></div></div>
+      <div class="tbl-wrap"><table class="rep"><thead><tr><th>תאריך</th>${hasJob ? "<th>עבודה</th>" : ""}<th>סוג</th><th>כניסה</th><th>יציאה</th><th>הפסקה (דק׳)</th><th>שעות</th><th>סכום</th><th>הערה</th></tr></thead><tbody>
+      ${rows.map(x => `<tr class="${x.we ? "we" : ""}"><td>${x.first ? esc(x.date + " " + x.day) : ""}</td>${hasJob ? `<td>${esc(x.job)}</td>` : ""}<td>${esc(x.type)}</td><td class="n">${esc(x.start || "—")}</td><td class="n">${esc(x.end || "—")}</td><td class="n">${esc(x.brk === "" ? "—" : x.brk)}</td><td class="n">${esc(x.hours)}</td><td class="n">${esc(x.pay)}</td><td>${esc(x.note)}</td></tr>`).join("")}
+      </tbody></table></div>
+      <div class="kv" style="margin-top:14px">${(Array.isArray(r.summary) ? r.summary : []).map(([k, v], i, arr) => `<div class="r${i === arr.length - 1 ? " total" : ""}"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`).join("")}</div>
+      <p class="muted small">${esc(r.rules || "")}</p>
+    </article>${respond}
+    <p class="muted small" style="text-align:center">נשלח מאפליקציית שעון נוכחות</p>`;
+}
+async function bossRespond(approve) {
+  const name = ($("#bs-name") || {}).value?.trim() || "", note = ($("#bs-note") || {}).value?.trim() || "";
+  if (!name) { $("#bs-err").textContent = "כתבו את השם שלכם"; return; }
+  if (!approve && !note) { $("#bs-err").textContent = "כתבו מה צריך לתקן"; return; }
+  document.querySelectorAll("[data-boss]").forEach(b => b.disabled = true);
+  const { data, error } = await sb.rpc("attendance_respond_report", { p_token: bossToken, p_approve: approve, p_name: name, p_note: note });
+  if (error) { $("#bs-err").textContent = "לא נשמר. בדקו חיבור ונסו שוב"; document.querySelectorAll("[data-boss]").forEach(b => b.disabled = false); return; }
+  bossData = data; renderBoss(); toast(approve ? "הדוח אושר. העובד יקבל הודעה" : "ההערה נשלחה לעובד");
+}
+
+// ---------- background notifications (Web Push) ----------
+const pushSupported = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+function b64ToBytes(b64) { const pad = "=".repeat((4 - b64.length % 4) % 4); const raw = atob((b64 + pad).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from(raw, c => c.charCodeAt(0)); }
+async function enablePush(silent) {
+  if (!pushSupported()) { if (!silent) toast(isIOS() ? "באייפון: קודם מתקינים למסך הבית, ואז מפעילים התראות" : "הדפדפן הזה לא תומך בהתראות"); return false; }
+  const perm = Notification.permission === "default" && !silent ? await Notification.requestPermission() : Notification.permission;
+  if (perm !== "granted") { if (!silent) toast("ההתראות חסומות. אפשרו אותן בהגדרות הדפדפן"); return false; }
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(VAPID_PUBLIC_KEY) });
+    const j = sub.toJSON();
+    const { error } = await sb.from("attendance_push_subs").upsert({ endpoint: j.endpoint, user_id: session.user.id, p256dh: j.keys.p256dh, auth: j.keys.auth }, { onConflict: "endpoint" });
+    if (error) throw error;
+    return true;
+  } catch (e) { if (!silent) toast("לא הצלחנו להפעיל התראות. נסו שוב"); return false; }
+}
+async function disablePush() {
+  try {
+    const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription();
+    if (sub) { await sb.from("attendance_push_subs").delete().eq("endpoint", sub.endpoint); await sub.unsubscribe(); }
+  } catch (e) {}
+}
+
+// ---------- views ----------
+function header() {
+  const st = state.settings;
+  const who = [st.name, st.employer].filter(Boolean).join(" · ") || (session && session.user.email) || "";
+  return `<header class="top"><div class="brand"><h1>שעון נוכחות</h1><span class="who">${esc(who)}</span></div><span class="sync" id="sync"></span></header>`;
+}
+function sampleBanner() {
+  return state.sample ? `<div class="banner"><span>מוצגים נתוני <b>דוגמה</b>. כשתתחילו לעבוד באמת, נקו אותם.</span><button class="btn sm" data-act="clearSample">ניקוי הדוגמה</button></div>` : "";
+}
+function setupCard() {
+  const st = state.settings;
+  if (st.onboarded) return "";
+  return `<section class="card form" style="border-color:var(--accent)"><h3 style="margin:0">בואו נגדיר את המשמרת שלך</h3>
+    <p class="muted small" style="margin:0">שני פרטים וזהו. אפשר לשנות אחר כך בהגדרות.</p>
+    <div class="grid2">
+      <div class="fld"><label for="o-rate">כמה מקבלים לשעה (${esc(st.currency)})</label><input type="number" id="o-rate" data-set="rate" min="0" step="0.5" inputmode="decimal" value="${+st.rate || ""}" placeholder="למשל 40"></div>
+      <div class="fld"><label for="o-shift">כמה שעות המשמרת שלך</label><input type="number" id="o-shift" data-set="shiftHours" min="1" max="24" step="0.5" inputmode="decimal" value="${+st.shiftHours}"></div>
+    </div>
+    <button class="btn primary" data-act="finishSetup">סיימתי</button></section>`;
+}
+function modeBar(cur) {
+  return `<div class="modes" role="group" aria-label="סוג ספירה">${Object.entries(MODES).map(([k, [t, sub]]) => `<button type="button" data-mode="${k}" aria-pressed="${k === cur}">${t}<small>${sub}</small></button>`).join("")}</div>`;
+}
+function viewClock() {
+  const st = state.settings, a = state.active, now = new Date();
+  const todayList = state.shifts.filter(s => s.date === todayDS()).sort((x, y) => (x.start || "").localeCompare(y.start || ""));
+  const todayCalc = allJobs().map(j => calcDay(todayDS(), todayList.filter(x => jobOf(x.jobId).id === j.id), j))
+    .reduce((acc, d) => ({ wMin: acc.wMin + d.wMin, vacMin: acc.vacMin + d.vacMin, sickMin: acc.sickMin + d.sickMin, pay: acc.pay + d.pay }), { wMin: 0, vacMin: 0, sickMin: 0, pay: 0 });
+  const dateLine = `<div class="now">יום ${DAYS[now.getDay()]}, ${fmtDateLong(todayDS())} · <b id="now-time">${localHM(now)}</b></div>`;
+  const goalMin = dailyGoalMin(), doneMin = todayDoneMin();
+  let clock;
+  if (!a && isShabbat(todayDS())) {
+    clock = `<section class="card clock">${dateLine}<div style="font-size:44px;line-height:1">🕯️🕯️</div><h2 style="font-size:28px">שבת שלום</h2>
+      <p class="muted" style="margin:0">בשבת לא רושמים עבודה. נתראה במוצאי שבת.</p></section>`;
+  } else if (!a) {
+    const mode = entryMode();
+    const note = mode === "timer" ? `טיימר של <b class="num">${fmtHM(ui.timerPick || timerMin())}</b> ש׳ · <button class="link" data-act="pickTimer">שינוי</button>`
+      : mode === "goal" ? `יעד היום: <b class="num">${fmtHM(goalMin)}</b> ש׳ (${goalSource()})${doneMin ? ` · נשאר <b class="num">${fmtHM(Math.max(0, goalMin - doneMin))}</b>` : ""} · <button class="link" data-act="editPlanSettings">שינוי</button>`
+      : "השעון יספור כמה זמן עבדת, בלי הגבלה";
+    clock = `<section class="card clock">
+      ${dateLine}
+      ${modeBar(mode)}
+      <p class="mode-note">${note}</p>
+      <button class="punch" data-act="clockIn" aria-label="כניסה למשמרת"><span>כניסה</span><small>${MODES[mode][0]}</small></button>
+      <div class="today-strip"><div><span class="label">עבדת היום</span><b>${fmtHM(todayCalc.wMin + todayCalc.vacMin + todayCalc.sickMin)}</b></div><div><span class="label">הרווחת היום</span><b>${money(todayCalc.pay)}</b></div><div><span class="label">יעד היום</span><b>${fmtHM(goalMin)}</b></div></div>
+      <button class="link" data-act="addShift">שכחתי להחתים? הוספת משמרת ידנית</button>
+    </section>`;
+  } else {
+    const sd = new Date(a.start), mode = activeMode(a);
+    const sameDay = localDS(sd) === todayDS();
+    const chips = (a.breaks || []).map(b => `<button class="bchip" data-rmbreak="${esc(b.id)}" aria-label="הסרת הפסקה של ${b.min} דקות">${b.min} דק׳${b.auto ? " (קבועה)" : ""}<span class="x">×</span></button>`);
+    const timed = Math.round((a.breakMs || 0) / 60000);
+    if (timed > 0) chips.push(`<button class="bchip" data-rmbreak="timed">${timed} דק׳<span class="x">×</span></button>`);
+    const plan = a.planMin;
+    const long = activeWorkedMs() > 13 * 3600000;
+    const isGoal = mode === "goal";
+    const dial = plan ? `<div class="dial-wrap" id="dial-wrap">
+        <svg class="dial" viewBox="0 0 220 220" aria-hidden="true">
+          <circle class="d-track" cx="110" cy="110" r="96"></circle>
+          <circle class="d-arc" id="d-arc" cx="110" cy="110" r="96" pathLength="100" stroke-dasharray="100 100" transform="rotate(-90 110 110)"></circle>
+          ${Array.from({ length: Math.min(24, Math.floor(plan / 60)) }, (_, h) => { const ang = (h + 1) * 60 / plan * 360; return ang < 359.5 ? `<line class="d-tick" x1="110" y1="20" x2="110" y2="30" transform="rotate(${ang.toFixed(2)} 110 110)"></line>` : ""; }).join("")}
+          <g id="d-hand"><line class="d-hand" x1="110" y1="6" x2="110" y2="40"></line><circle class="d-hub" cx="110" cy="14" r="8"></circle></g>
+        </svg>
+        <div class="dial-center"><span class="tl" id="cd-label">${isGoal ? "נשאר ליעד" : "נשאר"}</span><span class="tv" id="countdown">00:00:00</span><span class="ts">${isGoal ? "מגיעים ליעד ב-" : "סיום ב-"}<span class="num" id="cd-end">--:--</span></span></div>
+      </div>
+      <div class="worked-line"><span>במשמרת <b id="elapsed">00:00:00</b></span>${isGoal ? `<span>היום <b id="today-total">--:--</b> מתוך <b>${fmtHM(goalMin)}</b></span>` : `<span>מתוך <b>${fmtHM(plan)}</b> ש׳</span>`}</div>`
+      : `<div class="timers one"><div class="tblock"><span class="tl">במשמרת</span><span class="tv" id="elapsed">00:00:00</span></div></div>
+      ${doneMin ? `<div class="worked-line"><span>סה״כ היום <b id="today-total">--:--</b></span></div>` : ""}`;
+    const breakBtn = st.breaksOn ? (a.breakStart
+      ? `<button class="btn primary" data-act="endBreak">סיום הפסקה <span class="num" id="break-run"></span></button>`
+      : `<button class="btn brk" data-act="startBreak">☕ הפסקה</button>`) : "";
+    clock = `${ui.endAlert ? `<section class="alert-card" role="alert"><h3>${isGoal ? "הגעת ליעד היומי" : "המשמרת הסתיימה"}</h3><span>${isGoal ? `השלמת ${fmtHM(goalMin)} שעות היום.` : `עבדת את ${fmtHM(plan || 0)} השעות שתכננת.`} השעון ממשיך לספור עד שתלחצו יציאה.</span>
+        <div class="btn-row"><button class="btn solid" data-act="clockOut">יציאה עכשיו</button><button class="btn" data-act="dismissAlert">ממשיך לעבוד</button>${isGoal ? "" : `<button class="btn" data-act="extend30">עוד חצי שעה לטיימר</button>`}</div></section>` : ""}
+      ${long ? `<div class="banner"><span>המשמרת פתוחה כבר יותר מ-13 שעות. שכחת להחתים יציאה?</span><button class="btn sm" data-act="fixOut">רישום שעת יציאה</button></div>` : ""}
+      <section class="card clock">
+      ${dateLine}
+      ${modeBar(mode)}
+      <span class="status ${a.breakStart ? "break" : ""}"><span class="dot"></span>${a.breakStart ? "בהפסקה · השעון עצר" : "במשמרת"}${multiJob() ? ` · ${esc(jobOf(a.jobId).name)}` : ""} · מאז <span class="num">${localHM(sd)}</span>${sameDay ? "" : ` (${fmtDate(localDS(sd))})`}</span>
+      ${dial}
+      <div class="earn" id="earn-live"></div>
+      ${chips.length ? `<div class="breaks"><span class="muted">הפסקות:</span>${chips.join("")}</div>` : ""}
+      <div class="btn-row">
+        ${breakBtn}
+        <button class="btn out" data-act="clockOut">יציאה</button>
+      </div>
+      <div class="btn-row" style="justify-content:center">
+        ${st.breaksOn ? `<button class="link" data-act="addBreak">+ הפסקה ידנית</button>` : ""}
+        ${mode === "timer" ? `<button class="link" data-act="editPlan">שינוי הטיימר · <span class="num">${fmtHM(plan || 0)}</span> ש׳</button>` : ""}
+        <button class="link" data-act="editActive">תיקון שעת כניסה</button>
+      </div>
+    </section>`;
+  }
+  const todayRows = todayList.length ? `<div class="days"><div class="day">${todayList.map(shiftRow).join("")}</div></div>` : `<p class="muted small" style="margin:0">עוד לא נרשמו משמרות היום.</p>`;
+  return `${header()}${setupCard()}${sampleBanner()}${clock}
+
+    <section class="card"><div class="card-head"><h3>המשמרות של היום</h3><span class="num muted small">${fmtHM(todayCalc.wMin + todayCalc.vacMin + todayCalc.sickMin)} ש׳ · ${money(todayCalc.pay)}</span></div>${todayRows}</section>
+    ${installCard()}`;
+}
+function shiftRow(s) {
+  const mn = shiftMin(s);
+  const label = isLeave(s) ? `<span class="tm">${fmtHM(mn)}</span>` : `<span class="tm">${esc(s.start)}–${esc(s.end)}</span>`;
+  const bits = [];
+  if (s.type !== "work") bits.push(TYPES[s.type]);
+  if (!isLeave(s) && +s.breakMin) bits.push(`הפסקה ${s.breakMin} דק׳`);
+  if (!isLeave(s) && toMin(s.end) <= toMin(s.start)) bits.push("עד למחרת");
+  if (s.note) bits.push(s.note);
+  return `<button class="shift" data-edit="${esc(s.id)}">${label}<span class="meta">${multiJob() && ui.tab === "clock" ? `<span class="jtag">${esc(jobOf(s.jobId).name)}</span> ` : ""}${esc(bits.join(" · "))}</span><span class="h num">${fmtHM(mn)}</span></button>`;
+}
+function jobFilterBar() {
+  if (!multiJob()) return "";
+  const f = jobFilter();
+  return `<div class="jobchips" role="group" aria-label="סינון לפי מקום עבודה"><button data-jobf="all" aria-pressed="${f === "all"}">כל העבודות</button>${allJobs().map(j => `<button data-jobf="${esc(j.id)}" aria-pressed="${f === j.id}">${esc(j.name)}</button>`).join("")}</div>`;
+}
+function breakdown(P) {
+  const t = P.t, rate = t.rates.length === 1 ? t.rates[0] : null, rows = [];
+  Object.keys(t.buckets).map(Number).sort((a, b) => a - b).forEach(k => {
+    const mn = t.buckets[k];
+    rows.push([`שעות ${k}%`, rate != null ? `${fmtHM(mn)} ש׳ × ${money(rate * k / 100)}` : `${fmtHM(mn)} ש׳`, money(t.bucketPay[k])]);
+  });
+  if (t.vacMin) rows.push([`חופשה${+state.settings.vacPct !== 100 ? ` (${state.settings.vacPct}%)` : ""}`, `${fmtHM(t.vacMin)} ש׳`, money(t.vacPay)]);
+  if (t.sickMin) rows.push([`מחלה${+state.settings.sickPct !== 100 ? ` (${state.settings.sickPct}%)` : ""}`, `${fmtHM(t.sickMin)} ש׳`, money(t.sickPay)]);
+  if (t.travel) rows.push(["נסיעות", `${t.daysWorked} ימים × ${money(+state.settings.travelPerDay)}`, money(t.travel)]);
+  t.adj.forEach(x => rows.push([`<button class="link" style="padding:0" data-adj="${esc(x.id)}">${esc(x.label)}</button>`, "", money(+x.amount)]));
+  return `<div class="kv">${rows.map(([k, d, v]) => `<div class="r"><span class="k">${k}${d ? `<br><span class="muted small num">${d}</span>` : ""}</span><span class="v">${v}</span></div>`).join("")}
+    <div class="r total"><span class="k">סה״כ לתשלום (ברוטו)</span><span class="v">${money(t.total)}</span></div></div>${netBlock(t.total)}`;
+}
+function netBlock(gross) {
+  if (!state.settings.netOn || !(gross > 0)) return "";
+  const n = netEstimate(gross);
+  return `<details class="net"><summary><span>הערכת נטו לבנק</span><span class="v">≈ ${money(n.net)}</span></summary>
+    <div class="kv" style="margin-top:6px">
+      <div class="r"><span class="k">מס הכנסה <span class="muted small">(${+state.settings.creditPoints} נקודות זיכוי)</span></span><span class="v">-${money(n.tax)}</span></div>
+      <div class="r"><span class="k">ביטוח לאומי ובריאות</span><span class="v">-${money(n.bl)}</span></div>
+      ${n.pension ? `<div class="r"><span class="k">פנסיה (${+state.settings.pensionPct}%)</span><span class="v">-${money(n.pension)}</span></div>` : ""}
+    </div><p class="muted small" style="margin:6px 0 0">הערכה בלבד, לפי מדרגות המס הנוכחיות. התלוש בפועל יכול להיות שונה. משנים נקודות זיכוי ופנסיה בהגדרות.</p></details>`;
+}
+function chart(P) {
+  const dates = datesBetween(P.range[0], P.range[1]);
+  const map = {}; P.days.forEach(d => map[d.ds] = d);
+  const T = state.settings.otEnabled ? (+state.settings.otThreshold || 0) * 60 : 0;
+  const maxMin = Math.max(600, ...P.days.map(d => d.wMin + d.vacMin + d.sickMin));
+  const today = todayDS();
+  const bars = dates.map(ds => {
+    const d = map[ds]; const we = isWeekendDate(ds);
+    const cls = `bar${we ? " we" : ""}${ds === today ? " today" : ""}`;
+    if (!d) return `<div class="${cls}" title="${fmtDate(ds)}"></div>`;
+    const reg = d.reg + d.vacMin + d.sickMin, ot = d.ot;
+    return `<div class="${cls}" title="${fmtDate(ds)} · ${fmtHM(d.wMin + d.vacMin + d.sickMin)}"><i class="reg" style="height:${reg / maxMin * 100}%"></i>${ot ? `<i class="ot" style="height:${ot / maxMin * 100}%"></i>` : ""}</div>`;
+  }).join("");
+  const labels = dates.map((ds, i) => { const d = parseDS(ds)[2]; return `<span>${(i % 3 === 0 || d === 1) ? d : ""}</span>`; }).join("");
+  const tline = T && T < maxMin ? `<div class="tline" style="bottom:${T / maxMin * 100}%"><span>${+state.settings.otThreshold}ש׳</span></div>` : "";
+  return `<div class="chart-wrap"><div class="chart" dir="ltr">${tline}${bars}</div><div class="xlab" dir="ltr">${labels}</div></div>
+    <div class="legend"><span><i style="background:var(--accent)"></i>שעות רגילות</span><span><i style="background:var(--punch)"></i>שעות נוספות</span></div>`;
+}
+function reportTable(P) {
+  const keys = [...new Set(P.days.flatMap(d => Object.keys(d.buckets).map(Number)))].sort((a, b) => a - b);
+  if (!keys.length) keys.push(100);
+  const rows = [];
+  P.days.forEach(d => d.list.forEach((s, i) => {
+    const first = i === 0;
+    rows.push(`<tr class="${d.special ? "we" : ""}">
+      <td>${first ? `${fmtDate(d.ds)} ${DAYS[weekday(d.ds)]}` : ""}</td>
+      <td>${TYPES[s.type]}</td>
+      <td class="n">${isLeave(s) ? "—" : esc(s.start)}</td><td class="n">${isLeave(s) ? "—" : esc(s.end)}</td>
+      <td class="n">${isLeave(s) ? "—" : (+s.breakMin || 0)}</td>
+      <td class="n">${fmtHM(shiftMin(s))}</td>
+      ${keys.map(k => `<td class="n">${first && d.buckets[k] ? fmtHM(d.buckets[k]) : ""}</td>`).join("")}
+      <td class="n">${first ? money(d.pay) : ""}</td>
+      <td>${esc(s.note || "")}</td></tr>`);
+  }));
+  const t = P.t;
+  return `<table class="rep"><thead><tr><th>תאריך</th><th>סוג</th><th>כניסה</th><th>יציאה</th><th>הפסקה (דק׳)</th><th>שעות</th>${keys.map(k => `<th>${k}%</th>`).join("")}<th>סכום</th><th>הערה</th></tr></thead>
+    <tbody>${rows.join("") || `<tr><td colspan="${8 + keys.length}" style="text-align:center;color:#888">אין משמרות בתקופה</td></tr>`}</tbody>
+    <tfoot><tr><td colspan="5">סה״כ</td><td class="n">${fmtHM(t.allMin)}</td>${keys.map(k => `<td class="n">${t.buckets[k] ? fmtHM(t.buckets[k]) : ""}</td>`).join("")}<td class="n">${money(t.workPay + t.vacPay + t.sickPay)}</td><td></td></tr></tfoot></table>`;
+}
+function summaryRows(P) {
+  const t = P.t, rows = [];
+  rows.push(["ימי עבודה", String(t.daysWorked)]);
+  rows.push(["סה״כ שעות עבודה", `${fmtHM(t.wMin)} (${fmtDec(t.wMin)})`]);
+  Object.keys(t.buckets).map(Number).sort((a, b) => a - b).forEach(k => rows.push([`  שעות ${k}%`, `${fmtHM(t.buckets[k])} = ${money(t.bucketPay[k])}`]));
+  if (t.vacMin) rows.push(["חופשה", `${fmtHM(t.vacMin)} = ${money(t.vacPay)}`]);
+  if (t.sickMin) rows.push(["מחלה", `${fmtHM(t.sickMin)} = ${money(t.sickPay)}`]);
+  if (t.travel) rows.push(["נסיעות", money(t.travel)]);
+  t.adj.forEach(x => rows.push([x.label, money(+x.amount)]));
+  rows.push(["סה״כ לתשלום (ברוטו)", money(t.total)]);
+  return rows;
+}
+function reportEmployer(P) { return P.job ? P.job.name : (multiJob() ? "כל העבודות" : jobOf("main").name); }
+function reportRate(P) { return P.t.rates.length === 1 ? `${money(P.t.rates[0])} לשעה` : (P.job ? `${money(P.job.rate)} לשעה` : allJobs().map(j => `${j.name}: ${money(j.rate)}`).join(" · ")); }
+function rulesNote() {
+  const st = state.settings;
+  return `${st.otEnabled ? `שעות נוספות מחושבות לפי יום: מעל ${+st.otThreshold} ש׳ — ${+st.ot1Span} השעות הראשונות 125%, ומעבר להן 150%.` : "ללא חישוב שעות נוספות."} הסכומים ברוטו, לפני ניכויי מס וביטוח לאומי.`;
+}
+const shortMonth = key => { const [y, m] = key.split("-").map(Number); return `${MONTHS[m - 1].slice(0, 3)}׳ ${String(y).slice(2)}`; };
+function deltaTag(cur, prev) {
+  if (!(prev > 0)) return "";
+  const pct = Math.round((cur - prev) / prev * 100);
+  return `<span class="delta ${pct >= 0 ? "up" : "down"}">${pct >= 0 ? "▲" : "▼"} ${Math.abs(pct)}%</span>`;
+}
+function compareCard(P) {
+  const keys = Array.from({ length: 6 }, (_, i) => movePeriod(P.key, i - 5));
+  const rows = keys.map(k => ({ k, t: k === P.key ? P.t : calcPeriod(k, P.filter).t }));
+  const max = Math.max(1, ...rows.map(r => r.t.total));
+  const prev = rows[4].t;
+  const known = rows.filter(r => r.t.total > 0 && r.k !== P.key);
+  const avg = known.length ? known.reduce((x, r) => x + r.t.total, 0) / known.length : 0;
+  const short = v => v >= 10000 ? (Math.round(v / 100) / 10).toLocaleString("he-IL") + "K" : Math.round(v).toLocaleString("he-IL");
+  return `<section class="card"><div class="card-head"><h3>השוואה בין חודשים</h3>${deltaTag(P.t.total, prev.total)}</div>
+    <div class="vchart" dir="ltr">${rows.map(r => `<button class="vcol${r.k === P.key ? " cur" : ""}" data-period="${r.k}" aria-label="${esc(periodLabel(r.k))}: ${money(r.t.total)}"><span class="vv">${r.t.total ? short(r.t.total) : ""}</span><span class="vb" style="height:${(r.t.total / max * 100).toFixed(1)}%"></span></button>`).join("")}</div>
+    <div class="vlab" dir="ltr">${rows.map(r => `<span class="${r.k === P.key ? "cur" : ""}">${MONTHS[+r.k.split("-")[1] - 1].slice(0, 3)}׳</span>`).join("")}</div>
+    <div class="cmp-sum">
+      <div><span class="label">החודש הקודם</span><b>${money(prev.total)}</b><span class="muted small num">${fmtHM(prev.allMin)} ש׳</span></div>
+      <div><span class="label">${known.length > 1 ? `ממוצע ${known.length} חודשים` : "שעות החודש"}</span><b>${known.length > 1 ? money(avg) : fmtHM(P.t.allMin)}</b>${known.length > 1 ? `<span class="muted small">לחודש</span>` : ""}</div>
+    </div></section>`;
+}
+// the salary advisor lives only here, under the month summary: a chat with an AI that sees the hours, rate and goal
+function advisorCard() {
+  return `<button class="card advisor-card" data-act="advisor">
+    <span class="ic" aria-hidden="true">💬</span>
+    <span class="tx"><b>צ׳אט עם יועץ המשכורת</b><span class="muted small">כותבים שאלה במילים שלכם ומקבלים תשובה לפי השעות, התעריף והיעד שלכם</span>
+      <span class="ex">כמה שעות ביום צריך כדי להגיע ל-6,000 ₪?</span></span>
+    <span class="go" aria-hidden="true">‹</span></button>`;
+}
+function heroPanel(P) {
+  const st = state.settings, t = P.t, pl = planInfo(P.key);
+  const net = st.netOn && t.total > 0 ? netEstimate(t.total).net : 0;
+  let goal = "";
+  if (pl.goal > 0) {
+    const pct = Math.max(0, Math.min(100, t.total / pl.goal * 100));
+    let need;
+    if (t.total >= pl.goal) need = `<span class="need">הגעת ליעד! 🎉</span>`;
+    else if (pl.past) need = `<span class="need">חסרו <b class="num">${money(pl.goal - t.total)}</b></span>`;
+    else if (!pl.left.length) need = `<span>לא נשארו ימי עבודה החודש</span>`;
+    else if (!(pl.rate > 0)) need = `<span>הגדירו תעריף כדי לחשב</span>`;
+    else if (pl.needMin > MAX_DAY_MIN) need = `<span class="need">היעד לא נכנס בימים שנשארו</span><span style="font-size:13px;opacity:.85">חסר <span class="num">${money(pl.leftMoney)}</span> וזה יותר מ-${MAX_DAY_MIN / 60} שעות ביום ב-${pl.left.length} ימי העבודה שנשארו. אפשר להוסיף ימים או לעדכן את היעד.</span>`;
+    else need = `<span class="need">צריך <b class="num">${fmtHM(pl.needMin)}</b> ש׳ ביום</span><span style="font-size:13px;opacity:.85">ב-${pl.left.length} ימי העבודה שנשארו · חסר <span class="num">${money(pl.leftMoney)}</span></span>`;
+    goal = `<div class="hero-goal"><div class="row"><span>יעד: <b class="num">${money(pl.goal)}</b></span><b class="num">${Math.round(pct)}%</b></div>
+      <div class="track"><div class="fill" style="width:${pct}%"></div></div>${need}</div>`;
+  }
+  const rows = [];
+  if (!pl.past && t.total > 0 && pl.ahead > 0) rows.push(`<div class="r"><span>תחזית לסוף החודש<small>לפי הקצב עד עכשיו, עוד ${pl.ahead} ימי עבודה</small></span><b>≈ ${money(pl.forecast)}</b></div>`);
+  // with a goal the goal block says what's needed; the job-percentage figure is only the reference when there is no goal
+  if (!(pl.goal > 0) && jobOf("main").rate > 0) rows.push(`<div class="r"><span>צפי במשרה של ${pl.pct}%<small>${fmtHM(pl.pctDayMin)} ש׳ ביום · ${pl.wd.length} ימים בשבוע</small></span><b>${money(pl.pctMonth)}</b></div>`);
+  const sub = periodSub(P.key);
+  return `<section class="hero-panel">
+    <div class="hero-nav"><button data-act="prevP" aria-label="החודש הקודם">→</button><h2>${esc(periodLabel(P.key))}${sub ? `<span class="num">${sub}</span>` : ""}</h2><button data-act="nextP" aria-label="החודש הבא">←</button></div>
+    <div class="hero-sum">
+      <div class="hl">${pl.past ? "סה״כ לחודש (ברוטו)" : "לתשלום החודש (ברוטו)"}</div>
+      <div class="big">${money(t.total)}</div>
+      ${net ? `<div class="netline">נטו לבנק בערך <b class="num">${money(net)}</b></div>` : ""}
+    </div>
+    <div class="hero-stats">
+      <div><span>שעות</span><b>${fmtHM(t.allMin)}</b></div>
+      <div><span>ימי עבודה</span><b>${t.daysWorked}</b></div>
+      <div><span>שעות נוספות</span><b>${fmtHM(t.otMin)}</b></div>
+    </div>
+    ${goal}
+    ${rows.length ? `<div class="hero-rows">${rows.join("")}</div>` : ""}
+    <div class="hb"><button class="btn" data-act="share">שליחת הדוח</button></div>
+  </section>`;
+}
+function viewMonth() {
+  const P = calcPeriod(ui.period), t = P.t;
+  const dayCards = P.days.slice().reverse().map(d => {
+    const chips = Object.keys(d.buckets).map(Number).filter(k => k !== 100).sort((a, b) => a - b).map(k => `<span class="chip">${k}%</span>`).join("");
+    return `<div class="day"><div class="day-h"><span class="d">${fmtDateLong(d.ds)}<small>יום ${DAYS[weekday(d.ds)]}</small>${multiJob() && P.filter === "all" ? `<span class="jtag">${esc(d.job.name)}</span>` : ""} <span class="chips">${chips}</span></span>
+      <span class="t"><span class="num">${fmtHM(d.wMin + d.vacMin + d.sickMin)}</span> ש׳<br><span class="num muted">${money(d.pay)}</span></span></div>
+      ${d.list.map(shiftRow).join("")}</div>`;
+  }).join("");
+  return `${header()}${sampleBanner()}${jobFilterBar()}
+    ${heroPanel(P)}
+    ${advisorCard()}
+    ${compareCard(P)}
+    <section class="card"><div class="card-head"><h3>שעות לפי יום</h3></div>${chart(P)}</section>
+    <section class="card"><details class="fold"><summary><h3>איך חושב השכר</h3><span class="muted small num">${money(t.total)}</span></summary>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:6px"><button class="btn sm" data-act="addAdj">+ תוספת / ניכוי</button></div>${breakdown(P)}</details></section>
+    <section class="card"><div class="card-head"><h3>פירוט לפי ימים</h3><button class="btn sm primary" data-act="addShift">+ משמרת</button></div>
+      ${P.days.length ? `<div class="days">${dayCards}</div>` : `<div class="empty"><b>אין משמרות בתקופה הזו</b><span>לחצו "כניסה" בלשונית נוכחות, או הוסיפו משמרת ידנית.</span>${state.shifts.length === 0 ? `<button class="btn sm" data-act="loadSample">הצגת חודש לדוגמה</button>` : ""}</div>`}
+    </section>`;
+}
+function historyBody() {
+  const keys = [...new Set([...state.shifts.map(x => periodKeyOf(x.date)), ...state.adjustments.map(x => x.period)])].sort().reverse();
+  if (!keys.length) return { sum: null, html: `<p class="muted small" style="margin:0">עוד אין משמרות. כאן יופיעו כל החודשים וכמה הרווחת בכל אחד.</p>` };
+  const rows = keys.map(k => ({ k, t: calcPeriod(k, "all").t }));
+  const sum = rows.reduce((x, r) => ({ total: x.total + r.t.total, min: x.min + r.t.allMin, days: x.days + r.t.daysWorked }), { total: 0, min: 0, days: 0 });
+  return { sum, html: `<div class="stats">
+      <div class="stat"><div class="label">סה״כ שעות</div><div class="v">${fmtHM(sum.min)}</div></div>
+      <div class="stat"><div class="label">ימי עבודה</div><div class="v">${sum.days}</div></div>
+      <div class="stat hero"><div class="label">הרווחת מאז ההתחלה</div><div class="v">${money(sum.total)}</div></div>
+    </div>
+    <div class="hist">${rows.map((r, i) => `<button data-period="${r.k}"><span>${esc(periodLabel(r.k))} <span class="muted small num">${fmtHM(r.t.allMin)} ש׳ · ${r.t.daysWorked} ימים</span></span><span class="num">${money(r.t.total)} ${i + 1 < rows.length ? deltaTag(r.t.total, rows[i + 1].t.total) : ""}</span></button>`).join("")}</div>` };
+}
+// settings: one closed row per topic with a short summary; tapping opens it for editing
+function acc(id, icon, title, summary, body) {
+  return `<details class="acc" data-sec="${id}" ${ui.openSec === id ? "open" : ""}><summary><span class="ic" aria-hidden="true">${icon}</span><span class="tx"><b>${title}</b><span>${summary}</span></span></summary><div class="acc-body">${body}</div></details>`;
+}
+function viewSettings() {
+  const st = state.settings;
+  const num = (id, label, val, attrs, hint) => `<div class="fld"><label for="${id}">${label}</label><input type="number" id="${id}" data-set="${id.slice(2)}" value="${esc(val)}" ${attrs}>${hint ? `<span class="hint">${hint}</span>` : ""}</div>`;
+  const sw = (id, label, val, hint) => `<label class="switch" for="${id}"><span><b style="font-weight:600">${label}</b>${hint ? `<br><span class="hint muted small">${hint}</span>` : ""}</span><input type="checkbox" id="${id}" data-set="${id.slice(2)}" ${val ? "checked" : ""}></label>`;
+  const pl = planInfo(periodKeyOf(todayDS()));
+  const hist = historyBody();
+  const jobsN = allJobs().length;
+  const notif = [st.pushOn && "התראות ברקע", st.remindOn && `תזכורת ב-${st.remindTime}`].filter(Boolean).join(" · ") || "כבויות";
+  return `${header()}
+    <div class="acc-group">
+    ${acc("profile", "👤", "הפרופיל שלי", esc([st.name, account && account.phone].filter(Boolean).join(" · ") || "שם, טלפון וסיסמה"), `
+      <div class="fld"><label for="s-name">שם מלא</label><input type="text" id="s-name" data-set="name" maxlength="50" value="${esc(st.name)}" placeholder="השם שלך"></div>
+      <div class="fld"><label for="acc-phone">מספר טלפון</label><input type="tel" id="acc-phone" inputmode="tel" value="${esc(account ? account.phone : "")}"></div>
+      <div class="kv"><div class="r"><span class="k">אימייל להתחברות</span><span class="v">${esc(session.user.email || "")}</span></div></div>
+      <div class="btn-row"><button class="btn" data-act="changePass">שינוי סיסמה</button><button class="btn" data-act="logout">התנתקות</button></div>
+      <p class="muted small" style="margin:0">כל הנתונים מגובים בחשבון. בטלפון חדש מתחברים עם המייל והסיסמה והכול חוזר.</p>`)}
+    </div>
+    <div class="acc-title">עבודה ושכר</div>
+    <div class="acc-group">
+    ${acc("pay", "💰", "שכר והיקף משרה", `${money(+st.rate || 0)} לשעה · ${pl.wd.length} ימים בשבוע · ${pl.pct}% משרה${jobsN > 1 ? ` · ${jobsN} מקומות עבודה` : ""}`, `
+      <div class="fld"><label>מקום עבודה ותעריף לשעה (${esc(st.currency)})</label>
+        <div class="joblist">
+          <div class="jobrow"><input type="text" id="s-employer" data-set="employer" maxlength="50" value="${esc(st.employer)}" placeholder="שם העסק" aria-label="מקום עבודה ראשי"><input type="number" id="s-rate" data-set="rate" value="${esc(st.rate)}" min="0" step="0.5" inputmode="decimal" aria-label="תעריף לשעה"><span></span></div>
+          ${(st.jobs || []).map(j => `<div class="jobrow"><input type="text" data-job="${esc(j.id)}" data-jobkey="name" maxlength="50" value="${esc(j.name)}" placeholder="שם העסק" aria-label="מקום עבודה"><input type="number" data-job="${esc(j.id)}" data-jobkey="rate" value="${esc(j.rate)}" min="0" step="0.5" inputmode="decimal" aria-label="תעריף לשעה"><button class="x" data-deljob="${esc(j.id)}" aria-label="מחיקת מקום העבודה">×</button></div>`).join("")}
+        </div>
+        <button class="btn sm" data-act="addJob" style="align-self:flex-start">+ עוד מקום עבודה</button>
+      </div>
+      <div class="grid2">
+        ${num("s-shiftHours", "אורך משמרת (שעות)", st.shiftHours, 'min="1" max="24" step="0.5" inputmode="decimal"', "ברירת המחדל לטיימר")}
+        <div class="fld"><label for="s-currency">מטבע</label><select id="s-currency" data-set="currency">${["₪", "$", "€", "£"].map(c => `<option ${c === st.currency ? "selected" : ""}>${c}</option>`).join("")}</select></div>
+      </div>
+      <div class="fld"><label>באילו ימים אני עובד/ת</label><div class="days-pick">${WEEK.map((d, i) => `<button type="button" data-wday="${i}" aria-pressed="${(st.workDays || []).includes(i)}">${d}</button>`).join("")}</div>
+        <span class="hint">${(st.workDays || []).length} ימים בשבוע. לפי זה מחשבים יעד יומי והיקף משרה</span></div>
+      ${num("s-jobPct", "אחוז משרה", st.jobPct, 'min="1" max="100" step="5" inputmode="numeric"', `100% = ${FULL_TIME_WEEK} ש׳ בשבוע`)}
+      ${pl.rate > 0 ? `<p class="muted small" style="margin:0">משרה של ${pl.pct}% = <b class="num">${fmtHM(pl.pctDayMin)}</b> ש׳ ביום ≈ <b class="num">${money(pl.pctMonth)}</b> בחודש.</p>` : ""}
+      ${num("s-periodStart", "יום תחילת חודש השכר", st.periodStart, 'min="1" max="28" step="1" inputmode="numeric"', "1 = חודש רגיל")}`)}
+    ${acc("goal", "🎯", "יעד חודשי", pl.goal > 0 ? `יעד ${money(pl.goal)}` : "בלי יעד", `
+      ${num("s-goalAmount", `יעד הכנסה לחודש (${esc(st.currency)})`, st.goalAmount, 'min="0" step="100" inputmode="decimal"', "0 = בלי יעד")}
+      ${num("s-dailyGoalHours", "יעד שעות ליום", st.dailyGoalHours, 'min="0" max="24" step="0.25" inputmode="decimal"', "0 = לחשב לבד")}
+      <div class="calc-preview"><span>יעד היום כרגע</span><b class="num">${fmtHM(dailyGoalMin())} ש׳</b></div>
+      ${pl.goal > 0 && pl.needMin > 0 ? `<p class="muted small" style="margin:0">${pl.needMin > MAX_DAY_MIN ? `היעד לא נכנס החודש: צריך יותר מ-${MAX_DAY_MIN / 60} שעות ביום ב-${pl.left.length} הימים שנשארו.` : `כדי להגיע ל-${money(pl.goal)} החודש: <b class="num">${fmtHM(pl.needMin)}</b> ש׳ ביום ב-${pl.left.length} הימים שנשארו.`}</p>` : ""}`)}
+    ${acc("breaks", "☕", "הפסקות", [st.breaksOn ? "כפתור הפסקה פעיל" : "בלי כפתור הפסקה", st.autoBreakOn && `קבועה ${+st.autoBreakMin} דק׳`].filter(Boolean).join(" · "), `
+      ${sw("s-breaksOn", "כפתור הפסקה במשמרת", st.breaksOn, "לוחצים ״הפסקה״ כשיוצאים להפסקה, והשעון עוצר עד שחוזרים")}
+      ${sw("s-autoBreakOn", "הפסקה קבועה בכל משמרת", st.autoBreakOn, "יורדת אוטומטית מכל משמרת. אפשר להסיר אותה במשמרת מסוימת")}
+      ${st.autoBreakOn ? num("s-autoBreakMin", "אורך ההפסקה הקבועה (דקות)", st.autoBreakMin, 'min="1" max="180" step="5" inputmode="numeric"') : ""}`)}
+    ${acc("travel", "🚌", "נסיעות", st.travelOn ? `${money(+st.travelPerDay || 0)} לכל יום עבודה` : "לא מחושבות", `
+      ${sw("s-travelOn", "לחשב דמי נסיעות", st.travelOn, "סכום קבוע לכל יום שעבדתם, נוסף לשכר")}
+      ${st.travelOn ? num("s-travelPerDay", `סכום נסיעות ליום (${esc(st.currency)})`, st.travelPerDay, 'min="0" step="0.5" inputmode="decimal"') : ""}`)}
+    ${acc("ot", "⏱", "שעות נוספות, חופשה ומחלה", st.otEnabled ? `נוספות אחרי ${+st.otThreshold} ש׳ · 125% / 150%` : "בלי שעות נוספות", `
+      ${sw("s-otEnabled", "חישוב שעות נוספות", st.otEnabled, "לפי חוק שעות עבודה: 125% ואחר כך 150%")}
+      ${st.otEnabled ? `<div class="grid2">
+        ${num("s-otThreshold", "שעות נוספות אחרי (ש׳ ביום)", st.otThreshold, 'min="1" max="24" step="0.1" inputmode="decimal"', "נפוץ: 8.6 בשבוע של 5 ימים")}
+        ${num("s-ot1Span", "כמה שעות ב-125%", st.ot1Span, 'min="0" max="12" step="0.5" inputmode="decimal"', "לפי החוק: 2")}
+      </div>` : ""}
+      <div class="grid2">
+        ${num("s-vacPct", "תשלום על חופשה (%)", st.vacPct, 'min="0" max="200" step="5" inputmode="numeric"')}
+        ${num("s-sickPct", "תשלום על מחלה (%)", st.sickPct, 'min="0" max="200" step="5" inputmode="numeric"', "חוק: יום 1 — 0%, ימים 2–3 — 50%, מיום 4 — 100%")}
+      </div>`)}
+    ${acc("net", "🏦", "הערכת נטו", st.netOn ? `${+st.creditPoints} נקודות זיכוי · פנסיה ${+st.pensionPct}%` : "כבויה", `
+      ${sw("s-netOn", "להציג כמה ייכנס לבנק בערך", st.netOn, "מס הכנסה, ביטוח לאומי ופנסיה")}
+      ${st.netOn ? `<div class="grid2">
+        ${num("s-creditPoints", "נקודות זיכוי", st.creditPoints, 'min="0" max="20" step="0.25" inputmode="decimal"', "גבר: 2.25 · אישה: 2.75 · ועוד לפי ילדים ותואר")}
+        ${num("s-pensionPct", "ניכוי פנסיה (%)", st.pensionPct, 'min="0" max="10" step="0.5" inputmode="decimal"', "בדרך כלל 6%")}
+      </div>` : ""}`)}
+    </div>
+    <div class="acc-title">דוחות והתראות</div>
+    <div class="acc-group">
+    ${acc("share", "📤", "שיתוף ודוחות", st.bossPhone || st.bossEmail ? esc(["לבוס:", st.bossPhone, st.bossEmail].filter(Boolean).join(" ")) : "בוס, וואטסאפ, מייל ו-Excel", `
+      <div class="grid2">
+        <div class="fld"><label for="s-bossPhone">טלפון הבוס</label><input type="tel" id="s-bossPhone" data-set="bossPhone" inputmode="tel" value="${esc(st.bossPhone)}" placeholder="050-0000000"></div>
+        <div class="fld"><label for="s-bossEmail">מייל הבוס</label><input type="email" id="s-bossEmail" data-set="bossEmail" inputmode="email" value="${esc(st.bossEmail)}"></div>
+      </div>
+      <button class="btn primary" data-act="share">שליחת דוח ${esc(periodLabel(periodKeyOf(todayDS())))}</button>
+      <span class="hint">לאישור הבוס, בוואטסאפ, במייל, או כקובץ Excel. לחודש אחר: בלשונית ״החודש״.</span>`)}
+    ${acc("history", "📈", "היסטוריה", hist.sum ? `${money(hist.sum.total)} מאז ההתחלה` : "עוד אין נתונים", hist.html)}
+    ${acc("notif", "🔔", "התראות", notif, `
+      ${sw("s-pushOn", "התראות גם כשהאפליקציה סגורה", st.pushOn, "סוף טיימר, הגעה ליעד, משמרת שנשכחה פתוחה ואישור מהבוס")}
+      ${isIOS() && !isStandalone() ? `<p class="muted small" style="margin:0">באייפון ההתראות עובדות רק אחרי התקנה למסך הבית.</p>` : ""}
+      ${sw("s-alertBefore", "התראה 10 דקות לפני הסוף", st.alertBefore)}
+      ${sw("s-remindOn", "תזכורת להחתים כניסה", st.remindOn, "אם עוד לא נכנסתם עד השעה הזו")}
+      ${st.remindOn ? `<div class="grid2"><div class="fld"><label for="s-remindTime">שעת התזכורת</label><input type="time" id="s-remindTime" data-set="remindTime" value="${esc(st.remindTime || "08:00")}"></div><span></span></div>
+        <div class="fld"><label>בימים</label><div class="days-pick">${WEEK.map((d, i) => `<button type="button" data-rday="${i}" aria-pressed="${(st.remindDays || []).includes(i)}">${d}</button>`).join("")}</div></div>` : ""}
+      <div class="btn-row"><button class="btn sm" data-act="testAlert">בדיקת צליל</button>${st.pushOn || st.remindOn ? `<button class="btn sm" data-act="testPush">שליחת התראת בדיקה</button>` : ""}</div>`)}
+    </div>
+    <div class="acc-title">כללי</div>
+    <div class="acc-group">
+    ${acc("data", "🗂", "נתונים וגיבוי", `${state.shifts.length} משמרות שמורות`, `
+      <div class="btn-row"><button class="btn" data-act="backup">הורדת גיבוי לקובץ</button><button class="btn" data-act="restore">שחזור מקובץ</button></div>
+      <input type="file" id="restore-file" accept=".json,application/json" hidden>
+      <div class="btn-row">${state.shifts.length === 0 ? `<button class="btn ghost" data-act="loadSample">הצגת נתוני דוגמה</button>` : ""}<button class="btn danger" data-act="wipe">מחיקת כל המשמרות</button></div>`)}
+    ${acc("shareapp", "📲", "שיתוף האפליקציה", "קישור, שיתוף וקובץ APK", `
+      <p class="muted small" style="margin:0">שלחו את השעון לחברים לעבודה. כל אחד נרשם ומקבל חשבון משלו.</p>
+      <div class="btn-row"><button class="btn primary" data-act="shareApp">שיתוף</button><button class="btn" data-act="copyAppLink">העתקת קישור</button></div>
+      <a class="btn" href="${APK_URL}" download style="text-align:center;text-decoration:none;color:inherit">הורדת קובץ APK לאנדרואיד</a>
+      <span class="hint">אחרי ההורדה פותחים את הקובץ ומאשרים ״התקנה ממקור לא ידוע״.</span>`)}
+    </div>
+    ${installCard(true)}`;
+}
+// one place to send a month: boss approval link, WhatsApp, email, Excel, print
+const waNumber = p => { let n = normPhone(p).replace(/^\+/, ""); if (n.startsWith("0")) n = "972" + n.slice(1); return n; };
+function shareModal(key) {
+  const P = calcPeriod(key), st = state.settings;
+  const fname = `דוח שעות ${st.name ? st.name + " " : ""}${periodLabel(P.key)}`;
+  openModal(`<h3>שליחת דוח ${esc(periodLabel(P.key))}</h3>
+    <div class="calc-preview"><span>${fmtHM(P.t.allMin)} ש׳ · ${P.t.daysWorked} ימים</span><b class="num">${money(P.t.total)}</b></div>
+    <section class="form" style="gap:8px"><b>לאישור הבוס</b>
+      <span class="muted small">הבוס מקבל קישור, רואה את כל השעות ומאשר בלחיצה. כשהוא מאשר, תקבלו התראה.</span>
+      <button class="btn primary" id="sh-approve">יצירת קישור לאישור ושליחה</button>
+      <div class="sent-list" id="sent-list">${sentList(P)}</div></section>
+    <section class="form" style="gap:8px"><b>שליחת סיכום</b>
+      <div class="grid2" style="align-items:end"><div class="fld"><label for="sh-phone">וואטסאפ למספר</label><input type="tel" id="sh-phone" inputmode="tel" value="${esc(st.bossPhone)}" placeholder="050-0000000"></div><button class="btn" id="sh-wa">שליחה בוואטסאפ</button></div>
+      <div class="grid2" style="align-items:end"><div class="fld"><label for="sh-mail">מייל</label><input type="email" id="sh-mail" inputmode="email" value="${esc(st.bossEmail)}"></div><button class="btn" id="sh-email">שליחה במייל</button></div>
+      <button class="btn ghost" id="sh-any">שיתוף לאפליקציה אחרת</button></section>
+    <section class="form" style="gap:8px"><b>קבצים</b>
+      <div class="share-grid">
+        <button class="btn" id="sh-csv">קובץ Excel</button>
+        <button class="btn" id="sh-print">הדפסה / PDF</button>
+        <button class="btn" id="sh-html">קובץ דוח מעוצב</button>
+      </div>
+      <span class="hint">באנדרואיד ובאייפון הקובץ נפתח בתפריט השיתוף, ומשם אפשר לצרף אותו למייל או לוואטסאפ.</span></section>
+    <div class="modal-actions"><button class="btn" data-dismiss>סגירה</button></div>`, m => {
+    const remember = (k, v) => { if (v && v !== state.settings[k]) { state.settings = { ...state.settings, [k]: v }; commit("", true); } };
+    $("#sh-approve", m).onclick = () => { ui.period = P.key; sendApproval(); };
+    $("#sh-wa", m).onclick = () => {
+      const ph = $("#sh-phone", m).value.trim();
+      if (!validPhone(ph)) { toast("מספר הטלפון לא תקין"); return; }
+      remember("bossPhone", ph);
+      window.open(`https://wa.me/${waNumber(ph)}?text=${encodeURIComponent(summaryText(P))}`, "_blank");
+    };
+    $("#sh-email", m).onclick = () => {
+      const em = $("#sh-mail", m).value.trim();
+      if (!validEmail(em)) { toast("כתובת המייל לא תקינה"); return; }
+      remember("bossEmail", em);
+      location.href = `mailto:${encodeURIComponent(em)}?subject=${encodeURIComponent(fname)}&body=${encodeURIComponent(summaryText(P))}`;
+    };
+    $("#sh-any", m).onclick = () => shareText(summaryText(P), "סיכום שעות");
+    $("#sh-csv", m).onclick = () => shareOrDownload(fname + ".csv", csvFor(P), "text/csv");
+    $("#sh-print", m).onclick = () => printReport(P);
+    $("#sh-html", m).onclick = () => shareOrDownload(fname + ".html", htmlReportFor(P, false), "text/html");
+  });
+}
+
+// ---------- install (PWA) ----------
+let installEvt = null;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; if (session) render(); });
+const isStandalone = () => window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
+function installCard(always) {
+  if (isStandalone()) return "";
+  let dismissed = false; try { dismissed = localStorage.getItem("attendance:install-dismissed") === "1"; } catch (e) {}
+  if (dismissed && !always) return "";
+  if (installEvt) return `<section class="card"><div class="card-head"><h3>התקנה בטלפון</h3>${always ? "" : `<button class="link" data-act="dismissInstall">לא עכשיו</button>`}</div><p class="muted small" style="margin:0 0 10px">האפליקציה תופיע במסך הבית ותיפתח כמו כל אפליקציה.</p><button class="btn primary block" data-act="install">התקנה למסך הבית</button></section>`;
+  if (isIOS()) return `<section class="card"><div class="card-head"><h3>התקנה באייפון</h3>${always ? "" : `<button class="link" data-act="dismissInstall">הבנתי</button>`}</div><p class="muted small" style="margin:0">בספארי: לחצו על כפתור השיתוף ⬆️ ואז ״הוספה למסך הבית״.</p></section>`;
+  return always ? `<section class="card"><h3>התקנה בטלפון</h3><p class="muted small" style="margin:0">בכרום: תפריט ⋮ ואז ״התקנת אפליקציה״ או ״הוספה למסך הבית״.</p></section>` : "";
+}
+if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+
+function render() {
+  if (bossToken) { renderBoss(); return; }
+  const app = $("#app"), nav = $("#nav");
+  if (!session) { nav.hidden = true; app.innerHTML = viewAuth(); return; }
+  if (ui.needPhone) { nav.hidden = true; app.innerHTML = viewNeedPhone(); return; }
+  nav.hidden = false;
+  if (!ui.period) ui.period = periodKeyOf(todayDS());
+  const v = { clock: viewClock, month: viewMonth, settings: viewSettings }[ui.tab] || viewClock;
+  app.innerHTML = v();
+  document.querySelectorAll("#nav button").forEach(b => {
+    b.setAttribute("aria-current", b.dataset.tab === ui.tab ? "page" : "false");
+    const dot = b.querySelector(".live");
+    if (b.dataset.tab === "clock" && state.active && ui.tab !== "clock") { if (!dot) b.insertAdjacentHTML("afterbegin", '<span class="live"></span>'); }
+    else if (dot) dot.remove();
+  });
+  const s = $("#sync"); if (s) paintSync(s);
+  tick();
+}
+
+// ---------- live tick ----------
+function tick() {
+  const n = $("#now-time"); if (n) n.textContent = localHM(new Date());
+  if (!state.active) return;
+  const a = state.active;
+  const ms = activeWorkedMs(); const s = Math.floor(ms / 1000);
+  const hms = sec => `${pad(Math.floor(sec / 3600))}:${pad(Math.floor(sec / 60) % 60)}:${pad(sec % 60)}`;
+  const el = $("#elapsed"); if (el) el.textContent = hms(s);
+  const tt = $("#today-total"); if (tt) tt.textContent = fmtHM(todayDoneMin() + (localDS(new Date(a.start)) === todayDS() ? ms / 60000 : 0));
+  if (a.planMin) {
+    const rem = a.planMin * 60000 - ms;
+    checkAlerts(rem);
+    const cd = $("#countdown"), lb = $("#cd-label"), ce = $("#cd-end");
+    if (cd) cd.textContent = (rem < 0 ? "+" : "") + hms(Math.floor(Math.abs(rem) / 1000));
+    const dw = $("#dial-wrap"); if (dw) dw.classList.toggle("over", rem < 0);
+    const arc = $("#d-arc"), hand = $("#d-hand"), planMs = a.planMin * 60000;
+    if (arc && hand) {
+      if (rem >= 0) {
+        const done = Math.min(1, ms / planMs);
+        arc.setAttribute("stroke-dasharray", `${((1 - done) * 100).toFixed(3)} 100`);
+        arc.setAttribute("stroke-dashoffset", `${(-done * 100).toFixed(3)}`);
+        arc.classList.remove("over"); hand.style.transform = `rotate(${(done * 360).toFixed(2)}deg)`;
+      } else {
+        const over = Math.min(1, -rem / planMs);
+        arc.setAttribute("stroke-dasharray", `${(over * 100).toFixed(3)} 100`); arc.setAttribute("stroke-dashoffset", "0");
+        arc.classList.add("over"); hand.style.transform = `rotate(${(over * 360).toFixed(2)}deg)`;
+      }
+    }
+    const g = activeMode(a) === "goal";
+    if (lb) lb.textContent = rem < 0 ? (g ? "מעבר ליעד" : "מעבר לתכנון") : (g ? "נשאר ליעד" : "נשאר");
+    if (ce) ce.textContent = localHM(new Date(Date.now() + rem));
+  }
+  const e = $("#earn-live"); const rate = jobOf(a.jobId).rate;
+  if (e) e.innerHTML = rate ? `הרווחתם עד עכשיו בערך <b class="num">${money(rate * ms / 3600000)}</b>` : `<span class="small">הגדירו תעריף כדי לראות כמה הרווחתם</span>`;
+  const p = $("#prog"); const goal = (a.planMin || 0) * 60000;
+  if (p && goal) {
+    const pct = Math.min(100, ms / goal * 100), overMs = Math.max(0, ms - goal);
+    const overPct = overMs ? Math.min(40, overMs / goal * 100) : 0;
+    const left = Math.max(0, goal - ms) / 60000;
+    p.innerHTML = `<div class="track"><div class="fill" style="width:${pct * (100 - overPct) / 100}%"></div>${overPct ? `<div class="over" style="width:${overPct}%"></div>` : ""}</div>
+      <div class="txt"><span>משמרת של ${fmtHM(a.planMin)} ש׳</span><span>${overMs ? `<b style="color:var(--punch)">עברת ב-<span class="num">${fmtHM(overMs / 60000)}</span></b>` : `נשארו <span class="num">${fmtHM(left)}</span>`}</span></div>`;
+  }
+  const br = $("#break-run"); if (br && a.breakStart) { const bs = Math.floor((Date.now() - state.active.breakStart) / 1000); br.textContent = `${pad(Math.floor(bs / 60))}:${pad(bs % 60)}`; }
+}
+setInterval(tick, 1000);
+
+// ---------- exports ----------
+function downloadFile(filename, data, mime) {
+  const blob = new Blob([data], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+async function shareOrDownload(filename, data, mime) {
+  try {
+    const file = new File([data], filename, { type: mime });
+    if (navigator.canShare && navigator.canShare({ files: [file] }) && /android|iphone|ipad/i.test(navigator.userAgent)) {
+      await navigator.share({ files: [file], title: filename }); return;
+    }
+  } catch (e) { if (e && e.name === "AbortError") return; }
+  downloadFile(filename, data, mime); toast("הקובץ ירד למכשיר");
+}
+function csvFor(P) {
+  const st = state.settings;
+  const q = v => { const s = String(v ?? ""); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const keys = [...new Set(P.days.flatMap(d => Object.keys(d.buckets).map(Number)))].sort((a, b) => a - b);
+  const lines = [];
+  lines.push(["דוח שעות", periodLabel(P.key)].map(q).join(","));
+  lines.push(["עובד/ת", st.name, "טלפון", account ? account.phone : "", "מעסיק", reportEmployer(P), "תעריף", reportRate(P)].map(q).join(","));
+  lines.push("");
+  lines.push(["תאריך", "יום", "סוג", "כניסה", "יציאה", "הפסקה (דק')", "שעות", "שעות (עשרוני)", ...keys.map(k => `${k}%`), "סכום יומי", "הערה"].map(q).join(","));
+  P.days.forEach(d => d.list.forEach((s, i) => {
+    const mn = shiftMin(s);
+    lines.push([fmtDate(d.ds), DAYS[weekday(d.ds)], TYPES[s.type], isLeave(s) ? "" : s.start, isLeave(s) ? "" : s.end, isLeave(s) ? "" : (+s.breakMin || 0),
+      fmtHM(mn), fmtDec(mn), ...keys.map(k => i === 0 && d.buckets[k] ? fmtDec(d.buckets[k]) : ""), i === 0 ? d.pay.toFixed(2) : "", s.note || ""].map(q).join(","));
+  }));
+  lines.push("");
+  summaryRows(P).forEach(([k, v]) => lines.push([k.trim(), v].map(q).join(",")));
+  return "﻿" + lines.join("\r\n");
+}
+function htmlReportFor(P, autoPrint) {
+  const st = state.settings; const [a, b] = P.range;
+  return `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>דוח שעות ${esc(st.name)} ${esc(periodLabel(P.key))}</title><style>
+body{font-family:Arial,"Arial Hebrew",sans-serif;color:#111;background:#fff;margin:24px;font-size:14px}
+h1{font-size:24px;margin:0 0 4px}.head{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;border-bottom:2px solid #111;padding-bottom:12px;margin-bottom:14px}
+.meta{display:grid;grid-template-columns:auto auto;gap:2px 10px;color:#555}.meta b{color:#111}
+.wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13px}th{text-align:right;font-size:11px;color:#555;border-bottom:1px solid #111;padding:6px}
+td{padding:6px;border-bottom:1px solid #ddd;white-space:nowrap}td.n{direction:ltr;text-align:right;font-variant-numeric:tabular-nums}tr.we td{background:#f3f3f3}
+tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:0}.sum{max-width:420px;margin-top:18px}.sum div{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #ddd}
+.sum div:last-child{font-weight:700;font-size:17px;border-top:2px solid #111;border-bottom:0}.sum span:last-child{direction:ltr}
+.note{color:#666;font-size:12px;margin-top:14px}.sign{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:48px;color:#555}.sign div{border-top:1px solid #111;padding-top:6px}
+@media print{body{margin:10mm}}</style></head><body>
+<div class="head"><div><h1>דוח שעות עבודה</h1><div>${esc(periodLabel(P.key))} · ${fmtDate(a)} – ${fmtDate(b)}</div></div>
+<div class="meta"><span>עובד/ת:</span><b>${esc(st.name || "—")}</b>${account && account.phone ? `<span>טלפון:</span><b>${esc(account.phone)}</b>` : ""}<span>מעסיק:</span><b>${esc(reportEmployer(P) || "—")}</b><span>תעריף:</span><b>${esc(reportRate(P))}</b></div></div>
+<div class="wrap">${reportTable(P)}</div>
+<div class="sum">${summaryRows(P).map(([k, v]) => `<div><span>${esc(k.trim())}</span><span>${esc(v)}</span></div>`).join("")}</div>
+<p class="note">${rulesNote()} הופק ב-${fmtDate(todayDS())}.</p>
+<div class="sign"><div>חתימת העובד/ת</div><div>אישור המעסיק</div></div>
+${autoPrint ? "<script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>" : ""}</body></html>`;
+}
+function summaryText(P) {
+  const st = state.settings; const [a, b] = P.range;
+  const emp = reportEmployer(P);
+  const lines = [`דוח שעות – ${st.name || "עובד/ת"}`, `${emp ? emp + " · " : ""}${periodLabel(P.key)} (${fmtDate(a)}–${fmtDate(b)})`, ""];
+  summaryRows(P).forEach(([k, v], i, arr) => lines.push(`${i === arr.length - 1 ? "*" : ""}${k}: ${v}${i === arr.length - 1 ? "*" : ""}`));
+  lines.push("", `תעריף: ${reportRate(P)}`);
+  return lines.join("\n");
+}
+async function shareText(text, title) {
+  if (navigator.share) { try { await navigator.share({ text, title }); return; } catch (e) { if (e && e.name === "AbortError") return; } }
+  try { await navigator.clipboard.writeText(text); toast("הסיכום הועתק — אפשר להדביק בוואטסאפ"); }
+  catch (e) { showCopy(title, text); }
+}
+const APP_URL = "https://shaon-nochechut.vercel.app";
+const APK_URL = "https://github.com/myphone3/My-phone-/releases/download/shaon-apk-latest/shaon-nochechut.apk";
+async function shareApp() {
+  const text = "שעון נוכחות: רישום שעות, חישוב שכר ודוח לבוס";
+  if (navigator.share) { try { await navigator.share({ title: "שעון נוכחות", text, url: APP_URL }); return; } catch (e) { if (e && e.name === "AbortError") return; } }
+  copyAppLink();
+}
+async function copyAppLink() {
+  try { await navigator.clipboard.writeText(APP_URL); toast("הקישור הועתק"); }
+  catch (e) { showCopy("קישור לאפליקציה", APP_URL); }
+}
+function printReport(P) {
+  const html = htmlReportFor(P, true);
+  const w = window.open("", "_blank");
+  if (w) { w.document.open(); w.document.write(html); w.document.close(); }
+  else downloadFile(`דוח שעות ${periodLabel(P.key)}.html`, html, "text/html");
+}
+
+// ---------- sample data ----------
+function loadSample() {
+  const key = periodKeyOf(todayDS()); const [a] = periodRange(key);
+  const end = todayDS(); const out = [];
+  const starts = ["07:55", "08:02", "08:10", "07:48", "08:00", "08:05"];
+  const ends = ["17:05", "16:40", "18:45", "17:30", "19:20", "16:55"];
+  datesBetween(a, end).forEach((ds, i) => {
+    if (ds === end) return;
+    const wd = weekday(ds);
+    if (wd === 5) return;
+    if (wd === 6) return;
+    if (i === 9) { out.push({ id: uid(), date: ds, type: "vacation", hours: +state.settings.shiftHours || 8, start: "", end: "", breakMin: 0, note: "דוגמה" }); return; }
+    out.push({ id: uid(), date: ds, start: starts[i % 6], end: ends[i % 6], breakMin: [15, 30, 45][i % 3], type: "work", note: "דוגמה" });
+  });
+  state.shifts = out; state.sample = true;
+  if (!(+state.settings.rate > 0)) state.settings = { ...state.settings, rate: 45 };
+  state.adjustments = [{ id: uid(), period: key, label: "בונוס (דוגמה)", amount: 300 }];
+  ui.period = key; ui.tab = "month";
+  commit("נטענו נתוני דוגמה");
+}
+function clearSample() {
+  confirmBox("לנקות את נתוני הדוגמה?", "כל המשמרות והתוספות לדוגמה יימחקו. ההגדרות שלכם יישארו.", "ניקוי", () => {
+    state.shifts = []; state.adjustments = []; state.sample = false; commit("הדוגמה נוקתה");
+  }, true);
+}
+
+// ---------- events ----------
+document.addEventListener("click", e => {
+  unlockAudio();
+  const au = e.target.closest("[data-auth]");
+  if (au) {
+    const t = au.dataset.auth; ui.authMsg = "";
+    const em = $("#au-email"); if (em) ui.authEmail = em.value.trim();
+    ui.authMode = t === "toSignup" ? "signup" : t === "toForgot" ? "forgot" : "login";
+    render(); return;
+  }
+  const nav = e.target.closest("[data-tab]");
+  if (nav && nav.closest("#nav")) { goTab(nav.dataset.tab); return; }
+  const go = e.target.closest("[data-tab-go]"); if (go) { goTab(go.dataset.tabGo); return; }
+  const rb = e.target.closest("[data-rmbreak]"); if (rb) { removeBreak(rb.dataset.rmbreak); return; }
+  const bo = e.target.closest("[data-boss]"); if (bo) { bossRespond(bo.dataset.boss === "approve"); return; }
+  const jf = e.target.closest("[data-jobf]"); if (jf) { ui.job = jf.dataset.jobf; render(); return; }
+  const sl = e.target.closest("[data-sharelink]"); if (sl) { shareApprovalLink(sl.dataset.sharelink); return; }
+  const dj = e.target.closest("[data-deljob]"); if (dj) {
+    const j = (state.settings.jobs || []).find(x => x.id === dj.dataset.deljob);
+    const used = state.shifts.some(x => x.jobId === dj.dataset.deljob);
+    confirmBox("למחוק את מקום העבודה?", used ? `יש משמרות ב״${j ? j.name : ""}״. הן יעברו למקום העבודה הראשי.` : "אפשר להוסיף אותו שוב בכל זמן.", "מחיקה", () => {
+      state.shifts = state.shifts.map(x => x.jobId === dj.dataset.deljob ? { ...x, jobId: "main" } : x);
+      state.settings = { ...state.settings, jobs: (state.settings.jobs || []).filter(x => x.id !== dj.dataset.deljob) };
+      if (ui.job === dj.dataset.deljob) ui.job = "all";
+      commit("נמחק");
+    }, true); return;
+  }
+  const md = e.target.closest("[data-mode]"); if (md) { setMode(md.dataset.mode); return; }
+  const pr = e.target.closest("[data-period]"); if (pr) { ui.period = pr.dataset.period; goTab("month", true); return; }
+  const wd = e.target.closest("[data-wday]"); if (wd) {
+    const d = +wd.dataset.wday, cur = new Set(state.settings.workDays || []);
+    cur.has(d) ? cur.delete(d) : cur.add(d);
+    if (!cur.size) { toast("צריך לבחור לפחות יום אחד"); return; }
+    state.settings = { ...state.settings, workDays: [...cur].sort() }; commit(); return;
+  }
+  const rd = e.target.closest("[data-rday]"); if (rd) {
+    const d = +rd.dataset.rday, cur = new Set(state.settings.remindDays || []);
+    cur.has(d) ? cur.delete(d) : cur.add(d);
+    state.settings = { ...state.settings, remindDays: [...cur].sort() }; commit(); return;
+  }
+  const ed = e.target.closest("[data-edit]"); if (ed) { const s = state.shifts.find(x => x.id === ed.dataset.edit); if (s) shiftForm(s); return; }
+  const adj = e.target.closest("[data-adj]"); if (adj) { const x = state.adjustments.find(y => y.id === adj.dataset.adj); if (x) adjForm(x.period, x); return; }
+  const act = e.target.closest("[data-act]"); if (!act || act.closest("#modal-root")) return;
+  switch (act.dataset.act) {
+    case "clockIn": clockIn(); break;
+    case "startBreak": startTimedBreak(); break;
+    case "pickTimer": timerPickModal(); break;
+    case "share": shareModal(ui.tab === "month" ? ui.period : periodKeyOf(todayDS())); break;
+    case "changePass": newPasswordModal(); break;
+    case "advisor": advisorModal(); break;
+    case "editPlanSettings": ui.openSec = "goal"; goTab("settings"); setTimeout(() => { const g = $('[data-sec="goal"]'); if (g) g.scrollIntoView({ behavior: "smooth", block: "start" }); }, 30); break;
+    case "clockOut": clockOut(); break;
+    case "addBreak": breakModal(); break;
+    case "addJob": state.settings = { ...state.settings, jobs: [...(state.settings.jobs || []), { id: "j" + uid().slice(0, 6), name: "", rate: +state.settings.rate || 0 }] }; commit(); setTimeout(() => { const ins = document.querySelectorAll('[data-jobkey="name"]'); if (ins.length) ins[ins.length - 1].focus(); }, 50); break;
+    case "testPush": enablePush(false).then(ok => { if (ok) { unlockAudio(); notify("בדיקת התראה", "ככה ייראו ההתראות מהשעון"); } }); break;
+    case "editPlan": planModal(false); break;
+    case "extend30": extendPlan(30); break;
+    case "dismissAlert": ui.endAlert = null; render(); break;
+    case "fixOut": fixClockOut(); break;
+    case "testAlert": askNotify(); unlockAudio(); setTimeout(() => notify("בדיקת התראה", "ככה תיראה ההתראה בסוף המשמרת"), 400); break;
+    case "endBreak": endTimedBreak(); break;
+    case "editActive": editActive(); break;
+    case "addShift": shiftForm(null, ui.tab === "month" && periodKeyOf(todayDS()) !== ui.period ? periodRange(ui.period)[0] : null); break;
+    case "addAdj": adjForm(ui.period); break;
+    case "prevP": ui.period = movePeriod(ui.period, -1); render(); break;
+    case "nextP": ui.period = movePeriod(ui.period, 1); render(); break;
+    case "shareApp": shareApp(); break;
+    case "copyAppLink": copyAppLink(); break;
+    case "backup": downloadFile(`גיבוי שעון נוכחות ${todayDS()}.json`, JSON.stringify(state, null, 1), "application/json"); break;
+    case "restore": $("#restore-file").click(); break;
+    case "loadSample": loadSample(); break;
+    case "clearSample": clearSample(); break;
+    case "finishSetup": state.settings = { ...state.settings, onboarded: true }; commit("מעולה, אפשר להתחיל"); break;
+    case "install": if (installEvt) { installEvt.prompt(); installEvt.userChoice.finally(() => { installEvt = null; render(); }); } break;
+    case "dismissInstall": try { localStorage.setItem("attendance:install-dismissed", "1"); } catch (err) {} render(); break;
+    case "logout": confirmBox("להתנתק?", "הנתונים שמורים בחשבון ויחזרו כשתתחברו שוב.", "התנתקות", async () => { if (dirty) await flush(); await sb.auth.signOut(); endSession(); }); break;
+    case "wipe": confirmBox("למחוק את כל המשמרות?", "כל המשמרות והתוספות יימחקו לצמיתות, גם מהגיבוי בענן. ההגדרות והחשבון יישארו.", "מחיקה לצמיתות", () => { state.shifts = []; state.adjustments = []; state.active = null; state.sample = false; commit("כל המשמרות נמחקו"); }, true); break;
+  }
+});
+function goTab(t, keepPeriod) {
+  ui.tab = t; try { localStorage.setItem("attendance:tab", t); } catch (e) {}
+  if (!keepPeriod) ui.period = periodKeyOf(todayDS());
+  render(); window.scrollTo(0, 0);
+}
+document.addEventListener("toggle", e => {
+  const d = e.target; if (!d.matches || !d.matches("details.acc")) return;
+  if (d.open) { ui.openSec = d.dataset.sec; document.querySelectorAll("details.acc[open]").forEach(x => { if (x !== d) x.open = false; }); }
+  else if (ui.openSec === d.dataset.sec) ui.openSec = null;
+}, true);
+document.addEventListener("change", async e => {
+  const el = e.target;
+  if (el.id === "restore-file" && el.files && el.files[0]) {
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const data = JSON.parse(r.result);
+        if (!data || !Array.isArray(data.shifts)) throw 0;
+        confirmBox("לשחזר מהגיבוי?", `בגיבוי ${data.shifts.length} משמרות. הנתונים הנוכחיים יוחלפו.`, "שחזור", () => { state = normalize(data); commit("הגיבוי שוחזר"); });
+      } catch (err) { toast("הקובץ הזה אינו גיבוי תקין של שעון הנוכחות"); }
+    };
+    r.readAsText(el.files[0]); el.value = ""; return;
+  }
+  if (el.id === "acc-phone") {
+    const p = el.value.trim();
+    if (!validPhone(p)) { toast("מספר הטלפון לא תקין"); el.value = account ? account.phone : ""; return; }
+    const { error } = await sb.from("attendance_accounts").update({ phone: normPhone(p) }).eq("user_id", session.user.id);
+    if (error) { toast("לא נשמר. בדקו חיבור לאינטרנט"); return; }
+    account = { ...account, phone: normPhone(p) }; toast("הטלפון עודכן"); return;
+  }
+  if (el.dataset && el.dataset.job) {
+    const id = el.dataset.job, k = el.dataset.jobkey;
+    const v = k === "rate" ? Math.max(0, +el.value || 0) : el.value.trim();
+    state.settings = { ...state.settings, jobs: (state.settings.jobs || []).map(j => j.id === id ? { ...j, [k]: v } : j) };
+    commit("נשמר", true); return;
+  }
+  if (el.id === "s-pushOn" || el.id === "s-remindOn") {
+    if (el.checked) { const ok = await enablePush(false); if (!ok) { el.checked = false; return; } }
+    else if (!(el.id === "s-pushOn" ? state.settings.remindOn : state.settings.pushOn)) await disablePush();
+  }
+  const key = el.dataset && el.dataset.set; if (!key) return;
+  let v = el.type === "checkbox" ? el.checked : el.value;
+  if (el.type === "number") { v = +v; if (!isFinite(v) || el.value === "") v = DEFAULT_SETTINGS[key]; if (el.min !== "" && v < +el.min) v = +el.min; if (el.max !== "" && v > +el.max) v = +el.max; }
+  if (typeof v === "string") v = v.trim();
+  state.settings = { ...state.settings, [key]: v };
+  if (key === "periodStart") ui.period = null;
+  // keep focus while filling a form: only toggles change what the page shows
+  commit(el.id.startsWith("o-") ? "" : "נשמר", el.type !== "checkbox");
+});
+})();
+</script>
+</body>
+</html>
