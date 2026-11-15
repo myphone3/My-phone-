@@ -6,8 +6,9 @@
 
 - **האתר:** https://shaon-nochechut.vercel.app
 - **Vercel:** פרויקט `shaon-nochechut` בצוות `myphone3` (team id `team_lCaXrHkFHBL2FXEndgcmO2Ft`).
-  מתפרסם מהריפו `myphone3/my-phone-`, תיקייה `attendance` (Root Directory). הענף הפעיל הוא `claude/attendance-app-handoff-pwddw6`,
-  וכבר מוזגה אליו העבודה מ-`claude/attendance-app-handoff-hbfxwg`.
+  מתפרסם מהריפו `myphone3/my-phone-`, תיקייה `attendance` (Root Directory).
+  **מ-15.11.2026 הקוד נמצא בענף `main`** (מוזג מ-`claude/attendance-app-handoff-pwddw6`), ו-Vercel מפרסם אוטומטית מ-`main`.
+  עבודה חדשה: ענף מ-`main` ובקשת מיזוג. בניית ה-APK רצה בדחיפה ל-`main`.
   **לפני כל פרסום:** לבדוק ב-`list_deployments` מאיזה ענף וקומיט עלתה הגרסה האחרונה, ולמזג אותה קודם. ככה לא דורסים גרסה חדשה בישנה.
   פרסום: `create_deployment` עם `gitSource` לענף ול-sha האחרון, `target: production`.
 - **Supabase של השעון:** פרויקט `mkqjysfflavzfkckiuil` (`shaon-nochechut`, אזור ap-northeast-1),

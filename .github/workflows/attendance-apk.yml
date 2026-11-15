@@ -2,7 +2,7 @@ name: Attendance APK
 
 on:
   push:
-    branches: [claude/attendance-app-handoff-pwddw6, claude/attendance-app]
+    branches: [main]
     paths:
       - "attendance-android/**"
       - ".github/workflows/attendance-apk.yml"
