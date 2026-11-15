@@ -1,0 +1,39 @@
+# בונה את אפליקציית הטלוויזיה (Android TV) ושומר את קובץ ההתקנה באתר: /matkonim-tv.apk
+name: Build TV app
+
+on:
+  push:
+    paths:
+      - 'android-tv/**'
+      - '.github/workflows/android-tv.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Build APK
+        working-directory: android-tv
+        run: gradle assembleRelease --no-daemon
+      - name: Save APK to the website
+        run: |
+          cp android-tv/app/build/outputs/apk/release/app-release.apk recipes/public/matkonim-tv.apk
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add recipes/public/matkonim-tv.apk
+          git diff --cached --quiet || (git commit -m "TV app: new build" && git push)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: matkonim-tv
+          path: android-tv/app/build/outputs/apk/release/app-release.apk
