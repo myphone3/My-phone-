@@ -23,6 +23,7 @@ import android.webkit.WebViewClient;
 public class MainActivity extends Activity {
     static final String HOME = "https://matkonim-myphone3.vercel.app/tv";
     WebView web;
+    Updater updater;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -62,7 +63,15 @@ public class MainActivity extends Activity {
             }
         });
 
+        // גשר קטן: באתר אפשר ללחוץ "בדיקת עדכונים" ולראות את מספר הגרסה
+        updater = new Updater(this);
+        web.addJavascriptInterface(new Object() {
+            @android.webkit.JavascriptInterface public void checkUpdate() { runOnUiThread(() -> updater.check(true)); }
+            @android.webkit.JavascriptInterface public int version() { return updater.currentVersion(); }
+        }, "MatkonimApp");
+
         setContentView(web);
+        updater.check(false);
         if (savedInstanceState != null) web.restoreState(savedInstanceState);
         else web.loadUrl(HOME);
     }
@@ -106,6 +115,7 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         web.onResume();
+        if (updater != null) updater.resume();
         getWindow().getDecorView().setSystemUiVisibility(
             View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
     }

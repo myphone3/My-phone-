@@ -8,8 +8,9 @@ android {
         applicationId 'app.matkonim.tv'
         minSdk 23
         targetSdk 34
-        versionCode 1
-        versionName '1.0'
+        // מספר הגרסה נקבע אוטומטית בכל בנייה (GitHub Actions)
+        versionCode((project.findProperty('vc') ?: '1') as int)
+        versionName "1.${project.findProperty('vc') ?: '1'}"
     }
 
     // מפתח חתימה קבוע — כדי שאפשר יהיה לעדכן את האפליקציה בלי להסיר אותה

@@ -25,14 +25,15 @@ jobs:
           gradle-version: '8.10.2'
       - name: Build APK
         working-directory: android-tv
-        run: gradle assembleRelease --no-daemon
+        run: gradle assembleRelease --no-daemon -Pvc=${{ github.run_number }}
       - name: Save APK to the website
         run: |
           cp android-tv/app/build/outputs/apk/release/app-release.apk recipes/public/matkonim-tv.apk
+          echo '{"versionCode": ${{ github.run_number }}, "versionName": "1.${{ github.run_number }}", "url": "/matkonim-tv.apk"}' > recipes/public/tv-version.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add recipes/public/matkonim-tv.apk
-          git diff --cached --quiet || (git commit -m "TV app: new build" && git push)
+          git add recipes/public/matkonim-tv.apk recipes/public/tv-version.json
+          git diff --cached --quiet || (git commit -m "TV app: new build" && git pull --rebase && git push)
       - uses: actions/upload-artifact@v4
         with:
           name: matkonim-tv
