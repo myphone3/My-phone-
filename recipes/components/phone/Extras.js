@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { groups, scaleText, shareText, recipeText } from '@/lib/recipe';
 import { fetchNutrition, patchRecipe, shareRecipe, uploadImage } from '@/lib/api';
 import { compressImage } from '@/lib/importer';
-import { Sheet } from './ui';
+import { Sheet, Loader } from './ui';
 
 // ---- רשימת קניות מתוך המתכון ----
 export function ShoppingSheet({ recipe, cast, onClose, say }) {
@@ -85,7 +85,7 @@ export function NutritionSheet({ recipe, kitchenId, changed, onClose }) {
           <button className="btn primary big block" onClick={calc}>חישוב</button>
         </>
       )}
-      {busy && <div className="busy"><div className="spinner" /><b>מחשבים...</b></div>}
+      {busy && <div className="busy"><Loader /><b>מחשבים...</b></div>}
       {err && <p style={{ color: 'var(--red)' }}>{err}</p>}
       {data && !busy && (
         <>

@@ -6,7 +6,7 @@ import { getKitchenId, setKitchenId, read, write } from '@/lib/local';
 import { cachedKitchen, storeKitchen } from '@/lib/offline';
 import { useNow, useAlarms } from '@/lib/timers';
 import { unlockAudio } from '@/lib/sound';
-import { Timers } from './ui';
+import { Timers, Loader } from './ui';
 import Library from './Library';
 import RecipeView from './RecipeView';
 import CookView from './CookView';
@@ -183,7 +183,7 @@ export default function PhoneApp() {
 function Missing({ back, loading }) {
   return (
     <div className="wrap empty">
-      {loading ? <div className="spinner" /> : <><div className="e">🤔</div><h3>המתכון לא נמצא</h3><button className="btn" onClick={back}>חזרה</button></>}
+      {loading ? <Loader /> : <><div className="e">🤔</div><h3>המתכון לא נמצא</h3><button className="btn" onClick={back}>חזרה</button></>}
     </div>
   );
 }

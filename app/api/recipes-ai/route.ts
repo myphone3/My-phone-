@@ -67,33 +67,47 @@ export async function POST(request: Request) {
 
   // משאירים זמן גם למודל גיבוי אם הראשי איטי
   const deadline = started + 112_000;
-  let last = '';
   const models = [MAIN_MODEL, ...(await fallbackModels(apiKey))];
-  for (let i = 0; i < models.length; i++) {
-    const model = models[i];
-    const ms = Math.min(i === 0 ? 60_000 : 50_000, deadline - Date.now());
-    if (ms < 4000) break;
+  const errors: string[] = [];
+
+  // שליחה למודל אחד (עם ניסיון חוזר בלי הגדרת "חשיבה" אם המודל לא תומך בה)
+  const tryModel = async (model: string, signal: AbortSignal): Promise<any> => {
+    const t0 = Date.now();
+    const call = (body: string) => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+      signal: AbortSignal.any([signal, AbortSignal.timeout(Math.max(1000, deadline - Date.now()))]),
+    });
     try {
-      const call = (body: string, t: number) => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body,
-        signal: AbortSignal.timeout(t),
-      });
-      let res = await call(payload, ms);
+      let res = await call(payload);
       let data = await res.json().catch(() => ({}));
-      // מודל שלא תומך בהגדרת "חשיבה" — מנסים שוב בלעדיה
       if (res.status === 400 && plainPayload && /think/i.test(String(data?.error?.message || ''))) {
-        const left = Math.min(ms, deadline - Date.now());
-        if (left < 4000) break;
-        res = await call(plainPayload, left);
+        res = await call(plainPayload);
         data = await res.json().catch(() => ({}));
       }
-      if (res.ok) return NextResponse.json(data);
-      last = `${model}: ${res.status} ${String(data?.error?.message || '').slice(0, 120)}`;
+      if (!res.ok) throw new Error(`${res.status} ${String(data?.error?.message || '').slice(0, 120)}`);
+      console.log(`recipes-ai ok ${model} ${Date.now() - t0}ms images=${imageUrls.length}`);
+      return data;
     } catch (e: any) {
-      last = `${model}: ${e?.name === 'TimeoutError' ? 'timeout' : String(e?.message || e)}`;
+      const why = e?.name === 'TimeoutError' ? 'timeout' : e?.name === 'AbortError' ? 'aborted' : String(e?.message || e);
+      if (why !== 'aborted') console.log(`recipes-ai fail ${model} ${Date.now() - t0}ms ${why}`);
+      errors.push(`${model}: ${why}`);
+      throw e;
     }
+  };
+
+  // שני המודלים הראשונים רצים במקביל — התשובה הראשונה שמגיעה מנצחת, והשני מבוטל
+  const stop = new AbortController();
+  try {
+    const data = await Promise.any(models.slice(0, 2).map((m) => tryModel(m, stop.signal)));
+    stop.abort();
+    return NextResponse.json(data);
+  } catch {}
+  // שניהם נכשלו — מנסים את השאר אחד אחרי השני
+  for (const model of models.slice(2)) {
+    if (deadline - Date.now() < 4000) break;
+    try { return NextResponse.json(await tryModel(model, new AbortController().signal)); } catch {}
   }
-  return NextResponse.json({ error: last || 'ai error' }, { status: 502 });
+  return NextResponse.json({ error: errors.join(' | ') || 'ai error' }, { status: 502 });
 }
