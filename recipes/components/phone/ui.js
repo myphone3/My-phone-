@@ -10,6 +10,28 @@ export function metaLine(r) {
   return [fmtMinutes(totalMinutes(r)), r?.servings ? `${r.servings} מנות` : ''].filter(Boolean).join(' · ');
 }
 
+// אנימציית המתנה: האייקון של האפליקציה — המכסה של המגש מתרומם, יוצא אדים, ונסגר שוב
+export function Loader({ size = 84 }) {
+  return (
+    <svg className="loader" width={size} height={size} viewBox="0 0 512 512" role="img" aria-label="טוען">
+      <rect width="512" height="512" rx="112" fill="#d9622b" />
+      <rect x="96" y="128" width="320" height="216" rx="28" fill="#fff6ec" />
+      <rect x="216" y="356" width="80" height="26" rx="8" fill="#fff6ec" />
+      <rect x="168" y="378" width="176" height="22" rx="11" fill="#fff6ec" />
+      <g className="ld-lid">
+        <path d="M196 250c0-44 26-74 60-74s60 30 60 74z" fill="#d9622b" />
+        <circle cx="256" cy="170" r="10" fill="#d9622b" />
+      </g>
+      <g className="ld-steam" fill="none" stroke="#e8946a" strokeWidth="11" strokeLinecap="round">
+        <path className="s1" d="M282 242c-10-12 10-22 0-34" />
+        <path className="s2" d="M308 238c-10-12 10-22 0-34" />
+        <path className="s3" d="M334 242c-10-12 10-22 0-34" />
+      </g>
+      <rect x="176" y="250" width="160" height="22" rx="11" fill="#d9622b" />
+    </svg>
+  );
+}
+
 export function Sheet({ onClose, children }) {
   useEffect(() => {
     const prev = document.body.style.overflow;

@@ -5,7 +5,7 @@ import { updateKitchen } from '@/lib/api';
 import { deviceId } from '@/lib/local';
 import { MOODS, playNow, addToQueue, setMusic, jumpTo, removeAt, trackOf, musicCmd } from '@/lib/music';
 import { fmtClock } from '@/lib/recipe';
-import { Sheet } from './ui';
+import { Sheet, Loader } from './ui';
 
 export function useProgress(info, playing) {
   const [, tick] = useState(0);
@@ -189,7 +189,7 @@ export default function MusicSheet({ cast, data, kitchenId, changed, say, onClos
               </div>
             </>
           )}
-          {loading && <div className="busy" style={{ padding: 30 }}><div className="spinner" /></div>}
+          {loading && <div className="busy" style={{ padding: 30 }}><Loader /></div>}
           {!loading && results.map((r) => (
             <Result key={(r.listId || '') + r.videoId} r={r} saved={isSaved(r)} onPlay={() => { play(r); setTab('now'); }} onQueue={() => queue(r)} onSave={() => toggleSave(r)} />
           ))}

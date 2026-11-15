@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 import { filesToPages, uploadPages, extractRecipes, cropCover } from '@/lib/importer';
 import { saveRecipe, importFromUrl } from '@/lib/api';
 import { emptyRecipe } from '@/lib/recipe';
-import { Sheet } from './ui';
+import { Sheet, Loader } from './ui';
 
 export default function AddSheet({ kitchenId, onClose, replace, changed, say }) {
   const [stage, setStage] = useState('choose');
@@ -152,7 +152,7 @@ export default function AddSheet({ kitchenId, onClose, replace, changed, say }) 
 
       {stage === 'busy' && (
         <div className="busy">
-          <div className="spinner" />
+          <Loader />
           <b>{status || 'רגע...'}</b>
           <p className="muted small">מחלקים למצרכים, לחלקים ולשלבים לפי סדר ההכנה</p>
         </div>
