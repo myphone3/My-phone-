@@ -47,12 +47,15 @@ async function viaGateway(req, content, json) {
 
 // דרך השרת של החנות (משתמש במפתח Gemini של החנות, שנשאר שם)
 async function viaStore(parts, json) {
+  const t0 = Date.now();
+  console.log('viaStore start', process.env.STORE_AI_URL, 'secret?', !!process.env.RECIPES_AI_SECRET);
   const r = await fetch(process.env.STORE_AI_URL, {
     method: 'POST',
-    signal: AbortSignal.timeout(58000),
+    signal: AbortSignal.timeout(50000),
     headers: { 'Content-Type': 'application/json', 'x-recipes-secret': process.env.RECIPES_AI_SECRET || '' },
     body: JSON.stringify({ contents: [{ role: 'user', parts }], generationConfig: { temperature: json ? 0.1 : 0.5, ...(json ? { responseMimeType: 'application/json' } : {}) } }),
   });
+  console.log('viaStore status', r.status, Date.now() - t0, 'ms');
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error('store ai ' + r.status + ' ' + (j.error || ''));
   const t = j.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';

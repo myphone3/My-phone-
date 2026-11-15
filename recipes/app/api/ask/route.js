@@ -2,7 +2,7 @@
 import { askAI } from '@/lib/ai';
 
 export const runtime = 'nodejs';
-export const maxDuration = 40;
+export const maxDuration = 60;
 
 export async function POST(req) {
   let body;
