@@ -53,10 +53,13 @@ export async function POST(request: Request) {
       const images = await Promise.all(imageUrls.map(async (u) => {
         const r = await fetch(u, { signal: AbortSignal.timeout(12_000) });
         if (!r.ok) throw new Error('image ' + r.status);
-        return Buffer.from(await r.arrayBuffer()).toString('base64');
+        // תמונה או PDF (קבלות מהמייל)
+        const type = (r.headers.get('content-type') || '').split(';')[0];
+        const mime = /^(image\/(jpeg|png|webp)|application\/pdf)$/.test(type) ? type : 'image/jpeg';
+        return { mime, data: Buffer.from(await r.arrayBuffer()).toString('base64') };
       }));
       const first = body.contents[0] || { role: 'user', parts: [] };
-      first.parts = [...(first.parts || []), ...images.map((data) => ({ inline_data: { mime_type: 'image/jpeg', data } }))];
+      first.parts = [...(first.parts || []), ...images.map(({ mime, data }) => ({ inline_data: { mime_type: mime, data } }))];
       body.contents[0] = first;
     } catch (e: any) {
       return NextResponse.json({ error: 'images: ' + String(e?.message || e) }, { status: 502 });

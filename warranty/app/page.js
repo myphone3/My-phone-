@@ -17,7 +17,7 @@ export default function Home() {
   useEffect(() => {
     const v = getVaults();
     const params = new URLSearchParams(location.search);
-    if (v.length === 1 && !params.has('all')) return router.replace(`/v/${v[0].id}`);
+    if (v.length === 1 && !params.has('all')) return router.replace(`/v/${v[0].id}${location.search}`);
     setVaults(v);
   }, [router]);
 
@@ -39,13 +39,16 @@ export default function Home() {
         <div className="muted" style={{ marginTop: 6 }}>מצלמים את הקבלה פעם אחת — ומוצאים אותה תוך שנייה כשצריך</div>
       </div>
 
+      {vaults.length > 1 && /shared=1/.test(typeof location !== 'undefined' ? location.search : '') && (
+        <div className="alert" style={{ background: 'var(--brand-soft)', color: 'var(--brand)' }}>📎 לאיזה ארכיון להוסיף את הקובץ ששיתפת?</div>
+      )}
       {vaults.length > 0 && (
         <div className="card" style={{ padding: 6, marginBottom: 16 }}>
           <div className="muted small" style={{ padding: '8px 10px 2px', fontWeight: 700 }}>הארכיונים שלי</div>
           <div className="menu-list">
             {vaults.map((v) => (
               <div key={v.id} className="row" style={{ padding: '0 6px' }}>
-                <button className="grow" onClick={() => router.push(`/v/${v.id}`)}>
+                <button className="grow" onClick={() => { const q = new URLSearchParams(location.search); q.delete('all'); router.push(`/v/${v.id}${q.toString() ? '?' + q : ''}`); }}>
                   <span className="ic">🗂️</span><span className="grow" style={{ fontWeight: 700 }}>{v.name}</span><span className="muted">‹</span>
                 </button>
                 <button className="muted" style={{ padding: 8 }} aria-label="הסר מהמכשיר"
