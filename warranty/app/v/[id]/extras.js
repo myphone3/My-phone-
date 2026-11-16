@@ -1,10 +1,10 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import Sheet from '@/components/Sheet';
-import { PinPad } from '@/components/Lock';
+import { PinPad, NewPin } from '@/components/Lock';
 import { getSetting, setSetting } from '@/lib/settings';
 import { enablePush, disablePush, pushSupport } from '@/lib/push';
-import { setPin, clearLock, lockOn, lockInfo, bioAvailable, addBio, removeBio, checkPin } from '@/lib/lock';
+import { unlock, clearPin, bioAvailable, addBio, removeBio, hasBio, markOpen } from '@/lib/lock';
 import { catEmoji, fmtPrice } from '@/lib/warranty';
 
 function Toggle({ ic, title, sub, on, onClick, busy }) {
@@ -17,19 +17,18 @@ function Toggle({ ic, title, sub, on, onClick, busy }) {
   );
 }
 
-// הגדרות שנשמרות בטלפון הזה
-export function SettingsSheet({ vaultId, onClose, onChange, say }) {
+// הגדרות. הנעילה בקוד שייכת לארכיון (כל המכשירים), השאר נשמרות בטלפון הזה.
+export function SettingsSheet({ vault, onVault, onClose, onChange, say }) {
+  const vaultId = vault.id;
   const [s, setS] = useState({ notify: false, stats: false, enhance: false });
-  const [lock, setLock] = useState(false);
   const [bio, setBio] = useState({ can: false, on: false });
   const [busy, setBusy] = useState('');
-  const [pinStep, setPinStep] = useState(null); // null | {first?} | 'off'
+  const [pinStep, setPinStep] = useState(null); // null | 'new' | 'off' | 'change'
 
   useEffect(() => {
     setS({ notify: getSetting('notify'), stats: getSetting('stats'), enhance: getSetting('enhance') });
-    setLock(lockOn());
-    bioAvailable().then((can) => setBio({ can, on: !!lockInfo()?.cred }));
-  }, []);
+    bioAvailable().then((can) => setBio({ can, on: hasBio(vaultId) }));
+  }, [vaultId]);
 
   const save = (k, v) => { setSetting(k, v); setS((x) => ({ ...x, [k]: v })); onChange?.(); };
 
@@ -47,36 +46,37 @@ export function SettingsSheet({ vaultId, onClose, onChange, say }) {
   }
 
   async function toggleBio() {
-    if (bio.on) { removeBio(); setBio({ ...bio, on: false }); return; }
-    try { await addBio(); setBio({ ...bio, on: true }); say('👆 טביעת אצבע הופעלה'); } catch { say('לא הופעל'); }
+    if (bio.on) { removeBio(vaultId); setBio({ ...bio, on: false }); return say('טביעת אצבע / Face ID כובו בטלפון הזה'); }
+    try { await addBio(vaultId, vault.name); setBio({ ...bio, on: true }); say('👆 מעכשיו אפשר לפתוח בטביעת אצבע / Face ID'); } catch { say('לא הופעל'); }
   }
 
-  if (pinStep) {
-    const off = pinStep === 'off';
-    return (
-      <div style={{ position: 'fixed', inset: 0, zIndex: 75 }}>
-        <PinPad bio={false} key={off ? 'off' : pinStep.first ? 'confirm' : 'new'}
-          title={off ? 'כיבוי הנעילה' : pinStep.first ? 'שוב, לאישור' : 'בחר קוד של 4 ספרות'}
-          sub={off ? 'הקלד את הקוד הנוכחי' : pinStep.first ? 'הקלד שוב את אותו קוד' : 'הקוד נשמר רק בטלפון הזה'}
-          check={async (p) => (off ? checkPin(p) : !pinStep.first || p === pinStep.first)}
-          onOk={async (p) => {
-            if (off) { clearLock(); setLock(false); setBio({ ...bio, on: false }); setPinStep(null); return say('🔓 הנעילה כובתה'); }
-            if (!pinStep.first) return setPinStep({ first: p });
-            await setPin(p); setLock(true); setPinStep(null); say('🔒 הנעילה הופעלה');
-          }} />
-        <button className="btn" style={{ position: 'fixed', top: 16, insetInlineStart: 16, zIndex: 76 }} onClick={() => setPinStep(null)}>ביטול</button>
-      </div>
-    );
+  if (pinStep === 'new' || pinStep === 'change') {
+    return <div style={{ position: 'fixed', inset: 0, zIndex: 75 }}>
+      <NewPin vault={vault} onCancel={() => setPinStep(null)}
+        onDone={() => { setPinStep(null); markOpen(vaultId); onVault({ ...vault, has_pin: true }); say('🔒 הארכיון נעול בקוד'); }} />
+    </div>;
+  }
+  if (pinStep === 'off') {
+    return <div style={{ position: 'fixed', inset: 0, zIndex: 75 }}>
+      <PinPad title="כיבוי הנעילה" sub="הקלד את הקוד הנוכחי" onCancel={() => setPinStep(null)}
+        check={async (p) => {
+          const r = await unlock(vaultId, p);
+          if (!r.token) return r.error === 'wait' ? `יותר מדי ניסיונות. נסה בעוד ${r.minutes} דקות` : 'קוד שגוי';
+          try { await clearPin(vaultId); return true; } catch { return 'לא הצלחנו, נסה שוב'; }
+        }}
+        onOk={() => { setPinStep(null); setBio({ ...bio, on: false }); onVault({ ...vault, has_pin: false }); say('🔓 הנעילה כובתה בכל המכשירים'); }} />
+    </div>;
   }
 
   return (
     <Sheet onClose={onClose}>
       <h3>⚙️ הגדרות</h3>
-      <div className="muted small" style={{ marginBottom: 6 }}>ההגדרות נשמרות בטלפון הזה בלבד</div>
+      <Toggle ic="🔒" title="נעילה בקוד" sub="בכל מכשיר שנכנס לארכיון יידרש קוד של 4 ספרות" on={!!vault.has_pin} onClick={() => setPinStep(vault.has_pin ? 'off' : 'new')} />
+      {vault.has_pin && bio.can && <Toggle ic="👆" title="פתיחה בטביעת אצבע / Face ID" sub="בטלפון הזה, לפי הנעילה של הטלפון" on={bio.on} onClick={toggleBio} />}
+      {vault.has_pin && <button className="toggle" onClick={() => setPinStep('change')}><span className="ic">🔁</span><span className="grow"><b>החלפת קוד</b><div className="muted small">מכשירים אחרים יצטרכו להקליד את הקוד החדש</div></span></button>}
+      <div className="sec">בטלפון הזה</div>
       <Toggle ic="🔔" title="התראה לפני שהאחריות נגמרת" sub="חודש ושבוע לפני הסוף — לבדוק שהכול תקין" on={s.notify} busy={busy === 'notify'} onClick={toggleNotify} />
       <Toggle ic="📊" title="סיכום הוצאות" sub="כמה הוצאת, לפי שנה, קטגוריה וחנות" on={s.stats} onClick={() => save('stats', !s.stats)} />
-      <Toggle ic="🔒" title="נעילה בקוד" sub="קוד של 4 ספרות כשנכנסים לאפליקציה" on={lock} onClick={() => setPinStep(lock ? 'off' : {})} />
-      {lock && bio.can && <Toggle ic="👆" title="פתיחה בטביעת אצבע / פנים" sub="במקום להקליד קוד" on={bio.on} onClick={toggleBio} />}
       <Toggle ic="✨" title="שיפור אוטומטי לתמונות קבלה" sub="חיתוך הרקע וחיזוק טקסט דהוי — לתמונות חדשות" on={s.enhance} onClick={() => save('enhance', !s.enhance)} />
     </Sheet>
   );

@@ -150,3 +150,5 @@ textarea.input { height: auto; min-height: 80px; padding: 10px 14px; resize: ver
 .hbar .val { width: 72px; text-align: end; font-weight: 700; font-variant-numeric: tabular-nums; }
 .bigsum { text-align: center; padding: 14px; border-radius: 16px; background: var(--brand-soft); margin-bottom: 6px; }
 .bigsum b { display: block; font-size: 30px; color: var(--brand); }
+a.btn { text-decoration: none; color: inherit; }
+a.btn.primary { color: #fff; }

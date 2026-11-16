@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { prepareImage } from '@/lib/image';
 import { getSetting } from '@/lib/settings';
+import { rpc } from '@/lib/lock';
 import { PRESETS, CATEGORIES, todayStr, expiryDate, baseExpiry, fmtDate, fmtPrice, monthsLabel, isPdf } from '@/lib/warranty';
 import Sheet from '@/components/Sheet';
 
@@ -129,14 +130,14 @@ export default function Editor({ vaultId, initial, files, stores, onClose, onSav
       // כל מוצר נשמר כקבלה נפרדת (אותה תמונה, אותה חנות ותאריך)
       const out = [];
       for (const name of picked) {
-        const { data, error } = await supabase.rpc('wr_save_receipt', { p_vault: vaultId, p: payload({ product: name, price: prices[name] ?? '' }) });
+        const { data, error } = await rpc('wr_save_receipt', vaultId, { p: payload({ product: name, price: prices[name] ?? '' }) });
         if (error) { setBusy(false); return setErr('חלק מהמוצרים לא נשמרו. נסה שוב.'); }
         out.push(data);
       }
       setBusy(false);
       return onSaved(out, true);
     }
-    const { data, error } = await supabase.rpc('wr_save_receipt', { p_vault: vaultId, p: payload() });
+    const { data, error } = await rpc('wr_save_receipt', vaultId, { p: payload() });
     setBusy(false);
     if (error) return setErr('השמירה נכשלה. בדוק חיבור ונסה שוב.');
     onSaved([data], isNew);

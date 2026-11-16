@@ -1,7 +1,6 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 import { rememberVault, forgetVault, getPref, setPref } from '@/lib/local';
 import { status, matches, fmtDate, fmtPrice, catEmoji, CATEGORIES, expiryDate, isPdf } from '@/lib/warranty';
 import InstallButton from '@/components/InstallButton';
@@ -9,9 +8,9 @@ import Sheet from '@/components/Sheet';
 import Editor from './editor';
 import Detail from './detail';
 import { SettingsSheet, StatsSheet } from './extras';
-import Lock from '@/components/Lock';
+import LockScreen from '@/components/Lock';
 import { getSetting } from '@/lib/settings';
-import { clearLock } from '@/lib/lock';
+import { rpc, isOpen, markOpen, close as closeLock } from '@/lib/lock';
 import { takeSharedFiles } from '@/lib/shared';
 
 const FILTERS = [
@@ -28,19 +27,15 @@ const SORTS = [
 ];
 
 export default function VaultPage({ params }) {
-  const router = useRouter();
-  const forgot = () => {
-    if (!confirm('שכחת את הקוד?\nכדי לאפס, הארכיון יוסר מהטלפון הזה והנעילה תתבטל.\nהקבלות לא נמחקות — חוזרים אליהן דרך הקישור ששיתפת (בוואטסאפ למשל).')) return;
-    clearLock(); forgetVault(params.id); router.replace('/?all');
-  };
-  return <Lock onForgot={forgot}><Vault id={params.id} /></Lock>;
+  return <Vault id={params.id} />;
 }
 
 function Vault({ id }) {
   const router = useRouter();
   const [vault, setVault] = useState(null);
   const [list, setList] = useState([]);
-  const [state, setState] = useState('loading'); // loading | ok | missing | error
+  const [state, setState] = useState('loading'); // loading | ok | locked | missing | error
+  const [gate, setGate] = useState(false); // יש קוד והטלפון עוד לא פתח בחלון הזה
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState('all');
   const [cat, setCat] = useState('');
@@ -54,12 +49,14 @@ function Vault({ id }) {
   const say = useCallback((t) => { setToast(t); setTimeout(() => setToast(''), 2600); }, []);
 
   const load = useCallback(async () => {
-    const { data, error } = await supabase.rpc('wr_get_vault', { p_vault: id });
+    const { data, error } = await rpc('wr_get_vault', id);
     if (error) return setState((s) => (s === 'ok' ? s : 'error'));
     if (!data) return setState('missing');
     setVault(data.vault);
-    setList(data.receipts || []);
     rememberVault(id, data.vault.name);
+    if (data.locked) { setList([]); closeLock(id); return setState('locked'); }
+    setList(data.receipts || []);
+    setGate(!!data.vault.has_pin && !isOpen(id));
     setState('ok');
   }, [id]);
 
@@ -67,16 +64,22 @@ function Vault({ id }) {
 
   // הגיע מהתראה (?r=), מקיצור דרך (?add=1), או משיתוף קובץ מהגלריה/מייל (?shared=1)
   useEffect(() => {
-    if (state !== 'ok') return;
+    if (state !== 'ok' || gate) return;
     const p = new URLSearchParams(location.search);
     if (![...p.keys()].length) return;
     history.replaceState(null, '', location.pathname);
     if (p.get('r')) setSheet({ t: 'view', id: p.get('r') });
     else if (p.get('add')) setSheet({ t: 'add' });
     else if (p.get('shared')) takeSharedFiles().then((files) => { if (files.length) setSheet({ t: 'edit', r: null, files }); });
-  }, [state]);
+  }, [state, gate]);
   useEffect(() => {
-    const onVis = () => { if (document.visibilityState === 'visible') load(); };
+    let hiddenAt = 0;
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
+      // אחרי יותר מדקה ברקע — נועלים שוב
+      if (hiddenAt && Date.now() - hiddenAt > 60000) closeLock(id);
+      load();
+    };
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
   }, [load]);
@@ -125,7 +128,7 @@ function Vault({ id }) {
 
   async function remove(r) {
     if (!confirm(`למחוק את הקבלה של "${r.product || r.store || 'ללא שם'}"?`)) return;
-    const { error } = await supabase.rpc('wr_delete_receipt', { p_vault: id, p_id: r.id });
+    const { error } = await rpc('wr_delete_receipt', id, { p_id: r.id });
     if (error) return say('המחיקה נכשלה, נסה שוב');
     setList((l) => l.filter((x) => x.id !== r.id));
     setSheet(null);
@@ -133,6 +136,9 @@ function Vault({ id }) {
   }
 
   if (state === 'loading') return <div className="reading" style={{ paddingTop: 120 }}><div className="spin" /><div className="muted">טוען קבלות…</div></div>;
+  if (state === 'locked' || (state === 'ok' && gate)) {
+    return <LockScreen vault={vault} needPin={state === 'locked'} onOpen={() => { markOpen(id); setGate(false); if (state === 'locked') { setState('loading'); load(); } else load(); }} />;
+  }
   if (state === 'missing' || state === 'error') {
     return (
       <div className="wrap empty" style={{ paddingTop: 80 }}>
@@ -248,7 +254,7 @@ function Vault({ id }) {
         </Sheet>
       )}
       {sheet?.t === 'stats' && <StatsSheet list={list} onClose={() => setSheet(null)} />}
-      {sheet?.t === 'settings' && <SettingsSheet vaultId={id} say={say} onClose={() => setSheet(null)} onChange={() => setShowStats(getSetting('stats'))} />}
+      {sheet?.t === 'settings' && <SettingsSheet vault={vault} say={say} onVault={(v) => setVault(v)} onClose={() => setSheet(null)} onChange={() => setShowStats(getSetting('stats'))} />}
       {sheet?.t === 'menu' && (
         <MenuSheet vault={vault} list={list} onClose={() => setSheet(null)} say={say}
           onRenamed={(n) => { setVault({ ...vault, name: n }); rememberVault(id, n); }}
@@ -285,7 +291,7 @@ function MenuSheet({ vault, list, onClose, onRenamed, onLeave, onAll, onSettings
   async function rename() {
     const n = name.trim();
     if (!n || n === vault.name) return;
-    const { error } = await supabase.rpc('wr_rename_vault', { p_vault: vault.id, p_name: n });
+    const { error } = await rpc('wr_rename_vault', vault.id, { p_name: n });
     if (error) return say('לא נשמר, נסה שוב');
     onRenamed(n); say('✅ השם עודכן');
   }

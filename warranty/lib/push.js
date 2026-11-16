@@ -1,5 +1,6 @@
 // התראות לטלפון: הרשמה וביטול. הטלפון נרשם לארכיון, והשרת שולח פעם ביום מה שמתקרב לסוף האחריות.
 import { supabase } from './supabase';
+import { rpc } from './lock';
 
 const KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
@@ -28,7 +29,7 @@ export async function enablePush(vaultId) {
     await navigator.serviceWorker.ready;
     let sub = await reg.pushManager.getSubscription();
     if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(KEY) });
-    const { error } = await supabase.rpc('wr_push_subscribe', { p_vault: vaultId, p_sub: sub.toJSON() });
+    const { error } = await rpc('wr_push_subscribe', vaultId, { p_sub: sub.toJSON() });
     if (error) throw error;
     fetch('/api/push-test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sub: sub.toJSON(), vault: vaultId }) }).catch(() => {});
     return 'ok';
