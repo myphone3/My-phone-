@@ -1,13 +1,17 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 import { rememberVault, forgetVault, getPref, setPref } from '@/lib/local';
-import { status, matches, fmtDate, fmtPrice, catEmoji, CATEGORIES, expiryDate } from '@/lib/warranty';
+import { status, matches, fmtDate, fmtPrice, catEmoji, CATEGORIES, expiryDate, isPdf } from '@/lib/warranty';
 import InstallButton from '@/components/InstallButton';
 import Sheet from '@/components/Sheet';
 import Editor from './editor';
 import Detail from './detail';
+import { SettingsSheet, StatsSheet } from './extras';
+import LockScreen from '@/components/Lock';
+import { getSetting } from '@/lib/settings';
+import { rpc, isOpen, markOpen, close as closeLock } from '@/lib/lock';
+import { takeSharedFiles } from '@/lib/shared';
 
 const FILTERS = [
   { k: 'all', label: 'הכל' },
@@ -23,35 +27,59 @@ const SORTS = [
 ];
 
 export default function VaultPage({ params }) {
-  const id = params.id;
+  return <Vault id={params.id} />;
+}
+
+function Vault({ id }) {
   const router = useRouter();
   const [vault, setVault] = useState(null);
   const [list, setList] = useState([]);
-  const [state, setState] = useState('loading'); // loading | ok | missing | error
+  const [state, setState] = useState('loading'); // loading | ok | locked | missing | error
+  const [gate, setGate] = useState(false); // יש קוד והטלפון עוד לא פתח בחלון הזה
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState('all');
   const [cat, setCat] = useState('');
   const [sort, setSort] = useState('date');
   const [sheet, setSheet] = useState(null); // {t:'add'} | {t:'edit', r, files} | {t:'view', id} | {t:'menu'} | {t:'sort'}
   const [toast, setToast] = useState('');
+  const [showStats, setShowStats] = useState(false);
   const fileCam = useRef(null);
   const fileGal = useRef(null);
 
   const say = useCallback((t) => { setToast(t); setTimeout(() => setToast(''), 2600); }, []);
 
   const load = useCallback(async () => {
-    const { data, error } = await supabase.rpc('wr_get_vault', { p_vault: id });
+    const { data, error } = await rpc('wr_get_vault', id);
     if (error) return setState((s) => (s === 'ok' ? s : 'error'));
     if (!data) return setState('missing');
     setVault(data.vault);
-    setList(data.receipts || []);
     rememberVault(id, data.vault.name);
+    if (data.locked) { setList([]); closeLock(id); return setState('locked'); }
+    setList(data.receipts || []);
+    setGate(!!data.vault.has_pin && !isOpen(id));
     setState('ok');
   }, [id]);
 
-  useEffect(() => { setSort(getPref('sort', 'date')); load(); }, [load]);
+  useEffect(() => { setSort(getPref('sort', 'date')); setShowStats(getSetting('stats')); load(); }, [load]);
+
+  // הגיע מהתראה (?r=), מקיצור דרך (?add=1), או משיתוף קובץ מהגלריה/מייל (?shared=1)
   useEffect(() => {
-    const onVis = () => { if (document.visibilityState === 'visible') load(); };
+    if (state !== 'ok' || gate) return;
+    const p = new URLSearchParams(location.search);
+    if (![...p.keys()].length) return;
+    history.replaceState(null, '', location.pathname);
+    if (p.get('r')) setSheet({ t: 'view', id: p.get('r') });
+    else if (p.get('add')) setSheet({ t: 'add' });
+    else if (p.get('shared')) takeSharedFiles().then((files) => { if (files.length) setSheet({ t: 'edit', r: null, files }); });
+  }, [state, gate]);
+  useEffect(() => {
+    let hiddenAt = 0;
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
+      // אחרי יותר מדקה ברקע — נועלים שוב
+      if (hiddenAt && Date.now() - hiddenAt > 60000) closeLock(id);
+      load();
+    };
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
   }, [load]);
@@ -92,15 +120,15 @@ export default function VaultPage({ params }) {
     if (files.length) setSheet({ t: 'edit', r: null, files });
   }
 
-  function saved(r, isNew) {
-    setList((l) => (isNew ? [r, ...l] : l.map((x) => (x.id === r.id ? r : x))));
-    setSheet(isNew ? null : { t: 'view', id: r.id });
-    say(isNew ? '✅ הקבלה נשמרה' : '✅ עודכן');
+  function saved(rows, isNew) {
+    setList((l) => (isNew ? [...rows, ...l] : l.map((x) => rows.find((r) => r.id === x.id) || x)));
+    setSheet(isNew ? null : { t: 'view', id: rows[0].id });
+    say(isNew ? (rows.length > 1 ? `✅ נשמרו ${rows.length} מוצרים` : '✅ הקבלה נשמרה') : '✅ עודכן');
   }
 
   async function remove(r) {
     if (!confirm(`למחוק את הקבלה של "${r.product || r.store || 'ללא שם'}"?`)) return;
-    const { error } = await supabase.rpc('wr_delete_receipt', { p_vault: id, p_id: r.id });
+    const { error } = await rpc('wr_delete_receipt', id, { p_id: r.id });
     if (error) return say('המחיקה נכשלה, נסה שוב');
     setList((l) => l.filter((x) => x.id !== r.id));
     setSheet(null);
@@ -108,6 +136,9 @@ export default function VaultPage({ params }) {
   }
 
   if (state === 'loading') return <div className="reading" style={{ paddingTop: 120 }}><div className="spin" /><div className="muted">טוען קבלות…</div></div>;
+  if (state === 'locked' || (state === 'ok' && gate)) {
+    return <LockScreen vault={vault} needPin={state === 'locked'} onOpen={() => { markOpen(id); setGate(false); if (state === 'locked') { setState('loading'); load(); } else load(); }} />;
+  }
   if (state === 'missing' || state === 'error') {
     return (
       <div className="wrap empty" style={{ paddingTop: 80 }}>
@@ -133,6 +164,7 @@ export default function VaultPage({ params }) {
             <h1 className="title">{vault.name}</h1>
             <div className="muted small">{list.length ? `${list.length} קבלות` : 'עוד אין קבלות'}</div>
           </div>
+          {showStats && list.length > 0 && <button className="icon-btn" onClick={() => setSheet({ t: 'stats' })} aria-label="סיכום הוצאות">📊</button>}
           <button className="icon-btn" onClick={() => setSheet({ t: 'sort' })} aria-label="מיון">↕️</button>
           <button className="icon-btn" onClick={() => setSheet({ t: 'menu' })} aria-label="תפריט">☰</button>
         </div>
@@ -190,14 +222,14 @@ export default function VaultPage({ params }) {
 
       <button className="fab" onClick={() => setSheet({ t: 'add' })}>📸 קבלה חדשה</button>
       <input ref={fileCam} type="file" accept="image/*" capture="environment" hidden onChange={pickFiles} />
-      <input ref={fileGal} type="file" accept="image/*" multiple hidden onChange={pickFiles} />
+      <input ref={fileGal} type="file" accept="image/*,application/pdf" multiple hidden onChange={pickFiles} />
 
       {sheet?.t === 'add' && (
         <Sheet onClose={() => setSheet(null)}>
           <h3>קבלה חדשה</h3>
           <div className="menu-list">
             <button onClick={() => fileCam.current.click()}><span className="ic">📷</span><span className="grow"><b>לצלם עכשיו</b><div className="muted small">הכי טוב: קבלה ישרה, באור טוב</div></span></button>
-            <button onClick={() => fileGal.current.click()}><span className="ic">🖼️</span><span className="grow"><b>לבחור מהגלריה</b><div className="muted small">אפשר כמה תמונות: קבלה, תעודת אחריות, המוצר</div></span></button>
+            <button onClick={() => fileGal.current.click()}><span className="ic">🖼️</span><span className="grow"><b>לבחור מהגלריה או קובץ PDF</b><div className="muted small">אפשר כמה: קבלה, תעודת אחריות, חשבונית מהמייל</div></span></button>
             <button onClick={() => setSheet({ t: 'edit', r: null, files: [] })}><span className="ic">✍️</span><span className="grow"><b>בלי תמונה</b><div className="muted small">רק לרשום את הפרטים</div></span></button>
           </div>
         </Sheet>
@@ -221,10 +253,13 @@ export default function VaultPage({ params }) {
           </div>
         </Sheet>
       )}
+      {sheet?.t === 'stats' && <StatsSheet list={list} onClose={() => setSheet(null)} />}
+      {sheet?.t === 'settings' && <SettingsSheet vault={vault} say={say} onVault={(v) => setVault(v)} onClose={() => setSheet(null)} onChange={() => setShowStats(getSetting('stats'))} />}
       {sheet?.t === 'menu' && (
         <MenuSheet vault={vault} list={list} onClose={() => setSheet(null)} say={say}
           onRenamed={(n) => { setVault({ ...vault, name: n }); rememberVault(id, n); }}
-          onLeave={() => { forgetVault(id); router.replace('/?all'); }} onAll={() => router.push('/?all')} />
+          onLeave={() => { forgetVault(id); router.replace('/?all'); }} onAll={() => router.push('/?all')}
+          onSettings={() => setSheet({ t: 'settings' })} onStats={() => setSheet({ t: 'stats' })} />
       )}
       {toast && <div className="toast">{toast}</div>}
     </div>
@@ -235,7 +270,7 @@ function Row({ r, onClick }) {
   const s = r._s;
   return (
     <button className="card rc" onClick={onClick}>
-      <div className="thumb">{r.photos?.[0] ? <img src={r.photos[0]} alt="" loading="lazy" /> : catEmoji(r.category)}</div>
+      <div className="thumb">{r.photos?.[0] ? (isPdf(r.photos[0]) ? '📄' : <img src={r.photos[0]} alt="" loading="lazy" />) : catEmoji(r.category)}</div>
       <div className="grow">
         <div className="rname">{r.product || r.store || 'קבלה ללא שם'}</div>
         <div className="meta">
@@ -249,14 +284,14 @@ function Row({ r, onClick }) {
   );
 }
 
-function MenuSheet({ vault, list, onClose, onRenamed, onLeave, onAll, say }) {
+function MenuSheet({ vault, list, onClose, onRenamed, onLeave, onAll, onSettings, onStats, say }) {
   const [name, setName] = useState(vault.name);
   const link = typeof window !== 'undefined' ? `${location.origin}/v/${vault.id}` : '';
 
   async function rename() {
     const n = name.trim();
     if (!n || n === vault.name) return;
-    const { error } = await supabase.rpc('wr_rename_vault', { p_vault: vault.id, p_name: n });
+    const { error } = await rpc('wr_rename_vault', vault.id, { p_name: n });
     if (error) return say('לא נשמר, נסה שוב');
     onRenamed(n); say('✅ השם עודכן');
   }
@@ -267,8 +302,8 @@ function MenuSheet({ vault, list, onClose, onRenamed, onLeave, onAll, say }) {
   }
   function exportCsv() {
     const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-    const head = ['מוצר', 'חנות', 'קטגוריה', 'תאריך קנייה', 'מחיר', 'אחריות (חודשים)', 'סיום אחריות', 'מספר סידורי', 'הערות', 'תמונות'];
-    const rows = list.map((r) => { const e = expiryDate(r); return [r.product, r.store, r.category, r.purchase_date, r.price, r.warranty_months, e ? fmtDate(e) : '', r.serial, r.notes, (r.photos || []).join(' ')]; });
+    const head = ['מוצר', 'חנות', 'קטגוריה', 'תאריך קנייה', 'מחיר', 'אחריות (חודשים)', 'הרחבה (חודשים)', 'מחיר הרחבה', 'סיום אחריות', 'מספר סידורי', 'מספר קבלה', 'טלפון שירות', 'טלפון חנות', 'הערות', 'קבצים'];
+    const rows = list.map((r) => { const e = expiryDate(r); return [r.product, r.store, r.category, r.purchase_date, r.price, r.warranty_months, r.ext_months, r.ext_price, e ? fmtDate(e) : '', r.serial, r.receipt_no, r.service_phone, r.store_phone, r.notes, (r.photos || []).join(' ')]; });
     const csv = '﻿' + [head, ...rows].map((x) => x.map(esc).join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
@@ -294,6 +329,9 @@ function MenuSheet({ vault, list, onClose, onRenamed, onLeave, onAll, say }) {
       </div>
       <div className="sec">עוד</div>
       <div className="menu-list">
+        <button onClick={onSettings}><span className="ic">⚙️</span><span className="grow">הגדרות<div className="muted small">התראות, סיכום הוצאות, נעילה, שיפור תמונות</div></span></button>
+        {getSetting('stats') && <button onClick={onStats} disabled={!list.length}><span className="ic">📊</span><span className="grow">סיכום הוצאות</span></button>}
+        <a href="https://github.com/myphone3/My-phone-/releases/download/kabalot-apk-latest/kabalot.apk"><button><span className="ic">🤖</span><span className="grow">הורדת אפליקציה לאנדרואיד (APK)</span></button></a>
         <button onClick={exportCsv} disabled={!list.length}><span className="ic">📊</span><span className="grow">ייצוא לאקסל (גיבוי)</span></button>
         <button onClick={onAll}><span className="ic">🗂️</span><span className="grow">ארכיונים נוספים</span></button>
         <button onClick={() => { if (confirm('להסיר את הארכיון מהמכשיר הזה?\nהקבלות לא נמחקות — אפשר לחזור עם הקישור.')) onLeave(); }}><span className="ic">🚪</span><span className="grow">הסר מהמכשיר הזה</span></button>

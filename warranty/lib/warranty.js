@@ -37,14 +37,25 @@ const parse = (s) => { if (!s) return null; const [y, m, d] = s.split('-').map(N
 export const todayStr = () => { const d = new Date(); return iso(d); };
 export const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-export function expiryDate(r) {
-  const d = parse(r.purchase_date);
-  if (!d || !r.warranty_months) return null;
-  const e = new Date(d.getFullYear(), d.getMonth() + Number(r.warranty_months), d.getDate());
+function addMonths(d, m) {
+  const e = new Date(d.getFullYear(), d.getMonth() + m, d.getDate());
   // 31 בינואר + חודש => סוף פברואר
   if (e.getDate() !== d.getDate()) e.setDate(0);
   return e;
 }
+// סוף האחריות הרגילה (בלי ההרחבה)
+export function baseExpiry(r) {
+  const d = parse(r.purchase_date);
+  if (!d || !r.warranty_months) return null;
+  return addMonths(d, Number(r.warranty_months));
+}
+// סוף האחריות כולל הרחבה בתשלום
+export function expiryDate(r) {
+  const d = parse(r.purchase_date);
+  if (!d || !r.warranty_months) return null;
+  return addMonths(d, Number(r.warranty_months) + (Number(r.ext_months) || 0));
+}
+export const isPdf = (u) => /\.pdf($|\?)/i.test(u || '');
 
 // סטטוס: active / soon / expired / none / unknown
 export function status(r) {
@@ -75,6 +86,6 @@ const norm = (s) => String(s || '').toLowerCase().replace(/["'׳״\-_.]/g, '').r
 export function matches(r, q) {
   const words = norm(q).split(' ').filter(Boolean);
   if (!words.length) return true;
-  const hay = norm([r.product, r.store, r.category, r.notes, r.serial, ...(r.items || []), r.price, fmtDate(r.purchase_date), r.purchase_date?.slice(0, 4)].join(' '));
+  const hay = norm([r.product, r.store, r.category, r.notes, r.serial, r.receipt_no, r.ext_provider, ...(r.items || []), r.price, fmtDate(r.purchase_date), r.purchase_date?.slice(0, 4)].join(' '));
   return words.every((w) => hay.includes(w));
 }

@@ -1,29 +1,41 @@
 'use client';
 import { useState } from 'react';
-import { status, fmtDate, fmtPrice, monthsLabel, catEmoji } from '@/lib/warranty';
+import { status, fmtDate, fmtPrice, monthsLabel, catEmoji, baseExpiry, isPdf } from '@/lib/warranty';
 import Sheet from '@/components/Sheet';
+import { FileTile } from './editor';
 
 const ICON = { active: '🛡️', soon: '⏰', expired: '⌛', none: '🧾', unknown: '❔' };
+const tel = (p) => 'tel:' + String(p).replace(/[^\d*#+]/g, '');
+// מספר נייד ישראלי → קישור וואטסאפ ישיר
+const waNumber = (p) => { const d = String(p || '').replace(/\D/g, ''); return /^05\d{8}$/.test(d) ? '972' + d.slice(1) : /^9725\d{8}$/.test(d) ? d : ''; };
+
+function summary(r, s) {
+  return [
+    `🧾 ${r.product || 'קבלה'}`,
+    r.store && `חנות: ${r.store}`,
+    r.purchase_date && `תאריך קנייה: ${fmtDate(r.purchase_date)}`,
+    r.price !== null && r.price !== undefined && `מחיר: ${fmtPrice(r.price)}`,
+    r.receipt_no && `מספר קבלה: ${r.receipt_no}`,
+    r.serial && `מספר סידורי: ${r.serial}`,
+    s.end && `אחריות עד: ${fmtDate(s.end)}`,
+  ].filter(Boolean);
+}
 
 export default function Detail({ r, onClose, onEdit, onDelete, say }) {
   const [view, setView] = useState(-1);
+  const [broken, setBroken] = useState(false);
   const s = status(r);
-  const total = r.warranty_months ? Math.max(1, s.end ? (s.end - new Date(r.purchase_date)) / 86400000 : 1) : 1;
+  const base = baseExpiry(r);
+  const total = s.end && r.purchase_date ? Math.max(1, (s.end - new Date(r.purchase_date)) / 86400000) : 1;
   const pct = s.days !== undefined ? Math.max(0, Math.min(100, (s.days / total) * 100)) : 0;
 
   async function share() {
-    const lines = [
-      `🧾 ${r.product || 'קבלה'}`,
-      r.store && `חנות: ${r.store}`,
-      r.purchase_date && `תאריך קנייה: ${fmtDate(r.purchase_date)}`,
-      r.price !== null && r.price !== undefined && `מחיר: ${fmtPrice(r.price)}`,
-      s.end && `אחריות עד: ${fmtDate(s.end)}`,
-      r.serial && `מספר סידורי: ${r.serial}`,
-    ].filter(Boolean);
+    const lines = summary(r, s);
     try {
-      if (r.photos?.[0] && navigator.canShare) {
-        const blob = await (await fetch(r.photos[0])).blob();
-        const file = new File([blob], 'receipt.jpg', { type: 'image/jpeg' });
+      const first = r.photos?.[0];
+      if (first && navigator.canShare) {
+        const blob = await (await fetch(first)).blob();
+        const file = new File([blob], isPdf(first) ? 'receipt.pdf' : 'receipt.jpg', { type: blob.type });
         if (navigator.canShare({ files: [file] })) return await navigator.share({ files: [file], text: lines.join('\n') });
       }
       if (navigator.share) return await navigator.share({ text: lines.concat(r.photos || []).join('\n') });
@@ -44,13 +56,16 @@ export default function Detail({ r, onClose, onEdit, onDelete, say }) {
 
         {r.photos?.length > 0 && (
           <>
-            <button style={{ width: '100%' }} onClick={() => setView(0)}><img className="hero" src={r.photos[0]} alt="הקבלה" /></button>
+            {isPdf(r.photos[0])
+              ? <a className="btn block" style={{ height: 70, fontSize: 17 }} href={r.photos[0]} target="_blank" rel="noreferrer">📄 פתח את הקבלה (PDF)</a>
+              : <button style={{ width: '100%' }} onClick={() => setView(0)}><img className="hero" src={r.photos[0]} alt="הקבלה" /></button>}
             {r.photos.length > 1 && (
               <div className="photos" style={{ marginTop: 8 }}>
-                {r.photos.slice(1).map((u, i) => <button className="ph" key={u} onClick={() => setView(i + 1)}><img src={u} alt="" /></button>)}
+                {r.photos.slice(1).map((u, i) => (
+                  <FileTile key={u} url={u} onClick={() => (isPdf(u) ? window.open(u, '_blank') : setView(i + 1))} />
+                ))}
               </div>
             )}
-            <div className="muted small" style={{ textAlign: 'center', marginTop: 4 }}>לחץ על התמונה להגדלה</div>
           </>
         )}
 
@@ -58,17 +73,25 @@ export default function Detail({ r, onClose, onEdit, onDelete, say }) {
           <div className="ic">{ICON[s.k]}</div>
           <div className="grow">
             <b>{s.label}</b>
-            {s.end && <div className="small">{s.k === 'expired' ? 'הסתיימה ב-' : 'בתוקף עד '}{fmtDate(s.end)}</div>}
+            {s.end && <div className="small">{s.k === 'expired' ? 'הסתיימה ב-' : 'בתוקף עד '}{fmtDate(s.end)}{r.ext_months ? ' (כולל הרחבה)' : ''}</div>}
             {(s.k === 'active' || s.k === 'soon') && <div className="bar"><div style={{ width: pct + '%' }} /></div>}
           </div>
         </div>
 
+        <button className="btn block" style={{ height: 52, fontSize: 17, borderColor: 'var(--amber)', color: 'var(--amber)' }} onClick={() => setBroken(true)}>
+          🔧 המוצר התקלקל — מה עושים?
+        </button>
+
         <dl className="kv">
           {r.purchase_date && <><dt>📅 נקנה</dt><dd>{fmtDate(r.purchase_date)}</dd></>}
           {r.price !== null && r.price !== undefined && <><dt>💰 מחיר</dt><dd>{fmtPrice(r.price)}</dd></>}
-          <dt>🛡️ אחריות</dt><dd>{monthsLabel(r.warranty_months)}</dd>
+          <dt>🛡️ אחריות</dt><dd>{monthsLabel(r.warranty_months)}{base && r.ext_months ? ` (עד ${fmtDate(base)})` : ''}</dd>
+          {r.ext_months > 0 && <><dt>➕ הרחבה</dt><dd>{monthsLabel(r.ext_months)}{r.ext_provider ? ` · ${r.ext_provider}` : ''}{r.ext_price != null ? ` · ${fmtPrice(r.ext_price)}` : ''}</dd></>}
           {r.category && <><dt>{catEmoji(r.category)} קטגוריה</dt><dd>{r.category}</dd></>}
+          {r.service_phone && <><dt>📞 שירות</dt><dd><a href={tel(r.service_phone)} dir="ltr">{r.service_phone}</a></dd></>}
+          {r.store_phone && <><dt>🏪 חנות</dt><dd><a href={tel(r.store_phone)} dir="ltr">{r.store_phone}</a></dd></>}
           {r.serial && <><dt>🔢 סידורי</dt><dd dir="ltr" style={{ textAlign: 'right' }}>{r.serial}</dd></>}
+          {r.receipt_no && <><dt>🧾 קבלה מס׳</dt><dd dir="ltr" style={{ textAlign: 'right' }}>{r.receipt_no}</dd></>}
           {r.items?.length > 1 && <><dt>📦 בקבלה</dt><dd>{r.items.join(' · ')}</dd></>}
           {r.notes && <><dt>📝 הערות</dt><dd style={{ whiteSpace: 'pre-wrap' }}>{r.notes}</dd></>}
         </dl>
@@ -80,6 +103,8 @@ export default function Detail({ r, onClose, onEdit, onDelete, say }) {
         <button className="btn danger block" style={{ marginTop: 10 }} onClick={onDelete}>🗑️ מחיקה</button>
       </Sheet>
 
+      {broken && <Broken r={r} s={s} base={base} onClose={() => setBroken(false)} onEdit={() => { setBroken(false); onEdit(); }} onShowReceipt={() => { setBroken(false); if (r.photos?.[0]) isPdf(r.photos[0]) ? window.open(r.photos[0], '_blank') : setView(0); }} say={say} />}
+
       {view >= 0 && (
         <div className="viewer">
           <div className="vimg"><img src={r.photos[view]} alt="" /></div>
@@ -87,12 +112,81 @@ export default function Detail({ r, onClose, onEdit, onDelete, say }) {
             <button onClick={() => setView(-1)}>✕ סגור</button>
             {r.photos.length > 1 && <span style={{ color: '#fff', alignSelf: 'center' }}>{view + 1} / {r.photos.length}</span>}
             <div className="row">
-              {r.photos.length > 1 && <button onClick={() => setView((view + 1) % r.photos.length)}>הבאה ‹</button>}
+              {r.photos.length > 1 && <button onClick={() => { let n = view; do { n = (n + 1) % r.photos.length; } while (isPdf(r.photos[n]) && n !== view); setView(n); }}>הבאה ‹</button>}
               <a href={r.photos[view]} target="_blank" rel="noreferrer"><button>⬇️ פתח</button></a>
             </div>
           </div>
         </div>
       )}
     </>
+  );
+}
+
+// "המוצר התקלקל": האם יש אחריות, למי לפנות, והודעה מוכנה עם כל הפרטים
+function Broken({ r, s, base, onClose, onEdit, onShowReceipt, say }) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const inBase = base && base >= today;
+  const inExt = !inBase && s.end && s.end >= today && r.ext_months > 0;
+  const covered = inBase || inExt;
+  const name = r.product || 'המוצר';
+  const msg = [
+    'שלום,',
+    `${name} שקניתי${r.store ? ' ב' + r.store : ''}${r.purchase_date ? ' בתאריך ' + fmtDate(r.purchase_date) : ''} התקלקל.`,
+    covered ? `המוצר באחריות עד ${fmtDate(inBase ? base : s.end)}${inExt && r.ext_provider ? ' (הרחבת אחריות ' + r.ext_provider + ')' : ''}.` : '',
+    r.serial ? `מספר סידורי: ${r.serial}` : '',
+    r.receipt_no ? `מספר קבלה: ${r.receipt_no}` : '',
+    'התקלה: ',
+    '',
+    'אשמח לדעת איך מתקדמים לתיקון. מצרף/ת את הקבלה.',
+    ...(r.photos || []).slice(0, 2),
+  ].filter((x, i) => x !== '' || i === 6).join('\n');
+
+  const wa = (phone) => `https://wa.me/${waNumber(phone)}?text=${encodeURIComponent(msg)}`;
+  const anyPhone = r.service_phone || r.store_phone;
+
+  return (
+    <Sheet onClose={onClose}>
+      <h3>🔧 {name} התקלקל</h3>
+      <div className={'big-status s-' + (covered ? 'active' : s.k === 'none' || s.k === 'unknown' ? 'unknown' : 'expired')} style={{ marginTop: 0 }}>
+        <div className="ic">{covered ? '✅' : '❌'}</div>
+        <div className="grow">
+          {covered ? (
+            <><b>יש אחריות — התיקון אמור להיות בחינם</b>
+              <div className="small">{inExt ? `האחריות הרגילה נגמרה, אבל יש הרחבה${r.ext_provider ? ' של ' + r.ext_provider : ''} עד ${fmtDate(s.end)}` : `באחריות עד ${fmtDate(base)}`}</div></>
+          ) : s.k === 'expired' ? (
+            <><b>האחריות נגמרה ב-{fmtDate(s.end)}</b><div className="small">התיקון כנראה בתשלום. עדיין שווה לשאול — לפעמים מתחשבים.</div></>
+          ) : (
+            <><b>לא רשום כמה זמן אחריות</b><div className="small">בדוק בקבלה או בתעודת האחריות ועדכן בעריכה</div></>
+          )}
+        </div>
+      </div>
+
+      <div className="sec">למי פונים?</div>
+      <div className="muted small" style={{ margin: '0 4px 8px' }}>
+        {inExt && r.ext_provider ? `בזמן ההרחבה פונים ל${r.ext_provider}.` : 'בדרך כלל ליבואן / למעבדה המורשית שכתובה בתעודת האחריות. אם לא ברור — לחנות.'}
+      </div>
+      <div className="menu-list">
+        {r.service_phone && (
+          <a href={tel(r.service_phone)}><button><span className="ic">📞</span><span className="grow"><b>להתקשר לשירות / מעבדה</b><div className="muted small" dir="ltr" style={{ textAlign: 'right' }}>{r.service_phone}</div></span></button></a>
+        )}
+        {r.store_phone && (
+          <a href={tel(r.store_phone)}><button><span className="ic">🏪</span><span className="grow"><b>להתקשר לחנות{r.store ? ' ' + r.store : ''}</b><div className="muted small" dir="ltr" style={{ textAlign: 'right' }}>{r.store_phone}</div></span></button></a>
+        )}
+        <a href={anyPhone && waNumber(anyPhone) ? wa(anyPhone) : `https://wa.me/?text=${encodeURIComponent(msg)}`} target="_blank" rel="noreferrer">
+          <button><span className="ic">💬</span><span className="grow"><b>שליחת הודעה מוכנה בוואטסאפ</b><div className="muted small">עם כל הפרטים והקבלה — רק לכתוב מה התקלה</div></span></button>
+        </a>
+        <button onClick={async () => { try { await navigator.clipboard.writeText(msg); say('📋 ההודעה הועתקה'); } catch {} }}>
+          <span className="ic">📋</span><span className="grow"><b>העתקת ההודעה</b><div className="muted small">להדביק במייל או בטופס באתר</div></span>
+        </button>
+        <a href={`https://www.google.com/search?q=${encodeURIComponent('מעבדה מורשית ' + (r.product || '') + ' טלפון')}`} target="_blank" rel="noreferrer">
+          <button><span className="ic">🔎</span><span className="grow"><b>חיפוש מעבדה מורשית בגוגל</b></span></button>
+        </a>
+        {r.photos?.length > 0 && <button onClick={onShowReceipt}><span className="ic">🧾</span><span className="grow"><b>להראות את הקבלה</b><div className="muted small">במסך מלא, להציג בחנות או במעבדה</div></span></button>}
+        {!anyPhone && <button onClick={onEdit}><span className="ic">➕</span><span className="grow"><b>להוסיף טלפון של מעבדה / חנות</b><div className="muted small">כדי שבפעם הבאה זה יהיה בלחיצה</div></span></button>}
+      </div>
+      <div className="muted small" style={{ marginTop: 12, lineHeight: 1.6 }}>
+        💡 טיפים: לבקש תעודת מעבדה עם מספר קריאה · לצלם את המוצר והתקלה · לשמור את ההתכתבות (אפשר להוסיף כאן תמונות בעריכה)
+      </div>
+    </Sheet>
   );
 }
