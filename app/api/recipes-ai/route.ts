@@ -23,7 +23,7 @@ async function fallbackModels(apiKey: string): Promise<string[]> {
       .map((m: any) => String(m.name || '').replace(/^models\//, ''))
       .filter((n: string) => /^gemini-[\d.]+-flash(-lite)?$/.test(n) && n !== MAIN_MODEL)
       .sort((a: string, b: string) => parseFloat(b.split('-')[1]) - parseFloat(a.split('-')[1]) || Number(a.includes('lite')) - Number(b.includes('lite')))
-      .slice(0, 3);
+      .slice(0, 5);
     modelsCache = { at: Date.now(), list };
     return list;
   } catch {
@@ -69,27 +69,40 @@ export async function POST(request: Request) {
 
   // משאירים זמן גם למודל גיבוי אם הראשי איטי
   const deadline = started + 112_000;
-  const models = [FAST_MODEL, MAIN_MODEL, ...(await fallbackModels(apiKey))].filter((m, i, a) => a.indexOf(m) === i);
+  // סדר הניסיון: המהיר, הראשי, ואחריהם כל השאר (כולל lite) ומודל ותיק כגיבוי אחרון
+  const models = [FAST_MODEL, MAIN_MODEL, ...(await fallbackModels(apiKey)), 'gemini-2.5-flash'].filter((m, i, a) => a.indexOf(m) === i);
   const errors: string[] = [];
+  const stop = new AbortController();
+  const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-  // שליחה למודל אחד (עם ניסיון חוזר בלי הגדרת "חשיבה" אם המודל לא תומך בה)
-  const tryModel = async (model: string, signal: AbortSignal): Promise<any> => {
+  // שליחה למודל אחד: עד 50 שניות; אם "עמוס" (503) — ניסיון חוזר אחד אחרי שנייה וחצי;
+  // אם לא תומך בהגדרת "חשיבה" — שוב בלעדיה
+  const tryModel = async (model: string): Promise<any> => {
     const t0 = Date.now();
+    const limit = Math.min(50_000, deadline - Date.now());
     const call = (body: string) => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body,
-      signal: AbortSignal.any([signal, AbortSignal.timeout(Math.max(1000, deadline - Date.now()))]),
+      signal: AbortSignal.any([stop.signal, AbortSignal.timeout(Math.max(1000, t0 + limit - Date.now()))]),
     });
     try {
-      let res = await call(payload);
+      let body = payload;
+      let res = await call(body);
       let data = await res.json().catch(() => ({}));
       if (res.status === 400 && plainPayload && /think/i.test(String(data?.error?.message || ''))) {
         console.log(`recipes-ai ${model} rejected thinking setting: ${String(data?.error?.message || '').slice(0, 120)}`);
-        res = await call(plainPayload);
+        body = plainPayload;
+        res = await call(body);
+        data = await res.json().catch(() => ({}));
+      }
+      if (res.status === 503 && t0 + limit - Date.now() > 10_000) {
+        await wait(1500);
+        res = await call(body);
         data = await res.json().catch(() => ({}));
       }
       if (!res.ok) throw new Error(`${res.status} ${String(data?.error?.message || '').slice(0, 120)}`);
+      if (!data?.candidates?.[0]?.content?.parts?.length) throw new Error('empty answer');
       console.log(`recipes-ai ok ${model} ${Date.now() - t0}ms images=${imageUrls.length} thoughts=${data?.usageMetadata?.thoughtsTokenCount ?? 0} out=${data?.usageMetadata?.candidatesTokenCount ?? '?'}`);
       return data;
     } catch (e: any) {
@@ -100,17 +113,24 @@ export async function POST(request: Request) {
     }
   };
 
-  // שני המודלים הראשונים רצים במקביל — התשובה הראשונה שמגיעה מנצחת, והשני מבוטל
-  const stop = new AbortController();
-  try {
-    const data = await Promise.any(models.slice(0, 2).map((m) => tryModel(m, stop.signal)));
-    stop.abort();
-    return NextResponse.json(data);
-  } catch {}
-  // שניהם נכשלו — מנסים את השאר אחד אחרי השני
-  for (const model of models.slice(2)) {
-    if (deadline - Date.now() < 4000) break;
-    try { return NextResponse.json(await tryModel(model, new AbortController().signal)); } catch {}
-  }
+  // מתחילים במודל הראשון. מודל נוסף נכנס לפעולה מיד כשמודל נכשל, או אחרי 15 שניות בלי תשובה.
+  // התשובה הראשונה שמגיעה מנצחת, והשאר מבוטלים. עד 3 מודלים רצים בו-זמנית.
+  const data = await new Promise<any>((resolve) => {
+    let next = 0, running = 0, done = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const finish = (d: any) => { if (done) return; done = true; if (timer) clearTimeout(timer); stop.abort(); resolve(d); };
+    const launch = () => {
+      if (done) return;
+      if (timer) clearTimeout(timer);
+      if (next >= models.length || deadline - Date.now() < 6000) { if (!running) finish(null); return; }
+      if (running >= 3) { timer = setTimeout(launch, 15_000); return; }
+      const model = models[next++];
+      running++;
+      tryModel(model).then(finish, () => { running--; launch(); });
+      timer = setTimeout(launch, 15_000);
+    };
+    launch();
+  });
+  if (data) return NextResponse.json(data);
   return NextResponse.json({ error: errors.join(' | ') || 'ai error' }, { status: 502 });
 }
