@@ -4,6 +4,7 @@ import { pusher } from '@/lib/webpush';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
 export const maxDuration = 60;
 
 export async function GET(req) {
@@ -11,7 +12,11 @@ export async function GET(req) {
   if (!secret || req.headers.get('authorization') !== `Bearer ${secret}`) return Response.json({ error: 'unauthorized' }, { status: 401 });
   const wp = pusher();
   if (!wp) return Response.json({ error: 'no-push' }, { status: 503 });
-  const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, { auth: { persistSession: false } });
+  const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+    auth: { persistSession: false },
+    // בלי מטמון: כל ריצה חייבת לקרוא מהמסד מחדש
+    global: { fetch: (url, opts) => fetch(url, { ...opts, cache: 'no-store' }) },
+  });
   const { data, error } = await db.rpc('wr_push_due', { p_secret: secret });
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
