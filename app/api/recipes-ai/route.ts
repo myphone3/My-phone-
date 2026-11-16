@@ -4,13 +4,13 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
 
-// שירות פנימי לאפליקציית המתכונים (matkonim): משתמש במפתח Gemini של החנות,
-// בלי שהמפתח יוצא מהשרת. מוגן בסיסמה משותפת (RECIPES_AI_SECRET) — אחרים לא יכולים להשתמש.
+// שירות פנימי לאפליקציית המתכונים (matkonim) ולאפליקציית הקבלות לאחריות: משתמש במפתח Gemini של החנות,
+// בלי שהמפתח יוצא מהשרת. מוגן בסיסמה משותפת (RECIPES_AI_SECRET / WARRANTY_AI_SECRET) — אחרים לא יכולים להשתמש.
 
 const MAIN_MODEL = 'gemini-3.8-flash';
 // נבדק: 3.6-flash קורא 10 עמודים בכ-12 שניות (בלי "חשיבה"), כשהחדשים יותר לוקחים 90+ שניות או עמוסים
 const FAST_MODEL = 'gemini-3.6-flash';
-const IMAGE_URL = /^https:\/\/[a-z0-9]+\.supabase\.co\/storage\/v1\/object\/public\/rc-photos\//;
+const IMAGE_URL = /^https:\/\/[a-z0-9]+\.supabase\.co\/storage\/v1\/object\/public\/(rc|wr)-photos\//;
 let modelsCache: { at: number; list: string[] } | null = null;
 
 async function fallbackModels(apiKey: string): Promise<string[]> {
@@ -33,8 +33,9 @@ async function fallbackModels(apiKey: string): Promise<string[]> {
 
 export async function POST(request: Request) {
   const started = Date.now();
-  const secret = process.env.RECIPES_AI_SECRET;
-  if (!secret || request.headers.get('x-recipes-secret') !== secret) {
+  const given = request.headers.get('x-recipes-secret');
+  const secrets = [process.env.RECIPES_AI_SECRET, process.env.WARRANTY_AI_SECRET].filter(Boolean);
+  if (!given || !secrets.includes(given)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
   const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
