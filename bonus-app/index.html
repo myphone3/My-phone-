@@ -1089,7 +1089,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   var REPAIR_TYPES = ["מגע", "תיקון באחריות", "נגן", "פלאט", "נזקי מים", "רמקול", "מיקרופון", "אוזנייה", "כפתורים", "מיילר", "מקשים"];
   var REPAIR_DROPPED = ["ויברציה", "מצלמה קדמית", "קליטה ואנטנה", "החלפת גב", "ניקוי שקע", "הדבקת מגן מסך", "שחזור מידע"];
   var NOKIA_MODELS = ["Nokia 235", "Nokia 225", "Nokia 3210", "Nokia 2660 Flip", "Xiaomi Qin F21 Pro"];
-  // every phone sold on kosher-phone.com (kosher, kosher-ready, Hadran, cordless, kids tablet), with its photo from the site
+  // every phone sold on kosher-phone.com (kosher, kosher-ready, Hadran; no home cordless phones or kids tablet), with its photo from the site
   // [name, maker, photo, other names it may already be saved under]
   var SITE_IMG = "https://kosher-phone.com/uploads/";
   var SITE_DEVICES = [
@@ -1143,10 +1143,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     ["Unihertz Jelly Max", "יוניהרץ", "1792871813984-gtcbtz.webp", ["jelly max"]],
     ["Unihertz Jelly Star", "יוניהרץ", "1792871814768-ad2gsk.webp", ["jelly star"]],
     ["Galaxy S25 הדרן", "סמסונג", "1792881146338-475xl0.webp", ["s25", "galaxy s25"]],
-    ["Galaxy Tab A11 הדרן", "סמסונג", "1777912974450-w0pr48.jpg", ["טאבלט a11", "tab a11"]],
-    ["Motorola S3001", "מוטורולה", "1778422106725-29mpul.webp", ["s3001"]],
-    ["Panasonic KX-TGD310", "פנסוניק", "1792881105908-282c47.webp", ["kxtgd310", "kx tgd310"]],
-    ["TabKosher", "בלו פון", "1792685050486-rand34.webp", ["טאב כשר", "tab kosher"]]
+    ["Galaxy Tab A11 הדרן", "סמסונג", "1777912974450-w0pr48.jpg", ["טאבלט a11", "tab a11"]]
   ];
   BUILTIN_IMG.unshift(
     ["device", ["2252024", "225 2024"], "https://kosher-phone.com/uploads/1792872088174-8ktq51.jpg"],
@@ -1191,10 +1188,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     ["טיק", ["tiq", "טיק"], "https://kosher-phone.com/uploads/1792919425281-nmb2ft.webp"],
     ["יוניהרץ", ["unihertz", "יוניהרץ", "jelly"], "https://kosher-phone.com/uploads/1793513194442-c0wfy7.webp"],
     ["אייפון", ["אייפון", "איפון", "iphone", "apple"], "builtin:אייפון"],
-    ["סמסונג", ["סמסונג", "samsung", "galaxy", "גלקסי"], "builtin:סמסונג"],
-    ["מוטורולה", ["motorola", "מוטורולה"], "https://kosher-phone.com/uploads/1792919427133-bjwkhy.webp"],
-    ["פנסוניק", ["panasonic", "פנסוניק"], "https://kosher-phone.com/uploads/1793513192570-4oy4ic.webp"],
-    ["בלו פון", ["blue phone", "בלו פון", "tabkosher"], "https://kosher-phone.com/uploads/1792919422328-wnh17b.webp"]
+    ["סמסונג", ["סמסונג", "samsung", "galaxy", "גלקסי"], "builtin:סמסונג"]
   ];
   function brandLogo(name) {
     var b = BRANDS.filter(function (x) { return x[0] === name; })[0];
@@ -1496,6 +1490,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     addModelPack("pack-nokia-1", NOKIA_MODELS, null, "דגמי נוקיה ושיאומי");
     addModelPack("pack-nokia-2", ["Nokia 225-2024"], "Nokia 225", "דגמי נוקיה");
     syncSiteDevices("pack-site-1");
+    dropSiteDevices("pack-site-drop-1", ["Motorola S3001", "Panasonic KX-TGD310", "TabKosher"]);
     addModelPack("pack-qin25-1", ["Xiaomi Qin K25", "Xiaomi Qin F25"], null, "דגמי שיאומי");
     addModelPack("pack-repairs-1", REPAIR_TYPES, null, "סוגי תיקונים", "repair");
     dropRepairTypes();
@@ -1577,6 +1572,16 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     next.push({ id: packId, kind: "_pack", name: "" });
     saveConfig({ types: next });
     if (add.length || fixed) toast("סונכרנו המכשירים מהאתר: " + add.length + " חדשים" + (fixed ? ", " + fixed + " קיבלו תמונה" : ""));
+  }
+  // one-time: take out devices that were synced from the site but are not wanted (past entries keep their name)
+  function dropSiteDevices(packId, names) {
+    if (!activeAcct() || isMember() || state.cfgTarget) return;
+    var list = types();
+    if (list.some(function (t) { return t.id === packId; })) return;
+    var drop = names.map(norm);
+    var next = list.filter(function (t) { return !(t.kind === "device" && drop.indexOf(norm(t.name)) >= 0); });
+    next.push({ id: packId, kind: "_pack", name: "" });
+    saveConfig({ types: next });
   }
   // a pack of device models is added once; its hidden marker keeps deleted models from coming back
   function addModelPack(packId, models, afterName, what, kind) {
