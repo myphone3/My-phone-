@@ -9,13 +9,15 @@ import Sheet from '@/components/Sheet';
 
 const EXT_PRESETS = [12, 24, 36];
 
-async function upload(vaultId, file) {
+// product=true: תמונת מוצר — בלי "שיפור קבלה", ובגודל קטן יותר
+export async function upload(vaultId, file, product = false) {
   const pdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '');
   let body = file, type = 'application/pdf', ext = 'pdf';
   if (pdf) {
+    if (product) throw new Error('pdf');
     if (file.size > 10 * 1024 * 1024) throw new Error('big');
   } else {
-    body = await prepareImage(file, { improve: getSetting('enhance') });
+    body = await prepareImage(file, product ? { maxSide: 1200 } : { improve: getSetting('enhance') });
     type = 'image/jpeg'; ext = 'jpg';
   }
   const path = `${vaultId}/${crypto.randomUUID()}.${ext}`;
@@ -53,7 +55,19 @@ export default function Editor({ vaultId, initial, files, stores, onClose, onSav
     notes: initial?.notes || '',
     items: initial?.items || [],
     photos: initial?.photos || [],
+    product_photo: initial?.product_photo || '',
   }));
+  const [prodBusy, setProdBusy] = useState(false);
+  const prodCam = useRef(null);
+  const prodGal = useRef(null);
+
+  async function addProductPhoto(file) {
+    if (!file) return;
+    setProdBusy(true);
+    try { const u = await upload(vaultId, file, true); touched.current.add('product_photo'); setF((x) => ({ ...x, product_photo: u })); }
+    catch (e) { setErr(e.message === 'pdf' ? 'לתמונת המוצר צריך תמונה, לא PDF' : 'התמונה לא עלתה. נסה שוב.'); }
+    setProdBusy(false);
+  }
   const [prices, setPrices] = useState({}); // מחיר לכל מוצר שנקרא מהקבלה
   const [split, setSplit] = useState(false);
   const [picked, setPicked] = useState([]);
@@ -96,6 +110,12 @@ export default function Editor({ vaultId, initial, files, stores, onClose, onSav
         ['product', 'store', 'price', 'serial', 'category', 'warranty_months', 'receipt_no', 'store_phone', 'service_phone', 'ext_months', 'ext_provider', 'ext_price'].forEach((k) => fill(k, j[k]));
         fill('purchase_date', j.date);
         if (j.items?.length) n.items = [...new Set([...x.items, ...j.items.map((i) => i.name)])];
+        // אחת התמונות היא של המוצר עצמו — מעבירים אותה ל"תמונת המוצר"
+        const pi = j.product_photo_index;
+        if (pi !== null && pi !== undefined && urls[pi] && !touched.current.has('product_photo') && !x.product_photo && urls.length > 1) {
+          n.product_photo = urls[pi];
+          n.photos = n.photos.filter((u) => u !== urls[pi]);
+        }
         return n;
       });
       if (j.items?.length) setPrices((p) => ({ ...p, ...Object.fromEntries(j.items.map((i) => [i.name, i.price])) }));
@@ -160,6 +180,24 @@ export default function Editor({ vaultId, initial, files, stores, onClose, onSav
         <button className="btn sm" onClick={close}>ביטול</button>
       </div>
 
+      <div className="prodbox">
+        <div className="prodimg" onClick={() => !f.product_photo && prodCam.current.click()}>
+          {prodBusy ? <div className="spin" style={{ width: 30, height: 30 }} /> : f.product_photo ? <img src={f.product_photo} alt="" /> : <span>📦</span>}
+        </div>
+        <div className="grow">
+          <b>תמונת המוצר</b>
+          <div className="muted small">{f.product_photo ? 'זו התמונה שתופיע ברשימה' : 'תופיע בגדול ברשימה — ככה מוצאים לפי המוצר'}</div>
+          <div className="row" style={{ marginTop: 8, flexWrap: 'wrap' }}>
+            <button className="btn sm" onClick={() => prodCam.current.click()}>📷 {f.product_photo ? 'החלף' : 'צלם'}</button>
+            <button className="btn sm" onClick={() => prodGal.current.click()}>🖼️ מהגלריה</button>
+            {f.product_photo && <button className="btn sm danger" onClick={() => { touched.current.add('product_photo'); setF((x) => ({ ...x, product_photo: '' })); }}>הסר</button>}
+          </div>
+        </div>
+        <input ref={prodCam} type="file" accept="image/*" capture="environment" hidden onChange={(e) => { addProductPhoto(e.target.files?.[0]); e.target.value = ''; }} />
+        <input ref={prodGal} type="file" accept="image/*" hidden onChange={(e) => { addProductPhoto(e.target.files?.[0]); e.target.value = ''; }} />
+      </div>
+
+      <div className="muted small" style={{ fontWeight: 700, margin: '12px 2px 6px' }}>🧾 הקבלה (תמונה או PDF)</div>
       <div className="photos">
         {f.photos.map((u) => (
           <FileTile url={u} key={u}>
@@ -314,8 +352,8 @@ export default function Editor({ vaultId, initial, files, stores, onClose, onSav
       </div>
 
       {err && <div className="err">{err}</div>}
-      <button className="btn primary block" style={{ height: 54, fontSize: 17, marginTop: 8 }} onClick={save} disabled={busy || uploading > 0 || (split && canSplit && !picked.length)}>
-        {busy ? 'שומר…' : uploading ? 'מחכה לקבצים…' : split && canSplit ? `💾 שמור ${picked.length} מוצרים` : '💾 שמור'}
+      <button className="btn primary block" style={{ height: 54, fontSize: 17, marginTop: 8 }} onClick={save} disabled={busy || uploading > 0 || prodBusy || (split && canSplit && !picked.length)}>
+        {busy ? 'שומר…' : uploading || prodBusy ? 'מחכה לקבצים…' : split && canSplit ? `💾 שמור ${picked.length} מוצרים` : '💾 שמור'}
       </button>
     </Sheet>
   );

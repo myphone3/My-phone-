@@ -152,3 +152,12 @@ textarea.input { height: auto; min-height: 80px; padding: 10px 14px; resize: ver
 .bigsum b { display: block; font-size: 30px; color: var(--brand); }
 a.btn { text-decoration: none; color: inherit; }
 a.btn.primary { color: #fff; }
+/* תמונת מוצר */
+.rc .thumb { width: 78px; height: 78px; border-radius: 14px; }
+.thumb .noimg { font-size: 34px; opacity: .85; }
+.hero.prod { max-height: 320px; object-fit: cover; aspect-ratio: 4 / 3; width: 100%; }
+.hero.rcpt { max-height: 220px; }
+.addprod { width: 100%; height: 150px; border-radius: 14px; border: 2px dashed var(--line); background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+.prodbox { display: flex; gap: 12px; align-items: center; padding: 12px; border-radius: 14px; background: var(--brand-soft); }
+.prodbox .prodimg { width: 92px; height: 92px; border-radius: 14px; background: var(--card); display: grid; place-items: center; font-size: 38px; overflow: hidden; flex: none; cursor: pointer; }
+.prodbox .prodimg img { width: 100%; height: 100%; object-fit: cover; }
