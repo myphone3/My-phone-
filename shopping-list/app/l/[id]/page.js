@@ -10,7 +10,6 @@ import {
   ItemSheet, PasteSheet, MenuSheet, NameSheet, ShareSheet, SplitSheet, StoreSheet, STATUS, colorFor,
 } from './sheets';
 import { ReceiptSheet, TripsSheet } from './receipt';
-import { findImages } from '@/lib/images';
 
 const STATUS_RANK = { need: 0, check: 1, partial: 2, missing: 3, found: 4 };
 
@@ -142,24 +141,6 @@ export default function ListPage() {
     document.addEventListener('visibilitychange', onVis);
     return () => { document.removeEventListener('visibilitychange', onVis); lock?.release?.(); };
   }, [wake]);
-
-  // תמונה אוטומטית לפריטים שהוספתי (אחד בכל פעם, כדי לא להעמיס)
-  const imgTried = useRef(new Set());
-  useEffect(() => {
-    if (!me || loading) return;
-    const next = items.find((i) => !i.image_url && !i.photo_url && i.added_by === me && i.status !== 'found' && !imgTried.current.has(i.id));
-    if (!next) return;
-    imgTried.current.add(next.id);
-    const t = setTimeout(async () => {
-      try {
-        const j = await findImages(next.name, { productOnly: true });
-        const img = j.images?.[0]?.thumb;
-        if (img) update(next, { image_url: img });
-      } catch {}
-    }, imgTried.current.size <= 1 ? 800 : 6500); // לאט — המאגר מגביל כמות חיפושים בדקה
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, me, loading]);
 
   const broadcast = (payload) => chan.current?.send({ type: 'broadcast', event: 'change', payload: { ...payload, by: meRef.current } });
 
@@ -517,7 +498,7 @@ export default function ListPage() {
 }
 
 function Thumb({ item, onPhoto }) {
-  const src = item.photo_url || item.image_url;
+  const src = item.photo_url; // ברשימה: רק צילום אמיתי, אחרת ציור
   return (
     <div className="thumb" onClick={(e) => { if (src) { e.stopPropagation(); onPhoto(src); } }}>
       {src ? <img src={src} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span>{item.emoji || CAT_EMOJI[item.category] || '🛒'}</span>}
