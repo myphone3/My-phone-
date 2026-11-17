@@ -32,3 +32,11 @@
   (אותו מפתח חתימה כמו בשעון הנוכחות; טביעת האצבע ב-`public/.well-known/assetlinks.json`).
 - מיילים: אין כתובת מייל ייעודית — מעבירים חשבונית מהמייל ב"שיתוף" או בוחרים PDF.
 
+
+## שדרוג 4: חשבונות Google (נובמבר 2026)
+- `supabase/schema-4.sql` (הורץ): לארכיון יש `owner_id` וטבלת `wr_members` (owner/member, סטטוס active/removed/left).
+  ארכיון בלי בעלים = כמו קודם (קישור). ארכיון עם בעלים = רק חברים מחוברים (`wr_ok` בודק גם קוד נעילה וגם חברות).
+- כניסה: `supabase.auth.signInWithOAuth` (Google, flow implicit). Google מחזיר ל-`https://my-phone-iota.vercel.app/kabalot-auth.html`
+  (קובץ סטטי בחנות — הכתובת של החנות מאושרת ב-Supabase), והוא מעביר את ה-# ל-`/auth` כאן. אין צורך לשנות הגדרות ב-Supabase.
+- משתמש חדש נכנס גם לטבלת `profiles` של החנות (טריגר `handle_new_user`), כלומר מופיע כלקוח רשום בניהול החנות.
+- מסך "חשבון, משפחה וגיבוי" (`app/v/[id]/family.js`): שמירת ארכיון בחשבון (`wr_claim`), חברים והסרה, סגירת הצטרפות, גיבוי ZIP מלא (`lib/backup.js`, jszip).

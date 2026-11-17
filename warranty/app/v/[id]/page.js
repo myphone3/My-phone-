@@ -12,6 +12,10 @@ import LockScreen from '@/components/Lock';
 import { getSetting } from '@/lib/settings';
 import { rpc, isOpen, markOpen, close as closeLock } from '@/lib/lock';
 import { takeSharedFiles } from '@/lib/shared';
+import FamilySheet from './family';
+import { useUser, signInWithGoogle, GoogleButton } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
+import { downloadCsv } from '@/lib/backup';
 
 const FILTERS = [
   { k: 'all', label: 'הכל' },
@@ -36,6 +40,9 @@ function Vault({ id }) {
   const [list, setList] = useState([]);
   const [state, setState] = useState('loading'); // loading | ok | locked | missing | error
   const [gate, setGate] = useState(false); // יש קוד והטלפון עוד לא פתח בחלון הזה
+  const [hideAcct, setHideAcct] = useState(() => getPref('hide_acct_' + id, false));
+  const [need, setNeed] = useState(null); // signin | join | removed — ארכיון בחשבון ואני לא חבר בו
+  const user = useUser();
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState('all');
   const [cat, setCat] = useState('');
@@ -54,13 +61,17 @@ function Vault({ id }) {
     if (!data) return setState('missing');
     setVault(data.vault);
     rememberVault(id, data.vault.name);
+    if (data.need) { setList([]); setNeed(data.need); return setState('need'); }
+    setNeed(null);
     if (data.locked) { setList([]); closeLock(id); return setState('locked'); }
     setList(data.receipts || []);
     setGate(!!data.vault.has_pin && !isOpen(id));
     setState('ok');
   }, [id]);
 
-  useEffect(() => { setSort(getPref('sort', 'date')); setShowStats(getSetting('stats')); load(); }, [load]);
+  useEffect(() => { setSort(getPref('sort', 'date')); setShowStats(getSetting('stats')); }, []);
+  // טוענים מחדש כשמתחברים / מתנתקים
+  useEffect(() => { if (user !== undefined) load(); }, [load, user]);
 
   // הגיע מהתראה (?r=), מקיצור דרך (?add=1), או משיתוף קובץ מהגלריה/מייל (?shared=1)
   useEffect(() => {
@@ -68,7 +79,9 @@ function Vault({ id }) {
     const p = new URLSearchParams(location.search);
     if (![...p.keys()].length) return;
     history.replaceState(null, '', location.pathname);
-    if (p.get('r')) setSheet({ t: 'view', id: p.get('r') });
+    if (p.get('claim') && !vault?.has_owner) {
+      rpc('wr_claim', id).then(({ data, error }) => { if (!error && data?.ok) { say('✅ הארכיון נשמר בחשבון שלך'); load(); } });
+    } else if (p.get('r')) setSheet({ t: 'view', id: p.get('r') });
     else if (p.get('add')) setSheet({ t: 'add' });
     else if (p.get('shared')) takeSharedFiles().then((files) => { if (files.length) setSheet({ t: 'edit', r: null, files }); });
   }, [state, gate]);
@@ -136,6 +149,7 @@ function Vault({ id }) {
   }
 
   if (state === 'loading') return <div className="reading" style={{ paddingTop: 120 }}><div className="spin" /><div className="muted">טוען קבלות…</div></div>;
+  if (state === 'need') return <NeedAccount vault={vault} need={need} onJoined={() => { setState('loading'); load(); }} />;
   if (state === 'locked' || (state === 'ok' && gate)) {
     return <LockScreen vault={vault} needPin={state === 'locked'} onOpen={() => { markOpen(id); setGate(false); if (state === 'locked') { setState('loading'); load(); } else load(); }} />;
   }
@@ -195,6 +209,15 @@ function Vault({ id }) {
         )}
       </div>
 
+      {!vault.has_owner && list.length > 0 && !q && filter === 'all' && !hideAcct && (
+        <div className="banner">
+          <span className="ic">☁️</span>
+          <button className="grow" style={{ textAlign: 'start' }} onClick={() => setSheet({ t: 'family' })}>
+            <b>לשמור את הקבלות בחשבון Google</b><div className="muted small">גיבוי, וכניסה מכל טלפון גם אם מחליפים מכשיר</div>
+          </button>
+          <button className="muted" aria-label="הסתר" onClick={() => { setPref('hide_acct_' + id, true); setHideAcct(true); }}>✕</button>
+        </div>
+      )}
       {soonList.length > 0 && filter === 'all' && !q && !cat && (
         <button className="alert" onClick={() => setFilter('soon')}>
           ⏰ {soonList.length === 1 ? `האחריות על "${soonList[0].product || soonList[0].store}" מסתיימת בעוד ${soonList[0]._s.days} ימים` : `ל-${soonList.length} מוצרים האחריות מסתיימת בחודש הקרוב`} — כדאי לבדוק שהכול תקין
@@ -253,13 +276,17 @@ function Vault({ id }) {
           </div>
         </Sheet>
       )}
+      {sheet?.t === 'family' && (
+        <FamilySheet vault={vault} list={list} say={say} onClose={() => setSheet(null)} onVault={(v) => setVault(v)}
+          onLeft={() => { forgetVault(id); router.replace('/?all'); }} />
+      )}
       {sheet?.t === 'stats' && <StatsSheet list={list} onClose={() => setSheet(null)} />}
       {sheet?.t === 'settings' && <SettingsSheet vault={vault} say={say} onVault={(v) => setVault(v)} onClose={() => setSheet(null)} onChange={() => setShowStats(getSetting('stats'))} />}
       {sheet?.t === 'menu' && (
         <MenuSheet vault={vault} list={list} onClose={() => setSheet(null)} say={say}
           onRenamed={(n) => { setVault({ ...vault, name: n }); rememberVault(id, n); }}
           onLeave={() => { forgetVault(id); router.replace('/?all'); }} onAll={() => router.push('/?all')}
-          onSettings={() => setSheet({ t: 'settings' })} onStats={() => setSheet({ t: 'stats' })} />
+          onSettings={() => setSheet({ t: 'settings' })} onStats={() => setSheet({ t: 'stats' })} onFamily={() => setSheet({ t: 'family' })} />
       )}
       {toast && <div className="toast">{toast}</div>}
     </div>
@@ -284,7 +311,7 @@ function Row({ r, onClick }) {
   );
 }
 
-function MenuSheet({ vault, list, onClose, onRenamed, onLeave, onAll, onSettings, onStats, say }) {
+function MenuSheet({ vault, list, onClose, onRenamed, onLeave, onAll, onSettings, onStats, onFamily, say }) {
   const [name, setName] = useState(vault.name);
   const link = typeof window !== 'undefined' ? `${location.origin}/v/${vault.id}` : '';
 
@@ -300,17 +327,6 @@ function MenuSheet({ vault, list, onClose, onRenamed, onLeave, onAll, onSettings
     const t = `הקבלות לאחריות שלנו 🧾\nכאן שומרים את כל הקבלות ורואים עד מתי האחריות:\n${link}`;
     location.href = 'https://wa.me/?text=' + encodeURIComponent(t);
   }
-  function exportCsv() {
-    const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-    const head = ['תמונת מוצר', 'מוצר', 'חנות', 'קטגוריה', 'תאריך קנייה', 'מחיר', 'אחריות (חודשים)', 'הרחבה (חודשים)', 'מחיר הרחבה', 'סיום אחריות', 'מספר סידורי', 'מספר קבלה', 'טלפון שירות', 'טלפון חנות', 'הערות', 'קבצים'];
-    const rows = list.map((r) => { const e = expiryDate(r); return [r.product_photo, r.product, r.store, r.category, r.purchase_date, r.price, r.warranty_months, r.ext_months, r.ext_price, e ? fmtDate(e) : '', r.serial, r.receipt_no, r.service_phone, r.store_phone, r.notes, (r.photos || []).join(' ')]; });
-    const csv = '﻿' + [head, ...rows].map((x) => x.map(esc).join(',')).join('\n');
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-    a.download = 'קבלות-אחריות.csv';
-    a.click();
-  }
-
   return (
     <Sheet onClose={onClose}>
       <h3>☰ תפריט</h3>
@@ -321,22 +337,63 @@ function MenuSheet({ vault, list, onClose, onRenamed, onLeave, onAll, onSettings
           <button className="btn" onClick={rename} disabled={!name.trim() || name.trim() === vault.name}>שמור</button>
         </div>
       </div>
-      <div className="sec">שיתוף עם המשפחה</div>
-      <div className="muted small" style={{ margin: '0 4px 8px' }}>מי שמקבל את הקישור רואה ומוסיף קבלות. שלחו רק למי שאתם סומכים עליו.</div>
-      <div className="grid2">
-        <button className="btn" onClick={whatsapp}>💬 וואטסאפ</button>
-        <button className="btn" onClick={copy}>🔗 העתק קישור</button>
+      <div className="menu-list">
+        <button onClick={onFamily}><span className="ic">👥</span><span className="grow"><b>חשבון, משפחה וגיבוי</b><div className="muted small">{vault.has_owner ? 'מי רואה את הקבלות, הזמנה, גיבוי מלא' : 'שמירה בחשבון Google, גיבוי מלא'}</div></span></button>
       </div>
+      {!vault.has_owner && (
+        <>
+          <div className="sec">שיתוף בקישור</div>
+          <div className="muted small" style={{ margin: '0 4px 8px' }}>מי שמקבל את הקישור רואה ומוסיף קבלות. שלחו רק למי שאתם סומכים עליו.</div>
+          <div className="grid2">
+            <button className="btn" onClick={whatsapp}>💬 וואטסאפ</button>
+            <button className="btn" onClick={copy}>🔗 העתק קישור</button>
+          </div>
+        </>
+      )}
       <div className="sec">עוד</div>
       <div className="menu-list">
         <button onClick={onSettings}><span className="ic">⚙️</span><span className="grow">הגדרות<div className="muted small">התראות, סיכום הוצאות, נעילה, שיפור תמונות</div></span></button>
         {getSetting('stats') && <button onClick={onStats} disabled={!list.length}><span className="ic">📊</span><span className="grow">סיכום הוצאות</span></button>}
         <a href="https://github.com/myphone3/My-phone-/releases/download/kabalot-apk-latest/kabalot.apk"><button><span className="ic">🤖</span><span className="grow">הורדת אפליקציה לאנדרואיד (APK)</span></button></a>
-        <button onClick={exportCsv} disabled={!list.length}><span className="ic">📊</span><span className="grow">ייצוא לאקסל (גיבוי)</span></button>
+        <button onClick={() => downloadCsv(list)} disabled={!list.length}><span className="ic">📊</span><span className="grow">ייצוא לאקסל</span></button>
         <button onClick={onAll}><span className="ic">🗂️</span><span className="grow">ארכיונים נוספים</span></button>
         <button onClick={() => { if (confirm('להסיר את הארכיון מהמכשיר הזה?\nהקבלות לא נמחקות — אפשר לחזור עם הקישור.')) onLeave(); }}><span className="ic">🚪</span><span className="grow">הסר מהמכשיר הזה</span></button>
       </div>
       <div style={{ marginTop: 12 }}><InstallButton /></div>
     </Sheet>
+  );
+}
+
+// ארכיון ששמור בחשבון — צריך להתחבר / להצטרף
+function NeedAccount({ vault, need, onJoined }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  async function join() {
+    setBusy(true); setErr('');
+    const { data, error } = await supabase.rpc('wr_join', { p_vault: vault.id });
+    setBusy(false);
+    if (error || data?.error) return setErr(data?.error === 'closed' ? 'הבעלים סגר את ההצטרפות לארכיון. בקש ממנו לפתוח.' : data?.error === 'removed' ? 'הוסרת מהארכיון הזה.' : 'לא הצלחנו להצטרף, נסה שוב');
+    onJoined();
+  }
+  return (
+    <div className="lock">
+      <img src="/icon-192.png?v=2" alt="" width="72" height="72" style={{ borderRadius: 18 }} />
+      <h2 style={{ margin: '14px 0 4px' }}>{vault.name}</h2>
+      {need === 'removed' ? (
+        <div className="muted" style={{ maxWidth: 320 }}>הוסרת מהארכיון הזה. אם זו טעות — בקש מ{vault.owner_name || 'הבעלים'} להוסיף אותך שוב.</div>
+      ) : need === 'signin' ? (
+        <>
+          <div className="muted" style={{ maxWidth: 320, marginBottom: 18 }}>הארכיון של {vault.owner_name || 'בן משפחה'} שמור בחשבון. כדי לראות את הקבלות — נכנסים עם Google.</div>
+          <div style={{ width: '100%', maxWidth: 320 }}><GoogleButton onClick={() => { setBusy(true); signInWithGoogle().catch(() => setBusy(false)); }} busy={busy} /></div>
+        </>
+      ) : (
+        <>
+          <div className="muted" style={{ maxWidth: 320, marginBottom: 18 }}>{vault.owner_name || 'בן משפחה'} שיתף איתך את ארכיון הקבלות.{vault.allow_join ? '' : ' (ההצטרפות סגורה כרגע)'}</div>
+          <button className="btn primary" style={{ minWidth: 240, height: 52 }} onClick={join} disabled={busy}>{busy ? 'מצטרף…' : '✅ הצטרפות'}</button>
+        </>
+      )}
+      {err && <div className="err">{err}</div>}
+      <a className="muted" href="/?all" style={{ marginTop: 20 }}>למסך הראשי</a>
+    </div>
   );
 }
