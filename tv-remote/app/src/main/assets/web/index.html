@@ -485,7 +485,11 @@
           <li>לוחצים על <b>שיקוף מסך</b> (שני המלבנים)</li>
           <li>בוחרים <b id="airplayName">את הטלוויזיה</b></li>
         </ol>
-        <button id="stopMirrorIos" style="width:100%;margin-top:10px">⏹ עצור שיקוף</button>
+        <div class="row-btns" style="grid-template-columns:1fr 1fr;margin-top:10px">
+          <button id="stopMirrorIos">⏹ עצור שיקוף</button>
+          <button id="zoomMirror">🔍 הגדלה אוטומטית</button>
+        </div>
+        <p class="note">סרטון (טלגרם, וואטסאפ, גלריה) מוגדל לבד למסך מלא בטלוויזיה. הכפתור "הגדלה אוטומטית" (או OK בשלט) מכבה ומדליק את זה. לתמונה הכי גדולה: מסובבים את האייפון לרוחב ומבטלים את נעילת הסיבוב.</p>
         <p class="note" id="airplayState">בלי אפליקציה ובלי תשלום. עובד דרך ה-WiFi, בלי ניתוק, והשלט ממשיך לעבוד. הקול יוצא רק מהטלוויזיה, וכפתורי הווליום באייפון משנים אותו. האייפון והטלוויזיה צריכים להיות על אותה רשת WiFi.</p>
         <button id="copyAirplayLog" style="width:100%;margin-top:8px;font-size:13px;opacity:.75">📋 העתק דוח תקלות (אם משהו לא עובד)</button>
         <p class="note" id="airplayDown" hidden style="color:#d0607a">ה-AirPlay בטלוויזיה עוד לא עלה. אם זה נמשך - כבו והדליקו את הטלוויזיה.</p>
@@ -1586,6 +1590,10 @@
   $('copyDiag').onclick = copyDiag;
   $('startMirror').addEventListener('click', () => { if (tvLan) toast('פותח שיקוף…'); });
   $('getMirrorApp').onclick = () => { buzz(); location.href = appIntent('open'); };
+  $('zoomMirror').onclick = () => {
+    buzz();
+    call('mirror_zoom').then((r) => { if (!r.ok) toast('קודם מתחילים שיקוף מהאייפון'); });
+  };
   $('stopMirror').onclick = $('stopMirrorIos').onclick = () => {
     buzz();
     if (inApp) TvApp.stopMirror();

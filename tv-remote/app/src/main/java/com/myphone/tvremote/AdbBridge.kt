@@ -23,6 +23,8 @@ object AdbBridge {
     private const val RESTORE_KEYBOARD_AFTER_SEC = 60L
 
     private val worker = Executors.newSingleThreadExecutor()
+    /** לחיצות לא מחכות מאחורי פקודות איטיות (בדיקת אחסון, התקנת עדכון) */
+    private val keyWorker = Executors.newSingleThreadExecutor()
     private val timer = Executors.newSingleThreadScheduledExecutor()
     private val pendingKeys = ConcurrentLinkedQueue<Int>()
     private var keyPair: AdbKeyPair? = null
@@ -52,6 +54,7 @@ object AdbBridge {
         val pub = File(context.filesDir, "adbkey.pub")
         if (!priv.exists() || !pub.exists()) AdbKeyPair.generate(priv, pub)
         keyPair = AdbKeyPair.read(priv, pub)
+        FastInput.init(context)
         reconnect()
     }
 
@@ -80,10 +83,14 @@ object AdbBridge {
     /** מוסיף לחיצות לתור. לחיצות מהירות מאוחדות לפקודה אחת כדי שהטלוויזיה לא "תפגר". */
     fun sendKeys(code: Int, times: Int) {
         repeat(times) { pendingKeys.add(code) }
-        worker.execute {
+        keyWorker.execute {
             val batch = mutableListOf<Int>()
             while (true) batch.add(pendingKeys.poll() ?: break)
-            if (batch.isNotEmpty()) run("input keyevent " + batch.joinToString(" "))
+            if (batch.isEmpty()) return@execute
+            // קודם הלוחץ המהיר (מיידי); אם הוא עוד לא עלה - הדרך הישנה דרך ADB
+            if (!FastInput.send("keys " + batch.joinToString(" "))) {
+                worker.execute { run("input keyevent " + batch.joinToString(" ")) }
+            }
         }
     }
 
@@ -151,6 +158,7 @@ object AdbBridge {
     private fun <T> onWorker(block: () -> T): T = worker.submit(Callable { block() }).get(8, TimeUnit.SECONDS)
 
     private fun run(command: String): String? {
+        if (command.startsWith("input ") && FastInput.tryShell(command)) return ""
         for (attempt in 1..2) {
             try {
                 return connection().shell(command).output
@@ -205,11 +213,9 @@ object AdbBridge {
         }
         enableAccessibility(dadb)
         fixKeyboard()
-        // מסך הבית שלנו נשאר מסך הבית הקבוע, גם אחרי כיבוי והדלקה
-        if (appContext?.let { RemoteAccessibility.homeTakeover(it) } == true) {
-            try { dadb.shell("cmd package set-home-activity $packageName/$packageName.HomeActivity") } catch (e: Exception) { }
-        }
         appContext?.let { RemoteCore.keepAlivePixel(it) }
+        HomeGuard.apply()
+        FastInput.launch(force = false)
     }
 
     /** מחזיר מקלדת רגילה, כדי שהשלט הפיזי של הטלוויזיה תמיד יראה מקלדת על המסך. Gboard קודם, אם מותקן. */

@@ -21,6 +21,7 @@ object RemoteCore {
             return
         }
         started = true
+        HomeGuard.init(app)
         AdbBridge.init(app)
         CursorOverlay.init(app)
         CloudRelay.start(app)

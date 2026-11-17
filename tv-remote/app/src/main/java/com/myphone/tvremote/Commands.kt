@@ -45,7 +45,15 @@ object Commands {
             if (code == null) fail("unknown key") else if (params["k"] == "HOME") {
                 // "בית" בשלט שלנו פותח את מסך הבית שלנו
                 CursorOverlay.hide()
-                AdbBridge.shell("am start -n ${context.packageName}/${context.packageName}.HomeActivity")
+                // ישירות (מיידי); "am start" דרך ADB לוקח כמעט שנייה בטלוויזיה חלשה - רק כגיבוי
+                try {
+                    (RemoteAccessibility.instance ?: context).startActivity(
+                        android.content.Intent(context, HomeActivity::class.java)
+                            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP),
+                    )
+                } catch (e: Exception) {
+                    AdbBridge.shell("am start -n ${context.packageName}/${context.packageName}.HomeActivity")
+                }
                 ok()
             } else {
                 CursorOverlay.hide()
@@ -118,6 +126,10 @@ object Commands {
         "update_check" -> { Updater.checkNow(context, force = true); ok(JSONObject().put("ok", true).put("version", Updater.currentVersion(context)).put("state", Updater.state)) }
         "diag" -> ok(JSONObject().put("ok", true).put("text", Diagnostics.report(context)))
         "airplay_log" -> ok(JSONObject().put("ok", true).put("log", AirPlayServer.log()).put("port", AirPlayServer.port).put("error", AirPlayServer.lastError))
+        "mirror_zoom" -> {
+            val screen = MirrorActivity.current
+            if (screen == null) fail("not_mirroring") else { screen.runOnUiThread { screen.toggleZoom() }; ok() }
+        }
         "mirror_stop" -> { MirrorServer.stop(); AirPlayServer.stop(); ok() }
         "storage" -> ok(StorageReport.build(context))
         "delete_download" -> if (StorageReport.deleteDownload(params["name"].orEmpty())) ok() else fail("not deleted")

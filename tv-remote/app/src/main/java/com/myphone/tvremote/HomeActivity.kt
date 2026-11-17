@@ -81,7 +81,22 @@ class HomeActivity : Activity() {
     private var statusWifiIcon: ImageView? = null
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
-    private val prefs by lazy { getSharedPreferences("home", Context.MODE_PRIVATE) }
+    /**
+     * ההגדרות של מסך הבית עצמו (מועדפים, מוסתרים, מזג אוויר) בקובץ משלו: מסך הבית רץ בתהליך נפרד,
+     * ושני תהליכים שכותבים לאותו קובץ מוחקים זה לזה שינויים. בפעם הראשונה מעתיקים מהקובץ הישן.
+     */
+    private val prefs by lazy {
+        val ui = getSharedPreferences("home_ui", Context.MODE_PRIVATE)
+        if (!ui.getBoolean("migrated", false)) {
+            val old = getSharedPreferences("home", Context.MODE_PRIVATE)
+            ui.edit().apply {
+                old.getString("favs2", null)?.let { putString("favs2", it) }
+                old.getString("hidden", null)?.let { putString("hidden", it) }
+                putBoolean("migrated", true)
+            }.commit()
+        }
+        ui
+    }
 
     private class App(val pkg: String, val label: String, val info: ResolveInfo)
 
@@ -99,9 +114,17 @@ class HomeActivity : Activity() {
         }
     }
 
+    private val photosChanged = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            main.removeCallbacks(slideshow)
+            main.post(slideshow)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        RemoteService.start(this)
+        // מסך הבית רץ בתהליך נפרד (קל לסגור כשצריך זיכרון) - רק מעירים את השלט, שרץ בתהליך הראשי
+        RemoteService.wake(this)
         setContentView(buildScreen())
     }
 
@@ -109,7 +132,9 @@ class HomeActivity : Activity() {
         super.onResume()
         watchWifi()
         main.post(tick)
-        PhotoStore.listener = { main.removeCallbacks(slideshow); main.post(slideshow) }
+        val filter = android.content.IntentFilter(PhotoStore.ACTION_CHANGED)
+        if (android.os.Build.VERSION.SDK_INT >= 33) registerReceiver(photosChanged, filter, Context.RECEIVER_NOT_EXPORTED)
+        else registerReceiver(photosChanged, filter)
         restartSlideshow()
         loadApps()
         loadWeather()
@@ -121,7 +146,7 @@ class HomeActivity : Activity() {
         main.removeCallbacks(wifiCheck)
         main.removeCallbacks(tick)
         main.removeCallbacks(slideshow)
-        PhotoStore.listener = null
+        try { unregisterReceiver(photosChanged) } catch (e: Exception) { }
         super.onPause()
     }
 

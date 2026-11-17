@@ -106,18 +106,18 @@ class MainActivity : Activity() {
                     ?.let { prefs.edit().putString("original", "${it.packageName}/${it.name}").apply() }
             }
             prefs.edit().putBoolean("takeover", true).apply()
-            AdbBridge.shell("cmd package set-home-activity $packageName/$packageName.HomeActivity")
+            HomeGuard.apply()
             Toast.makeText(this, "מסך הבית החדש מופעל ✓ לחצו על \"בית\" בשלט", Toast.LENGTH_LONG).show()
             startActivity(Intent(this, HomeActivity::class.java))
         } else {
             val original = prefs.getString("original", null)
             prefs.edit().putBoolean("takeover", false).apply()
+            HomeGuard.restore(original)
             if (original == null) {
                 Toast.makeText(this, "מסך הבית המקורי חזר", Toast.LENGTH_LONG).show()
                 handler.postDelayed({ updateHomeButton() }, 500)
                 return
             }
-            AdbBridge.shell("cmd package set-home-activity $original")
             Toast.makeText(this, "מסך הבית המקורי חזר", Toast.LENGTH_LONG).show()
             handler.postDelayed({ updateHomeButton() }, 1500)
             try {

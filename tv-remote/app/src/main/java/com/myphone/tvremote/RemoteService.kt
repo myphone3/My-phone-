@@ -13,6 +13,8 @@ import java.net.NetworkInterface
 
 /** שירות שרץ ברקע כל הזמן ומחזיק את השרת פתוח, גם כשהאפליקציה סגורה. */
 class RemoteService : Service() {
+    private var notification: Notification? = null
+
     override fun onCreate() {
         super.onCreate()
         val manager = getSystemService(NotificationManager::class.java)
@@ -22,6 +24,7 @@ class RemoteService : Service() {
             .setContentTitle("שלט מהפון פעיל")
             .setContentText(address())
             .build()
+        this.notification = notification
         startForeground(1, notification)
         running = true
 
@@ -29,6 +32,8 @@ class RemoteService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // כל startForegroundService מחייב startForeground - גם כשהשירות כבר רץ
+        try { startForeground(1, notification ?: return START_STICKY) } catch (e: Exception) { }
         RemoteCore.start(this)
         return START_STICKY
     }
@@ -55,6 +60,15 @@ class RemoteService : Service() {
                 context.startForegroundService(Intent(context, RemoteService::class.java))
             } catch (e: Exception) {
                 Log.w("RemoteService", "foreground start not allowed right now", e)
+            }
+        }
+
+        /** מתהליך אחר (מסך הבית): רק מבקשים מהמערכת להפעיל את השירות בתהליך הראשי. */
+        fun wake(context: Context) {
+            try {
+                context.startForegroundService(Intent(context, RemoteService::class.java))
+            } catch (e: Exception) {
+                Log.w("RemoteService", "wake not allowed right now", e)
             }
         }
 

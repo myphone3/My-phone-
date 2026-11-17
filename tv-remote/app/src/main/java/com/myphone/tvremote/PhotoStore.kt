@@ -3,8 +3,6 @@ package com.myphone.tvremote
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.os.Handler
-import android.os.Looper
 import android.util.Base64
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -17,22 +15,23 @@ object PhotoStore {
     private val ID = Regex("^[a-z0-9]{6,24}$")
     private const val MAX_PARTS = 200
     private const val MAX_PHOTOS = 40
-    private val main = Handler(Looper.getMainLooper())
 
-    /** מסך הבית נרשם כאן כדי להתעדכן מיד כשמוסיפים או מוחקים תמונה. */
-    @Volatile var listener: (() -> Unit)? = null
+    /** מסך הבית (שרץ בתהליך נפרד) מקבל את ההודעה הזו כדי להתעדכן מיד כשמוסיפים או מוחקים תמונה. */
+    const val ACTION_CHANGED = "com.myphone.tvremote.PHOTOS_CHANGED"
 
     private fun dir(context: Context) = File(context.filesDir, "photos").apply { mkdirs() }
 
     fun list(context: Context): List<File> =
         dir(context).listFiles { f -> f.name.endsWith(".jpg") }?.sortedBy { it.lastModified() } ?: emptyList()
 
+    // MODE_MULTI_PROCESS: מסך הבית (תהליך נפרד) רואה מיד שינוי שנעשה מהטלפון
+    @Suppress("DEPRECATION")
     fun intervalSec(context: Context) =
-        context.getSharedPreferences("home", Context.MODE_PRIVATE).getInt("photo_interval", 20)
+        context.getSharedPreferences("home", Context.MODE_MULTI_PROCESS).getInt("photo_interval", 20)
 
     fun setInterval(context: Context, sec: Int) {
         context.getSharedPreferences("home", Context.MODE_PRIVATE).edit().putInt("photo_interval", sec.coerceIn(5, 3600)).apply()
-        notifyChanged()
+        notifyChanged(context)
     }
 
     /**
@@ -58,7 +57,7 @@ object PhotoStore {
             target.delete()
             return "not_image"
         }
-        notifyChanged()
+        notifyChanged(context)
         return null
     }
 
@@ -66,7 +65,7 @@ object PhotoStore {
         if (!ID.matches(id)) return false
         val ok = File(dir(context), "$id.jpg").delete()
         thumbs.remove(id)
-        notifyChanged()
+        notifyChanged(context)
         return ok
     }
 
@@ -95,7 +94,7 @@ object PhotoStore {
         return try { BitmapFactory.decodeFile(file.path, opts) } catch (e: OutOfMemoryError) { null }
     }
 
-    private fun notifyChanged() {
-        main.post { listener?.invoke() }
+    private fun notifyChanged(context: Context) {
+        try { context.sendBroadcast(android.content.Intent(ACTION_CHANGED).setPackage(context.packageName)) } catch (e: Exception) { }
     }
 }

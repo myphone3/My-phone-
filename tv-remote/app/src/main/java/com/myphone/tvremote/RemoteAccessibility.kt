@@ -49,9 +49,17 @@ class RemoteAccessibility : AccessibilityService() {
         val original = originalHome(this) ?: return false
         if (pkg != original.substringBefore('/')) return false
         if (allowAnyClass || cls == null) return true
-        val originalClass = original.substringAfter('/')
-        return cls == originalClass || cls.substringAfterLast('.') == originalClass.substringAfterLast('.')
+        // כל המסכים של היצרן שמשמשים כמסך בית (יש יצרנים עם כמה - למשל אחד להדלקה ואחד רגיל)
+        val classes = homeClasses ?: (listOf(original.substringAfter('/')) + try {
+            packageManager.queryIntentActivities(
+                Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setPackage(pkg),
+                android.content.pm.PackageManager.MATCH_DISABLED_COMPONENTS,
+            ).map { it.activityInfo.name }
+        } catch (e: Exception) { emptyList() }).toSet().also { homeClasses = it }
+        return classes.any { cls == it || cls.substringAfterLast('.') == it.substringAfterLast('.') }
     }
+
+    private var homeClasses: Set<String>? = null
 
     private fun openOurHome() {
         val now = android.os.SystemClock.uptimeMillis()
