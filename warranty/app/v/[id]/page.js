@@ -13,7 +13,8 @@ import { getSetting } from '@/lib/settings';
 import { rpc, isOpen, markOpen, close as closeLock } from '@/lib/lock';
 import { takeSharedFiles } from '@/lib/shared';
 import FamilySheet from './family';
-import { useUser, signInWithGoogle, GoogleButton } from '@/lib/auth';
+import { useUser, signInWithGoogle, GoogleButton, userName } from '@/lib/auth';
+import { ShareAppBlock } from '@/lib/shareApp';
 import { supabase } from '@/lib/supabase';
 import { downloadCsv } from '@/lib/backup';
 import { getCached, setCached, clearCached, thumbOf } from '@/lib/cache';
@@ -199,6 +200,7 @@ function Vault({ id }) {
           <button className="icon-btn" onClick={() => setSheet({ t: 'sort' })} aria-label="מיון">↕️</button>
           <button className="icon-btn" onClick={() => setSheet({ t: 'menu' })} aria-label="תפריט">☰</button>
         </div>
+        <AcctPill user={user} vault={vault} onClick={() => setSheet({ t: 'family' })} />
         {list.length > 0 && (
           <div className="search">
             <span>🔎</span>
@@ -300,7 +302,7 @@ function Vault({ id }) {
       {sheet?.t === 'stats' && <StatsSheet list={list} onClose={() => setSheet(null)} />}
       {sheet?.t === 'settings' && <SettingsSheet vault={vault} say={say} onVault={(v) => setVault(v)} onClose={() => setSheet(null)} onChange={() => setShowStats(getSetting('stats'))} />}
       {sheet?.t === 'menu' && (
-        <MenuSheet vault={vault} list={list} onClose={() => setSheet(null)} say={say}
+        <MenuSheet vault={vault} user={user} list={list} onClose={() => setSheet(null)} say={say}
           onRenamed={(n) => { setVault({ ...vault, name: n }); rememberVault(id, n); }}
           onLeave={() => { forgetVault(id); router.replace('/?all'); }} onAll={() => router.push('/?all')}
           onSettings={() => setSheet({ t: 'settings' })} onStats={() => setSheet({ t: 'stats' })} onFamily={() => setSheet({ t: 'family' })} />
@@ -329,7 +331,7 @@ function Row({ r, onClick }) {
   );
 }
 
-function MenuSheet({ vault, list, onClose, onRenamed, onLeave, onAll, onSettings, onStats, onFamily, say }) {
+function MenuSheet({ vault, user, list, onClose, onRenamed, onLeave, onAll, onSettings, onStats, onFamily, say }) {
   const [name, setName] = useState(vault.name);
   const link = typeof window !== 'undefined' ? `${location.origin}/v/${vault.id}` : '';
 
@@ -355,19 +357,21 @@ function MenuSheet({ vault, list, onClose, onRenamed, onLeave, onAll, onSettings
           <button className="btn" onClick={rename} disabled={!name.trim() || name.trim() === vault.name}>שמור</button>
         </div>
       </div>
+      <AcctPill user={user} vault={vault} onClick={onFamily} />
       <div className="menu-list">
         <button onClick={onFamily}><span className="ic">👥</span><span className="grow"><b>חשבון, משפחה וגיבוי</b><div className="muted small">{vault.has_owner ? 'מי רואה את הקבלות, הזמנה, גיבוי מלא' : 'שמירה בחשבון Google, גיבוי מלא'}</div></span></button>
       </div>
       {!vault.has_owner && (
         <>
-          <div className="sec">שיתוף בקישור</div>
-          <div className="muted small" style={{ margin: '0 4px 8px' }}>מי שמקבל את הקישור רואה ומוסיף קבלות. שלחו רק למי שאתם סומכים עליו.</div>
+          <div className="sec">שיתוף הקבלות שלי בקישור</div>
+          <div className="muted small" style={{ margin: '0 4px 8px' }}>⚠️ מי שמקבל את הקישור הזה <b>רואה ומוסיף קבלות בארכיון שלך</b>. רק לבני משפחה. לחבר שרוצה אפליקציה משלו — "לשתף את האפליקציה" למטה.</div>
           <div className="grid2">
             <button className="btn" onClick={whatsapp}>💬 וואטסאפ</button>
             <button className="btn" onClick={copy}>🔗 העתק קישור</button>
           </div>
         </>
       )}
+      <ShareAppBlock say={say} />
       <div className="sec">עוד</div>
       <div className="menu-list">
         <button onClick={onSettings}><span className="ic">⚙️</span><span className="grow">הגדרות<div className="muted small">התראות, סיכום הוצאות, נעילה, שיפור תמונות</div></span></button>
@@ -413,5 +417,30 @@ function NeedAccount({ vault, need, onJoined }) {
       {err && <div className="err">{err}</div>}
       <a className="muted" href="/?all" style={{ marginTop: 20 }}>למסך הראשי</a>
     </div>
+  );
+}
+
+// מי מחובר עכשיו — תמיד בראש המסך, בולט וברור
+function AcctPill({ user, vault, onClick }) {
+  if (user === undefined) return null;
+  const owner = vault?.has_owner && !vault?.is_owner && vault?.owner_name;
+  if (!user) {
+    return (
+      <button className="acct-pill off" onClick={onClick}>
+        <span className="av">👤</span>
+        <span className="grow"><b>לא מחובר לחשבון</b><span className="muted small"> · לחץ לכניסה עם Google</span></span>
+        <span className="muted">‹</span>
+      </button>
+    );
+  }
+  return (
+    <button className="acct-pill" onClick={onClick}>
+      <span className="av">{user.user_metadata?.avatar_url ? <img src={user.user_metadata.avatar_url} alt="" referrerPolicy="no-referrer" /> : userName(user).slice(0, 1)}</span>
+      <span className="grow" style={{ minWidth: 0 }}>
+        <b>{userName(user)}</b>
+        <span className="em" dir="ltr">{user.email}</span>
+      </span>
+      <span className="tag">{owner ? `הארכיון של ${owner}` : vault?.is_owner ? '👑 שלי' : 'מחובר'}</span>
+    </button>
   );
 }

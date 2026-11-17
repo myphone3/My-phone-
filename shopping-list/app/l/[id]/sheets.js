@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { ShareAppBlock } from '@/lib/shareApp';
 import { supabase } from '@/lib/supabase';
 import { CATEGORIES, CAT_EMOJI } from '@/lib/catalog';
 import { parseText, enTermFor, fmtQty, splitSpoken } from '@/lib/parse';
@@ -604,7 +605,7 @@ export function MenuSheet({ list, items, id, me, wake, store, onWake, onClose, o
 
       <div className="menu-sec">👥 שיתוף</div>
       <div className="menu-list">
-        <button onClick={() => open('share')}><span className="ic">➕</span>שיתוף הרשימה וצירוף חברים</button>
+        <button onClick={() => open('share')}><span className="ic">➕</span>שיתוף הרשימה הזו וצירוף חברים</button>
         <button onClick={() => open('split')}><span className="ic">🧩</span>חלוקה — מי מביא מה</button>
         <button onClick={() => wa(listAsText(list, items, { onlyLeft: true }))}><span className="ic">💬</span>שלח בוואטסאפ את מה שנשאר לקנות</button>
         {missing.length > 0 && (
@@ -636,6 +637,7 @@ export function MenuSheet({ list, items, id, me, wake, store, onWake, onClose, o
         <button onClick={() => onWake(!wake)}><span className="ic">{wake ? '🔆' : '🔅'}</span>המסך לא נכבה בזמן קנייה: {wake ? 'פועל' : 'כבוי'}</button>
         <button onClick={() => { window.location.href = '/?all'; }}><span className="ic">🏠</span>כל הרשימות שלי / רשימה חדשה</button>
       </div>
+      <ShareAppBlock say={say} />
     </Sheet>
   );
 }
@@ -690,6 +692,8 @@ export function ShareSheet({ list, id, me, hasName, participants, online, onClos
       {participants.length > 1 && (
         <button className="btn block" style={{ marginTop: 10 }} onClick={onSplit}>🧩 חלוקה — מי מביא מה</button>
       )}
+      <div className="small muted" style={{ marginTop: 14 }}>⚠️ מי שמקבל את הקישור למעלה רואה ועורך <b>את הרשימה הזו</b>. חבר שרוצה אפליקציה משלו?</div>
+      <ShareAppBlock say={say} />
     </Sheet>
   );
 }

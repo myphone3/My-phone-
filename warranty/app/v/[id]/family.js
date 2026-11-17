@@ -72,8 +72,8 @@ export default function FamilySheet({ vault, list, onClose, onVault, onLeft, say
       {user && (
         <div className="acct">
           <div className="av">{user.user_metadata?.avatar_url ? <img src={user.user_metadata.avatar_url} alt="" referrerPolicy="no-referrer" /> : userName(user).slice(0, 1)}</div>
-          <div className="grow"><b>{userName(user)}</b><div className="muted small" dir="ltr" style={{ textAlign: 'right' }}>{user.email}</div></div>
-          <button className="btn sm" onClick={async () => { await signOut(); location.reload(); }}>יציאה</button>
+          <div className="grow"><div className="muted small">מחובר כעת לחשבון</div><b>{userName(user)}</b><div className="muted small" dir="ltr" style={{ textAlign: 'right' }}>{user.email}</div></div>
+          <button className="btn sm" onClick={async () => { await signOut(); location.reload(); }}>יציאה / החלפה</button>
         </div>
       )}
       {user && !vault.has_owner && (

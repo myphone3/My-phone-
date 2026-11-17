@@ -1861,7 +1861,7 @@ function viewSettings() {
       <input type="file" id="restore-file" accept=".json,application/json" hidden>
       <div class="btn-row">${state.shifts.length === 0 ? `<button class="btn ghost" data-act="loadSample">הצגת נתוני דוגמה</button>` : ""}<button class="btn danger" data-act="wipe">מחיקת כל המשמרות</button></div>`)}
     ${acc("shareapp", "📲", "שיתוף האפליקציה", "קישור, שיתוף וקובץ APK", `
-      <p class="muted small" style="margin:0">שלחו את השעון לחברים לעבודה. כל אחד נרשם ומקבל חשבון משלו.</p>
+      <p class="muted small" style="margin:0">שלחו את השעון לחברים לעבודה. כל אחד נרשם ומקבל חשבון משלו — <b>הם לא רואים את השעות והשכר שלך</b>.</p>
       <div class="btn-row"><button class="btn primary" data-act="shareApp">שיתוף</button><button class="btn" data-act="copyAppLink">העתקת קישור</button></div>
       <a class="btn" href="${APK_URL}" download style="text-align:center;text-decoration:none;color:inherit">הורדת קובץ APK לאנדרואיד</a>
       <span class="hint">אחרי ההורדה פותחים את הקובץ ומאשרים ״התקנה ממקור לא ידוע״.</span>`)}
@@ -2063,7 +2063,7 @@ async function shareText(text, title) {
 const APP_URL = "https://shaon-nochechut.vercel.app";
 const APK_URL = "https://github.com/myphone3/My-phone-/releases/download/shaon-apk-latest/shaon-nochechut.apk";
 async function shareApp() {
-  const text = "שעון נוכחות: רישום שעות, חישוב שכר ודוח לבוס";
+  const text = "שעון נוכחות: רישום שעות, חישוב שכר ודוח לבוס. כל אחד נרשם עם חשבון משלו:";
   if (navigator.share) { try { await navigator.share({ title: "שעון נוכחות", text, url: APP_URL }); return; } catch (e) { if (e && e.name === "AbortError") return; } }
   copyAppLink();
 }

@@ -6,6 +6,7 @@ import { getVaults, rememberVault, forgetVault } from '@/lib/local';
 import InstallButton from '@/components/InstallButton';
 import Sheet from '@/components/Sheet';
 import { useUser, signInWithGoogle, signOut, userName, GoogleButton } from '@/lib/auth';
+import { ShareAppBlock } from '@/lib/shareApp';
 
 // מסך פתיחה: אם כבר יש ארכיון במכשיר — נכנסים אליו ישר
 export default function Home() {
@@ -59,8 +60,8 @@ export default function Home() {
       {user ? (
         <div className="acct" style={{ marginBottom: 14 }}>
           <div className="av">{user.user_metadata?.avatar_url ? <img src={user.user_metadata.avatar_url} alt="" referrerPolicy="no-referrer" /> : userName(user).slice(0, 1)}</div>
-          <div className="grow"><b>{userName(user)}</b><div className="muted small" dir="ltr" style={{ textAlign: 'right' }}>{user.email}</div></div>
-          <button className="btn sm" onClick={async () => { await signOut(); location.reload(); }}>יציאה</button>
+          <div className="grow"><div className="muted small">מחובר כעת לחשבון</div><b>{userName(user)}</b><div className="muted small" dir="ltr" style={{ textAlign: 'right' }}>{user.email}</div></div>
+          <button className="btn sm" onClick={async () => { await signOut(); location.reload(); }}>יציאה / החלפת חשבון</button>
         </div>
       ) : (
         <div className="card" style={{ padding: 14, marginBottom: 14 }}>
@@ -107,6 +108,7 @@ export default function Home() {
       <button className="btn block" style={{ marginTop: 10 }} onClick={() => setJoin(true)}>🔗 קיבלתי קישור מבן משפחה</button>
       {err && <div className="err">{err}</div>}
       <div style={{ marginTop: 16 }}><InstallButton /></div>
+      {vaults.length > 0 && <ShareAppBlock say={(t) => alert(t)} />}
 
       {join && <JoinSheet onClose={() => setJoin(false)} onJoin={(id) => router.push(`/v/${id}`)} />}
     </div>

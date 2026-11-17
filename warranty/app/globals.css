@@ -168,3 +168,14 @@ a.btn.primary { color: #fff; }
 .acct .av img { width: 100%; height: 100%; object-fit: cover; }
 .banner { display: flex; gap: 10px; align-items: center; padding: 12px 14px; border-radius: 14px; background: var(--brand-soft); margin: 8px 0; width: 100%; text-align: start; }
 .banner .ic { font-size: 26px; }
+
+/* מי מחובר — שורה בולטת מתחת לכותרת */
+.acct-pill { display: flex; align-items: center; gap: 10px; width: 100%; text-align: start; padding: 8px 12px; margin: 0 0 10px; border-radius: 14px; background: var(--brand-soft); border: 1px solid var(--line); }
+.acct-pill .av { width: 34px; height: 34px; border-radius: 50%; background: var(--brand); color: #fff; display: grid; place-items: center; font-weight: 800; flex: none; overflow: hidden; font-size: 16px; }
+.acct-pill .av img { width: 100%; height: 100%; object-fit: cover; }
+.acct-pill b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.acct-pill .em { display: block; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
+.acct-pill .tag { flex: none; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 99px; background: var(--card); color: var(--brand); }
+.acct-pill.off { background: var(--amber-soft); border-color: var(--amber); }
+.acct-pill.off .av { background: var(--amber); }
+.acct-pill.off b { display: inline; }

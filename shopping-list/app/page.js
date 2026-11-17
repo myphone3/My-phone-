@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import InstallButton from '@/components/InstallButton';
 import { getMyLists, getMyName, rememberList, setMyName, forgetList } from '@/lib/local';
 import { Sheet } from './l/[id]/sheets';
+import { ShareAppBlock } from '@/lib/shareApp';
 
 // מסך הבית: שם האפליקציה, הרשימות שלי, רשימה חדשה, הצטרפות לרשימה, הגדרות.
 // לא שואלים שם בכניסה — השם נמצא בהגדרות (⚙️) ואפשר לשנות אותו מתי שרוצים.
@@ -77,6 +78,7 @@ export default function Home() {
       )}
 
       <InstallButton />
+      {ready && lists.length > 0 && <ShareAppBlock say={(t) => alert(t)} />}
 
       {sheet === 'new' && (
         <NewListSheet onClose={() => setSheet(null)} onCreated={(id) => router.push(`/l/${id}`)} />
@@ -171,6 +173,7 @@ function SettingsSheet({ name, onClose, onSave }) {
         נרשם פעם אחת בטלפון הזה. כך החברים ברשימה יראו מי הוסיף, מי מצא ומי מביא מה. לא חובה.
       </div>
       <button className="btn primary block" style={{ marginTop: 14 }} onClick={() => onSave(n.trim())}>שמור</button>
+      <ShareAppBlock say={(t) => alert(t)} />
     </Sheet>
   );
 }
