@@ -23,6 +23,13 @@ export async function upload(vaultId, file, product = false) {
   const path = `${vaultId}/${crypto.randomUUID()}.${ext}`;
   const { error } = await supabase.storage.from('wr-photos').upload(path, body, { contentType: type, cacheControl: '31536000' });
   if (error) throw error;
+  // תמונת מוצר: גם גרסה קטנה (240px) לרשימה — נטענת מהר
+  if (product) {
+    try {
+      const small = await prepareImage(file, { maxSide: 240, quality: 0.75 });
+      await supabase.storage.from('wr-photos').upload(path.replace(/\.jpg$/, '_t.jpg'), small, { contentType: 'image/jpeg', cacheControl: '31536000' });
+    } catch {}
+  }
   return supabase.storage.from('wr-photos').getPublicUrl(path).data.publicUrl;
 }
 

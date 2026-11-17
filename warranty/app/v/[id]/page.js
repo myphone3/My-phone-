@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { rememberVault, forgetVault, getPref, setPref } from '@/lib/local';
+import { rememberVault, forgetVault, getPref, setPref, addVaultIfMissing } from '@/lib/local';
 import { status, matches, fmtDate, fmtPrice, catEmoji, CATEGORIES, expiryDate, isPdf } from '@/lib/warranty';
 import InstallButton from '@/components/InstallButton';
 import Sheet from '@/components/Sheet';
@@ -16,6 +16,7 @@ import FamilySheet from './family';
 import { useUser, signInWithGoogle, GoogleButton } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { downloadCsv } from '@/lib/backup';
+import { getCached, setCached, clearCached, thumbOf } from '@/lib/cache';
 
 const FILTERS = [
   { k: 'all', label: 'הכל' },
@@ -58,18 +59,34 @@ function Vault({ id }) {
   const load = useCallback(async () => {
     const { data, error } = await rpc('wr_get_vault', id);
     if (error) return setState((s) => (s === 'ok' ? s : 'error'));
-    if (!data) return setState('missing');
+    if (!data) { clearCached(id); return setState('missing'); }
     setVault(data.vault);
     rememberVault(id, data.vault.name);
-    if (data.need) { setList([]); setNeed(data.need); return setState('need'); }
+    if (data.need) { clearCached(id); setList([]); setNeed(data.need); return setState('need'); }
     setNeed(null);
-    if (data.locked) { setList([]); closeLock(id); return setState('locked'); }
+    if (data.locked) { clearCached(id); setList([]); closeLock(id); return setState('locked'); }
     setList(data.receipts || []);
+    setCached(id, data);
     setGate(!!data.vault.has_pin && !isOpen(id));
     setState('ok');
   }, [id]);
 
-  useEffect(() => { setSort(getPref('sort', 'date')); setShowStats(getSetting('stats')); }, []);
+  // פתיחה מיידית: מציגים את מה שנשמר בפעם הקודמת, והשרת מעדכן ברקע
+  useEffect(() => {
+    setSort(getPref('sort', 'date')); setShowStats(getSetting('stats'));
+    const c = getCached(id);
+    if (c?.vault && Array.isArray(c.receipts)) {
+      setVault(c.vault); setList(c.receipts);
+      setGate(!!c.vault.has_pin && !isOpen(id));
+      setState((s) => (s === 'loading' ? 'ok' : s));
+    }
+  }, [id]);
+  // ארכיונים נוספים בחשבון — נוספים לרשימה במכשיר ברקע
+  useEffect(() => {
+    if (!user) return;
+    supabase.rpc('wr_my_vaults').then(({ data }) => (data || []).forEach((x) => addVaultIfMissing(x.id, x.name)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, id]);
   // טוענים מחדש כשמתחברים / מתנתקים
   useEffect(() => { if (user !== undefined) load(); }, [load, user]);
 
@@ -297,7 +314,8 @@ function Row({ r, onClick }) {
   const s = r._s;
   return (
     <button className="card rc" onClick={onClick}>
-      <div className="thumb">{r.product_photo ? <img src={r.product_photo} alt="" loading="lazy" /> : <span className="noimg">{catEmoji(r.category)}</span>}</div>
+      <div className="thumb">{r.product_photo ? <img src={thumbOf(r.product_photo)} alt="" loading="lazy" decoding="async"
+        onError={(e) => { if (e.currentTarget.src !== r.product_photo) e.currentTarget.src = r.product_photo; }} /> : <span className="noimg">{catEmoji(r.category)}</span>}</div>
       <div className="grow">
         <div className="rname">{r.product || r.store || 'קבלה ללא שם'}</div>
         <div className="meta">

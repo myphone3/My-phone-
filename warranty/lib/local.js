@@ -17,3 +17,10 @@ export function forgetVault(id) {
 }
 export const getPref = (k, d) => read('wr_pref_' + k, d);
 export const setPref = (k, v) => write('wr_pref_' + k, v);
+// מוסיף ארכיון לסוף הרשימה (בלי לשנות את הסדר) אם הוא עוד לא שם
+export function addVaultIfMissing(id, name) {
+  const list = getVaults();
+  if (list.some((v) => v.id === id)) return;
+  list.push({ id, name, at: Date.now() });
+  write('wr_vaults', list.slice(0, 10));
+}

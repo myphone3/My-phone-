@@ -1,10 +1,61 @@
 // מאפשר התקנה למסך הבית, התראות, ו"שיתוף" של תמונה/PDF מהגלריה או מהמייל ישר לאפליקציה.
-// לא שומר דפים במטמון כדי שהמידע תמיד יהיה עדכני.
+// מהירות: קבצי האפליקציה ותמונות הקבלות נשמרים בטלפון, כך שהפתיחה מיידית (גם בלי אינטרנט).
+// הנתונים עצמם (הקבלות) תמיד מגיעים מהשרת — האפליקציה מציגה קודם את מה שזכרה ומעדכנת.
+const APP = 'wr-app-v1';      // דפים וקבצי האפליקציה
+const IMG = 'wr-img-v1';      // תמונות קבלות ומוצרים (שמות אקראיים — לא משתנים לעולם)
+const KEEP = [APP, IMG, 'wr-share'];
+
 self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
+self.addEventListener('activate', (e) => e.waitUntil((async () => {
+  for (const k of await caches.keys()) if (!KEEP.includes(k)) await caches.delete(k);
+  await self.clients.claim();
+})()));
+
+// שומר רק את 400 התמונות האחרונות
+async function trim(cache, max) {
+  const keys = await cache.keys();
+  for (let i = 0; i < keys.length - max; i++) await cache.delete(keys[i]);
+}
+
+async function cacheFirst(req, name, fetchReq) {
+  const cache = await caches.open(name);
+  const hit = await cache.match(req, { ignoreVary: true });
+  if (hit) return hit;
+  const res = await fetch(fetchReq || req);
+  if (res.ok) { cache.put(req, res.clone()); if (name === IMG) trim(cache, 400); }
+  return res;
+}
+
+// דף: מציגים מיד את הגרסה השמורה, ומעדכנים אותה ברקע לפעם הבאה
+async function staleWhileRevalidate(e) {
+  const cache = await caches.open(APP);
+  const hit = await cache.match(e.request, { ignoreSearch: false });
+  const net = fetch(e.request).then((res) => { if (res.ok && res.type === 'basic') cache.put(e.request, res.clone()); return res; });
+  if (hit) { e.waitUntil(net.catch(() => {})); return hit; }
+  try { return await net; } catch { return (await cache.match('/', { ignoreSearch: true })) || Response.error(); }
+}
 
 self.addEventListener('fetch', (e) => {
-  const url = new URL(e.request.url);
+  const req = e.request;
+  const url = new URL(req.url);
+  if (req.method === 'GET') {
+    // תמונות מהאחסון (לא PDF)
+    if (/\.supabase\.co$/.test(url.hostname) && url.pathname.includes('/storage/v1/object/public/wr-photos/') && /\.(jpg|jpeg|png|webp)$/i.test(url.pathname)) {
+      e.respondWith(cacheFirst(req, IMG, new Request(req.url, { mode: 'cors', credentials: 'omit' })).catch(() => fetch(req)));
+      return;
+    }
+    if (url.origin === location.origin) {
+      if (url.pathname.startsWith('/_next/static/') || /^\/(icon|apple-touch-icon)[\w-]*\.png$/.test(url.pathname)) {
+        e.respondWith(cacheFirst(req, APP));
+        return;
+      }
+      // מעבר בין דפים: הדף נשמר (בלי /api, /auth, ובלי בקשות פנימיות של Next)
+      if (req.mode === 'navigate' && !url.pathname.startsWith('/api') && !url.pathname.startsWith('/auth') && !req.headers.get('RSC')) {
+        e.respondWith(staleWhileRevalidate(e));
+        return;
+      }
+    }
+  }
   if (e.request.method === 'POST' && url.pathname === '/share-target') {
     e.respondWith((async () => {
       try {
