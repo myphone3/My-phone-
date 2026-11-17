@@ -13,6 +13,10 @@ export const viewport = { width: 'device-width', initialScale: 1, maximumScale: 
 export default function RootLayout({ children }) {
   return (
     <html lang="he" dir="rtl">
+      <head>
+        <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} crossOrigin="anonymous" />
+        <script dangerouslySetInnerHTML={{ __html: "try{if(location.pathname==='/'&&!/[?&]all/.test(location.search)){var v=JSON.parse(localStorage.getItem('wr_vaults')||'[]');if(v.length===1&&/^[0-9a-f-]{36}$/.test(v[0].id))location.replace('/v/'+v[0].id+location.search)}}catch(e){}" }} />
+      </head>
       <body>
         {children}
         <script dangerouslySetInnerHTML={{ __html: "if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{})}" }} />
