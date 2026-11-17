@@ -38,7 +38,9 @@ export default function TvApp() {
     const p = new URLSearchParams(location.search);
     const k = p.get('k');
     if (k && /^[0-9a-f-]{36}$/i.test(k)) { setKitchenId(k); history.replaceState(null, '', location.pathname); }
-    setKid(getKitchenId());
+    const id = getKitchenId();
+    setData(cachedKitchen(id));
+    setKid(id);
     setReady(true);
     const onMouse = () => document.documentElement.classList.add('mouse');
     window.addEventListener('mousemove', onMouse, { once: true });
@@ -158,10 +160,10 @@ export default function TvApp() {
     if (el?.hasAttribute?.('data-scroll') && (KEY.isUp(e) || KEY.isDown(e))) {
       const dy = el.clientHeight * 0.4 * (KEY.isDown(e) ? 1 : -1);
       const atEdge = dy > 0 ? el.scrollTop + el.clientHeight >= el.scrollHeight - 2 : el.scrollTop <= 0;
-      if (!atEdge) { el.scrollBy({ top: dy, behavior: 'smooth' }); e.preventDefault(); return; }
+      if (!atEdge) { el.scrollBy({ top: dy, behavior: e.repeat ? 'auto' : 'smooth' }); e.preventDefault(); return; }
     }
     const dir = KEY.isLeft(e) ? 'left' : KEY.isRight(e) ? 'right' : KEY.isUp(e) ? 'up' : KEY.isDown(e) ? 'down' : null;
-    if (dir) { moveFocus(dir); e.preventDefault(); }
+    if (dir) { moveFocus(dir, e.repeat); e.preventDefault(); }
   };
   // אפליקציית אנדרואיד: כפתור חזור. מחזיר false במסך הבית כדי שהאפליקציה תצא
   useEffect(() => {

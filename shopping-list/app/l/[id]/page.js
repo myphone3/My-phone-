@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { CAT_EMOJI } from '@/lib/catalog';
 import { parseText, fmtQty } from '@/lib/parse';
-import { getMyName, setMyName, rememberList, getPref, setPref } from '@/lib/local';
+import { getMyName, setMyName, rememberList, getPref, setPref, getCachedList, setCachedList, clearCachedList } from '@/lib/local';
 import { catOrderOf, assigneeOf, currentStore, keyOf, shekel, unitPrice } from '@/lib/order';
 import {
   ItemSheet, PasteSheet, MenuSheet, NameSheet, ShareSheet, SplitSheet, StoreSheet, STATUS, colorFor,
@@ -57,7 +57,8 @@ export default function ListPage() {
       for (const r of rows) {
         if (!r || !r.id) continue;
         const old = map.get(r.id);
-        if (!old || new Date(r.updated_at) >= new Date(old.updated_at)) map.set(r.id, r);
+        // _opt = שינוי שעוד לא אושר בשרת — הגרסה מהשרת תמיד מחליפה אותו (גם אם השעון בטלפון לא מדויק)
+        if (!old || old._opt || new Date(r.updated_at) >= new Date(old.updated_at)) map.set(r.id, r);
       }
       return [...map.values()];
     });
@@ -71,7 +72,8 @@ export default function ListPage() {
   const load = useCallback(async () => {
     const { data, error } = await supabase.rpc('sl_get_list', { p_list: id });
     setLoading(false);
-    if (error || !data?.list) { setNotFound(true); return; }
+    if (error && getCachedList(id)) return; // אין אינטרנט — נשארים עם הרשימה השמורה
+    if (error || !data?.list) { clearCachedList(id); setNotFound(true); return; }
     setList(data.list);
     setItems(data.items || []);
     rememberList(id, data.list.name);
@@ -86,6 +88,13 @@ export default function ListPage() {
     setHasName(!!saved);
     setNameHint(!saved && !getPref('name_hint_off', false));
     setWake(getPref('wake', false));
+    const cached = getCachedList(id);
+    if (cached?.list) {
+      setList(cached.list);
+      setItems(cached.items || []);
+      if (cached.prices) setPrices(cached.prices);
+      setLoading(false);
+    }
     load();
     loadPrices();
 
@@ -115,6 +124,13 @@ export default function ListPage() {
       supabase.removeChannel(ch);
     };
   }, [id, load, loadPrices, applyRows, say]);
+
+  // שומרים את הרשימה בטלפון לפתיחה מיידית בפעם הבאה
+  useEffect(() => {
+    if (!list) return;
+    const t = setTimeout(() => setCachedList(id, { list, items, prices }), 400);
+    return () => clearTimeout(t);
+  }, [id, list, items, prices]);
 
   // המסך לא נכבה בזמן קנייה
   useEffect(() => {
@@ -177,20 +193,22 @@ export default function ListPage() {
   }
 
   async function update(item, patch, msg, push) {
-    const optimistic = { ...item, ...patch, updated_at: new Date().toISOString() };
+    const optimistic = { ...item, ...patch, updated_at: new Date().toISOString(), _opt: true };
     applyRows([optimistic]);
+    // שולחים לשאר הטלפונים מיד, בלי לחכות לשרת — ואחר כך את הגרסה הסופית
+    broadcast({ rows: [optimistic], msg });
     const { data, error } = await supabase.rpc('sl_update_item', { p_list: id, p_item: item.id, p: patch });
-    if (error || !data) { say('לא נשמר — בדוק אינטרנט'); load(); return; }
+    if (error || !data) { say('לא נשמר — בדוק אינטרנט'); load(); broadcast({ reload: true }); return; }
     applyRows([data]);
-    broadcast({ rows: [data], msg });
+    broadcast({ rows: [data] });
     if (push && msg) notify(msg);
   }
 
   async function remove(item) {
     setItems((p) => p.filter((i) => i.id !== item.id));
     setOpenId(null);
-    await supabase.rpc('sl_delete_item', { p_list: id, p_item: item.id });
     broadcast({ deleted: [item.id] });
+    await supabase.rpc('sl_delete_item', { p_list: id, p_item: item.id });
   }
 
   function toggleFound(item) {

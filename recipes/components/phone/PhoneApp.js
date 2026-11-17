@@ -95,7 +95,9 @@ export default function PhoneApp() {
     const code = p.get('pair');
     if (code && /^\d{6}$/.test(code)) pairCode.current = code;
     if (k || code) history.replaceState(null, '', location.pathname);
-    setKid(getKitchenId());
+    const kid = getKitchenId();
+    setData(cachedKitchen(kid));
+    setKid(kid);
     setFollowState(read('rc_follow', true));
     setReady(true);
     history.replaceState({ name: 'library' }, '');

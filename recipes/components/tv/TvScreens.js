@@ -90,7 +90,7 @@ export function TvHome({ data, cast }) {
           <span className="lbl">📅 בתפריט היום</span>
           {today.map((r, i) => (
             <button key={r.id} data-nav="" data-autofocus={i === 0 ? '' : undefined} className="tv-today-item" onClick={() => cast.update({ screen: 'recipe', recipeId: r.id, step: 0, servings: null, checked: {}, page: 0 })}>
-              {r.image_url ? <img src={r.image_url} alt="" /> : <span>{emojiFor(r)}</span>}<b>{r.title}</b>
+              {r.image_url ? <img src={r.image_url} alt="" loading="lazy" decoding="async" /> : <span>{emojiFor(r)}</span>}<b>{r.title}</b>
             </button>
           ))}
         </div>
@@ -100,7 +100,7 @@ export function TvHome({ data, cast }) {
         {recipes.map((r, i) => (
           <button key={r.id} className="tv-card" data-nav="" data-autofocus={i === 0 && !today.length ? '' : undefined}
             onClick={() => cast.update({ screen: 'recipe', recipeId: r.id, step: 0, servings: null, checked: {}, page: 0 })}>
-            <div className="ph">{r.image_url ? <img src={r.image_url} alt="" /> : emojiFor(r)}</div>
+            <div className="ph">{r.image_url ? <img src={r.image_url} alt="" loading="lazy" decoding="async" /> : emojiFor(r)}</div>
             <div className="t">{r.favorite ? '❤️ ' : ''}{r.title}</div>
             <div className="m">{metaLine(r) || r.category || ' '}</div>
           </button>
@@ -440,7 +440,7 @@ export function TvMulti({ data, cast, now }) {
         return (
           <div key={r.id} className={'tv-mcol' + (m.focus === r.id ? ' focus' : '')}>
             <div className="mh">
-              {r.image_url ? <img src={r.image_url} alt="" /> : <span>{emojiFor(r)}</span>}
+              {r.image_url ? <img src={r.image_url} alt="" loading="lazy" decoding="async" /> : <span>{emojiFor(r)}</span>}
               <b>{r.title}</b>
             </div>
             <div className="prog">{steps.map((_, k) => <i key={k} className={k < i ? 'past' : k === i ? 'cur' : ''} />)}</div>

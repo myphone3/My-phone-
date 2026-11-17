@@ -1,4 +1,5 @@
 import './globals.css';
+import { FRESH_GUARD } from '@/lib/boot';
 
 export const metadata = {
   title: 'מתכונים בגדול',
@@ -17,6 +18,11 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="he" dir="rtl">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: FRESH_GUARD }} />
+        <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/rubik-hebrew.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+      </head>
       <body>
         {children}
         <script dangerouslySetInnerHTML={{ __html: "if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{})}" }} />

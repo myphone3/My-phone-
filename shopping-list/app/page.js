@@ -16,9 +16,14 @@ export default function Home() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setLists(getMyLists());
+    const l = getMyLists();
+    setLists(l);
     setName(getMyName());
     setReady(true);
+    // מכינים מראש את מסך הרשימה, כדי שהכניסה אליה תהיה מיידית
+    for (const x of l.slice(0, 5)) router.prefetch(`/l/${x.id}`);
+    if (/[?&]all/.test(location.search)) history.replaceState(null, '', '/');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
