@@ -1,8 +1,9 @@
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { rpc } from '@/lib/lock';
 import { status, fmtDate, fmtPrice, monthsLabel, catEmoji, baseExpiry, isPdf } from '@/lib/warranty';
 import Sheet from '@/components/Sheet';
-import { FileTile } from './editor';
+import { FileTile, upload } from './editor';
 
 const ICON = { active: '🛡️', soon: '⏰', expired: '⌛', none: '🧾', unknown: '❔' };
 const tel = (p) => 'tel:' + String(p).replace(/[^\d*#+]/g, '');
@@ -21,8 +22,28 @@ function summary(r, s) {
   ].filter(Boolean);
 }
 
-export default function Detail({ r, onClose, onEdit, onDelete, say }) {
+export default function Detail({ r, onClose, onEdit, onDelete, onSaved, say }) {
   const [view, setView] = useState(-1);
+  const [prodBusy, setProdBusy] = useState(false);
+  const prodRef = useRef(null);
+  // כל התמונות לצפייה במסך מלא: קודם המוצר, אחר כך הקבלה (בלי PDF)
+  const gallery = [r.product_photo, ...(r.photos || [])].filter((u) => u && !isPdf(u));
+  const openImg = (u) => (isPdf(u) ? window.open(u, '_blank') : setView(gallery.indexOf(u)));
+
+  // הוספת תמונת מוצר ישר מכאן, בלי לפתוח עריכה
+  async function addProduct(file) {
+    if (!file) return;
+    setProdBusy(true);
+    try {
+      const url = await upload(r.vault_id, file, true);
+      const p = { ...r, product_photo: url };
+      for (const k of ['price', 'warranty_months', 'ext_months', 'ext_price']) p[k] = p[k] === null || p[k] === undefined ? '' : String(p[k]);
+      const { data, error } = await rpc('wr_save_receipt', r.vault_id, { p });
+      if (error) throw error;
+      onSaved?.(data); say('📦 תמונת המוצר נשמרה');
+    } catch { say('התמונה לא נשמרה, נסה שוב'); }
+    setProdBusy(false);
+  }
   const [broken, setBroken] = useState(false);
   const s = status(r);
   const base = baseExpiry(r);
@@ -54,16 +75,24 @@ export default function Detail({ r, onClose, onEdit, onDelete, say }) {
           <button className="icon-btn" onClick={onClose} aria-label="סגור">✕</button>
         </div>
 
+        {r.product_photo ? (
+          <button style={{ width: '100%' }} onClick={() => openImg(r.product_photo)}><img className="hero prod" src={r.product_photo} alt={r.product || 'המוצר'} /></button>
+        ) : (
+          <button className="addprod" onClick={() => prodRef.current.click()} disabled={prodBusy}>
+            {prodBusy ? <div className="spin" style={{ width: 30, height: 30 }} /> : <><span style={{ fontSize: 34 }}>📦</span><b>הוסף תמונה של המוצר</b><span className="muted small">כדי לזהות אותו בקלות ברשימה</span></>}
+          </button>
+        )}
+        <input ref={prodRef} type="file" accept="image/*" hidden onChange={(e) => { addProduct(e.target.files?.[0]); e.target.value = ''; }} />
+
         {r.photos?.length > 0 && (
           <>
+            <div className="sec">🧾 הקבלה</div>
             {isPdf(r.photos[0])
-              ? <a className="btn block" style={{ height: 70, fontSize: 17 }} href={r.photos[0]} target="_blank" rel="noreferrer">📄 פתח את הקבלה (PDF)</a>
-              : <button style={{ width: '100%' }} onClick={() => setView(0)}><img className="hero" src={r.photos[0]} alt="הקבלה" /></button>}
+              ? <a className="btn block" style={{ height: 64, fontSize: 17 }} href={r.photos[0]} target="_blank" rel="noreferrer">📄 פתח את הקבלה (PDF)</a>
+              : <button style={{ width: '100%' }} onClick={() => openImg(r.photos[0])}><img className="hero rcpt" src={r.photos[0]} alt="הקבלה" /></button>}
             {r.photos.length > 1 && (
               <div className="photos" style={{ marginTop: 8 }}>
-                {r.photos.slice(1).map((u, i) => (
-                  <FileTile key={u} url={u} onClick={() => (isPdf(u) ? window.open(u, '_blank') : setView(i + 1))} />
-                ))}
+                {r.photos.slice(1).map((u) => <FileTile key={u} url={u} onClick={() => openImg(u)} />)}
               </div>
             )}
           </>
@@ -103,17 +132,17 @@ export default function Detail({ r, onClose, onEdit, onDelete, say }) {
         <button className="btn danger block" style={{ marginTop: 10 }} onClick={onDelete}>🗑️ מחיקה</button>
       </Sheet>
 
-      {broken && <Broken r={r} s={s} base={base} onClose={() => setBroken(false)} onEdit={() => { setBroken(false); onEdit(); }} onShowReceipt={() => { setBroken(false); if (r.photos?.[0]) isPdf(r.photos[0]) ? window.open(r.photos[0], '_blank') : setView(0); }} say={say} />}
+      {broken && <Broken r={r} s={s} base={base} onClose={() => setBroken(false)} onEdit={() => { setBroken(false); onEdit(); }} onShowReceipt={() => { setBroken(false); if (r.photos?.[0]) openImg(r.photos[0]); }} say={say} />}
 
-      {view >= 0 && (
+      {view >= 0 && gallery[view] && (
         <div className="viewer">
-          <div className="vimg"><img src={r.photos[view]} alt="" /></div>
+          <div className="vimg"><img src={gallery[view]} alt="" /></div>
           <div className="vbar">
             <button onClick={() => setView(-1)}>✕ סגור</button>
-            {r.photos.length > 1 && <span style={{ color: '#fff', alignSelf: 'center' }}>{view + 1} / {r.photos.length}</span>}
+            {gallery.length > 1 && <span style={{ color: '#fff', alignSelf: 'center' }}>{view + 1} / {gallery.length}</span>}
             <div className="row">
-              {r.photos.length > 1 && <button onClick={() => { let n = view; do { n = (n + 1) % r.photos.length; } while (isPdf(r.photos[n]) && n !== view); setView(n); }}>הבאה ‹</button>}
-              <a href={r.photos[view]} target="_blank" rel="noreferrer"><button>⬇️ פתח</button></a>
+              {gallery.length > 1 && <button onClick={() => setView((view + 1) % gallery.length)}>הבאה ‹</button>}
+              <a href={gallery[view]} target="_blank" rel="noreferrer"><button>⬇️ פתח</button></a>
             </div>
           </div>
         </div>

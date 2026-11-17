@@ -159,7 +159,7 @@ function Vault({ id }) {
     <div className="wrap">
       <div className="top">
         <div className="row" style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 28 }}>🧾</div>
+          <img src="/icon-192.png?v=2" alt="" width="40" height="40" style={{ borderRadius: 10, flex: 'none' }} />
           <div className="grow">
             <h1 className="title">{vault.name}</h1>
             <div className="muted small">{list.length ? `${list.length} קבלות` : 'עוד אין קבלות'}</div>
@@ -239,7 +239,7 @@ function Vault({ id }) {
           onClose={() => setSheet(sheet.r ? { t: 'view', id: sheet.r.id } : null)} onSaved={saved} say={say} />
       )}
       {viewing && (
-        <Detail r={viewing} onClose={() => setSheet(null)} onEdit={() => setSheet({ t: 'edit', r: viewing, files: [] })} onDelete={() => remove(viewing)} say={say} />
+        <Detail r={viewing} onSaved={(r) => setList((l) => l.map((x) => (x.id === r.id ? r : x)))} onClose={() => setSheet(null)} onEdit={() => setSheet({ t: 'edit', r: viewing, files: [] })} onDelete={() => remove(viewing)} say={say} />
       )}
       {sheet?.t === 'sort' && (
         <Sheet onClose={() => setSheet(null)}>
@@ -270,7 +270,7 @@ function Row({ r, onClick }) {
   const s = r._s;
   return (
     <button className="card rc" onClick={onClick}>
-      <div className="thumb">{r.photos?.[0] ? (isPdf(r.photos[0]) ? '📄' : <img src={r.photos[0]} alt="" loading="lazy" />) : catEmoji(r.category)}</div>
+      <div className="thumb">{r.product_photo ? <img src={r.product_photo} alt="" loading="lazy" /> : <span className="noimg">{catEmoji(r.category)}</span>}</div>
       <div className="grow">
         <div className="rname">{r.product || r.store || 'קבלה ללא שם'}</div>
         <div className="meta">
@@ -302,8 +302,8 @@ function MenuSheet({ vault, list, onClose, onRenamed, onLeave, onAll, onSettings
   }
   function exportCsv() {
     const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-    const head = ['מוצר', 'חנות', 'קטגוריה', 'תאריך קנייה', 'מחיר', 'אחריות (חודשים)', 'הרחבה (חודשים)', 'מחיר הרחבה', 'סיום אחריות', 'מספר סידורי', 'מספר קבלה', 'טלפון שירות', 'טלפון חנות', 'הערות', 'קבצים'];
-    const rows = list.map((r) => { const e = expiryDate(r); return [r.product, r.store, r.category, r.purchase_date, r.price, r.warranty_months, r.ext_months, r.ext_price, e ? fmtDate(e) : '', r.serial, r.receipt_no, r.service_phone, r.store_phone, r.notes, (r.photos || []).join(' ')]; });
+    const head = ['תמונת מוצר', 'מוצר', 'חנות', 'קטגוריה', 'תאריך קנייה', 'מחיר', 'אחריות (חודשים)', 'הרחבה (חודשים)', 'מחיר הרחבה', 'סיום אחריות', 'מספר סידורי', 'מספר קבלה', 'טלפון שירות', 'טלפון חנות', 'הערות', 'קבצים'];
+    const rows = list.map((r) => { const e = expiryDate(r); return [r.product_photo, r.product, r.store, r.category, r.purchase_date, r.price, r.warranty_months, r.ext_months, r.ext_price, e ? fmtDate(e) : '', r.serial, r.receipt_no, r.service_phone, r.store_phone, r.notes, (r.photos || []).join(' ')]; });
     const csv = '﻿' + [head, ...rows].map((x) => x.map(esc).join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));

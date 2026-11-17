@@ -34,7 +34,7 @@ export default function Home() {
   return (
     <div className="wrap" style={{ paddingTop: 30 }}>
       <div style={{ textAlign: 'center', marginBottom: 22 }}>
-        <img src="/icon-192.png" alt="" width="84" height="84" style={{ borderRadius: 22, margin: '0 auto 12px' }} />
+        <img src="/icon-192.png?v=2" alt="" width="84" height="84" style={{ borderRadius: 22, margin: '0 auto 12px' }} />
         <h1 className="title" style={{ fontSize: 26, whiteSpace: 'normal' }}>קבלות ואחריות</h1>
         <div className="muted" style={{ marginTop: 6 }}>מצלמים את הקבלה פעם אחת — ומוצאים אותה תוך שנייה כשצריך</div>
       </div>

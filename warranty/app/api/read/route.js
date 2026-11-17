@@ -5,7 +5,8 @@ import { CATEGORIES } from '@/lib/warranty';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-const PROMPT = `אתה קורא קבלות, חשבוניות ותעודות אחריות (בעיקר מישראל) מתוך תמונות או PDF. ייתכנו כמה קבצים של אותה קנייה.
+const PROMPT = `אתה קורא קבלות, חשבוניות ותעודות אחריות (בעיקר מישראל) מתוך תמונות או PDF. ייתכנו כמה קבצים של אותה קנייה (ממוספרים לפי הסדר מ-0),
+ולפעמים אחד מהם הוא תמונה של המוצר עצמו (לא קבלה).
 החזר JSON בלבד במבנה:
 {"store":"שם החנות/הרשת (בלי ח.פ וכתובת)","product":"שם המוצר העיקרי, ברור וקצר בעברית (עם דגם/מותג אם כתוב)",
 "items":[{"name":"שם מוצר קצר","price":מחיר השורה אחרי הנחות}],
@@ -13,7 +14,8 @@ const PROMPT = `אתה קורא קבלות, חשבוניות ותעודות אח
 "warranty_months":חודשי אחריות רגילה אם כתוב (שנה=12) אחרת null,
 "ext_months":חודשי הרחבת אחריות שנקנתה בתשלום (נוספים על הרגילה) אחרת null,"ext_provider":"מי נותן את ההרחבה אם כתוב","ext_price":מחיר ההרחבה או null,
 "serial":"מספר סידורי/IMEI אם מופיע","receipt_no":"מספר חשבונית/קבלה","store_phone":"טלפון החנות","service_phone":"טלפון שירות/מעבדה/יבואן אם מופיע",
-"category":"אחת מ: ${CATEGORIES.map((c) => c.k).join(', ')}"}
+"category":"אחת מ: ${CATEGORIES.map((c) => c.k).join(', ')}",
+"product_photo_index":מספר הקובץ שמצלם את המוצר עצמו (לא קבלה/חשבונית/תעודה) אחרת null}
 כללים:
 - product: המוצר היקר/העיקרי שבגללו שומרים את הקבלה (לא משלוח, לא שקית, לא התקנה, לא הרחבת אחריות).
 - items: רק מוצרים אמיתיים (לא משלוח/התקנה/הרחבת אחריות/מע"מ/הנחות/תשלום). עד 15.
@@ -50,6 +52,7 @@ export async function POST(req) {
       store_phone: str(out.store_phone, 30),
       service_phone: str(out.service_phone, 30),
       category: cat,
+      product_photo_index: Number.isInteger(out.product_photo_index) && out.product_photo_index >= 0 && out.product_photo_index < urls.length ? out.product_photo_index : null,
     });
   } catch (e) {
     return Response.json({ error: 'read-failed', detail: String(e.message || e).slice(0, 120) }, { status: 502 });
