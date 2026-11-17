@@ -22,6 +22,7 @@ object RemoteCore {
         }
         started = true
         HomeGuard.init(app)
+        try { PowerWatch.start(app) } catch (t: Throwable) { Log.w("RemoteCore", "power", t) }
         AdbBridge.init(app)
         CursorOverlay.init(app)
         CloudRelay.start(app)
