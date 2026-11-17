@@ -192,9 +192,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 .chip-group { flex-basis: 100%; font-size: .78rem; font-weight: 800; color: var(--muted); margin-top: 6px; border-bottom: 1px solid var(--line); padding-bottom: 2px; }
 .chip-group:first-child { margin-top: 0; }
 .brand-models { display: flex; flex-wrap: wrap; gap: 8px; flex-basis: 100%; padding: 4px 0 2px; }
-.brand-models.freq { border: 2px solid var(--accent); background: var(--soft); border-radius: 14px; padding: 10px 12px 12px; margin-bottom: 6px; }
-.brand-models.freq .chip-group { color: var(--accent); border-bottom-color: color-mix(in srgb, var(--accent) 35%, transparent); font-size: .85rem; }
-.brand-models.freq .chip { background: var(--surface); }
 #subSearch { margin-bottom: 8px; }
 .chip-group { display: flex; align-items: center; gap: 8px; }
 .chip-group .brand-logo { height: 22px; width: auto; max-width: 80px; object-fit: contain; border-radius: 4px; background: #fff; }
@@ -1092,6 +1089,65 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   var REPAIR_TYPES = ["מגע", "תיקון באחריות", "נגן", "פלאט", "נזקי מים", "רמקול", "מיקרופון", "אוזנייה", "כפתורים", "מיילר", "מקשים"];
   var REPAIR_DROPPED = ["ויברציה", "מצלמה קדמית", "קליטה ואנטנה", "החלפת גב", "ניקוי שקע", "הדבקת מגן מסך", "שחזור מידע"];
   var NOKIA_MODELS = ["Nokia 235", "Nokia 225", "Nokia 3210", "Nokia 2660 Flip", "Xiaomi Qin F21 Pro"];
+  // every phone sold on kosher-phone.com (kosher, kosher-ready, Hadran, cordless, kids tablet), with its photo from the site
+  // [name, maker, photo, other names it may already be saved under]
+  var SITE_IMG = "https://kosher-phone.com/uploads/";
+  var SITE_DEVICES = [
+    ["Q3", "QLYX", "1780491236390-lhd1ua.avif", ["qlyx q3", "q3 g4"]],
+    ["Q7", "QLYX", "1792881150231-fqrfjg.webp", ["qlyx q7"]],
+    ["QLYX Q8", "QLYX", "1785854033592-6eq9hh.webp", ["q8", "qlx q8"]],
+    ["QLYX S10", "QLYX", "1785871879950-0i9fsl.webp", ["s10"]],
+    ["X30", "QLYX", "1785872178139-zpuu5t.webp", ["qlyx x30", "ציקלון x30"]],
+    ["D30", "QLYX", "1776875025622-9xxt8e.webp", ["qlyx d30"]],
+    ["4x4", "Escolls", "1785856115705-dpuc22.webp", ["escolls 4x4"]],
+    ["Escolls 5x5", "Escolls", "1785854274617-nhbwcs.webp", ["5x5", "s-calls 5x5"]],
+    ["Escolls ES1", "Escolls", "1785871826547-o02xuk.webp", ["es1"]],
+    ["F16", "פירסט פון", "1792881118438-4hsmb9.webp", ["first phone f16"]],
+    ["FOUR-G10", "פירסט פון", "1792881147419-zgfv14.webp", ["g10"]],
+    ["FOUR-G20", "פירסט פון", "1792881147152-20k9r3.webp", ["g20"]],
+    ["פירסט פון Pro 30", "פירסט פון", "1792881148202-ybp5rv.webp", ["pro 30", "פרו 30"]],
+    ["ZTE F100", "ZTE", "1792881147766-p28wzc.webp", ["f100"]],
+    ["I TOP P100", "איי טופ", "1792881148202-77mmha.webp", ["itop", "i top", "p100"]],
+    ["Logic B7L", "לוגיק", "1792881140113-zj412b.webp", ["b7l"]],
+    ["BRS B1", "BRS", "1792881150635-ry0r6l.webp", []],
+    ["K46", "כשר מובייל", "1792685865757-yt52ai.webp", ["kosher mobile k46"]],
+    ["V4U", "V4U", "1792881139127-bzril0.webp", []],
+    ["King", "קינג", "1792685031391-3pg0yd.webp", ["king g7", "קינג"]],
+    ["Xiaomi Qin S1", "שיאומי", "1792754522387-99n50f.webp", ["qin s1", "qin 1s", "qin 1s+", "קין 1", "qin 1"]],
+    ["Xiaomi Qin F22", "שיאומי", "1792859507771-k2gpc0.webp", ["qin f22"]],
+    ["Xiaomi Qin F22 Pro", "שיאומי", "1792755031886-2050co.webp", ["qin f22 pro"]],
+    ["Xiaomi Qin F21 Pro", "שיאומי", "1792755860325-f44gbu.webp", ["qin f21 pro"]],
+    ["Xiaomi Qin K25", "שיאומי", "1792862293428-x5cr83.webp", ["qin k25"]],
+    ["Xiaomi Qin F25", "שיאומי", "1792861188024-gxo1sc.webp", ["qin f25"]],
+    ["Xiaomi Qin J36", "שיאומי", "1792859943824-hq02we.webp", ["qin j36"]],
+    ["Xiaomi Qin 3 Ultra", "שיאומי", "1792767101132-vc9wlo.webp", ["qin 3 ultra", "קין 3 אולטרה"]],
+    ["Nokia 105", "נוקיה", "1792871985690-nzxj9x.jpg", ["nokia 105 4g"]],
+    ["Nokia 110", "נוקיה", "1792872080027-j9od6i.jpg", ["nokia 110 4g"]],
+    ["Nokia 215-2024", "נוקיה", "1792872090539-b0gqjj.jpg", ["nokia 215", "nokia 215 2024"]],
+    ["Nokia 215-2026", "נוקיה", "1792872084331-ozcud8.jpg", ["nokia 215 2026"]],
+    ["Nokia 225", "נוקיה", "1792872092142-3jibwu.jpg", ["nokia 225 2020"]],
+    ["Nokia 225-2024", "נוקיה", "1792872088174-8ktq51.jpg", ["nokia 225 2024"]],
+    ["Nokia 235", "נוקיה", "1792872082309-xahtif.jpg", ["nokia 235 2024"]],
+    ["Nokia 235-2026", "נוקיה", "1793962351647-zmqmui.jpg", ["nokia 235 2026"]],
+    ["Nokia 2660 Flip", "נוקיה", "1792872093504-4aph0j.jpg", ["hmd 2660 flip", "nokia hmd 2660 flip"]],
+    ["Nokia 2660 Flip 2022", "נוקיה", "1793014956510-fqtm0v.webp", []],
+    ["Nokia 3210", "נוקיה", "1792872086443-v4l91v.jpg", ["nokia 3210 2024"]],
+    ["FIG Flip II Pro", "פיג", "1780844118946-scni37.webp", ["fig flip pro", "fig flip 2 pro"]],
+    ["FIG 4", "פיג", "1792881098856-nvevdg.webp", ["fig iv"]],
+    ["FIG Bar", "פיג", "1793014602404-ikm4o0.webp", []],
+    ["FIG Core", "פיג", "1792881123555-1y8fm8.webp", []],
+    ["FIG Mini II", "פיג", "1792881123319-oy7prz.webp", ["fig mini 2"]],
+    ["Galaxy A07 וויז", "סמסונג", "1792881149816-77n24g.webp", ["a07", "samsung a07"]],
+    ["TIQ Mini M5S", "טיק", "1792881096831-nm4xh3.webp", ["tiq m5s", "m5s"]],
+    ["Unihertz Jelly 2E", "יוניהרץ", "1792871815482-tloe38.webp", ["jelly 2e"]],
+    ["Unihertz Jelly Max", "יוניהרץ", "1792871813984-gtcbtz.webp", ["jelly max"]],
+    ["Unihertz Jelly Star", "יוניהרץ", "1792871814768-ad2gsk.webp", ["jelly star"]],
+    ["Galaxy S25 הדרן", "סמסונג", "1792881146338-475xl0.webp", ["s25", "galaxy s25"]],
+    ["Galaxy Tab A11 הדרן", "סמסונג", "1777912974450-w0pr48.jpg", ["טאבלט a11", "tab a11"]],
+    ["Motorola S3001", "מוטורולה", "1778422106725-29mpul.webp", ["s3001"]],
+    ["Panasonic KX-TGD310", "פנסוניק", "1792881105908-282c47.webp", ["kxtgd310", "kx tgd310"]],
+    ["TabKosher", "בלו פון", "1792685050486-rand34.webp", ["טאב כשר", "tab kosher"]]
+  ];
   BUILTIN_IMG.unshift(
     ["device", ["2252024", "225 2024"], "https://kosher-phone.com/uploads/1792872088174-8ktq51.jpg"],
     ["device", ["235"], "https://kosher-phone.com/uploads/1792872082309-xahtif.jpg"],
@@ -1125,8 +1181,20 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     ["קינג", ["king", "קינג"], "https://kosher-phone.com/uploads/1792919433523-tbz7db.webp"],
     ["נוקיה", ["nokia", "נוקיה"], "https://kosher-phone.com/uploads/1793513195036-1tzofs.webp"],
     ["שיאומי", ["xiaomi", "שיאומי", "qin", "קין"], "https://kosher-phone.com/uploads/1792919434412-g2pt3b.webp"],
+    ["ZTE", ["zte"], "https://kosher-phone.com/uploads/1792919420155-0150kv.webp"],
+    ["איי טופ", ["itop", "i top", "איי טופ"], "https://kosher-phone.com/uploads/1792919420662-oqrb6d.webp"],
+    ["לוגיק", ["logic", "לוגיק"], "https://kosher-phone.com/uploads/1793513193791-7hb7ov.webp"],
+    ["BRS", ["brs"], "https://kosher-phone.com/uploads/1792919414118-siihfk.webp"],
+    ["כשר מובייל", ["kosher mobile", "כשר מובייל", "k46"], "https://kosher-phone.com/uploads/1792919425770-3sjlkh.webp"],
+    ["V4U", ["v4u"], ""],
+    ["פיג", ["fig", "פיג"], "https://kosher-phone.com/uploads/1792919431696-th5leg.webp"],
+    ["טיק", ["tiq", "טיק"], "https://kosher-phone.com/uploads/1792919425281-nmb2ft.webp"],
+    ["יוניהרץ", ["unihertz", "יוניהרץ", "jelly"], "https://kosher-phone.com/uploads/1793513194442-c0wfy7.webp"],
     ["אייפון", ["אייפון", "איפון", "iphone", "apple"], "builtin:אייפון"],
-    ["סמסונג", ["סמסונג", "samsung", "galaxy", "גלקסי"], "builtin:סמסונג"]
+    ["סמסונג", ["סמסונג", "samsung", "galaxy", "גלקסי"], "builtin:סמסונג"],
+    ["מוטורולה", ["motorola", "מוטורולה"], "https://kosher-phone.com/uploads/1792919427133-bjwkhy.webp"],
+    ["פנסוניק", ["panasonic", "פנסוניק"], "https://kosher-phone.com/uploads/1793513192570-4oy4ic.webp"],
+    ["בלו פון", ["blue phone", "בלו פון", "tabkosher"], "https://kosher-phone.com/uploads/1792919422328-wnh17b.webp"]
   ];
   function brandLogo(name) {
     var b = BRANDS.filter(function (x) { return x[0] === name; })[0];
@@ -1427,6 +1495,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     addKosherModels();
     addModelPack("pack-nokia-1", NOKIA_MODELS, null, "דגמי נוקיה ושיאומי");
     addModelPack("pack-nokia-2", ["Nokia 225-2024"], "Nokia 225", "דגמי נוקיה");
+    syncSiteDevices("pack-site-1");
     addModelPack("pack-qin25-1", ["Xiaomi Qin K25", "Xiaomi Qin F25"], null, "דגמי שיאומי");
     addModelPack("pack-repairs-1", REPAIR_TYPES, null, "סוגי תיקונים", "repair");
     dropRepairTypes();
@@ -1480,6 +1549,35 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   }
   // one-time: add the kosher models after "כשר" (a hidden marker keeps them from coming back if deleted)
   function addKosherModels() { addModelPack("pack-kosher-1", KOSHER_MODELS, "כשר", "דגמי מכשירים כשרים"); }
+  // one-time: every device on kosher-phone.com. Models already in the list get the site photo and maker
+  // (a photo you picked yourself is kept); the missing ones are added after the last device.
+  function syncSiteDevices(packId) {
+    if (!activeAcct() || isMember() || state.cfgTarget) return;
+    var list = types();
+    if (list.some(function (t) { return t.id === packId; })) return;
+    var keyOf = {};
+    SITE_DEVICES.forEach(function (d, i) { [d[0]].concat(d[3]).forEach(function (k) { keyOf[norm(k)] = i; keyOf[norm(k).replace(/ /g, "")] = i; }); });
+    var found = {}, fixed = 0;
+    var next = list.map(function (t) {
+      t = Object.assign({}, t);
+      if (t.kind !== "device") return t;
+      var n = norm(BRAND_FIX[t.name] || t.name), i = n in keyOf ? keyOf[n] : keyOf[n.replace(/ /g, "")];
+      if (i == null || found[i] != null) return t;
+      found[i] = 1;
+      var d = SITE_DEVICES[i];
+      if (!t.img) { t.img = SITE_IMG + d[2]; fixed++; }
+      if (!t.brand) t.brand = d[1];
+      return t;
+    });
+    var base = uid(), add = SITE_DEVICES.filter(function (d, i) { return found[i] == null; }).map(function (d, i) {
+      return { id: "s-" + base + "-" + i, kind: "device", name: d[0], ultra: false, amount: null, img: SITE_IMG + d[2], brand: d[1] };
+    });
+    var at = next.length - 1; next.forEach(function (t, i) { if (t.kind === "device") at = i; });
+    Array.prototype.splice.apply(next, [at + 1, 0].concat(add));
+    next.push({ id: packId, kind: "_pack", name: "" });
+    saveConfig({ types: next });
+    if (add.length || fixed) toast("סונכרנו המכשירים מהאתר: " + add.length + " חדשים" + (fixed ? ", " + fixed + " קיבלו תמונה" : ""));
+  }
   // a pack of device models is added once; its hidden marker keeps deleted models from coming back
   function addModelPack(packId, models, afterName, what, kind) {
     kind = kind || "device";
@@ -3081,22 +3179,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       if (real.length === 1 && !withOther) pickType(box.firstChild, real[0]);
     }
   }
-  // many devices: the most sold first, then every maker with its models
+  // many devices: every maker with its models
   function buildBrandPicker(box, groups, kind, keepSub, mk) {
     var list = groups.list, real = list.filter(function (t) { return t.id !== "other"; });
-    // popular = what was actually sold the most lately (last 3 months, or all time while that is still empty)
-    var since = shiftMonth(monthKey(new Date()), -3), use = {}, all = {};
-    for (var id in state.entries) {
-      var e = state.entries[id]; if (!e || e.kind !== kind) continue;
-      all[e.sub] = (all[e.sub] || 0) + 1;
-      if (e.month >= since) use[e.sub] = (use[e.sub] || 0) + 1;
-    }
-    if (!real.some(function (t) { return use[t.name]; })) use = all;
-    var top = real.filter(function (t) { return use[t.name]; }).sort(function (a, b) { return use[b.name] - use[a.name]; }).slice(0, 6);
-    if (top.length) {
-      var fs = el("div", "brand-models freq"); fs.appendChild(el("div", "chip-group", "🔥 פופולריים"));
-      top.forEach(function (t) { fs.appendChild(mk(t)); }); box.appendChild(fs);
-    }
     var names = [], byB = {};
     real.forEach(function (t) { var b = groups.of[t.id]; if (!byB[b]) { byB[b] = []; names.push(b); } byB[b].push(t); });
     var panes = [];
@@ -3109,7 +3194,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     var other = list.filter(function (t) { return t.id === "other"; })[0];
     function paint() {
       var q = norm($("subSearch").value);
-      box.querySelectorAll(".freq").forEach(function (x) { x.hidden = !!q; });
       panes.forEach(function (p) {
         var any = false;
         p[2].querySelectorAll(".chip").forEach(function (c) { var ok = !q || c.dataset.name.indexOf(q) >= 0 || norm(p[0]).indexOf(q) >= 0; c.hidden = !ok; if (ok) any = true; });
