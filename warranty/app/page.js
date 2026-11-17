@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { getVaults, rememberVault, forgetVault } from '@/lib/local';
 import InstallButton from '@/components/InstallButton';
 import Sheet from '@/components/Sheet';
+import { useUser, signInWithGoogle, signOut, userName, GoogleButton } from '@/lib/auth';
 
 // מסך פתיחה: אם כבר יש ארכיון במכשיר — נכנסים אליו ישר
 export default function Home() {
@@ -13,13 +14,26 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [join, setJoin] = useState(false);
+  const [gBusy, setGBusy] = useState(false);
+  const user = useUser();
 
+  // הארכיונים: מה שנשמר בטלפון + (אם מחוברים) כל הארכיונים בחשבון, מכל מכשיר
   useEffect(() => {
-    const v = getVaults();
-    const params = new URLSearchParams(location.search);
-    if (v.length === 1 && !params.has('all')) return router.replace(`/v/${v[0].id}${location.search}`);
-    setVaults(v);
-  }, [router]);
+    if (user === undefined) return;
+    (async () => {
+      let v = getVaults();
+      if (user) {
+        const { data } = await supabase.rpc('wr_my_vaults');
+        (data || []).slice().reverse().forEach((x) => { if (!v.some((y) => y.id === x.id)) rememberVault(x.id, x.name); });
+        v = getVaults().map((x) => ({ ...x, mine: (data || []).some((y) => y.id === x.id) }));
+      }
+      const params = new URLSearchParams(location.search);
+      if (v.length === 1 && !params.has('all')) return router.replace(`/v/${v[0].id}${location.search}`);
+      setVaults(v);
+    })();
+  }, [router, user]);
+
+  async function google() { setGBusy(true); try { await signInWithGoogle('/'); } catch { setGBusy(false); } }
 
   async function create() {
     setBusy(true); setErr('');
@@ -29,7 +43,7 @@ export default function Home() {
     router.push(`/v/${data}`);
   }
 
-  if (!vaults) return <div className="reading" style={{ paddingTop: 120 }}><div className="spin" /></div>;
+  if (!vaults || user === undefined) return <div className="reading" style={{ paddingTop: 120 }}><div className="spin" /></div>;
 
   return (
     <div className="wrap" style={{ paddingTop: 30 }}>
@@ -42,6 +56,20 @@ export default function Home() {
       {vaults.length > 1 && /shared=1/.test(typeof location !== 'undefined' ? location.search : '') && (
         <div className="alert" style={{ background: 'var(--brand-soft)', color: 'var(--brand)' }}>📎 לאיזה ארכיון להוסיף את הקובץ ששיתפת?</div>
       )}
+      {user ? (
+        <div className="acct" style={{ marginBottom: 14 }}>
+          <div className="av">{user.user_metadata?.avatar_url ? <img src={user.user_metadata.avatar_url} alt="" referrerPolicy="no-referrer" /> : userName(user).slice(0, 1)}</div>
+          <div className="grow"><b>{userName(user)}</b><div className="muted small" dir="ltr" style={{ textAlign: 'right' }}>{user.email}</div></div>
+          <button className="btn sm" onClick={async () => { await signOut(); location.reload(); }}>יציאה</button>
+        </div>
+      ) : (
+        <div className="card" style={{ padding: 14, marginBottom: 14 }}>
+          <b>🔐 כניסה עם חשבון Google</b>
+          <div className="muted small" style={{ margin: '4px 0 10px' }}>הקבלות נשמרות בחשבון שלך — נכנסים מכל טלפון, ולא מאבדים כלום כשמחליפים מכשיר</div>
+          <GoogleButton onClick={google} busy={gBusy} />
+        </div>
+      )}
+
       {vaults.length > 0 && (
         <div className="card" style={{ padding: 6, marginBottom: 16 }}>
           <div className="muted small" style={{ padding: '8px 10px 2px', fontWeight: 700 }}>הארכיונים שלי</div>
