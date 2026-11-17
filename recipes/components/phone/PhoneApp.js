@@ -6,6 +6,7 @@ import { getKitchenId, setKitchenId, read, write } from '@/lib/local';
 import { cachedKitchen, storeKitchen } from '@/lib/offline';
 import { useNow, useAlarms } from '@/lib/timers';
 import { unlockAudio } from '@/lib/sound';
+import { installHaptics } from '@/lib/haptic';
 import { Timers, Loader } from './ui';
 import Library from './Library';
 import RecipeView from './RecipeView';
@@ -105,7 +106,8 @@ export default function PhoneApp() {
     window.addEventListener('popstate', onPop);
     const unlock = () => unlockAudio();
     window.addEventListener('pointerdown', unlock, { once: true });
-    return () => window.removeEventListener('popstate', onPop);
+    const offHaptics = installHaptics();
+    return () => { window.removeEventListener('popstate', onPop); offHaptics(); };
   }, []);
 
   useEffect(() => { if (kitchenId) load(kitchenId); }, [kitchenId, load]);

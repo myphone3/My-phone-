@@ -18,7 +18,11 @@
 html, body { margin: 0; background: var(--bg); color: var(--ink); }
 body { font-family: Rubik, system-ui, -apple-system, 'Segoe UI', Arial, sans-serif; font-size: 16px; line-height: 1.45; }
 button, input, textarea, select { font: inherit; color: inherit; }
-button { cursor: pointer; border: 0; background: none; padding: 0; }
+button { cursor: pointer; border: 0; background: none; padding: 0; touch-action: manipulation; }
+/* תגובה מיידית ללחיצה בטלפון (כפתור "נלחץ" פנימה) */
+html:not(.tv) :is(.btn, .icon-btn, .chip, .card, .tv-chip, .mp-btn, .toolbar button, .presets button, .option):active:not(:disabled) { transform: scale(.96); filter: brightness(.95); transition: transform .06s; }
+html:not(.tv) :is(.btn, .icon-btn, .chip, .card, .tv-chip, .mp-btn, .toolbar button, .presets button, .option) { transition: transform .15s ease-out; }
+html:not(.tv) .fab:active { transform: translateX(50%) scale(.96); }
 img { display: block; max-width: 100%; }
 input, textarea, select { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px; width: 100%; outline: none; }
 input:focus, textarea:focus, select:focus { border-color: var(--accent); }
@@ -61,6 +65,8 @@ label.f { display: block; font-size: 13px; font-weight: 600; color: var(--muted)
 
 .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 10px; }
 @media (min-width: 560px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+.grid > .card { content-visibility: auto; contain-intrinsic-size: auto 230px; }
+.card.sk { height: 210px; opacity: .6; }
 .card { background: var(--card); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--line); text-align: start; display: block; width: 100%; position: relative; }
 .card .ph { aspect-ratio: 4 / 3; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; font-size: 38px; overflow: hidden; }
 .card .ph img { width: 100%; height: 100%; object-fit: cover; }
@@ -185,8 +191,9 @@ html.tv.mouse body { cursor: default; }
 .tv-badge.on { color: var(--herb); background: var(--herb-soft); }
 .tv-main { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-top: 1.4rem; }
 
-[data-nav] { outline: none; transition: transform .15s, box-shadow .15s; }
-[data-nav]:focus { box-shadow: 0 0 0 .22rem var(--accent), 0 .6rem 2rem rgba(242, 140, 75, .25); transform: scale(1.03); z-index: 2; }
+/* רק transform מונפש (זול, על כרטיס המסך); המסגרת מופיעה מיד — כך המעבר בשלט חלק גם בטלוויזיות חלשות */
+[data-nav] { outline: none; transition: transform .12s ease-out; }
+[data-nav]:focus { box-shadow: 0 0 0 .22rem var(--accent); transform: scale(1.03); z-index: 2; }
 
 .tv-pair { flex: 1; display: grid; grid-template-columns: 1.15fr 1fr; gap: 4rem; align-items: center; padding: 0 3rem; }
 .tv-pair h1 { font-size: 3.2rem; line-height: 1.1; margin: 0 0 1rem; }
@@ -202,7 +209,7 @@ html.tv.mouse body { cursor: default; }
 .tv-home .sub { color: var(--muted); font-size: 1.25rem; margin: .3rem 0 1.6rem; }
 .tv-rail { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1.4rem; overflow-y: auto; padding: .6rem .4rem 2rem; scrollbar-width: none; }
 .tv-rail::-webkit-scrollbar { display: none; }
-.tv-card { background: var(--card); border-radius: 1.2rem; overflow: hidden; text-align: start; }
+.tv-card { background: var(--card); border-radius: 1.2rem; overflow: hidden; text-align: start; contain: layout paint style; }
 .tv-card .ph { aspect-ratio: 4 / 3; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; font-size: 3rem; }
 .tv-card .ph img { width: 100%; height: 100%; object-fit: cover; }
 .tv-card .t { padding: .8rem 1rem .3rem; font-weight: 700; font-size: 1.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { listenForPair, newPairCode } from '@/lib/cast';
 import { groups, scaleText, flatSteps, detectMinutes, fmtMinutes, fmtClock, ingredientsForStep } from '@/lib/recipe';
@@ -63,13 +63,14 @@ export function TvPair({ onKitchen }) {
 }
 
 // ---- מסך הבית ----
-export function TvHome({ data, cast }) {
-  const recipes = [...(data?.recipes || [])].sort((a, b) => (b.favorite - a.favorite) || String(b.last_cooked_at || b.created_at).localeCompare(String(a.last_cooked_at || a.created_at)));
+// memo: מסך הבית לא מצויר מחדש בכל שנייה של טיימר / שינוי שלא נוגע בו — חשוב בטלוויזיות חלשות
+export const TvHome = memo(function TvHome({ data, phones, update }) {
+  const recipes = useMemo(() => [...(data?.recipes || [])].sort((a, b) => (b.favorite - a.favorite) || String(b.last_cooked_at || b.created_at).localeCompare(String(a.last_cooked_at || a.created_at))), [data]);
   const h = new Date().getHours();
   const hello = h < 5 ? 'לילה טוב' : h < 12 ? 'בוקר טוב' : h < 17 ? 'צהריים טובים' : h < 21 ? 'ערב טוב' : 'לילה טוב';
   const phoneLink = typeof location !== 'undefined' && data?.kitchen ? `${location.origin}/?k=${data.kitchen.id}` : '';
   const qr = useQr(phoneLink, 300);
-  const phones = cast.peers.filter((p) => p.role === 'phone').length;
+  const open = (id) => update({ screen: 'recipe', recipeId: id, step: 0, servings: null, checked: {}, page: 0 });
   const today = ((data?.kitchen?.plan || {})[todayKey()] || []).map((id) => recipes.find((r) => r.id === id)).filter(Boolean);
   return (
     <div className="tv-home" style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 }}>
@@ -89,7 +90,7 @@ export function TvHome({ data, cast }) {
         <div className="tv-today">
           <span className="lbl">📅 בתפריט היום</span>
           {today.map((r, i) => (
-            <button key={r.id} data-nav="" data-autofocus={i === 0 ? '' : undefined} className="tv-today-item" onClick={() => cast.update({ screen: 'recipe', recipeId: r.id, step: 0, servings: null, checked: {}, page: 0 })}>
+            <button key={r.id} data-nav="" data-autofocus={i === 0 ? '' : undefined} className="tv-today-item" onClick={() => open(r.id)}>
               {r.image_url ? <img src={r.image_url} alt="" loading="lazy" decoding="async" /> : <span>{emojiFor(r)}</span>}<b>{r.title}</b>
             </button>
           ))}
@@ -99,7 +100,7 @@ export function TvHome({ data, cast }) {
       <div className="tv-rail">
         {recipes.map((r, i) => (
           <button key={r.id} className="tv-card" data-nav="" data-autofocus={i === 0 && !today.length ? '' : undefined}
-            onClick={() => cast.update({ screen: 'recipe', recipeId: r.id, step: 0, servings: null, checked: {}, page: 0 })}>
+            onClick={() => open(r.id)}>
             <div className="ph">{r.image_url ? <img src={r.image_url} alt="" loading="lazy" decoding="async" /> : emojiFor(r)}</div>
             <div className="t">{r.favorite ? '❤️ ' : ''}{r.title}</div>
             <div className="m">{metaLine(r) || r.category || ' '}</div>
@@ -108,7 +109,7 @@ export function TvHome({ data, cast }) {
       </div>
     </div>
   );
-}
+});
 
 function useFactor(recipe, state) {
   const base = Number(recipe.servings) || null;

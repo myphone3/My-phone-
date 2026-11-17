@@ -201,7 +201,7 @@ export default function TvApp() {
       </div>
       <div className="tv-main">
         {!data && <p style={{ fontSize: '1.6rem', color: 'var(--muted)', textAlign: 'center', marginTop: '20vh' }}>טוען מתכונים...</p>}
-        {data && screen === 'home' && <TvHome data={data} cast={cast} />}
+        {data && screen === 'home' && <TvHome data={data} phones={phones} update={cast.update} />}
         {data && screen === 'recipe' && recipe && <TvRecipe recipe={recipe} cast={cast} />}
         {data && screen === 'cook' && recipe && <TvCook recipe={recipe} cast={cast} />}
         {data && screen === 'ingredients' && recipe && <TvIngredients recipe={recipe} cast={cast} />}
