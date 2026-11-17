@@ -650,21 +650,46 @@ object AirPlayServer {
 
     private fun hex(s: String) = ByteArray(s.length / 2) { s.substring(it * 2, it * 2 + 2).toInt(16).toByte() }
 
+    /** כמה פריימים של קול נכתבו לרמקול (סופרים כ-Int, כמו playbackHeadPosition, כדי שהחיסור יעבוד גם אחרי "גלישה") */
+    private var writtenFrames = 0
+    private var droppedChunks = 0
+
+    /**
+     * משמיע קול. שומרים שבתור לרמקול לא יהיה יותר מ-0.12 שנייה: אם הצטבר יותר (רשת שגמגמה, שעון של האייפון
+     * קצת מהיר) - מדלגים על חתיכה קטנה של 10ms, וכך הקול לא "נגרר" אחרי התמונה.
+     */
     private fun play(pcm: ByteArray) {
         val t = track ?: try {
             val min = AudioTrack.getMinBufferSize(44100, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT)
             AudioTrack.Builder()
                 .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MOVIE).build())
                 .setAudioFormat(AudioFormat.Builder().setEncoding(AudioFormat.ENCODING_PCM_16BIT).setSampleRate(44100).setChannelMask(AudioFormat.CHANNEL_OUT_STEREO).build())
-                .setBufferSizeInBytes(maxOf(min, 1920 * 8))
+                .setBufferSizeInBytes(maxOf(min, 44100 / 5 * 4)) // 0.2 שנייה - קצת יותר מהתקרה, כדי שכתיבה לא תיחתך
                 .setTransferMode(AudioTrack.MODE_STREAM)
+                .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
                 .build()
-                .also { it.setVolume(volume); it.play(); track = it }
+                .also {
+                    it.setVolume(volume)
+                    it.play()
+                    track = it
+                    writtenFrames = 0
+                    droppedChunks = 0
+                    onLog("audio track buffer=${it.bufferSizeInFrames} frames min=${min / 4}")
+                }
         } catch (e: Exception) {
             return
         }
-        t.write(pcm, 0, pcm.size, AudioTrack.WRITE_NON_BLOCKING)
+        val pending = writtenFrames - t.playbackHeadPosition
+        if (pending > MAX_PENDING_FRAMES) {
+            droppedChunks++
+            if (droppedChunks == 1 || droppedChunks % 200 == 0) onLog("audio catching up (dropped $droppedChunks chunks, pending=$pending)")
+            return
+        }
+        val n = t.write(pcm, 0, pcm.size, AudioTrack.WRITE_NON_BLOCKING)
+        if (n > 0) writtenFrames += n / 4
     }
+
+    private const val MAX_PENDING_FRAMES = 44100 * 12 / 100
 
     private fun releaseAudio() {
         try { audioDecoder?.stop() } catch (e: Exception) { }

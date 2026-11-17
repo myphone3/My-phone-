@@ -34,6 +34,7 @@
 #include "byteutils.h"
 
 #define RAOP_BUFFER_LENGTH 256
+#define RAOP_RESEND_WAIT 16
 
 typedef struct {
     /* Data available */
@@ -246,8 +247,9 @@ raop_buffer_dequeue(raop_buffer_t *raop_buffer, unsigned int *length, uint32_t *
     if (no_resend) {
         /* If we do no resends, always return the first entry */
     } else if (!entry->filled) {
-        /* Check how much we have space left in the buffer */
-        if (entry_count < RAOP_BUFFER_LENGTH) {
+        /* שינוי שלנו: מחכים לחבילה שאבדה רק ~16 חבילות (כ-0.2 שנייה), לא 256 (3 שניות).
+           המתנה ארוכה עצרה את הקול ואז הוא נשאר מאחורי התמונה. */
+        if (entry_count < RAOP_RESEND_WAIT) {
             /* Return nothing and hope resend gets on time */
             return NULL;
         }
