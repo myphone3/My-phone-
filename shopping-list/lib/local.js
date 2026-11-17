@@ -21,3 +21,12 @@ export function forgetList(id) {
 
 export const getPref = (k, d) => read('sl_pref_' + k, d);
 export const setPref = (k, v) => write('sl_pref_' + k, v);
+
+// הרשימה מהפעם הקודמת — מוצגת מיד בפתיחה, ומתעדכנת מהשרת ברקע
+export const getCachedList = (id) => read('sl_cache_' + id, null);
+export function setCachedList(id, v) {
+  try { localStorage.setItem('sl_cache_' + id, JSON.stringify({ ...v, at: Date.now() })); } catch {}
+}
+export function clearCachedList(id) {
+  try { localStorage.removeItem('sl_cache_' + id); } catch {}
+}

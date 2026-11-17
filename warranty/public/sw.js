@@ -26,13 +26,20 @@ async function cacheFirst(req, name, fetchReq) {
   return res;
 }
 
-// דף: מציגים מיד את הגרסה השמורה, ומעדכנים אותה ברקע לפעם הבאה
+// דף: מציגים מיד את הגרסה השמורה, ומעדכנים אותה ברקע לפעם הבאה.
+// ?__fresh= מגיע מהדף אם קובץ של גרסה ישנה כבר לא קיים — אז לוקחים מהרשת.
 async function staleWhileRevalidate(e) {
+  const url = new URL(e.request.url);
+  const fresh = url.searchParams.has('__fresh');
+  url.searchParams.delete('__fresh');
+  const key = url.toString();
   const cache = await caches.open(APP);
-  const hit = await cache.match(e.request, { ignoreSearch: false });
-  const net = fetch(e.request).then((res) => { if (res.ok && res.type === 'basic') cache.put(e.request, res.clone()); return res; });
-  if (hit) { e.waitUntil(net.catch(() => {})); return hit; }
-  try { return await net; } catch { return (await cache.match('/', { ignoreSearch: true })) || Response.error(); }
+  const net = fetch(e.request).then((res) => { if (res.ok && res.type === 'basic' && !res.redirected) cache.put(key, res.clone()); return res; });
+  if (!fresh) {
+    const hit = await cache.match(key);
+    if (hit) { e.waitUntil(net.catch(() => {})); return hit; }
+  }
+  try { return await net; } catch { return (await cache.match(key, { ignoreSearch: true })) || (await cache.match('/', { ignoreSearch: true })) || Response.error(); }
 }
 
 self.addEventListener('fetch', (e) => {

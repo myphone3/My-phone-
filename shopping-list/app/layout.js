@@ -1,4 +1,8 @@
 import './globals.css';
+import { FRESH_GUARD } from '@/lib/boot';
+
+// יש רק רשימה אחת? פותחים ישר אותה (בלי לעבור במסך הבית). ?all = להישאר במסך הבית
+const OPEN_LIST = "try{if(location.pathname==='/'&&!/[?&]all/.test(location.search)){var l=JSON.parse(localStorage.getItem('sl_lists')||'[]');if(l.length===1&&/^[0-9a-f-]{36}$/i.test(l[0].id))location.replace('/l/'+l[0].id)}}catch(e){}";
 
 export const metadata = {
   title: 'רשימת קניות משותפת',
@@ -18,6 +22,11 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="he" dir="rtl">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: OPEN_LIST }} />
+        <script dangerouslySetInnerHTML={{ __html: FRESH_GUARD }} />
+        <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} crossOrigin="anonymous" />
+      </head>
       <body>
         {children}
         <script

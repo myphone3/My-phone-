@@ -19,6 +19,7 @@ export function useCast(kitchenId, role, onEvent) {
   const [state, setState] = useState(BLANK);
   const [peers, setPeers] = useState([]);
   const [online, setOnline] = useState(false);
+  const [gen, setGen] = useState(0); // עולה כשצריך להתחבר מחדש
   const ref = useRef(BLANK);
   const ch = useRef(null);
   const evRef = useRef(onEvent);
@@ -62,14 +63,25 @@ export function useCast(kitchenId, role, onEvent) {
         send('hello');
       }
     });
-    const wake = () => { if (document.visibilityState === 'visible') send('hello'); };
+    // אחרי שהטלפון היה כבוי/ברקע, החיבור לרוב "מת בשקט" והשלט לא מגיב עד דקה.
+    // לכן מתחברים מחדש מיד כשחוזרים (בינתיים הפקודות נשלחות בדרך חלופית ולא הולכות לאיבוד).
+    let hiddenAt = 0;
+    const reconnect = () => { supabase.realtime.disconnect(); setGen((g) => g + 1); };
+    const wake = () => {
+      if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
+      if (hiddenAt && Date.now() - hiddenAt > 15000) reconnect();
+      else send('hello');
+      hiddenAt = 0;
+    };
     document.addEventListener('visibilitychange', wake);
+    window.addEventListener('online', reconnect);
     return () => {
       document.removeEventListener('visibilitychange', wake);
+      window.removeEventListener('online', reconnect);
       supabase.removeChannel(c);
       ch.current = null;
     };
-  }, [kitchenId, role, apply, send]);
+  }, [kitchenId, role, apply, send, gen]);
 
   // update({...}) או update(prev => ({...}))
   const update = useCallback((patch) => {

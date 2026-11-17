@@ -9,9 +9,14 @@ export const KEY = {
   isPlay: (e) => ['MediaPlayPause', 'MediaPlay', 'MediaPause'].includes(e.key) || [179, 415, 19, 10252].includes(e.keyCode),
 };
 
-function visible(el) {
-  const r = el.getBoundingClientRect();
-  return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden';
+// מודדים כל כפתור פעם אחת בכל לחיצה (טלוויזיות חלשות — כל מדידה עולה זמן)
+function measure() {
+  const out = [];
+  for (const el of document.querySelectorAll('[data-nav]')) {
+    const r = el.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0 && !el.closest('.hidden')) out.push([el, r]);
+  }
+  return out;
 }
 
 export function focusFirst(root = document) {
@@ -19,17 +24,18 @@ export function focusFirst(root = document) {
   el?.focus({ preventScroll: false });
 }
 
-export function moveFocus(dir) {
-  const els = [...document.querySelectorAll('[data-nav]')].filter(visible);
+// fast: כשמחזיקים את החץ לחוץ — קופצים בלי אנימציה, כדי שהמסך לא יפגר אחרי השלט
+export function moveFocus(dir, fast = false) {
+  const els = measure();
   if (!els.length) return false;
   const cur = document.activeElement;
-  if (!cur || !els.includes(cur)) { els[0].focus(); return true; }
-  const a = cur.getBoundingClientRect();
+  const mine = els.find(([el]) => el === cur);
+  if (!mine) { els[0][0].focus(); return true; }
+  const a = mine[1];
   const ax = a.left + a.width / 2, ay = a.top + a.height / 2;
   let best = null, bestScore = Infinity;
-  for (const el of els) {
+  for (const [el, b] of els) {
     if (el === cur) continue;
-    const b = el.getBoundingClientRect();
     const bx = b.left + b.width / 2, by = b.top + b.height / 2;
     const dx = bx - ax, dy = by - ay;
     let main, side;
@@ -43,7 +49,7 @@ export function moveFocus(dir) {
   }
   if (best) {
     best.focus({ preventScroll: true });
-    best.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+    best.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: fast ? 'auto' : 'smooth' });
     return true;
   }
   return false;

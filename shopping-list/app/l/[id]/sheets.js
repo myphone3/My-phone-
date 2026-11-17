@@ -634,7 +634,7 @@ export function MenuSheet({ list, items, id, me, wake, store, onWake, onClose, o
         <button onClick={onChangeName}><span className="ic">🙂</span>השם שלי: {me && me !== 'אורח' ? me : 'לא נקבע'}</button>
         <button onClick={togglePush}><span className="ic">{push ? '🔔' : '🔕'}</span>התראות לטלפון: {push ? 'פועל' : 'כבוי'}</button>
         <button onClick={() => onWake(!wake)}><span className="ic">{wake ? '🔆' : '🔅'}</span>המסך לא נכבה בזמן קנייה: {wake ? 'פועל' : 'כבוי'}</button>
-        <button onClick={() => { window.location.href = '/'; }}><span className="ic">🏠</span>כל הרשימות שלי / רשימה חדשה</button>
+        <button onClick={() => { window.location.href = '/?all'; }}><span className="ic">🏠</span>כל הרשימות שלי / רשימה חדשה</button>
       </div>
     </Sheet>
   );
