@@ -5,6 +5,7 @@ import { listenForPair, newPairCode } from '@/lib/cast';
 import { groups, scaleText, flatSteps, detectMinutes, fmtMinutes, fmtClock, ingredientsForStep } from '@/lib/recipe';
 import { remaining } from '@/lib/timers';
 import { emojiFor, metaLine } from '@/components/phone/ui';
+import Thumb from '@/components/Thumb';
 
 export function useQr(text, size = 600) {
   const [src, setSrc] = useState('');
@@ -91,7 +92,7 @@ export const TvHome = memo(function TvHome({ data, phones, update }) {
           <span className="lbl">📅 בתפריט היום</span>
           {today.map((r, i) => (
             <button key={r.id} data-nav="" data-autofocus={i === 0 ? '' : undefined} className="tv-today-item" onClick={() => open(r.id)}>
-              {r.image_url ? <img src={r.image_url} alt="" loading="lazy" decoding="async" /> : <span>{emojiFor(r)}</span>}<b>{r.title}</b>
+              {r.image_url ? <Thumb src={r.image_url} loading="lazy" /> : <span>{emojiFor(r)}</span>}<b>{r.title}</b>
             </button>
           ))}
         </div>
@@ -101,7 +102,7 @@ export const TvHome = memo(function TvHome({ data, phones, update }) {
         {recipes.map((r, i) => (
           <button key={r.id} className="tv-card" data-nav="" data-autofocus={i === 0 && !today.length ? '' : undefined}
             onClick={() => open(r.id)}>
-            <div className="ph">{r.image_url ? <img src={r.image_url} alt="" loading="lazy" decoding="async" /> : emojiFor(r)}</div>
+            <div className="ph">{r.image_url ? <Thumb src={r.image_url} loading="lazy" /> : emojiFor(r)}</div>
             <div className="t">{r.favorite ? '❤️ ' : ''}{r.title}</div>
             <div className="m">{metaLine(r) || r.category || ' '}</div>
           </button>
@@ -441,7 +442,7 @@ export function TvMulti({ data, cast, now }) {
         return (
           <div key={r.id} className={'tv-mcol' + (m.focus === r.id ? ' focus' : '')}>
             <div className="mh">
-              {r.image_url ? <img src={r.image_url} alt="" loading="lazy" decoding="async" /> : <span>{emojiFor(r)}</span>}
+              {r.image_url ? <Thumb src={r.image_url} loading="lazy" /> : <span>{emojiFor(r)}</span>}
               <b>{r.title}</b>
             </div>
             <div className="prog">{steps.map((_, k) => <i key={k} className={k < i ? 'past' : k === i ? 'cur' : ''} />)}</div>

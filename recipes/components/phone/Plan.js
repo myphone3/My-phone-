@@ -1,4 +1,5 @@
 'use client';
+import Thumb from '@/components/Thumb';
 import { useMemo, useState } from 'react';
 import { savePlan } from '@/lib/api';
 import { nextDays, dayKey, groups, shareText } from '@/lib/recipe';
@@ -51,7 +52,7 @@ export function PlanView(props) {
           {(plan[d.key] || []).map((id) => byId[id]).filter(Boolean).map((r) => (
             <div key={r.id} className="it">
               <button className="row grow" style={{ textAlign: 'start' }} onClick={() => go({ name: 'recipe', id: r.id })}>
-                {r.image_url ? <img src={r.image_url} alt="" /> : <span className="em">{emojiFor(r)}</span>}
+                {r.image_url ? <Thumb src={r.image_url} /> : <span className="em">{emojiFor(r)}</span>}
                 <span className="grow"><b style={{ fontSize: 14 }}>{r.title}</b><br /><small className="muted">{metaLine(r)}</small></span>
               </button>
               <button className="mini" onClick={() => remove(d.key, r.id)} aria-label="הסרה">✕</button>
@@ -102,7 +103,7 @@ export function PlanPickSheet(props) {
       <div className="pick">
         {list.map((r) => (
           <button key={r.id} className="music-item" onClick={() => { add(day, r.id); onClose(); }}>
-            <span className="mthumb">{r.image_url ? <img src={r.image_url} alt="" /> : emojiFor(r)}</span>
+            <span className="mthumb">{r.image_url ? <Thumb src={r.image_url} /> : emojiFor(r)}</span>
             <span className="grow"><b className="mt">{r.title}</b><small className="muted">{metaLine(r)}</small></span>
           </button>
         ))}

@@ -1,4 +1,5 @@
 'use client';
+import Thumb from '@/components/Thumb';
 // בישול כמה מתכונים במקביל (למשל ארוחת שישי): לכל מתכון השלב שלו, הכל מסונכרן לטלוויזיה
 import { useEffect, useState } from 'react';
 import { flatSteps, detectMinutes, fmtMinutes } from '@/lib/recipe';
@@ -17,7 +18,7 @@ export function MultiPickSheet({ recipes, cast, onClose, replace, preset }) {
       <div className="pick">
         {recipes.map((r) => (
           <button key={r.id} className={'music-item' + (sel.includes(r.id) ? ' on' : '')} onClick={() => toggle(r.id)}>
-            <span className="mthumb">{r.image_url ? <img src={r.image_url} alt="" /> : emojiFor(r)}</span>
+            <span className="mthumb">{r.image_url ? <Thumb src={r.image_url} /> : emojiFor(r)}</span>
             <span className="grow"><b className="mt">{r.title}</b><small className="muted">{metaLine(r)}</small></span>
             <span style={{ fontSize: 20 }}>{sel.includes(r.id) ? '✅' : '⬜'}</span>
           </button>

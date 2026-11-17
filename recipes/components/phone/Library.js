@@ -2,6 +2,7 @@
 import { useMemo, useState } from 'react';
 import { dayKey } from '@/lib/recipe';
 import { emojiFor, metaLine, Loader } from './ui';
+import Thumb from '@/components/Thumb';
 
 const SORTS = [
   ['new', 'חדשים'],
@@ -103,7 +104,7 @@ export default function Library({ data, recipes, cast, go, openSheet, say }) {
           </div>
           {pick && (
             <button className="card" style={{ display: 'flex', marginTop: 10, alignItems: 'stretch' }} onClick={() => go({ name: 'recipe', id: pick.id })}>
-              <div className="ph" style={{ width: 120, aspectRatio: 'auto', flex: 'none' }}>{pick.image_url ? <img src={pick.image_url} alt="" /> : emojiFor(pick)}</div>
+              <div className="ph" style={{ width: 120, aspectRatio: 'auto', flex: 'none' }}>{pick.image_url ? <Thumb src={pick.image_url} /> : emojiFor(pick)}</div>
               <div className="bd" style={{ flex: 1 }}>
                 <div className="small" style={{ color: 'var(--accent)', fontWeight: 800 }}>🎲 ההצעה שלנו להיום</div>
                 <div className="t">{pick.title}</div>
@@ -137,7 +138,7 @@ export default function Library({ data, recipes, cast, go, openSheet, say }) {
       <div className="grid">
         {list.map((r) => (
           <button key={r.id} className="card" onClick={() => go({ name: 'recipe', id: r.id })}>
-            <div className="ph">{r.image_url ? <img src={r.image_url} alt="" loading="lazy" /> : emojiFor(r)}</div>
+            <div className="ph">{r.image_url ? <Thumb src={r.image_url} loading="lazy" /> : emojiFor(r)}</div>
             {r.favorite && <span className="fav">❤️</span>}
             {cast.tvOnline && cast.state.recipeId === r.id && <span className="live">📺 בטלוויזיה</span>}
             <div className="bd">

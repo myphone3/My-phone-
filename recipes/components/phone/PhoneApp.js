@@ -7,6 +7,7 @@ import { cachedKitchen, storeKitchen } from '@/lib/offline';
 import { useNow, useAlarms } from '@/lib/timers';
 import { unlockAudio } from '@/lib/sound';
 import { installHaptics } from '@/lib/haptic';
+import { backfillThumbs } from '@/lib/thumbs';
 import { Timers, Loader } from './ui';
 import Library from './Library';
 import RecipeView from './RecipeView';
@@ -69,6 +70,7 @@ export default function PhoneApp() {
       setData(d);
       setOffline(false);
       storeKitchen(id, d);
+      setTimeout(() => backfillThumbs(d.recipes), 4000);
     } catch {
       setOffline(true);
       if (!cachedKitchen(id)) say('אין חיבור כרגע, נסו שוב');

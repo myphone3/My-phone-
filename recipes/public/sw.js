@@ -1,6 +1,6 @@
 // שמירת האפליקציה והמתכונים במכשיר — כדי שייפתחו מיד, וגם בלי אינטרנט.
 // דפים: מוצגת מיד הגרסה השמורה, והגרסה החדשה נטענת ברקע לפעם הבאה.
-const V = 'rc-v4';
+const V = 'rc-v5';
 const SHELL = ['/', '/tv', '/manifest.json', '/icon.svg', '/icon-192.png', '/fonts/rubik-hebrew.woff2', '/fonts/rubik-latin.woff2'];
 const IMG = 'rc-img';
 
@@ -15,11 +15,12 @@ self.addEventListener('activate', (e) => {
 const isImg = (u) => u.pathname.includes('/storage/v1/object/public/rc-photos/') || u.hostname === 'i.ytimg.com';
 
 async function cacheFirst(req, name) {
-  const hit = await caches.match(req);
+  let hit = await caches.match(req);
+  if (hit && hit.type === 'opaque' && req.mode === 'cors') hit = null; // עותק "סגור" לא מתאים לבקשה פתוחה
   if (hit) return hit;
   try {
     const res = await fetch(req);
-    if (res.ok || res.type === 'opaque') (await caches.open(name)).put(req, res.clone());
+    if (res.ok || (res.type === 'opaque' && !/\.t\.jpg$/.test(req.url))) (await caches.open(name)).put(req, res.clone());
     return res;
   } catch {
     return hit || Response.error();

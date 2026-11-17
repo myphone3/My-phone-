@@ -19,7 +19,9 @@ export async function uploadImage(kitchen, blob) {
   const path = `${kitchen}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
   const { error } = await supabase.storage.from('rc-photos').upload(path, blob, { contentType: 'image/jpeg', upsert: false });
   if (error) throw new Error(error.message);
-  return supabase.storage.from('rc-photos').getPublicUrl(path).data.publicUrl;
+  const url = supabase.storage.from('rc-photos').getPublicUrl(path).data.publicUrl;
+  import('./thumbs').then((m) => m.uploadThumb(url, blob)).catch(() => {});
+  return url;
 }
 
 export const patchRecipe = (kitchen, id, patch) => rpc('rc_patch_recipe', { p_kitchen: kitchen, p_id: id, p_patch: patch });
