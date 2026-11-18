@@ -13,7 +13,7 @@ self.addEventListener('push', (event) => {
     self.registration.showNotification(data.title || 'NEW PHONE', {
       body: data.body || '',
       icon: '/Logo.JPG',
-      badge: '/Logo.JPG',
+      badge: '/badge-order.png', // סמל לבן-שקוף לפס העליון (שקית = הזמנה)
       tag: data.tag || undefined,
       dir: 'rtl',
       lang: 'he',

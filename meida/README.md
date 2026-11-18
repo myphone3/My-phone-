@@ -53,3 +53,9 @@
 - `kb_shop_brand` (ציבורית, בלי משתמש): מחזירה רק שם ולוגו לפי מזהה החנות.
 - שיתוף מוואטסאפ לאפליקציה של חנות: `/s/<חנות>/share-target` (ה-service worker, ובגיבוי route בשרת).
 - התראות מגיעות עם הלוגו של החנות. מי שהתקין לפני כן — מסיר ומתקין שוב מתוך החנות.
+- סמל קטן להתראות (הפס העליון באנדרואיד): `public/badge.png` — בועה עם i, לבן על שקוף. באתר החנות: שקית (`/badge-order.png`), כדי להבדיל.
+
+## Vercel — חיסכון במכסה (100 פריסות ביום בחשבון החינמי)
+- בכל הפרויקטים: Preview כבוי (רק `main` נפרס), ובפרויקטים של תיקיות (meida, kabalot, matkonim, shopping-list, shaon-nochechut, bonus-tracker)
+  "Skip deployments when there are no changes" — נפרס רק כשהתיקייה שלו השתנתה.
+- האתר הראשי (my-phone): Ignored Build Step מדלג כשהשינוי רק בתיקיות של האפליקציות האחרות.
