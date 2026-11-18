@@ -1,11 +1,11 @@
 'use client';
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { TYPES, KINDS, typeOf, queryWords, score, imeiInfo, norm, copyText } from '@/lib/kb';
+import { TYPES, KINDS, typeOf, queryWords, score, imeiInfo, norm, copyText, timeAgo } from '@/lib/kb';
 import { getList } from '@/lib/cache';
 import ItemRow, { Gallery } from '@/components/ItemRow';
 import { api } from '@/lib/api';
 import { kindOf, isUnread } from './board';
-import { needsAnswer } from './asks';
+import { needsAnswer, waitingOf, ils } from './asks';
 
 const TABS = [{ k: 'all', label: 'ראשי' }, ...KINDS.map((x) => ({ k: x.k, label: x.label })), { k: 'type', label: 'סוגים' }];
 
@@ -140,7 +140,7 @@ export default function HomeView({ ctx }) {
             </div>
           </div>
         )}
-        <AskBanner ctx={ctx} />
+        <Alerts ctx={ctx} />
         <BoardBanner ctx={ctx} />
         {pinned.length > 0 && <><div className="h2">📌 נעוצים</div>{pinned.map((it) => <ItemRow key={it.id} it={it} ctx={ctx} />)}</>}
         {recentOpened.length > 0 && <><div className="h2">🕘 פתחתי לאחרונה</div>{recentOpened.map((it) => <ItemRow key={it.id} it={it} ctx={ctx} />)}</>}
@@ -234,7 +234,7 @@ export default function HomeView({ ctx }) {
       ) : browse()}
 
       <div className="bottom-bar">
-        <button className="fab alt" onClick={() => open({ t: 'asks' })}>💰 מחיר{waiting > 0 && <span className="dot">{waiting}</span>}</button>
+        <button className="fab alt" onClick={() => open({ t: 'asks' })}>💰 בירור מחיר{waiting > 0 && <span className="dot">{waiting}</span>}</button>
         <button className="fab" onClick={() => open({ t: 'edit', draft: { tag_ids: sel, type: type || undefined } })}>➕ הוספת מידע</button>
       </div>
     </div>
@@ -268,19 +268,38 @@ function BoardBanner({ ctx }) {
   );
 }
 
-// בירור מחיר שמחכה לתשובה
-function AskBanner({ ctx }) {
-  const list = ctx.asks.filter((a) => needsAnswer(a, ctx)).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  if (!list.length) return null;
-  const a = list[0];
+// 🔔 התראות אחרונות: מי שואל מחיר (עד שמישהו עונה), ותשובות שקיבלתי ב-24 השעות האחרונות
+function Alerts({ ctx }) {
+  const me = ctx.user?.id;
+  const day = Date.now() - 86400000;
+  const rows = [];
+  for (const a of ctx.asks) {
+    if (a.deleted_at) continue;
+    if (waitingOf(a)) {
+      rows.push({ k: 'w' + a.id, at: a.created_at, a, mine: a.asked_by === me,
+        text: a.asked_by === me ? `שאלת מחיר: ${a.product || 'מוצר'} — מחכה לתשובה` : `${a.asked_by_name} שואל מחיר: ${a.product || 'מה המחיר?'}` });
+    } else if (a.asked_by === me && (a.answers || []).length) {
+      const x = a.answers[a.answers.length - 1];
+      if (new Date(x.created_at) > day) rows.push({ k: 'a' + x.id, at: x.created_at, a, done: true, text: `${x.by_name} ענה ${ils(x.price)} על ${a.product || 'הבירור שלך'}${x.note ? ' — ' + x.note : ''}` });
+    }
+  }
+  if (!rows.length) return null;
+  rows.sort((x, y) => new Date(y.at) - new Date(x.at));
   return (
-    <button className="card board-banner" style={{ borderColor: '#d97706' }} onClick={() => ctx.open({ t: 'asks' })}>
-      {a.photos?.[0] ? <img src={a.photos[0]} alt="" style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover' }} /> : <span className="e">💰</span>}
-      <span className="grow">
-        <b>{list.length === 1 ? 'מישהו שואל מחיר' : `${list.length} בירורי מחיר מחכים`}</b>
-        <div className="small" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.asked_by_name}: {a.product || 'מה המחיר?'}</div>
-      </span>
-      <span className="btn sm" style={{ background: '#d97706', color: '#fff', borderColor: '#d97706' }}>לענות</span>
-    </button>
+    <>
+      <div className="h2">🔔 התראות אחרונות</div>
+      <div className="card alerts">
+        {rows.slice(0, 6).map((r) => (
+          <button key={r.k} className="alert-row" onClick={() => ctx.open({ t: 'asks' })}>
+            {r.a.photos?.[0] ? <img src={r.a.photos[0]} alt="" /> : <span className="e">{r.done ? '✅' : '💰'}</span>}
+            <span className="grow">
+              <span className="txt">{r.text}</span>
+              <span className="muted small">{timeAgo(r.at)}</span>
+            </span>
+            {!r.done && !r.mine && <span className="btn sm" style={{ background: '#d97706', color: '#fff', borderColor: '#d97706' }}>לענות</span>}
+          </button>
+        ))}
+      </div>
+    </>
   );
 }
