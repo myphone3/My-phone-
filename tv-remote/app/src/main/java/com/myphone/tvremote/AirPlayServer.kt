@@ -669,18 +669,30 @@ object AirPlayServer {
                 .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
                 .build()
                 .also {
+                    // הרמקול מתחיל לנגן רק כשהתור שלו מלא. בלי זה, התקרה של 0.12 שנייה (קטנה מהתור) לא נתנה לו
+                    // אף פעם להתמלא - ולא נשמע שום קול. מבקשים שיתחיל כבר אחרי 40ms.
+                    if (Build.VERSION.SDK_INT >= 31) try { it.setStartThresholdInFrames(44100 * 4 / 100) } catch (e: Exception) { }
                     it.setVolume(volume)
                     it.play()
                     track = it
                     writtenFrames = 0
                     droppedChunks = 0
+                    playingSeen = false
                     onLog("audio track buffer=${it.bufferSizeInFrames} frames min=${min / 4}")
                 }
         } catch (e: Exception) {
+            onLog("audio track failed: $e")
             return
         }
-        val pending = writtenFrames - t.playbackHeadPosition
-        if (pending > MAX_PENDING_FRAMES) {
+        val head = t.playbackHeadPosition
+        if (head > 0 && !playingSeen) {
+            playingSeen = true
+            onLog("audio playing")
+        }
+        val pending = writtenFrames - head
+        // דילוג רק אחרי שהרמקול באמת התחיל לנגן, ורק אם התור גדול גם מהתקרה וגם ממה שהרמקול צריך כדי להתחיל
+        val cap = maxOf(MAX_PENDING_FRAMES, startFrames(t) + 44100 / 50)
+        if (playingSeen && pending > cap) {
             droppedChunks++
             if (droppedChunks == 1 || droppedChunks % 200 == 0) onLog("audio catching up (dropped $droppedChunks chunks, pending=$pending)")
             return
@@ -690,6 +702,10 @@ object AirPlayServer {
     }
 
     private const val MAX_PENDING_FRAMES = 44100 * 12 / 100
+    private var playingSeen = false
+
+    private fun startFrames(t: AudioTrack): Int =
+        if (Build.VERSION.SDK_INT >= 31) try { t.startThresholdInFrames } catch (e: Exception) { t.bufferSizeInFrames } else t.bufferSizeInFrames
 
     private fun releaseAudio() {
         try { audioDecoder?.stop() } catch (e: Exception) { }

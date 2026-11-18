@@ -113,13 +113,17 @@ class MirrorActivity : Activity(), MirrorServer.Screen {
             crop = null
             candidate = null
             candidateCount = 0
+            blackChecks = 0
         }
         videoW = width
         videoH = height
         hint.visibility = View.GONE
         // המשטח בגודל הווידאו עצמו; המסך מגדיל אותו (חוסך זיכרון ועבודה)
         if (width > 0 && height > 0) surfaceView.holder.setFixedSize(width, height)
-        root.post { layoutVideo() }
+        root.post {
+            if (autoZoom && crop == null) crop = wideCrop()
+            layoutVideo()
+        }
     }
 
     /** ממקם את התמונה: כולה בתוך המסך, או - כשיש הגדלה - רק החלק של הסרטון, על כל המסך. */
@@ -159,6 +163,12 @@ class MirrorActivity : Activity(), MirrorServer.Screen {
                     if (result == PixelCopy.SUCCESS) {
                         val found = contentRect(bmp)
                         main.post { onContent(found) }
+                    } else {
+                        // הטלוויזיה לא נותנת לקרוא את התמונה - עובדים לפי הצורה של התמונה בלבד
+                        main.post {
+                            if (++copyFailures == 1) logZoom("pixel copy failed ($result) - using wide-phone crop")
+                            onContent(null)
+                        }
                     }
                 }, copyHandler)
             } catch (e: Exception) {
@@ -169,42 +179,61 @@ class MirrorActivity : Activity(), MirrorServer.Screen {
     /**
      * איפה יש תמונה (לא שחור) בתוך הפריים: [שמאל, למעלה, ימין, למטה, צפיפות].
      * null = הפריים כולו שחור (למשל סצנה חשוכה) - לא משנים כלום.
+     *
+     * לוקחים את הרצועה הרציפה הגדולה ביותר של שורות "מלאות" ואז של עמודות "מלאות". כך השעון והסוללה
+     * של האייפון למעלה, הכיתוב והכפתורים של טלגרם מתחת לסרטון - שמופרדים ממנו בשחור - לא נחשבים חלק מהסרטון.
      */
     private fun contentRect(b: Bitmap): FloatArray? {
         val w = b.width
         val h = b.height
         val px = IntArray(w * h)
         b.getPixels(px, 0, w, 0, 0, w, h)
-        val bright = BooleanArray(px.size) { val p = px[it]; maxOf((p shr 16) and 0xff, (p shr 8) and 0xff, p and 0xff) > 20 }
-        var top = -1; var bottom = -1; var left = w; var right = -1
-        for (y in 0 until h) {
-            var count = 0
-            var minX = w; var maxX = -1
-            for (x in 0 until w) if (bright[y * w + x]) { count++; if (x < minX) minX = x; if (x > maxX) maxX = x }
-            // שורה עם כמה נקודות בהירות בודדות (כתובית קטנה, שעון) לא נחשבת "תמונה"
-            if (count >= maxOf(2, w / 12)) {
-                if (top < 0) top = y
-                bottom = y
-                if (minX < left) left = minX
-                if (maxX > right) right = maxX
-            }
-        }
-        if (top < 0 || right < left) return null
+        val bright = BooleanArray(px.size) { val p = px[it]; maxOf((p shr 16) and 0xff, (p shr 8) and 0xff, p and 0xff) > 24 }
+        val rowFill = IntArray(h)
+        for (y in 0 until h) for (x in 0 until w) if (bright[y * w + x]) rowFill[y]++
+        val (top, bottom) = longestRun(h) { rowFill[it] >= w / 4 } ?: return null
+        val colFill = IntArray(w)
+        for (y in top..bottom) for (x in 0 until w) if (bright[y * w + x]) colFill[x]++
+        val rows = bottom - top + 1
+        val (left, right) = longestRun(w) { colFill[it] >= maxOf(1, rows / 4) } ?: return null
         var lit = 0
         for (y in top..bottom) for (x in left..right) if (bright[y * w + x]) lit++
-        val density = lit.toFloat() / ((bottom - top + 1) * (right - left + 1))
+        val density = lit.toFloat() / (rows * (right - left + 1))
         return floatArrayOf(left.toFloat() / w, top.toFloat() / h, (right + 1).toFloat() / w, (bottom + 1).toFloat() / h, density)
     }
 
+    /** הרצף הארוך ביותר של מקומות "מלאים" (סובלים חור קטן של 1-2 שורות חשוכות באמצע סרטון). */
+    private fun longestRun(n: Int, full: (Int) -> Boolean): Pair<Int, Int>? {
+        val gap = maxOf(1, n / 40)
+        var best: Pair<Int, Int>? = null
+        var start = -1
+        var last = -1
+        for (i in 0 until n) {
+            if (!full(i)) continue
+            if (start < 0 || i - last > gap + 1) start = i
+            last = i
+            if (best == null || last - start > best.second - best.first) best = start to last
+        }
+        return best
+    }
+
     private fun onContent(found: FloatArray?) {
-        if (isFinishing || found == null) return
+        if (isFinishing) return
+        if (found == null) {
+            // הכול שחור: או סצנה חשוכה, או שהטלוויזיה לא נותנת לקרוא את התמונה. כשאין שום פריים בהיר -
+            // לפחות חותכים את השוליים של אייפון שוכב, כדי שסרטון ימלא את המסך.
+            if (++blackChecks == 4) logZoom("frames look black - using wide-phone crop")
+            if (blackChecks >= 4 && crop == null && wideCrop() != null) { crop = wideCrop(); layoutVideo() }
+            return
+        }
+        blackChecks = 0
         val fw = found[2] - found[0]
         val fh = found[3] - found[1]
         val aspect = (fw * videoW) / (fh * videoH).coerceAtLeast(1f)
         // מגדילים רק כשזה נראה כמו סרטון: מלבן "שוכב" (כמו 16:9), מלא בתמונה, עם פסים שחורים מסביב.
         // מסך רגיל של הטלפון (גם במצב כהה, שבו הרקע שחור) לא מוגדל.
         val videoLike = found[4] > 0.5f && aspect in 1.2f..2.6f && fh > 0.15f && fw > 0.3f && fw * fh < 0.94f
-        val target: FloatArray? = if (!videoLike) null else {
+        val target: FloatArray? = if (!videoLike) wideCrop() else {
             val m = 0.005f
             floatArrayOf((found[0] - m).coerceAtLeast(0f), (found[1] - m).coerceAtLeast(0f), (found[2] + m).coerceAtMost(1f), (found[3] + m).coerceAtMost(1f))
         }
@@ -213,11 +242,33 @@ class MirrorActivity : Activity(), MirrorServer.Screen {
         // מגדילים אחרי 2 בדיקות זהות; חוזרים לתמונה המלאה רק אחרי 3 (כדי שלחיצה על הסרטון בטלפון לא תקפיץ)
         val needed = if (target == null) 3 else 2
         if (candidateCount >= needed) {
+            logZoom(if (target == null) "zoom off" else "zoom to " + target.joinToString(",") { "%.2f".format(it) })
             crop = target
             candidate = null
             candidateCount = 0
             layoutVideo()
         }
+    }
+
+    private var blackChecks = 0
+    private var copyFailures = 0
+
+    /**
+     * אייפון שוכב משדר תמונה צרה וארוכה (בערך 2.16:1), והאפליקציות משאירות בצדדים שוליים ריקים (בגלל ה"אי").
+     * חותכים ל-16:9 של הטלוויזיה - סרטון שוכב (טלגרם, יוטיוב) ממלא את כל המסך, ושום דבר חשוב לא נחתך.
+     */
+    private fun wideCrop(): FloatArray? {
+        if (videoW <= 0 || videoH <= 0) return null
+        val aspect = videoW.toFloat() / videoH
+        val screen = if (root.height > 0) root.width.toFloat() / root.height else 16f / 9f
+        if (aspect < screen * 1.06f) return null
+        val keep = screen / aspect
+        val side = (1f - keep) / 2f
+        return floatArrayOf(side, 0f, 1f - side, 1f)
+    }
+
+    private fun logZoom(message: String) {
+        AirPlayServer.onLog("zoom: $message (video ${videoW}x$videoH mode=${if (autoZoom) "auto" else "off"})")
     }
 
     private fun same(a: FloatArray?, b: FloatArray?): Boolean {
