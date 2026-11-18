@@ -12,6 +12,9 @@ import Importer from './importer';
 import Team from './team';
 import More from './more';
 import Ask from './ask';
+import Board, { isUnread } from './board';
+import PostEditor from './post';
+import ImeiScan from '@/components/ImeiScan';
 
 function merge(old, fresh) {
   const map = new Map(old.map((x) => [x.id, x]));
@@ -38,8 +41,8 @@ export default function Shop({ params }) {
       const since = !full && cur?.now ? cur.now : null;
       const r = await api.load(id, since);
       const next = since
-        ? { now: r.now, shop: r.shop, tags: merge(cur.tags, r.tags), items: merge(cur.items, r.items) }
-        : { now: r.now, shop: r.shop, tags: r.tags, items: r.items };
+        ? { now: r.now, shop: r.shop, tags: merge(cur.tags, r.tags), items: merge(cur.items, r.items), posts: merge(cur.posts || [], r.posts || []) }
+        : { now: r.now, shop: r.shop, tags: r.tags, items: r.items, posts: r.posts || [] };
       setData(next); setCached(id, next); setFatal('');
     } catch (e) {
       const m = errText(e);
@@ -74,16 +77,17 @@ export default function Shop({ params }) {
   useEffect(() => {
     if (!data?.shop) return;
     const sp = new URLSearchParams(location.search);
-    if (sp.has('add') || sp.has('import') || sp.has('shared') || sp.has('ask')) history.replaceState(null, '', location.pathname);
+    if (sp.has('add') || sp.has('import') || sp.has('shared') || sp.has('ask') || sp.has('board')) history.replaceState(null, '', location.pathname);
     if (sp.has('shared')) {
       takeShared().then((s) => {
         if (!s) return;
         if (s.file) open({ t: 'import', file: s.file });
-        else if (s.text) open({ t: 'edit', draft: { body: s.text }, auto: true });
+        else if (s.text) open({ t: 'edit', draft: { body: s.text, source: 'share' }, auto: true });
       });
     } else if (sp.has('add')) open({ t: 'edit', draft: { body: sp.get('add') || '' }, auto: !!sp.get('add') });
     else if (sp.has('import')) open({ t: 'import' });
     else if (sp.has('ask')) open({ t: 'ask' });
+    else if (sp.has('board')) open({ t: 'board' });
   }, [!!data?.shop]); // eslint-disable-line
 
   const tagsById = useMemo(() => Object.fromEntries((data?.tags || []).map((t) => [t.id, t])), [data?.tags]);
@@ -99,6 +103,12 @@ export default function Shop({ params }) {
   }, [id]);
   const applyTags = useCallback((list) => {
     setData((d) => { const n = { ...d, tags: merge(d.tags, list) }; setCached(id, n); return n; });
+  }, [id]);
+  const applyPost = useCallback((p) => {
+    setData((d) => { const n = { ...d, posts: merge(d.posts || [], [p]) }; setCached(id, n); return n; });
+  }, [id]);
+  const markSeen = useCallback(() => {
+    setData((d) => { const n = { ...d, shop: { ...d.shop, seen_at: new Date().toISOString() } }; setCached(id, n); return n; });
   }, [id]);
   const removeItem = useCallback((itemId) => {
     setData((d) => { const n = { ...d, items: d.items.filter((x) => x.id !== itemId) }; setCached(id, n); return n; });
@@ -127,8 +137,11 @@ export default function Shop({ params }) {
   );
   if (!data?.shop) return <div className="reading"><div className="spin" /><div className="muted">טוען…</div></div>;
 
+  const unread = (data.posts || []).filter((p) => isUnread(p, { user, shop: data.shop })).length;
   const ctx = {
-    shopId: id, shop: data.shop, tags: data.tags, tagsById, items: data.items, index, user,
+    unread,
+    shopId: id, shop: data.shop, tags: data.tags, tagsById, items: data.items, index, user, posts: data.posts || [],
+    applyPost, markSeen,
     isAdmin: data.shop.role === 'owner' || data.shop.role === 'admin',
     open, close, replace, toast, refresh, applyItem, applyTags, removeItem, ensureTags,
     openItem: (it) => { pushList('recent_' + id, it.id, 15); open({ t: 'item', id: it.id }); },
@@ -145,6 +158,9 @@ export default function Shop({ params }) {
         if (w.t === 'team') return <Team key={key} ctx={ctx} />;
         if (w.t === 'more') return <More key={key} ctx={ctx} />;
         if (w.t === 'ask') return <Ask key={key} ctx={ctx} q0={w.q} />;
+        if (w.t === 'board') return <Board key={key} ctx={ctx} />;
+        if (w.t === 'post') return <PostEditor key={key} ctx={ctx} post={w.post} kind={w.kind} />;
+        if (w.t === 'scan') return <ImeiScan key={key} ctx={ctx} onPick={w.onPick} />;
         return null;
       })}
       {toastMsg && <div className="toast">{toastMsg}</div>}

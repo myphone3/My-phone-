@@ -57,6 +57,30 @@ ${tags}
       return Response.json({ item: fix(out) });
     }
 
+    if (body.mode === 'image' || body.mode === 'imei') {
+      const imgs = (Array.isArray(body.images) ? body.images : []).slice(0, 3)
+        .filter((i) => /^image\/(jpeg|png|webp)$/.test(i?.mime) && typeof i.data === 'string' && i.data.length < 3_000_000)
+        .map((i) => ({ mime: i.mime, data: i.data }));
+      if (!imgs.length) return Response.json({ error: 'no image' }, { status: 400 });
+      if (body.mode === 'imei') {
+        const out = await askJSON(`בתמונה יש מדבקה/קופסה/מסך של טלפון סלולרי (למשל מסך *#06# או מדבקת IMEI).
+מצא את כל מספרי ה-IMEI (15 ספרות, לפעמים כתוב IMEI1/IMEI2/MEID) ואת דגם המכשיר אם כתוב.
+החזר JSON בלבד: {"imeis":["15 ספרות בלי רווחים"],"model":"","serial":""}. אל תמציא ספרות — אם לא קריא החזר רשימה ריקה.`, imgs);
+        return Response.json({
+          imeis: (Array.isArray(out.imeis) ? out.imeis : []).map((x) => String(x).replace(/\D/g, '')).filter((x) => x.length >= 14 && x.length <= 16).slice(0, 4),
+          model: str(out.model, 80), serial: str(out.serial, 60),
+        });
+      }
+      const out = await askJSON(`אתה מסדר מידע במאגר הידע של חנות טלפונים סלולריים בישראל. עובד צילם את התמונה (צילום מסך, כרטיס ביקור, שלט, מדבקה, מסמך, הודעה).
+קרא את כל הטקסט החשוב בתמונה וסדר אותו לפריט אחד.
+${ITEM_RULES}
+${str(body.text, 2000) ? 'העובד הוסיף: ' + str(body.text, 2000) : ''}
+התגיות הקיימות בחנות:
+${tags}
+החזר JSON בלבד: פריט אחד במבנה הנ"ל.`, imgs);
+      return Response.json({ item: fix(out) });
+    }
+
     if (body.mode === 'import') {
       const msgs = (Array.isArray(body.messages) ? body.messages : []).slice(0, 80)
         .map((m) => ({ i: m.i | 0, text: str(m.text, 2000), at: str(m.at, 10) })).filter((m) => m.text);

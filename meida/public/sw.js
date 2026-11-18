@@ -1,6 +1,6 @@
 // התקנה למסך הבית, פתיחה מיידית (גם בלי אינטרנט), ו"שיתוף" מוואטסאפ ישר לאפליקציה.
 // הנתונים עצמם נשמרים בזיכרון של הדף ומתעדכנים מהשרת.
-const APP = 'kb-app-v1';
+const APP = 'kb-app-v2';
 const IMG = 'kb-img-v1';
 const KEEP = [APP, IMG, 'kb-share'];
 
@@ -71,4 +71,22 @@ self.addEventListener('fetch', (e) => {
       return Response.redirect('/?shared=1', 303);
     })());
   }
+});
+
+self.addEventListener('push', (e) => {
+  let d = {};
+  try { d = e.data.json(); } catch { d = { title: 'מידע לחנות', body: e.data && e.data.text() }; }
+  e.waitUntil(self.registration.showNotification(d.title || 'מידע לחנות', {
+    body: d.body || '', tag: d.tag, renotify: true, icon: '/icon-192.png', badge: '/icon-192.png',
+    dir: 'rtl', lang: 'he', data: { url: d.url || '/' },
+  }));
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || '/';
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+    for (const c of list) { if ('navigate' in c && 'focus' in c) return c.navigate(url).then((w) => (w || c).focus()); }
+    return self.clients.openWindow(url);
+  }));
 });

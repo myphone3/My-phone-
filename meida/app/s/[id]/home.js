@@ -2,7 +2,9 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { TYPES, KINDS, typeOf, queryWords, score, imeiInfo, norm, copyText } from '@/lib/kb';
 import { getList } from '@/lib/cache';
-import ItemRow from '@/components/ItemRow';
+import ItemRow, { Gallery } from '@/components/ItemRow';
+import { api } from '@/lib/api';
+import { kindOf, isUnread } from './board';
 
 const TABS = [{ k: 'all', label: 'ראשי' }, ...KINDS.map((x) => ({ k: x.k, label: x.label })), { k: 'type', label: 'סוגים' }];
 
@@ -13,9 +15,13 @@ export default function HomeView({ ctx }) {
   const [sel, setSel] = useState([]); // תגיות נבחרות (כולן חייבות להתאים)
   const [type, setType] = useState('');
   const [limit, setLimit] = useState(60);
+  const [photosOnly, setPhotosOnly] = useState(false);
+  const [view, setView] = useState(() => { try { return localStorage.getItem('kb_view') || 'list'; } catch { return 'list'; } });
+  const setViewKeep = (v) => { setView(v); try { localStorage.setItem('kb_view', v); } catch {} };
+  const missed = useRef(new Set());
   const inputRef = useRef(null);
   useEffect(() => { try { sessionStorage.setItem('kb_tab', tab); } catch {} }, [tab]);
-  useEffect(() => setLimit(60), [q, sel, type]);
+  useEffect(() => setLimit(60), [q, sel, type, photosOnly]);
 
   const live = useMemo(() => tags.filter((t) => !t.deleted_at), [tags]);
   const counts = useMemo(() => {
@@ -25,7 +31,7 @@ export default function HomeView({ ctx }) {
   }, [items]);
   const typeCounts = useMemo(() => { const c = {}; for (const it of items) c[it.type] = (c[it.type] || 0) + 1; return c; }, [items]);
 
-  const filtering = !!(q.trim() || sel.length || type);
+  const filtering = !!(q.trim() || sel.length || type || photosOnly);
   const imei = imeiInfo(q);
 
   const results = useMemo(() => {
@@ -35,6 +41,7 @@ export default function HomeView({ ctx }) {
     const out = [];
     for (const it of items) {
       if (type && it.type !== type) continue;
+      if (photosOnly && !it.photos?.length) continue;
       if (sel.length && !sel.every((t) => it.tag_ids?.includes(t))) continue;
       let s = 1;
       if (words.length) {
@@ -46,7 +53,15 @@ export default function HomeView({ ctx }) {
     }
     out.sort((a, b) => b[0] - a[0] || new Date(b[1].updated_at) - new Date(a[1].updated_at));
     return out.map((x) => x[1]);
-  }, [filtering, q, sel, type, items, index]);
+  }, [filtering, q, sel, type, photosOnly, items, index]);
+
+  // חיפוש שלא מצא כלום — נרשם ל"חסר במאגר" (אחרי שהפסיקו להקליד)
+  useEffect(() => {
+    const qq = q.trim();
+    if (qq.length < 3 || results.length || imeiInfo(qq)) return;
+    const t = setTimeout(() => { if (!missed.current.has(qq)) { missed.current.add(qq); api.miss(ctx.shopId, qq).catch(() => {}); } }, 2500);
+    return () => clearTimeout(t);
+  }, [q, results.length]); // eslint-disable-line
 
   // תגיות שמופיעות בתוצאות — לצמצום נוסף
   const related = useMemo(() => {
@@ -69,7 +84,7 @@ export default function HomeView({ ctx }) {
   const latest = useMemo(() => [...items].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)).slice(0, 8), [items]);
 
   const pick = (t) => { setSel((s) => (s.includes(t.id) ? s.filter((x) => x !== t.id) : [...s, t.id])); setQ(''); window.scrollTo(0, 0); };
-  const clearAll = () => { setQ(''); setSel([]); setType(''); };
+  const clearAll = () => { setQ(''); setSel([]); setType(''); setPhotosOnly(false); };
 
   const tile = (t) => (
     <button key={t.id} className="card tile" onClick={() => pick(t)}>
@@ -87,6 +102,9 @@ export default function HomeView({ ctx }) {
             <span className="e">{t.e}</span><b>{t.label}</b><span>{typeCounts[t.k] || 0} פריטים</span>
           </button>
         ))}
+        <button className="card tile" onClick={() => { setPhotosOnly(true); setViewKeep('gallery'); window.scrollTo(0, 0); }}>
+          <span className="e">🖼️</span><b>עם תמונות</b><span>{items.filter((x) => x.photos?.length).length} פריטים</span>
+        </button>
       </div>
     );
     if (tab === 'device') {
@@ -121,6 +139,7 @@ export default function HomeView({ ctx }) {
             </div>
           </div>
         )}
+        <BoardBanner ctx={ctx} />
         {pinned.length > 0 && <><div className="h2">📌 נעוצים</div>{pinned.map((it) => <ItemRow key={it.id} it={it} ctx={ctx} />)}</>}
         {recentOpened.length > 0 && <><div className="h2">🕘 פתחתי לאחרונה</div>{recentOpened.map((it) => <ItemRow key={it.id} it={it} ctx={ctx} />)}</>}
         <div className="h2">🏢 חברות</div>
@@ -141,20 +160,23 @@ export default function HomeView({ ctx }) {
         <div className="row">
           <h1 className="title grow" onClick={clearAll}>🗂️ {shop.name}</h1>
           <button className="icon-btn" aria-label="שאל" onClick={() => open({ t: 'ask' })}>✨</button>
+          <button className="icon-btn" aria-label="הודעות" onClick={() => open({ t: 'board' })}>📣{ctx.unread > 0 && <span className="dot">{ctx.unread}</span>}</button>
           {isAdmin && <button className="icon-btn" aria-label="עובדים" onClick={() => open({ t: 'team' })}>👥{shop.pending > 0 && <span className="dot">{shop.pending}</span>}</button>}
           <button className="icon-btn" aria-label="עוד" onClick={() => open({ t: 'more' })}>☰</button>
         </div>
         <div className="search" style={{ marginTop: 10 }}>
           <span>🔎</span>
           <input ref={inputRef} className="input" type="search" enterKeyHint="search" placeholder="חיפוש: קוד, IMEI, חברה, נקודת שירות…" value={q} onChange={(e) => setQ(e.target.value)} />
-          {q && <button onClick={() => { setQ(''); inputRef.current?.focus(); }} aria-label="נקה">✕</button>}
+          {q ? <button onClick={() => { setQ(''); inputRef.current?.focus(); }} aria-label="נקה">✕</button>
+            : <button onClick={() => open({ t: 'scan', onPick: (n) => setQ(n) })} aria-label="סריקת IMEI" style={{ fontSize: 19 }}>📷</button>}
         </div>
         {filtering ? (
           <div className="chips">
             {type && <button className="chip on" onClick={() => setType('')}>{typeOf(type).e} {typeOf(type).label} ✕</button>}
             {sel.map((id) => tagsById[id] && <button key={id} className={'chip on k-' + tagsById[id].kind} onClick={() => pick(tagsById[id])}>{tagsById[id].name} ✕</button>)}
             {tagHits.map((t) => <button key={t.id} className={'chip k-' + t.kind} onClick={() => pick(t)}>+ {t.name}</button>)}
-            {(sel.length > 0 || type) && <button className="chip add" onClick={clearAll}>נקה הכל</button>}
+            {photosOnly && <button className="chip on" onClick={() => setPhotosOnly(false)}>🖼️ עם תמונות ✕</button>}
+            {(sel.length > 0 || type || photosOnly) && <button className="chip add" onClick={clearAll}>נקה הכל</button>}
           </div>
         ) : (
           <div className="tabs">{TABS.map((t) => <button key={t.k} className={'tab' + (tab === t.k ? ' on' : '')} onClick={() => setTab(t.k)}>{t.label}</button>)}</div>
@@ -184,8 +206,15 @@ export default function HomeView({ ctx }) {
               {related.map(({ t, n }) => <button key={t.id} className={'chip k-' + t.kind} onClick={() => pick(t)}>{t.name} <span className="n">{n}</span></button>)}
             </div>
           )}
-          <div className="muted small" style={{ margin: '8px 2px' }}>{results.length ? `${results.length} תוצאות` : ''}</div>
-          {results.slice(0, limit).map((it) => <ItemRow key={it.id} it={it} ctx={ctx} words={words} />)}
+          {results.length > 0 && (
+            <div className="row" style={{ margin: '8px 2px' }}>
+              <div className="muted small grow">{results.length} תוצאות</div>
+              <button className={'view-btn' + (view === 'list' ? ' on' : '')} onClick={() => setViewKeep('list')}>☰ רשימה</button>
+              <button className={'view-btn' + (view === 'gallery' ? ' on' : '')} onClick={() => setViewKeep('gallery')}>🖼️ תמונות</button>
+            </div>
+          )}
+          {view === 'gallery' ? <Gallery items={results.slice(0, limit)} ctx={ctx} />
+            : results.slice(0, limit).map((it) => <ItemRow key={it.id} it={it} ctx={ctx} words={words} />)}
           {results.length > limit && <button className="btn block" onClick={() => setLimit((l) => l + 100)}>עוד {results.length - limit}…</button>}
           {!results.length && (
             <div className="empty">
@@ -202,5 +231,32 @@ export default function HomeView({ ctx }) {
 
       <button className="fab" onClick={() => open({ t: 'edit', draft: { tag_ids: sel, type: type || undefined } })}>➕ הוספת מידע</button>
     </div>
+  );
+}
+
+// הודעה קופצת: יש הודעות חדשות מהעובדים
+function BoardBanner({ ctx }) {
+  const fresh = ctx.posts.filter((p) => isUnread(p, ctx)).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  const open = ctx.posts.filter((p) => !p.deleted_at && p.status === 'open');
+  if (fresh.length) {
+    const p = fresh[0];
+    return (
+      <button className="card board-banner" onClick={() => ctx.open({ t: 'board' })}>
+        <span className="e">📣</span>
+        <span className="grow">
+          <b>{fresh.length === 1 ? 'הודעה חדשה' : `${fresh.length} הודעות חדשות`}</b>
+          <div className="small" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{kindOf(p.kind).e} {p.author_name}: {p.title || p.body}</div>
+        </span>
+        <span className="btn sm primary">פתיחה</span>
+      </button>
+    );
+  }
+  if (!open.length) return null;
+  return (
+    <button className="card it" style={{ marginTop: 10, alignItems: 'center' }} onClick={() => ctx.open({ t: 'board' })}>
+      <div className="ic">📣</div>
+      <div className="grow"><div className="t">{open.length} הודעות ומשימות פתוחות</div>
+        <div className="s">{open.slice(0, 2).map((p) => kindOf(p.kind).e + ' ' + (p.title || p.body)).join(' · ')}</div></div>
+    </button>
   );
 }

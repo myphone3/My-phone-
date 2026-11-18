@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Sheet from '@/components/Sheet';
-import { ai, errText } from '@/lib/api';
+import { ai, api, errText } from '@/lib/api';
 import { queryWords, score, norm } from '@/lib/kb';
 import ItemRow from '@/components/ItemRow';
 
@@ -31,7 +31,9 @@ export default function Ask({ ctx, q0 }) {
         mode: 'ask', shop: ctx.shopId, question: q,
         items: pool.map((it) => ({ id: it.id, title: it.title, fields: it.fields, body: it.body, tags: (it.tag_ids || []).map((t) => ctx.tagsById[t]?.name).filter(Boolean).join(', ') })),
       });
-      setRes({ answer: r.answer, items: r.ids.map((id) => ctx.items.find((x) => x.id === id)).filter(Boolean) });
+      const found = r.ids.map((id) => ctx.items.find((x) => x.id === id)).filter(Boolean);
+      if (!found.length) api.miss(ctx.shopId, q).catch(() => {});
+      setRes({ answer: r.answer, items: found });
     } catch (e) { setErr(errText(e)); }
     setBusy(false);
   }
