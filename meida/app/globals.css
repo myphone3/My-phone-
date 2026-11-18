@@ -203,3 +203,20 @@ mark { background: #fde68a; color: inherit; border-radius: 3px; padding: 0 1px; 
 .details { margin-top: 14px; padding: 12px 14px; background: var(--gray-soft); border-radius: 14px; font-size: 14px; }
 .details div { display: flex; gap: 8px; padding: 3px 0; }
 .details span:first-child { color: var(--muted); min-width: 92px; }
+
+/* ===== שדרוג 3 ===== */
+.shop-logo { width: 42px; height: 42px; border-radius: 12px; object-fit: contain; background: #fff; border: 1px solid var(--line); flex: none; }
+.shop-logo.lg { width: 92px; height: 92px; border-radius: 22px; margin: 0 auto; display: block; }
+.ask { padding: 12px 14px; margin-bottom: 8px; border-inline-start: 4px solid #d97706; }
+.ask.done { opacity: .6; }
+.ask-ph { width: 84px; height: 84px; border-radius: 12px; object-fit: cover; flex: none; background: var(--gray-soft); }
+.ans { display: flex; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 12px; background: var(--gray-soft); margin-top: 8px; }
+.ans.first { background: var(--green-soft); }
+.ans-price { font-size: 22px; font-weight: 900; color: var(--green); min-width: 70px; direction: ltr; text-align: center; }
+.answer-form { margin-top: 10px; padding: 10px; border-radius: 12px; border: 1px dashed var(--line); }
+.price-in { position: relative; width: 120px; flex: none; }
+.price-in span { position: absolute; inset-inline-end: 12px; top: 12px; font-weight: 800; color: var(--muted); }
+.price-in .input { padding-inline-end: 30px; font-size: 18px; font-weight: 800; direction: ltr; text-align: right; }
+.bottom-bar { position: fixed; bottom: calc(16px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); z-index: 30; display: flex; gap: 8px; }
+.bottom-bar .fab { position: relative; left: auto; bottom: auto; transform: none; }
+.fab.alt { background: #d97706; box-shadow: 0 8px 24px rgba(217,119,6,.35); padding: 0 18px; }

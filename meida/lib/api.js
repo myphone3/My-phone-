@@ -45,6 +45,10 @@ export const api = {
   miss: (shop, q) => rpc('kb_miss', { p_shop: shop, p_query: q }),
   misses: (shop) => rpc('kb_misses_list', { p_shop: shop }),
   missSet: (shop, id, status) => rpc('kb_miss_set', { p_shop: shop, p_id: id, p_status: status }),
+  setLogo: (shop, url) => rpc('kb_set_logo', { p_shop: shop, p_url: url || '' }),
+  ask: (shop, a) => rpc('kb_ask', { p_shop: shop, p: a }),
+  answer: (shop, ask, price, note) => rpc('kb_answer', { p_shop: shop, p_ask: ask, p_price: price, p_note: note || '' }),
+  askSet: (shop, ask, action) => rpc('kb_ask_set', { p_shop: shop, p_ask: ask, p_action: action }),
   updateShop: (shop, name, allowJoin, newCode) => rpc('kb_update_shop', { p_shop: shop, p_name: name, p_allow_join: allowJoin, p_new_code: !!newCode }),
 };
 

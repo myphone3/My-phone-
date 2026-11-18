@@ -66,7 +66,7 @@ export default function Home() {
           {shops.length > 0 && <div className="h2">החנויות שלי</div>}
           {shops.map((s) => (
             <button key={s.id} className="card it" onClick={() => { if (s.status === 'active') { setLastShop(s.id); router.push('/s/' + s.id); } }}>
-              <div className="ic">🏪</div>
+              <div className="ic">{s.logo_url ? <img src={s.logo_url} alt="" style={{ objectFit: 'contain', background: '#fff' }} /> : '🏪'}</div>
               <div className="grow">
                 <div className="t">{s.name}</div>
                 <div className="s">{s.status === 'pending' ? '⏳ מחכה לאישור של מנהל החנות' : s.role === 'owner' ? 'בעלים' : s.role === 'admin' ? 'מנהל' : 'עובד'}</div>

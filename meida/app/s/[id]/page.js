@@ -14,6 +14,7 @@ import More from './more';
 import Ask from './ask';
 import Board, { isUnread } from './board';
 import PostEditor from './post';
+import Asks, { AskNew } from './asks';
 import ImeiScan from '@/components/ImeiScan';
 
 function merge(old, fresh) {
@@ -41,8 +42,8 @@ export default function Shop({ params }) {
       const since = !full && cur?.now ? cur.now : null;
       const r = await api.load(id, since);
       const next = since
-        ? { now: r.now, shop: r.shop, tags: merge(cur.tags, r.tags), items: merge(cur.items, r.items), posts: merge(cur.posts || [], r.posts || []) }
-        : { now: r.now, shop: r.shop, tags: r.tags, items: r.items, posts: r.posts || [] };
+        ? { now: r.now, shop: r.shop, tags: merge(cur.tags, r.tags), items: merge(cur.items, r.items), posts: merge(cur.posts || [], r.posts || []), asks: merge(cur.asks || [], r.asks || []) }
+        : { now: r.now, shop: r.shop, tags: r.tags, items: r.items, posts: r.posts || [], asks: r.asks || [] };
       setData(next); setCached(id, next); setFatal('');
     } catch (e) {
       const m = errText(e);
@@ -77,7 +78,7 @@ export default function Shop({ params }) {
   useEffect(() => {
     if (!data?.shop) return;
     const sp = new URLSearchParams(location.search);
-    if (sp.has('add') || sp.has('import') || sp.has('shared') || sp.has('ask') || sp.has('board')) history.replaceState(null, '', location.pathname);
+    if (sp.has('add') || sp.has('import') || sp.has('shared') || sp.has('ask') || sp.has('board') || sp.has('asks')) history.replaceState(null, '', location.pathname);
     if (sp.has('shared')) {
       takeShared().then((s) => {
         if (!s) return;
@@ -88,6 +89,7 @@ export default function Shop({ params }) {
     else if (sp.has('import')) open({ t: 'import' });
     else if (sp.has('ask')) open({ t: 'ask' });
     else if (sp.has('board')) open({ t: 'board' });
+    else if (sp.has('asks')) open({ t: 'asks' });
   }, [!!data?.shop]); // eslint-disable-line
 
   const tagsById = useMemo(() => Object.fromEntries((data?.tags || []).map((t) => [t.id, t])), [data?.tags]);
@@ -106,6 +108,9 @@ export default function Shop({ params }) {
   }, [id]);
   const applyPost = useCallback((p) => {
     setData((d) => { const n = { ...d, posts: merge(d.posts || [], [p]) }; setCached(id, n); return n; });
+  }, [id]);
+  const applyAsk = useCallback((a) => {
+    setData((d) => { const n = { ...d, asks: merge(d.asks || [], [a]) }; setCached(id, n); return n; });
   }, [id]);
   const markSeen = useCallback(() => {
     setData((d) => { const n = { ...d, shop: { ...d.shop, seen_at: new Date().toISOString() } }; setCached(id, n); return n; });
@@ -141,7 +146,7 @@ export default function Shop({ params }) {
   const ctx = {
     unread,
     shopId: id, shop: data.shop, tags: data.tags, tagsById, items: data.items, index, user, posts: data.posts || [],
-    applyPost, markSeen,
+    applyPost, markSeen, asks: data.asks || [], applyAsk,
     isAdmin: data.shop.role === 'owner' || data.shop.role === 'admin',
     open, close, replace, toast, refresh, applyItem, applyTags, removeItem, ensureTags,
     openItem: (it) => { pushList('recent_' + id, it.id, 15); open({ t: 'item', id: it.id }); },
@@ -158,6 +163,8 @@ export default function Shop({ params }) {
         if (w.t === 'team') return <Team key={key} ctx={ctx} />;
         if (w.t === 'more') return <More key={key} ctx={ctx} />;
         if (w.t === 'ask') return <Ask key={key} ctx={ctx} q0={w.q} />;
+        if (w.t === 'asks') return <Asks key={key} ctx={ctx} />;
+        if (w.t === 'ask-new') return <AskNew key={key} ctx={ctx} />;
         if (w.t === 'board') return <Board key={key} ctx={ctx} />;
         if (w.t === 'post') return <PostEditor key={key} ctx={ctx} post={w.post} kind={w.kind} />;
         if (w.t === 'scan') return <ImeiScan key={key} ctx={ctx} onPick={w.onPick} />;
