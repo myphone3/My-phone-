@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>מתחבר…</title>
+</head>
+<body style="font-family:system-ui,Arial;text-align:center;padding:60px 20px;color:#444">
+<p>מתחבר לאפליקציית המידע…</p>
+<script>
+// גשר התחברות לאפליקציית "מידע לחנות" (meida): Google מחזיר לכאן (כתובת החנות מאושרת ב-Supabase),
+// והדף מעביר את פרטי ההתחברות (שבחלק ה-# של הכתובת, לא נשלחים לשרת) לאפליקציה — רק לכתובת הקבועה שלה.
+(function () {
+  var APP = 'https://meida-myphone3.vercel.app';
+  var next = new URLSearchParams(location.search).get('next') || '/';
+  if (!/^\/[\w\-\/?=&%.]*$/.test(next) || next.indexOf('//') === 0) next = '/';
+  location.replace(APP + '/auth?next=' + encodeURIComponent(next) + location.hash);
+})();
+</script>
+</body>
+</html>
