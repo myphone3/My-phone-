@@ -218,7 +218,11 @@ html.tv.mouse body { cursor: default; }
 .tv-recipe .tv-pills { flex: none; margin-top: .6rem; }
 .tv-recipe .tv-btns { flex-wrap: wrap; gap: .7rem; padding-top: 1rem; flex: none; }
 .tv-recipe .tv-btn { flex: 1 1 auto; padding: .8rem 1.1rem; font-size: 1.1rem; white-space: nowrap; }
-.tv-recipe .tv-btn.primary { flex-basis: 100%; }
+/* Row 1: start cooking + home; row 2: the rest */
+.tv-recipe .tv-btn { order: 2; }
+.tv-recipe .tv-btn.primary { order: 0; flex: 1 1 0; }
+.tv-recipe .tv-btn.home { order: 1; flex: 0 0 auto; padding-inline: 1.4rem; }
+.tv-recipe .tv-btns::after { content: ''; order: 1; flex-basis: 100%; }
 .tv-pills { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1rem; }
 .tv-pill { background: var(--card); border-radius: 99px; padding: .45rem 1rem; font-size: 1rem; font-weight: 600; }
 .tv-btns { display: flex; gap: 1rem; margin-top: auto; padding-top: 1.4rem; }
