@@ -38,7 +38,7 @@ export default function InstallButton() {
     else setHelp('android');
   }
 
-  const link = typeof window !== 'undefined' ? window.location.origin : '';
+  const link = typeof window !== 'undefined' ? window.location.origin + window.location.pathname : '';
   const copy = async () => { try { await navigator.clipboard.writeText(link); alert('הקישור הועתק — הדבק אותו בדפדפן'); } catch {} };
 
   return (

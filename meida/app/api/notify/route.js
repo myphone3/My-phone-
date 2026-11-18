@@ -36,6 +36,7 @@ export async function POST(req) {
     }
   }
   if (!targets?.length) return Response.json({ sent: 0 });
+  payload.icon = `/api/icon/${shop}?s=192`;
   const dead = await sendAll(targets, payload);
   if (dead.length) await sb.rpc('kb_push_drop', { p_endpoints: dead });
   return Response.json({ sent: targets.length - dead.length });
