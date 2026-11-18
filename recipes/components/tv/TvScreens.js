@@ -140,7 +140,7 @@ export function TvRecipe({ recipe, cast }) {
           <button className="tv-btn" data-nav="" onClick={() => cast.update({ screen: 'board' })}>📋 הכל על המסך</button>
           <button className="tv-btn" data-nav="" onClick={() => cast.update({ screen: 'ingredients' })}>🧺 מצרכים</button>
           {recipe.source_images?.length > 0 && <button className="tv-btn" data-nav="" onClick={() => cast.update({ screen: 'original', page: 0 })}>📄 המקור</button>}
-          <button className="tv-btn" data-nav="" onClick={() => cast.update({ screen: 'home', recipeId: null })}>🏠</button>
+          <button className="tv-btn home" data-nav="" onClick={() => cast.update({ screen: 'home', recipeId: null })}>🏠</button>
         </div>
       </div>
       <div className="tv-cols">
