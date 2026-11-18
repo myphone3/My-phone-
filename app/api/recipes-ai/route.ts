@@ -4,8 +4,8 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
 
-// שירות פנימי לאפליקציית המתכונים (matkonim) ולאפליקציית הקבלות לאחריות: משתמש במפתח Gemini של החנות,
-// בלי שהמפתח יוצא מהשרת. מוגן בסיסמה משותפת (RECIPES_AI_SECRET / WARRANTY_AI_SECRET) — אחרים לא יכולים להשתמש.
+// שירות פנימי לאפליקציית המתכונים (matkonim), לאפליקציית הקבלות לאחריות ולאפליקציית "מידע לחנות" (meida): משתמש במפתח Gemini של החנות,
+// בלי שהמפתח יוצא מהשרת. מוגן בסיסמה משותפת (RECIPES_AI_SECRET / WARRANTY_AI_SECRET / MEIDA_AI_SECRET) — אחרים לא יכולים להשתמש.
 
 const MAIN_MODEL = 'gemini-3.8-flash';
 // נבדק: 3.6-flash קורא 10 עמודים בכ-12 שניות (בלי "חשיבה"), כשהחדשים יותר לוקחים 90+ שניות או עמוסים
@@ -34,7 +34,7 @@ async function fallbackModels(apiKey: string): Promise<string[]> {
 export async function POST(request: Request) {
   const started = Date.now();
   const given = request.headers.get('x-recipes-secret');
-  const secrets = [process.env.RECIPES_AI_SECRET, process.env.WARRANTY_AI_SECRET].filter(Boolean);
+  const secrets = [process.env.RECIPES_AI_SECRET, process.env.WARRANTY_AI_SECRET, process.env.MEIDA_AI_SECRET].filter(Boolean);
   if (!given || !secrets.includes(given)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
