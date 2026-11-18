@@ -16,7 +16,7 @@ async function run(req) {
   for (const p of data || []) {
     const d = await sendAll(p.targets, {
       title: `⏰ תזכורת: ${p.title || KIND_LABEL[p.kind] || ''}`.trim(), body: p.body || (p.author_name ? `מ${p.author_name}` : ''),
-      tag: 'remind-' + p.id, url: `/s/${p.shop_id}?board=1`,
+      tag: 'remind-' + p.id, url: `/s/${p.shop_id}?board=1`, icon: `/api/icon/${p.shop_id}?s=192`,
     });
     sent += p.targets.length - d.length; dead.push(...d);
   }

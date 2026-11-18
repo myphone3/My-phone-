@@ -130,7 +130,7 @@ export default function More({ ctx }) {
   const logoRef = useRef(null);
   async function setLogo(file) {
     setLogoBusy(true); setErr('');
-    try { const url = file ? await uploadPhoto(await shrink(file, 512)) : ''; await api.setLogo(ctx.shopId, url); await ctx.refresh(); ctx.toast(file ? 'הלוגו עודכן' : 'הלוגו הוסר'); }
+    try { const url = file ? await uploadPhoto(await shrink(file, 512, '#ffffff')) : ''; await api.setLogo(ctx.shopId, url); await ctx.refresh(); ctx.toast(file ? 'הלוגו עודכן' : 'הלוגו הוסר'); }
     catch (e) { setErr(errText(e)); }
     setLogoBusy(false);
   }
@@ -190,6 +190,7 @@ export default function More({ ctx }) {
                 {ctx.shop.logo_url && <button className="btn sm danger" disabled={logoBusy} onClick={() => setLogo(null)}>הסרה</button>}
                 <input ref={logoRef} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setLogo(f); e.target.value = ''; }} />
               </div>
+              <div className="muted small" style={{ marginTop: 6 }}>הלוגו הוא גם האייקון של האפליקציה במסך הבית (שם: "מידע {ctx.shop.name}"). מי שכבר התקין — יקבל אותו אחרי הסרה והתקנה מחדש מתוך החנות.</div>
               <b style={{ display: 'block', marginTop: 14 }}>שם החנות</b>
               <div className="row" style={{ marginTop: 8 }}>
                 <input className="input grow" value={name} onChange={(e) => setName(e.target.value)} />

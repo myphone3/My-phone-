@@ -1,6 +1,6 @@
 // התקנה למסך הבית, פתיחה מיידית (גם בלי אינטרנט), ו"שיתוף" מוואטסאפ ישר לאפליקציה.
 // הנתונים עצמם נשמרים בזיכרון של הדף ומתעדכנים מהשרת.
-const APP = 'kb-app-v2';
+const APP = 'kb-app-v3';
 const IMG = 'kb-img-v1';
 const KEEP = [APP, IMG, 'kb-share'];
 
@@ -58,7 +58,9 @@ self.addEventListener('fetch', (e) => {
       }
     }
   }
-  if (req.method === 'POST' && url.pathname === '/share-target') {
+  // שיתוף: לאפליקציה הכללית (/share-target) או לאפליקציה של חנות מסוימת (/s/<חנות>/share-target)
+  const shareShop = url.pathname.match(/^\/s\/([0-9a-f-]{36})\/share-target$/);
+  if (req.method === 'POST' && (url.pathname === '/share-target' || shareShop)) {
     e.respondWith((async () => {
       try {
         const form = await req.formData();
@@ -68,7 +70,7 @@ self.addEventListener('fetch', (e) => {
         if (f) await cache.put('/shared/file', new Response(f, { headers: { 'Content-Type': f.type || 'text/plain', 'X-Name': encodeURIComponent(f.name || 'chat.txt') } }));
         await cache.put('/shared/data', new Response(JSON.stringify({ title: form.get('title') || '', text: form.get('text') || '', url: form.get('url') || '' })));
       } catch {}
-      return Response.redirect('/?shared=1', 303);
+      return Response.redirect((shareShop ? '/s/' + shareShop[1] : '/') + '?shared=1', 303);
     })());
   }
 });
@@ -77,7 +79,7 @@ self.addEventListener('push', (e) => {
   let d = {};
   try { d = e.data.json(); } catch { d = { title: 'מידע לחנות', body: e.data && e.data.text() }; }
   e.waitUntil(self.registration.showNotification(d.title || 'מידע לחנות', {
-    body: d.body || '', tag: d.tag, renotify: true, icon: '/icon-192.png', badge: '/icon-192.png',
+    body: d.body || '', tag: d.tag, renotify: true, icon: d.icon || '/icon-192.png', badge: '/icon-192.png',
     dir: 'rtl', lang: 'he', data: { url: d.url || '/' },
   }));
 });
