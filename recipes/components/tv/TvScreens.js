@@ -116,6 +116,29 @@ function useFactor(recipe, state) {
   return { base, servings, factor: base && servings ? servings / base : 1 };
 }
 
+// The buttons under the photo must always be on screen. Some TVs have a short screen
+// (or an older browser) — if the last button is cut off, drop the description, then
+// shorten the title, then hide the photo, until everything fits.
+function useFitButtons(key) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const side = ref.current;
+    if (!side) return;
+    const fit = () => {
+      side.classList.remove('fit1', 'fit2', 'fit3');
+      const box = side.getBoundingClientRect();
+      const limit = Math.min(box.bottom, window.innerHeight) + 1;
+      const out = () => { const b = side.querySelector('.tv-btns'); return b && b.getBoundingClientRect().bottom > limit; };
+      for (let i = 1; i <= 3 && out(); i++) side.classList.add('fit' + i);
+    };
+    fit();
+    const t = setTimeout(fit, 400); // after fonts and the photo load
+    window.addEventListener('resize', fit);
+    return () => { clearTimeout(t); window.removeEventListener('resize', fit); };
+  }, [key]);
+  return ref;
+}
+
 // ---- המתכון המלא ----
 export function TvRecipe({ recipe, cast }) {
   const s = cast.state;
@@ -123,10 +146,11 @@ export function TvRecipe({ recipe, cast }) {
   const ing = groups(recipe.ingredients);
   const steps = groups(recipe.steps);
   const checked = s.checked || {};
+  const sideRef = useFitButtons(recipe.id);
   let n = 0;
   return (
     <div className="tv-recipe">
-      <div className="side">
+      <div className="side" ref={sideRef}>
         <div className="img">{recipe.image_url ? <img src={recipe.image_url} alt="" /> : emojiFor(recipe)}</div>
         <h1>{recipe.title}</h1>
         {recipe.description && <div className="desc">{recipe.description}</div>}

@@ -341,7 +341,7 @@ export default function Header() {
           onClick={(e) => { if (e.target === e.currentTarget) handleCloseWelcomeModal(); }}
           onKeyDown={(e) => { if (e.key === 'Escape') handleCloseWelcomeModal(); }}
         >
-          <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-sm w-full text-center shadow-2xl relative border border-gray-100 max-h-[95vh] overflow-y-auto">
+          <div data-swipe-close className="bg-white rounded-3xl p-5 sm:p-6 max-w-sm w-full text-center shadow-2xl relative border border-gray-100 max-h-[95vh] overflow-y-auto">
             
             <button
               onClick={handleCloseWelcomeModal}

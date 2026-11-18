@@ -1,4 +1,5 @@
 'use client';
+import { installSwipeClose } from '@/lib/swipeClose';
 import { useEffect } from 'react';
 import { fmtClock, fmtMinutes, totalMinutes } from '@/lib/recipe';
 import { remaining, pauseTimer, resumeTimer, plusTimer, removeTimer } from '@/lib/timers';
@@ -36,11 +37,12 @@ export function Sheet({ onClose, children }) {
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    installSwipeClose();
     return () => { document.body.style.overflow = prev; };
   }, []);
   return (
     <div className="sheet-bg" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+      <div className="sheet" data-swipe-close onClick={(e) => e.stopPropagation()}>
         <div className="grab" />
         {children}
       </div>

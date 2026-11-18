@@ -1,4 +1,5 @@
 'use client';
+import { installSwipeClose } from '@/lib/swipeClose';
 import { useEffect, useState } from 'react';
 
 // כפתור "התקן למסך הבית": באנדרואיד מתקין ישירות, באייפון/בתוך וואטסאפ מסביר מה לעשות
@@ -8,6 +9,7 @@ export default function InstallButton() {
   const [help, setHelp] = useState(null);
 
   useEffect(() => {
+    installSwipeClose();
     const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
     if (standalone) setInstalled(true);
     const onPrompt = (e) => { e.preventDefault(); setPrompt(e); };
@@ -46,7 +48,7 @@ export default function InstallButton() {
       </button>
       {help && (
         <div className="sheet-bg" onClick={() => setHelp(null)}>
-          <div className="sheet" onClick={(e) => e.stopPropagation()}>
+          <div className="sheet" data-swipe-close onClick={(e) => e.stopPropagation()}>
             <div className="grab" />
             <h3>📲 הוספה למסך הבית</h3>
             {help === 'inapp' && (

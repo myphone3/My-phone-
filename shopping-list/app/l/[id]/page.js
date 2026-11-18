@@ -489,7 +489,7 @@ export default function ListPage() {
       )}
       {viewPhoto && (
         <div className="sheet-bg" style={{ alignItems: 'center', background: 'rgba(0,0,0,.85)' }} onClick={() => setViewPhoto(null)}>
-          <img src={viewPhoto} alt="" style={{ maxWidth: '96vw', maxHeight: '90vh', borderRadius: 12 }} />
+          <img data-swipe-close src={viewPhoto} alt="" style={{ maxWidth: '96vw', maxHeight: '90vh', borderRadius: 12 }} />
         </div>
       )}
       {toast && <div className="toast">{toast}</div>}

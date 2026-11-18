@@ -59,7 +59,7 @@ export default function CategoriesMenu() {
           aria-label="קטגוריות"
           onClick={(e) => e.target === e.currentTarget && setOpen(false)}
         >
-          <div className="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[85vh] flex flex-col animate-in fade-in duration-150">
+          <div data-swipe-close className="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[85vh] flex flex-col animate-in fade-in duration-150">
             <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-gray-100">
               <h2 className="text-lg font-black text-gray-900 border-r-4 border-orange-600 pr-3">קטגוריות</h2>
               <button

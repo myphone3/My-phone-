@@ -1,5 +1,6 @@
 import './globals.css';
 import { FRESH_GUARD } from '@/lib/boot';
+import SwipeClose from '@/components/SwipeClose';
 
 export const metadata = {
   title: 'מתכונים בגדול',
@@ -25,6 +26,7 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         {children}
+        <SwipeClose />
         <script dangerouslySetInnerHTML={{ __html: "if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{})}" }} />
       </body>
     </html>

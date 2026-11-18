@@ -17,6 +17,7 @@ import BackToTop from '../components/BackToTop';
 import { Suspense } from 'react';
 import { getSiteSettings } from '@/lib/siteSettings';
 import { SITE_NAME, SITE_URL, jsonLdString, organizationJsonLd } from '@/lib/seo';
+import SwipeClose from '@/components/SwipeClose';
 
 export const viewport: Viewport = {
   themeColor: '#ea580c',
@@ -81,6 +82,7 @@ export default function RootLayout({
         <main id="main" className="min-h-screen">
           {children}
         </main>
+        <SwipeClose />
 
         <Footer />
         <ToastHost />

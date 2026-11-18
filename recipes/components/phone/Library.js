@@ -137,7 +137,7 @@ export default function Library({ data, recipes, cast, go, openSheet, say }) {
       <div className="grid">
         {list.map((r) => (
           <button key={r.id} className="card" onClick={() => go({ name: 'recipe', id: r.id })}>
-            <div className="ph">{r.image_url ? <img src={r.image_url} alt="" loading="lazy" /> : emojiFor(r)}</div>
+            <div className="ph">{r.image_url ? <img src={r.image_url} alt="" loading="lazy" /> : <span>{emojiFor(r)}</span>}</div>
             {r.favorite && <span className="fav">❤️</span>}
             {cast.tvOnline && cast.state.recipeId === r.id && <span className="live">📺 בטלוויזיה</span>}
             <div className="bd">

@@ -184,9 +184,9 @@ export default function RecipeView({ recipe, cast, follow, go, back, kitchenId, 
       <button className="btn danger block" style={{ marginTop: 30 }} onClick={remove}>🗑️ מחיקת המתכון</button>
 
       {viewer !== null && (
-        <div className="viewer">
+        <div className="viewer" data-swipe-close="[data-close]">
           <div className="bar">
-            <button className="btn" onClick={() => setViewer(null)}>סגירה</button>
+            <button className="btn" data-close onClick={() => setViewer(null)}>סגירה</button>
             <span>{viewer + 1} / {recipe.source_images.length}</span>
             <button className="btn soft" onClick={() => show('original', { page: viewer })}>📺 בטלוויזיה</button>
           </div>
