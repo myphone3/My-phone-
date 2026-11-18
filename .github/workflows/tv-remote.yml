@@ -77,6 +77,7 @@ jobs:
         run: |
           rm -rf /tmp/site && cp -r app/src/main/assets/web /tmp/site && touch /tmp/site/.nojekyll
           # קישורים קצרים שקל להקליד בטלוויזיה/בטלפון: .../tv.apk ו-.../app.apk
+          sed -i "s/__BUILD__/${{ github.run_number }}/" /tmp/site/index.html
           cp tv-remote.apk /tmp/site/tv.apk
           cp mirror.apk /tmp/site/app.apk
           # מספר הגרסה האחרונה - האפליקציות בודקות אותו כדי להתעדכן לבד

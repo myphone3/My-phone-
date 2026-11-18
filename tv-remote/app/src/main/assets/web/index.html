@@ -642,6 +642,18 @@
   // דף שנפתח מהטלוויזיה עצמה (http://192.168...) מדבר איתה ישירות ברשת הביתית.
   // דף שנפתח מהקישור / QR מדבר איתה דרך האינטרנט, ולכן עובד מכל רשת.
   const params = new URLSearchParams(location.search);
+  // הדף באתר: אם יצאה גרסה חדשה יותר מזו שנטענה (מהזיכרון של הטלפון) - טוענים אותה מיד
+  (function freshPage() {
+    const BUILD = Number('__BUILD__') || 0;
+    if (!BUILD || location.protocol !== 'https:') return;
+    fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then((r) => r.json()).then((j) => {
+      if (!(j.version > BUILD)) return;
+      const key = 'reloadedFor';
+      try { if (sessionStorage.getItem(key) == j.version) return; sessionStorage.setItem(key, j.version); } catch (e) {}
+      const u = new URL(location.href); u.searchParams.set('v', 'b' + j.version);
+      location.replace(u.toString());
+    }).catch(() => {});
+  })();
   const tvId = params.get('tv') || store.get('tv', null);
   if (params.get('tv')) store.set('tv', params.get('tv'));
   const local = location.protocol === 'http:' && !params.get('tv');
