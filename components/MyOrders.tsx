@@ -86,6 +86,7 @@ function OrderDetails({ order, onClose }: { order: Order; onClose: () => void })
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-3" onClick={onClose} dir="rtl">
       <div
+        data-swipe-close
         className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto p-5 space-y-3"
         onClick={(e) => e.stopPropagation()}
       >

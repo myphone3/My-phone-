@@ -156,7 +156,7 @@ export default function Reviews() {
 
       {open && (
         <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setOpen(false)}>
-          <div className="bg-white rounded-3xl p-5 max-w-sm w-full space-y-4 relative" onClick={(e) => e.stopPropagation()}>
+          <div data-swipe-close className="bg-white rounded-3xl p-5 max-w-sm w-full space-y-4 relative" onClick={(e) => e.stopPropagation()}>
             <button onClick={() => setOpen(false)} className="absolute top-3 left-3 w-8 h-8 bg-gray-100 rounded-full text-gray-500 font-bold cursor-pointer" aria-label="סגירה">
               ✕
             </button>

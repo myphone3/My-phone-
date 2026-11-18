@@ -1,5 +1,6 @@
 import './globals.css';
 import { FRESH_GUARD } from '@/lib/boot';
+import SwipeClose from '@/components/SwipeClose';
 
 // יש רק רשימה אחת? פותחים ישר אותה (בלי לעבור במסך הבית). ?all = להישאר במסך הבית
 const OPEN_LIST = "try{if(location.pathname==='/'&&!/[?&]all/.test(location.search)){var l=JSON.parse(localStorage.getItem('sl_lists')||'[]');if(l.length===1&&/^[0-9a-f-]{36}$/i.test(l[0].id))location.replace('/l/'+l[0].id)}}catch(e){}";
@@ -29,6 +30,7 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         {children}
+        <SwipeClose />
         <script
           dangerouslySetInnerHTML={{
             __html: "if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{})}",

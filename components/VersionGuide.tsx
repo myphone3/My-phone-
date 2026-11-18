@@ -205,7 +205,7 @@ export function ProductVersionHelp({ versions, selected, onSelect }: { versions:
 
       {open && (
         <div className="fixed inset-0 z-[110] bg-black/60 flex items-end sm:items-center justify-center sm:p-4" onClick={() => setOpen(false)} dir="rtl">
-          <div className="bg-white w-full sm:max-w-3xl max-h-[88vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
+          <div data-swipe-close className="bg-white w-full sm:max-w-3xl max-h-[88vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-lg font-black text-gray-900">מה ההבדל בין הגרסאות?</h3>

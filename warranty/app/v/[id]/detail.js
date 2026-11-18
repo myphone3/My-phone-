@@ -135,10 +135,10 @@ export default function Detail({ r, onClose, onEdit, onDelete, onSaved, say }) {
       {broken && <Broken r={r} s={s} base={base} onClose={() => setBroken(false)} onEdit={() => { setBroken(false); onEdit(); }} onShowReceipt={() => { setBroken(false); if (r.photos?.[0]) openImg(r.photos[0]); }} say={say} />}
 
       {view >= 0 && gallery[view] && (
-        <div className="viewer">
+        <div className="viewer" data-swipe-close="[data-close]">
           <div className="vimg"><img src={gallery[view]} alt="" /></div>
           <div className="vbar">
-            <button onClick={() => setView(-1)}>✕ סגור</button>
+            <button data-close onClick={() => setView(-1)}>✕ סגור</button>
             {gallery.length > 1 && <span style={{ color: '#fff', alignSelf: 'center' }}>{view + 1} / {gallery.length}</span>}
             <div className="row">
               {gallery.length > 1 && <button onClick={() => setView((view + 1) % gallery.length)}>הבאה ‹</button>}

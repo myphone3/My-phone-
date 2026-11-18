@@ -1,4 +1,5 @@
 'use client';
+import { installSwipeClose } from '@/lib/swipeClose';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { CATEGORIES, CAT_EMOJI } from '@/lib/catalog';
@@ -28,11 +29,12 @@ export function Sheet({ onClose, children }) {
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    installSwipeClose();
     return () => { document.body.style.overflow = prev; };
   }, []);
   return (
     <div className="sheet-bg" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+      <div className="sheet" data-swipe-close onClick={(e) => e.stopPropagation()}>
         <div className="grab" />
         {children}
       </div>
