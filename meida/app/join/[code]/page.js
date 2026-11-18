@@ -44,7 +44,7 @@ export default function Join({ params }) {
   return (
     <div className="wrap">
       <div className="hero">
-        <div className="logo">🗂️</div>
+        {info?.logo_url ? <img className="shop-logo lg" src={info.logo_url} alt="" /> : <div className="logo">🗂️</div>}
         <h1>{info?.name || 'מידע לחנות'}</h1>
         {info?.owner_name && <div className="muted">הזמנה מ{info.owner_name}</div>}
       </div>

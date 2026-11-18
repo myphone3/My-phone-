@@ -5,6 +5,7 @@ import { getList } from '@/lib/cache';
 import ItemRow, { Gallery } from '@/components/ItemRow';
 import { api } from '@/lib/api';
 import { kindOf, isUnread } from './board';
+import { needsAnswer } from './asks';
 
 const TABS = [{ k: 'all', label: 'ראשי' }, ...KINDS.map((x) => ({ k: x.k, label: x.label })), { k: 'type', label: 'סוגים' }];
 
@@ -139,6 +140,7 @@ export default function HomeView({ ctx }) {
             </div>
           </div>
         )}
+        <AskBanner ctx={ctx} />
         <BoardBanner ctx={ctx} />
         {pinned.length > 0 && <><div className="h2">📌 נעוצים</div>{pinned.map((it) => <ItemRow key={it.id} it={it} ctx={ctx} />)}</>}
         {recentOpened.length > 0 && <><div className="h2">🕘 פתחתי לאחרונה</div>{recentOpened.map((it) => <ItemRow key={it.id} it={it} ctx={ctx} />)}</>}
@@ -154,14 +156,16 @@ export default function HomeView({ ctx }) {
   }
 
   const words = queryWords(q);
+  const waiting = ctx.asks.filter((a) => needsAnswer(a, ctx)).length;
   return (
     <div className="wrap">
       <div className="top">
         <div className="row">
-          <h1 className="title grow" onClick={clearAll}>🗂️ {shop.name}</h1>
+          {shop.logo_url ? <img className="shop-logo" src={shop.logo_url} alt="" onClick={clearAll} /> : null}
+          <h1 className="title grow" onClick={clearAll}>{shop.logo_url ? '' : '🗂️ '}{shop.name}</h1>
           <button className="icon-btn" aria-label="שאל" onClick={() => open({ t: 'ask' })}>✨</button>
           <button className="icon-btn" aria-label="הודעות" onClick={() => open({ t: 'board' })}>📣{ctx.unread > 0 && <span className="dot">{ctx.unread}</span>}</button>
-          {isAdmin && <button className="icon-btn" aria-label="עובדים" onClick={() => open({ t: 'team' })}>👥{shop.pending > 0 && <span className="dot">{shop.pending}</span>}</button>}
+          {isAdmin && shop.pending > 0 && <button className="icon-btn" aria-label="עובדים" onClick={() => open({ t: 'team' })}>👥<span className="dot">{shop.pending}</span></button>}
           <button className="icon-btn" aria-label="עוד" onClick={() => open({ t: 'more' })}>☰</button>
         </div>
         <div className="search" style={{ marginTop: 10 }}>
@@ -229,7 +233,10 @@ export default function HomeView({ ctx }) {
         </>
       ) : browse()}
 
-      <button className="fab" onClick={() => open({ t: 'edit', draft: { tag_ids: sel, type: type || undefined } })}>➕ הוספת מידע</button>
+      <div className="bottom-bar">
+        <button className="fab alt" onClick={() => open({ t: 'asks' })}>💰 מחיר{waiting > 0 && <span className="dot">{waiting}</span>}</button>
+        <button className="fab" onClick={() => open({ t: 'edit', draft: { tag_ids: sel, type: type || undefined } })}>➕ הוספת מידע</button>
+      </div>
     </div>
   );
 }
@@ -257,6 +264,23 @@ function BoardBanner({ ctx }) {
       <div className="ic">📣</div>
       <div className="grow"><div className="t">{open.length} הודעות ומשימות פתוחות</div>
         <div className="s">{open.slice(0, 2).map((p) => kindOf(p.kind).e + ' ' + (p.title || p.body)).join(' · ')}</div></div>
+    </button>
+  );
+}
+
+// בירור מחיר שמחכה לתשובה
+function AskBanner({ ctx }) {
+  const list = ctx.asks.filter((a) => needsAnswer(a, ctx)).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  if (!list.length) return null;
+  const a = list[0];
+  return (
+    <button className="card board-banner" style={{ borderColor: '#d97706' }} onClick={() => ctx.open({ t: 'asks' })}>
+      {a.photos?.[0] ? <img src={a.photos[0]} alt="" style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover' }} /> : <span className="e">💰</span>}
+      <span className="grow">
+        <b>{list.length === 1 ? 'מישהו שואל מחיר' : `${list.length} בירורי מחיר מחכים`}</b>
+        <div className="small" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.asked_by_name}: {a.product || 'מה המחיר?'}</div>
+      </span>
+      <span className="btn sm" style={{ background: '#d97706', color: '#fff', borderColor: '#d97706' }}>לענות</span>
     </button>
   );
 }

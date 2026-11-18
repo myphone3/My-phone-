@@ -1,9 +1,10 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Sheet from '@/components/Sheet';
 import InstallButton from '@/components/InstallButton';
 import PushToggle from '@/components/PushToggle';
-import { api, errText } from '@/lib/api';
+import { api, errText, uploadPhoto } from '@/lib/api';
+import { shrink } from '@/lib/image';
 import { signOut, userName } from '@/lib/auth';
 import { setLastShop, clearCached } from '@/lib/cache';
 import { KINDS, typeOf, timeAgo, FIELDS, ALL_FIELDS } from '@/lib/kb';
@@ -125,6 +126,14 @@ export default function More({ ctx }) {
   const [view, setView] = useState('');
   const [name, setName] = useState(ctx.shop.name);
   const [err, setErr] = useState('');
+  const [logoBusy, setLogoBusy] = useState(false);
+  const logoRef = useRef(null);
+  async function setLogo(file) {
+    setLogoBusy(true); setErr('');
+    try { const url = file ? await uploadPhoto(await shrink(file, 512)) : ''; await api.setLogo(ctx.shopId, url); await ctx.refresh(); ctx.toast(file ? 'הלוגו עודכן' : 'הלוגו הוסר'); }
+    catch (e) { setErr(errText(e)); }
+    setLogoBusy(false);
+  }
 
   function exportCSV() {
     const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
@@ -154,11 +163,12 @@ export default function More({ ctx }) {
           <div className="muted small">מחובר בתור {userName(ctx.user)} · {ctx.items.length} פריטי מידע</div>
           <div className="card menu-list" style={{ marginTop: 10 }}>
             <button onClick={() => ctx.replace({ t: 'import' })}><span className="e">💬</span><span className="grow">ייבוא מוואטסאפ</span></button>
+            <button onClick={() => ctx.replace({ t: 'asks' })}><span className="e">💰</span><span className="grow">בירור מחיר</span></button>
+            <button onClick={() => ctx.replace({ t: 'team' })}><span className="e">👥</span><span className="grow">עובדים והזמנה</span>{ctx.shop.pending > 0 && <span className="dot" style={{ position: 'static' }}>{ctx.shop.pending}</span>}</button>
             <button onClick={() => ctx.replace({ t: 'board' })}><span className="e">📣</span><span className="grow">הודעות ומשימות</span>{ctx.unread > 0 && <span className="dot" style={{ position: 'static' }}>{ctx.unread}</span>}</button>
             <button onClick={() => ctx.replace({ t: 'ask' })}><span className="e">✨</span><span className="grow">שאל את המאגר</span></button>
             <button onClick={() => setView('misses')}><span className="e">🔍</span><span className="grow">חסר במאגר (חיפשו ולא מצאו)</span>{ctx.shop.misses > 0 && <span className="muted">{ctx.shop.misses}</span>}</button>
             <button onClick={() => ctx.replace({ t: 'scan', onPick: (n) => setTimeout(() => ctx.open({ t: 'edit', draft: { type: 'imei', fields: { imei: n } } }), 300) })}><span className="e">📷</span><span className="grow">סריקת IMEI</span></button>
-            <button onClick={() => ctx.replace({ t: 'team' })}><span className="e">👥</span><span className="grow">עובדים</span>{ctx.shop.pending > 0 && <span className="dot" style={{ position: 'static' }}>{ctx.shop.pending}</span>}</button>
             <button onClick={() => setView('tags')}><span className="e">🏷️</span><span className="grow">חברות, מכשירים ונושאים</span></button>
             {ctx.isAdmin && <button onClick={() => setView('trash')}><span className="e">🗑️</span><span className="grow">פריטים שנמחקו</span></button>}
             <button onClick={exportCSV}><span className="e">📊</span><span className="grow">ייצוא לאקסל</span></button>
@@ -173,7 +183,14 @@ export default function More({ ctx }) {
           </div>
           {ctx.isAdmin && (
             <div className="card pad" style={{ marginTop: 12 }}>
-              <b>שם החנות</b>
+              <b>לוגו החנות</b>
+              <div className="row" style={{ marginTop: 8 }}>
+                {ctx.shop.logo_url ? <img className="shop-logo" style={{ width: 64, height: 64 }} src={ctx.shop.logo_url} alt="" /> : <div className="shop-logo" style={{ width: 64, height: 64, display: 'grid', placeItems: 'center', fontSize: 28 }}>🏪</div>}
+                <button className="btn sm" disabled={logoBusy} onClick={() => logoRef.current?.click()}>{logoBusy ? 'מעלה…' : ctx.shop.logo_url ? 'החלפה' : 'העלאת לוגו'}</button>
+                {ctx.shop.logo_url && <button className="btn sm danger" disabled={logoBusy} onClick={() => setLogo(null)}>הסרה</button>}
+                <input ref={logoRef} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setLogo(f); e.target.value = ''; }} />
+              </div>
+              <b style={{ display: 'block', marginTop: 14 }}>שם החנות</b>
               <div className="row" style={{ marginTop: 8 }}>
                 <input className="input grow" value={name} onChange={(e) => setName(e.target.value)} />
                 <button className="btn" onClick={rename}>שמירה</button>
