@@ -79,7 +79,7 @@ self.addEventListener('push', (e) => {
   let d = {};
   try { d = e.data.json(); } catch { d = { title: 'מידע לחנות', body: e.data && e.data.text() }; }
   e.waitUntil(self.registration.showNotification(d.title || 'מידע לחנות', {
-    body: d.body || '', tag: d.tag, renotify: true, icon: d.icon || '/icon-192.png', badge: '/icon-192.png',
+    body: d.body || '', tag: d.tag, renotify: true, icon: d.icon || '/icon-192.png', badge: '/badge.png',
     dir: 'rtl', lang: 'he', data: { url: d.url || '/' },
   }));
 });
