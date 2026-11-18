@@ -70,7 +70,7 @@
     margin: 0 auto; max-width: 480px; min-height: 100vh; color: var(--text); background: transparent;
     font-family: -apple-system, "SF Pro Display", "Segoe UI", Roboto, Arial, sans-serif;
     -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation;
-    padding: max(14px, env(safe-area-inset-top)) 16px calc(var(--tabbar) + 34px + env(safe-area-inset-bottom));
+    padding: max(14px, env(safe-area-inset-top)) 16px calc(var(--tabbar) + 92px + env(safe-area-inset-bottom));
   }
   body::before {
     content: ""; position: fixed; inset: 0; z-index: -1;
@@ -260,10 +260,38 @@
   nav.tabbar button.on { color: #fff; background: var(--accent); box-shadow: 0 8px 18px rgba(167, 139, 250, .38); font-weight: 600; }
   nav.tabbar button:active { transform: scale(.96); }
 
+  /* שורת חיפוש קבועה, מעל הלשוניות */
+  .searchbar {
+    position: fixed; z-index: 10; left: 50%; transform: translateX(-50%);
+    bottom: calc(var(--tabbar) + 22px + env(safe-area-inset-bottom)); width: min(calc(100% - 32px), 420px);
+    height: 48px; border-radius: 999px; display: flex; align-items: center; gap: 10px; padding: 0 18px;
+    font: inherit; font-size: 15px; color: var(--muted); text-align: start;
+  }
+  .searchbar svg { width: 20px; height: 20px; flex: none; }
+  .search-screen {
+    position: fixed; inset: 0; z-index: 25; overflow-y: auto; background: var(--bg);
+    padding: max(14px, env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+    max-width: 480px; margin: 0 auto;
+  }
+  .search-top { display: flex; gap: 10px; margin-bottom: 14px; }
+  .search-top input { flex: 1; min-width: 0; }
+  .search-top button { width: 56px; height: 56px; border-radius: 18px; font-size: 18px; flex: none; }
+  .page-title { font-size: 24px; font-weight: 700; margin: 4px 4px 14px; }
+  /* הגדרות: כל נושא סגור, נפתח בלחיצה */
+  .fold { padding: 0; }
+  .fold summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; }
+  .fold summary::-webkit-details-marker { display: none; }
+  .fold-ico { width: 40px; height: 40px; border-radius: 14px; background: var(--surface-strong); display: grid; place-items: center; font-size: 20px; flex: none; }
+  .fold-t { flex: 1; display: grid; gap: 2px; }
+  .fold-t b { font-size: 16px; }
+  .fold-t small { font-size: 12.5px; color: var(--muted); }
+  .chev { font-size: 22px; color: var(--muted); transform: rotate(180deg); transition: transform .2s; }
+  .fold[open] .chev { transform: rotate(90deg); }
+  .fold-body { padding: 0 16px 16px; }
   .toast {
-    position: fixed; left: 50%; transform: translate(-50%, 10px); bottom: calc(var(--tabbar) + 26px + env(safe-area-inset-bottom));
+    position: fixed; left: 50%; transform: translate(-50%, 10px); bottom: calc(var(--tabbar) + 82px + env(safe-area-inset-bottom));
     padding: 11px 18px; border-radius: 999px; font-size: 13.5px; color: var(--text);
-    opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 20; max-width: 90vw; text-align: center;
+    opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 40; max-width: 90vw; text-align: center;
   }
   .toast.show { opacity: 1; transform: translate(-50%, 0); }
   .sheet { position: fixed; inset: 0; z-index: 30; background: rgba(30, 15, 50, .28); display: flex; align-items: flex-end; justify-content: center; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); animation: fade .15s ease; }
@@ -401,37 +429,30 @@
     </section>
   </main>
 
-  <!-- ===== חיפוש ===== -->
-  <main id="view-search" hidden>
-    <section class="card glass">
-      <h2>מה מחפשים היום?</h2>
-      <div class="search-row">
-        <input class="field" id="query" dir="auto" placeholder="עברית או אנגלית…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
-      </div>
-      <div class="actions">
-        <button class="btn-yt" id="ytSearch">חפש ב-SmartTube</button>
-        <button class="btn-accent" id="typeOnTv">כתוב בטלוויזיה</button>
-      </div>
-      <p class="note">
-        <b>חפש ב-SmartTube</b> פותח ישר את תוצאות החיפוש.<br>
-        <b>כתוב בטלוויזיה</b> כותב בשדה שבחרתם בטלוויזיה, בכל אפליקציה.
-      </p>
-    </section>
-    <section class="card glass">
-      <h2>עריכה</h2>
-      <div class="edit">
-        <button data-key="DEL" data-repeat>מחק תו</button>
-        <button id="clearTv">נקה שדה</button>
-        <button id="submitTv">חיפוש ↵</button>
-      </div>
-    </section>
-  </main>
-
   <!-- ===== אפליקציות ===== -->
   <main id="view-apps" hidden>
-    <input class="field" id="appFilter" dir="auto" placeholder="חיפוש אפליקציה…" autocomplete="off" style="margin-bottom:14px">
-    <section class="card glass" id="photosCard">
-      <h2>תמונות רקע למסך הבית <button id="addPhotos">＋ הוספת תמונות</button></h2>
+    <section class="card glass" id="favCard">
+      <h2>מועדפים</h2>
+      <div class="apps" id="favApps"></div>
+    </section>
+    <section class="card glass">
+      <h2>כל האפליקציות <button id="reloadApps">רענון</button></h2>
+      <div class="apps" id="allApps"><div class="empty">טוען…</div></div>
+    </section>
+    <section class="card glass" id="hiddenCard" hidden>
+      <h2><span>מוסתרות (<span id="hiddenCount">0</span>)</span> <button id="hiddenToggle">הצג</button></h2>
+      <div class="apps" id="hiddenApps" hidden></div>
+    </section>
+    <p class="note" style="text-align:center">לחיצה ארוכה על אפליקציה: מועדפים או הסתרה</p>
+  </main>
+
+  <!-- ===== הגדרות ===== -->
+  <main id="view-settings" hidden>
+    <div class="page-title">הגדרות</div>
+    <details class="card glass fold" id="foldPhotos">
+      <summary><span class="fold-ico">🖼</span><span class="fold-t"><b>תמונות רקע</b><small>התמונות שמתחלפות במסך הבית של הטלוויזיה</small></span><span class="chev">›</span></summary>
+      <div class="fold-body">
+      <button id="addPhotos" class="btn-accent" style="width:100%;color:#fff;margin-bottom:12px">＋ הוספת תמונות</button>
       <input type="file" id="photoInput" accept="image/*" multiple hidden>
       <div class="photos" id="photoGrid"><div class="empty">טוען…</div></div>
       <div class="photo-row">
@@ -446,32 +467,11 @@
         </select>
       </div>
       <p class="note" id="photoStatus" hidden></p>
-    </section>
-    <section class="card glass" id="storageCard">
-      <h2>אחסון וזיכרון בטלוויזיה <button id="checkStorage">בדוק עכשיו</button></h2>
-      <div id="storageBody"><div class="empty">לחצו "בדוק עכשיו" כדי לראות מה תופס מקום בטלוויזיה.</div></div>
-      <div class="row-btns" id="storageBtns" hidden>
-        <button class="btn-accent" id="startScan" style="grid-column:1/-1;color:#fff">🔍 סריקה: לעבור על הכול אחד-אחד</button>
-        <button id="cleanDownloads" style="grid-column:1/-1">🗑 ניקוי הורדות ישנות (קבצי התקנה)</button>
-        <button id="trimCaches">🧹 ניקוי קבצים זמניים</button>
-        <button id="copyReport">📋 העתק דוח ל-Claude</button>
       </div>
-    </section>
-    <section class="card glass" id="favCard">
-      <h2>מועדפים</h2>
-      <div class="apps" id="favApps"></div>
-    </section>
-    <section class="card glass">
-      <h2>כל האפליקציות <button id="reloadApps">רענון</button></h2>
-      <div class="apps" id="allApps"><div class="empty">טוען…</div></div>
-    </section>
-    <section class="card glass" id="hiddenCard" hidden>
-      <h2><span>מוסתרות (<span id="hiddenCount">0</span>)</span> <button id="hiddenToggle">הצג</button></h2>
-      <div class="apps" id="hiddenApps" hidden></div>
-    </section>
-    <p class="note" style="text-align:center">לחיצה ארוכה על אפליקציה: מועדפים או הסתרה</p>
-    <section class="card glass" id="mirrorCard">
-      <h2>שיקוף מסך לטלוויזיה</h2>
+    </details>
+    <details class="card glass fold" id="foldMirror">
+      <summary><span class="fold-ico">📱</span><span class="fold-t"><b>שיקוף מסך</b><small>להציג את הטלפון על הטלוויזיה</small></span><span class="chev">›</span></summary>
+      <div class="fold-body">
       <div id="mirrorAndroid">
         <button class="btn-accent" id="startMirror" style="width:100%;color:#fff;font-weight:700">📱 שקף את המסך של הטלפון</button>
         <div class="row-btns" style="grid-template-columns:1fr 1fr">
@@ -495,29 +495,84 @@
         <button id="copyAirplayLog" style="width:100%;margin-top:8px;font-size:13px;opacity:.75">📋 העתק דוח תקלות (אם משהו לא עובד)</button>
         <p class="note" id="airplayDown" hidden style="color:#d0607a">ה-AirPlay בטלוויזיה עוד לא עלה. אם זה נמשך - כבו והדליקו את הטלוויזיה.</p>
       </div>
-    </section>
-
-
-    <section class="card glass">
-      <h2>הגדרות השלט</h2>
+      </div>
+    </details>
+    <details class="card glass fold" id="foldStorage">
+      <summary><span class="fold-ico">🧹</span><span class="fold-t"><b>אחסון וניקוי</b><small>מה תופס מקום, ניקוי הורדות וקבצים זמניים</small></span><span class="chev">›</span></summary>
+      <div class="fold-body">
+      <button id="checkStorage" class="btn-accent" style="width:100%;color:#fff;margin-bottom:12px">בדוק עכשיו</button>
+      <div id="storageBody"><div class="empty">לחצו "בדוק עכשיו" כדי לראות מה תופס מקום בטלוויזיה.</div></div>
+      <div class="row-btns" id="storageBtns" hidden>
+        <button class="btn-accent" id="startScan" style="grid-column:1/-1;color:#fff">🔍 סריקה: לעבור על הכול אחד-אחד</button>
+        <button id="cleanDownloads" style="grid-column:1/-1">🗑 ניקוי הורדות ישנות (קבצי התקנה)</button>
+        <button id="trimCaches">🧹 ניקוי קבצים זמניים</button>
+        <button id="copyReport">📋 העתק דוח ל-Claude</button>
+      </div>
+      </div>
+    </details>
+    <details class="card glass fold" id="foldPrefs">
+      <summary><span class="fold-ico">⌨️</span><span class="fold-t"><b>מקלדת ורטט</b><small>רטט בלחיצה, איזו מקלדת מופיעה בטלוויזיה</small></span><span class="chev">›</span></summary>
+      <div class="fold-body">
       <label class="toggle-row" for="hapticToggle"><span>רטט בכל לחיצה</span><input type="checkbox" id="hapticToggle" switch></label>
       <p class="note">באייפון הרטט עובד מגרסה iOS 18 ומעלה.</p>
       <div class="toggle-row" style="gap:10px"><span>המקלדת בטלוויזיה</span>
         <select id="kbSelect" style="flex:1;max-width:60%;padding:8px;border-radius:12px;border:1px solid rgba(0,0,0,.12);background:rgba(255,255,255,.7);font:inherit"><option>טוען…</option></select>
       </div>
       <p class="note">המקלדת שמופיעה בטלוויזיה כשכותבים בשלט המקורי. אם יש מקלדת עם עברית - בחרו אותה כאן.</p>
+      </div>
+    </details>
+    <details class="card glass fold" id="foldUpdate">
+      <summary><span class="fold-ico">⟳</span><span class="fold-t"><b>עדכון</b><small>הגרסה שמותקנת בטלוויזיה</small></span><span class="chev">›</span></summary>
+      <div class="fold-body">
       <div class="toggle-row" style="gap:10px;margin-top:6px"><span id="tvVersion">גרסה בטלוויזיה: …</span><button id="updateNow" style="padding:8px 14px">⟳ עדכן עכשיו</button></div>
       <p class="note">האפליקציה בטלוויזיה מתעדכנת לבד (כשלא משתמשים בשלט). הכפתור מעדכן מיד - השלט יתנתק לכמה שניות.</p>
+      </div>
+    </details>
+    <details class="card glass fold" id="foldDiag">
+      <summary><span class="fold-ico">🛠</span><span class="fold-t"><b>דוח תקלות</b><small>אם משהו לא עובד</small></span><span class="chev">›</span></summary>
+      <div class="fold-body">
       <button id="copyDiag" style="width:100%;margin-top:10px">📋 העתק דוח תקלות</button>
       <p class="note">אם משהו לא עובד - לוחצים, ומדביקים בצ׳אט. הדוח מראה למה השלט התנתק ומה קרה בשיקוף.</p>
-    </section>
+      </div>
+    </details>
   </main>
+  </div>
+
+  <button class="searchbar glass" id="searchBar" type="button"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg><span>חיפוש: אפליקציה, סרטון, כל דבר…</span></button>
+
+  <div class="search-screen" id="searchScreen" hidden>
+    <div class="search-top">
+      <input class="field" id="query" dir="auto" placeholder="מה מחפשים?" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+      <button id="searchClose" aria-label="סגירה">✕</button>
+    </div>
+    <section class="card glass" id="searchAppsCard" hidden>
+      <h2>אפליקציות בטלוויזיה</h2>
+      <div class="apps" id="searchApps"></div>
+    </section>
+    <section class="card glass">
+      <h2>לחפש ב…</h2>
+      <div class="actions">
+        <button class="btn-yt" id="ytSearch">▶ SmartTube</button>
+        <button class="btn-accent" id="webSearch">🌐 גוגל</button>
+      </div>
+      <button id="typeOnTv" style="width:100%;margin-top:10px;font-weight:600">⌨️ כתוב בטלוויזיה (בשדה שפתוח עכשיו)</button>
+      <p class="note">
+        <b>SmartTube</b> פותח ישר את תוצאות החיפוש של הסרטונים.<br>
+        <b>גוגל</b> פותח חיפוש רגיל באינטרנט בטלוויזיה.<br>
+        <b>כתוב בטלוויזיה</b> כותב בשדה החיפוש שפתוח בטלוויזיה, בכל אפליקציה.
+      </p>
+      <div class="edit" style="margin-top:12px">
+        <button data-key="DEL" data-repeat>מחק תו</button>
+        <button id="clearTv">נקה שדה</button>
+        <button id="submitTv">חיפוש ↵</button>
+      </div>
+    </section>
   </div>
 
   <nav class="tabbar glass" id="tabbar">
     <button data-tab="remote" class="on"><svg viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="4"/><circle cx="12" cy="9" r="2.4"/><path d="M10 15h4M10 18h4"/></svg>שלט</button>
-    <button data-tab="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>חיפוש</button>
     <button data-tab="apps"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2.2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2.2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2.2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2.2"/></svg>אפליקציות</button>
+    <button data-tab="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>הגדרות</button>
   </nav>
 
   <div class="toast glass" id="toast"></div>
@@ -680,7 +735,7 @@
   }
 
   if (!local && !tvId) {
-    $('welcome').hidden = false; $('app').hidden = true; $('tabbar').hidden = true;
+    $('welcome').hidden = false; $('app').hidden = true; $('tabbar').hidden = true; $('searchBar').hidden = true;
     $('statusText').textContent = 'לא מחובר';
     return;
   }
@@ -700,11 +755,11 @@
 
   // ===== לשוניות =====
   function showTab(name) {
-    ['remote', 'search', 'apps'].forEach((t) => { $('view-' + t).hidden = t !== name; });
+    if (!['remote', 'apps', 'settings'].includes(name)) name = 'remote';
+    ['remote', 'apps', 'settings'].forEach((t) => { $('view-' + t).hidden = t !== name; });
     document.querySelectorAll('nav.tabbar button').forEach((b) => b.classList.toggle('on', b.dataset.tab === name));
     store.set('tab', name);
     window.scrollTo(0, 0);
-    if (name === 'apps' && typeof loadPhotos === 'function') setTimeout(loadPhotos, 0);
   }
   document.querySelectorAll('nav.tabbar button').forEach((b) => b.addEventListener('click', () => { buzz(); showTab(b.dataset.tab); }));
   showTab(store.get('tab', 'remote'));
@@ -980,6 +1035,47 @@
   $('submitTv').onclick = () => { buzz(); call('submit'); };
   query.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); query.blur(); youtube(); } });
 
+  // ===== שורת החיפוש (מכל מסך) =====
+  $('webSearch').onclick = () => {
+    const q = query.value.trim();
+    if (!q) { query.focus(); return toast('כתבו קודם מה לחפש'); }
+    buzz();
+    call('web_search', { q }).then((r) => toast(r.ok ? 'מחפש בגוגל בטלוויזיה…' : r.body && r.body.error === 'unknown command' ? 'צריך לעדכן את האפליקציה בטלוויזיה' : 'לא הצלחתי לפתוח'));
+  };
+  function renderSearchApps() {
+    const q = query.value.trim().toLowerCase();
+    const list = q ? apps.filter((a) => a.label.toLowerCase().includes(q) || a.pkg.toLowerCase().includes(q))
+      .sort((a, b) => a.label.localeCompare(b.label, 'he')).slice(0, 12) : [];
+    $('searchAppsCard').hidden = !list.length;
+    fill($('searchApps'), list, '');
+  }
+  function openSearch() {
+    buzz();
+    $('searchScreen').hidden = false;
+    document.body.style.overflow = 'hidden';
+    renderSearchApps();
+    query.focus();
+  }
+  function closeSearch() {
+    $('searchScreen').hidden = true;
+    document.body.style.overflow = '';
+    query.blur();
+  }
+  $('searchBar').onclick = openSearch;
+  $('searchClose').onclick = () => { buzz(); closeSearch(); };
+  query.addEventListener('input', renderSearchApps);
+  // פתחו אפליקציה מהחיפוש - חוזרים לשלט
+  $('searchApps').addEventListener('click', () => setTimeout(() => { closeSearch(); showTab('remote'); }, 250));
+
+  // ===== הגדרות: נפתח רק נושא אחד בכל פעם =====
+  document.querySelectorAll('details.fold').forEach((d) => d.addEventListener('toggle', () => {
+    if (!d.open) return;
+    buzz();
+    document.querySelectorAll('details.fold').forEach((o) => { if (o !== d) o.open = false; });
+    if (d.id === 'foldPhotos' && typeof loadPhotos === 'function') loadPhotos();
+    if (d.id === 'foldPrefs') { try { loadKeyboards(); } catch (e) {} }
+  }));
+
 
   // ===== אפליקציות =====
   const DEFAULT_FAVS = ['com.teamsmart.videomanager.tv', 'com.liskovsoft.smarttubetv', 'com.google.android.youtube.tv',
@@ -1071,7 +1167,7 @@
   }
 
   function renderApps() {
-    const filter = $('appFilter').value.trim().toLowerCase();
+    const filter = '';
     const match = (a) => !filter || a.label.toLowerCase().includes(filter) || a.pkg.includes(filter);
     const byName = (a, b) => a.label.localeCompare(b.label, 'he');
     const visible = apps.filter((a) => !isHidden(a)).sort(byName);
@@ -1103,7 +1199,6 @@
     });
   }
   $('reloadApps').onclick = loadApps;
-  $('appFilter').addEventListener('input', renderApps);
   apps = store.get('apps', []);
   if (apps.length) renderApps();
 

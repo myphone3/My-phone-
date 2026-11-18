@@ -127,6 +127,13 @@ object AdbBridge {
         run("am start -a android.intent.action.VIEW -d '$url'$target")
     }
 
+    /** חיפוש כללי בגוגל, בכרום בטלוויזיה (או בדפדפן שיש). */
+    fun webSearch(query: String) = worker.execute {
+        val url = "https://www.google.com/search?q=" + URLEncoder.encode(query, "UTF-8")
+        val chrome = run("pm path com.android.chrome")?.contains("package:") == true
+        run("am start -a android.intent.action.VIEW -d '$url'" + if (chrome) " -p com.android.chrome" else "")
+    }
+
     private fun useOurKeyboard(): Boolean {
         restoreTask?.cancel(false)
         if (RemoteIme.instance == null) {

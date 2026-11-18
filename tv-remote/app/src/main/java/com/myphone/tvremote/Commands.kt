@@ -93,6 +93,10 @@ object Commands {
                 ok(JSONObject().put("ok", true).put("app", if (smartTube != null) "smarttube" else "youtube"))
             }
         }
+        "web_search" -> {
+            val query = params["q"].orEmpty().trim()
+            if (query.isEmpty() || query.length > 300) fail("empty") else { AdbBridge.webSearch(query); ok() }
+        }
         "apps" -> {
             val array = JSONArray()
             for ((pkg, label) in Apps.list(context)) array.put(JSONObject().put("pkg", pkg).put("label", label))

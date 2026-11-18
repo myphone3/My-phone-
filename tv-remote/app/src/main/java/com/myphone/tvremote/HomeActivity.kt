@@ -506,8 +506,40 @@ class HomeActivity : Activity() {
     }
 
     // רק מה שבחרתם מופיע במועדפים - אין ברירות מחדל
-    private fun favorites(): MutableList<String> =
-        prefs.getString("favs2", "")!!.split('|').filter { it.isNotBlank() }.toMutableList()
+    private fun favorites(): MutableList<String> {
+        val list = prefs.getString("favs2", "")!!.split('|').filter { it.isNotBlank() }.toMutableList()
+        // פעם אחת: "מתכונים בגדול" נכנס לקיצורים במקום רשת 13 (אחר כך אפשר לשנות כרגיל)
+        if (!prefs.getBoolean("swap_matkonim_v1", false)) {
+            val recipes = "app.matkonim.tv"
+            if (recipes !in list) {
+                val i = list.indexOf("com.applicaster.iReshet")
+                if (i >= 0) list[i] = recipes else list.add(recipes)
+            }
+            prefs.edit().putString("favs2", list.joinToString("|")).putBoolean("swap_matkonim_v1", true).apply()
+        }
+        return list
+    }
+
+    /**
+     * ברשימת כל האפליקציות: בסוף שורה ממשיכים לתחילת השורה הבאה (ומתחילת שורה - לסוף הקודמת).
+     * המסך מימין לשמאל, אז "שמאלה" זה קדימה.
+     */
+    private fun wrapGridKey(v: View, keyCode: Int, event: KeyEvent): Boolean {
+        if (event.action != KeyEvent.ACTION_DOWN || v.parent !== grid) return false
+        val i = grid.indexOfChild(v)
+        val cols = grid.columnCount
+        val rtl = grid.layoutDirection == View.LAYOUT_DIRECTION_RTL
+        val forward = if (rtl) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT
+        val back = if (rtl) KeyEvent.KEYCODE_DPAD_RIGHT else KeyEvent.KEYCODE_DPAD_LEFT
+        val target = when (keyCode) {
+            forward -> if (i % cols == cols - 1 || i == grid.childCount - 1) i + 1 else return false
+            back -> if (i % cols == 0) i - 1 else return false
+            else -> return false
+        }
+        // בסוף הרשימה / בהתחלה שלה - נשארים במקום (ולא קופצים למקום אחר במסך)
+        grid.getChildAt(target)?.requestFocus()
+        return true
+    }
 
     private fun hidden(): MutableSet<String> {
         val saved = prefs.getString("hidden", null)
@@ -637,10 +669,10 @@ class HomeActivity : Activity() {
         tile.setOnClickListener { launch(app) }
         tile.setOnLongClickListener { showAppMenu(app); true }
         tile.onFocusChangeListener = focusAnimator(1.12f, light = true)
-        tile.setOnKeyListener { _, keyCode, event ->
+        tile.setOnKeyListener { v, keyCode, event ->
             when {
                 keyCode == KeyEvent.KEYCODE_MENU && event.action == KeyEvent.ACTION_UP -> { showAppMenu(app); true }
-                else -> false
+                else -> wrapGridKey(v, keyCode, event)
             }
         }
         tile.layoutParams = tileParams()
@@ -652,6 +684,7 @@ class HomeActivity : Activity() {
         isFocusable = true
         background = rounded(Color.argb(18, 255, 255, 255), 22f, Color.argb(60, 255, 255, 255))
         setOnClickListener { onClick() }
+        setOnKeyListener { v, keyCode, event -> wrapGridKey(v, keyCode, event) }
         onFocusChangeListener = focusAnimator(1.1f, light = true)
         layoutParams = tileParams()
     }
