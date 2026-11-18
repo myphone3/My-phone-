@@ -15,3 +15,10 @@ export function shrink(file, max = 1600) {
     img.src = url;
   });
 }
+
+// תמונה ל-AI: מוקטנת ל-base64 (בלי להעלות לשום מקום)
+export async function toAIImage(file, max = 1400) {
+  const blob = await shrink(file, max);
+  const data = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(blob); });
+  return { mime: 'image/jpeg', data, blob };
+}

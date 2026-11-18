@@ -10,6 +10,8 @@ export default function Home() {
   const router = useRouter();
   const [shops, setShops] = useState(null);
   const [name, setName] = useState('');
+  const [city, setCity] = useState('');
+  const [phone, setPhone] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const all = typeof location !== 'undefined' && /[?&]all/.test(location.search);
@@ -25,7 +27,8 @@ export default function Home() {
 
   async function create() {
     setBusy(true); setErr('');
-    try { const id = await api.createShop(name || 'החנות שלי'); setLastShop(id); router.replace('/s/' + id); }
+    if (!name.trim()) { setErr('מה שם החנות?'); setBusy(false); return; }
+    try { const id = await api.createShop(name, city, phone); setLastShop(id); router.replace('/s/' + id); }
     catch (e) { setErr(errText(e)); setBusy(false); }
   }
 
@@ -43,7 +46,12 @@ export default function Home() {
           ['📍', 'נקודות שירות עם ניווט בוויז וחיוג בלחיצה'], ['💬', 'ייבוא אוטומטי של כל מה שרשמת בוואטסאפ'], ['👥', 'משותף לכל העובדים, כל אחד עם החשבון שלו']]
           .map(([e, t]) => <div className="card" key={t}><span style={{ fontSize: 24 }}>{e}</span><span>{t}</span></div>)}
       </div>
-      <GoogleButton busy={busy} onClick={() => { setBusy(true); signInWithGoogle('/'); }} />
+      <div className="card pad">
+        <b>🏪 פותחים חנות</b>
+        <div className="muted small" style={{ margin: '4px 0 12px' }}>בעל החנות נכנס עם Google ופותח את החנות, ואז שולח לעובדים קישור הצטרפות. כל עובד נכנס עם ה-Google שלו.</div>
+        <GoogleButton busy={busy} label="כניסה עם Google ופתיחת חנות" onClick={() => { setBusy(true); signInWithGoogle('/'); }} />
+      </div>
+      <div className="muted small center" style={{ marginTop: 14 }}>עובד בחנות? בקש מהמנהל את קישור ההצטרפות ופתח אותו.</div>
     </div>
   );
 
@@ -66,12 +74,18 @@ export default function Home() {
             </button>
           ))}
           <div className="card pad" style={{ marginTop: 16 }}>
-            <b>פתיחת חנות חדשה</b>
+            <b>🏪 {shops.length ? 'פתיחת חנות נוספת' : 'פתיחת החנות שלך'}</b>
             <div className="muted small" style={{ margin: '4px 0 10px' }}>
-              אם אתה עובד בחנות שכבר קיימת — בקש מהמנהל את קישור ההצטרפות. אם אתה המנהל — פתח כאן את החנות והזמן את העובדים.
+              אתה תהיה בעל החנות. אחרי הפתיחה תקבל קישור לשלוח לעובדים — הם נכנסים עם Google ואתה מאשר אותם.
+              <br />עובד בחנות קיימת? אל תפתח חנות — בקש מהמנהל את קישור ההצטרפות.
             </div>
-            <input className="input" placeholder="שם החנות" value={name} onChange={(e) => setName(e.target.value)} />
-            <button className="btn primary block" style={{ marginTop: 10 }} disabled={busy} onClick={create}>{busy ? 'פותח…' : 'פתיחת החנות'}</button>
+            <label className="lbl">שם החנות *</label>
+            <input className="input" placeholder="למשל: סלולר פלוס" value={name} onChange={(e) => setName(e.target.value)} />
+            <div className="row" style={{ gap: 8 }}>
+              <div className="grow"><label className="lbl">עיר</label><input className="input" value={city} onChange={(e) => setCity(e.target.value)} /></div>
+              <div className="grow"><label className="lbl">טלפון החנות</label><input className="input" dir="ltr" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
+            </div>
+            <button className="btn primary block" style={{ marginTop: 12 }} disabled={busy} onClick={create}>{busy ? 'פותח…' : 'פתיחת החנות'}</button>
           </div>
           {err && <div className="err">{err}</div>}
         </>

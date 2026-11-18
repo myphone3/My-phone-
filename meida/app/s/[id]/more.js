@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Sheet from '@/components/Sheet';
 import InstallButton from '@/components/InstallButton';
+import PushToggle from '@/components/PushToggle';
 import { api, errText } from '@/lib/api';
 import { signOut, userName } from '@/lib/auth';
 import { setLastShop, clearCached } from '@/lib/cache';
@@ -86,6 +87,33 @@ function Trash({ ctx, back }) {
   );
 }
 
+function Misses({ ctx, back }) {
+  const [list, setList] = useState(null);
+  const [err, setErr] = useState('');
+  useEffect(() => { api.misses(ctx.shopId).then(setList).catch((e) => setErr(errText(e))); }, [ctx.shopId]);
+  async function set(m, status) {
+    try { await api.missSet(ctx.shopId, m.id, status); setList((l) => l.filter((x) => x.id !== m.id)); ctx.refresh(); } catch (e) { setErr(errText(e)); }
+  }
+  return (
+    <>
+      <button className="btn sm" onClick={back}>→ חזרה</button>
+      <div className="h2">🔍 חסר במאגר</div>
+      <div className="muted small" style={{ marginBottom: 8 }}>דברים שעובדים חיפשו ולא מצאו. כדאי להוסיף אותם — ככה המאגר מתמלא במה שבאמת צריך.</div>
+      {err && <div className="err">{err}</div>}
+      {list === null && !err && <div className="spin" />}
+      {list?.length === 0 && <div className="empty"><div className="e">🎉</div>אין כרגע חיפושים שלא נמצאו</div>}
+      {list?.map((m) => (
+        <div key={m.id} className="card it" style={{ alignItems: 'center' }}>
+          <div className="ic">🔍</div>
+          <div className="grow"><div className="t">{m.query}</div><div className="s">חיפשו {m.count} פעמים · אחרון: {m.last_by_name} {timeAgo(m.last_at)}</div></div>
+          <button className="btn sm primary" onClick={() => { set(m, 'done'); ctx.replace({ t: 'edit', draft: { title: m.query } }); }}>➕ הוספה</button>
+          <button className="btn sm" onClick={() => set(m, 'ignored')} aria-label="לא רלוונטי">✕</button>
+        </div>
+      ))}
+    </>
+  );
+}
+
 function download(name, text, type) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([text], { type }));
@@ -121,12 +149,15 @@ export default function More({ ctx }) {
   return (
     <Sheet onClose={ctx.close}>
       <div className="sheet-head"><h2>☰ עוד</h2><button className="icon-btn" onClick={ctx.close} aria-label="סגירה">✕</button></div>
-      {view === 'tags' ? <TagsManager ctx={ctx} back={() => setView('')} /> : view === 'trash' ? <Trash ctx={ctx} back={() => setView('')} /> : (
+      {view === 'tags' ? <TagsManager ctx={ctx} back={() => setView('')} /> : view === 'misses' ? <Misses ctx={ctx} back={() => setView('')} /> : view === 'trash' ? <Trash ctx={ctx} back={() => setView('')} /> : (
         <>
           <div className="muted small">מחובר בתור {userName(ctx.user)} · {ctx.items.length} פריטי מידע</div>
           <div className="card menu-list" style={{ marginTop: 10 }}>
             <button onClick={() => ctx.replace({ t: 'import' })}><span className="e">💬</span><span className="grow">ייבוא מוואטסאפ</span></button>
+            <button onClick={() => ctx.replace({ t: 'board' })}><span className="e">📣</span><span className="grow">הודעות ומשימות</span>{ctx.unread > 0 && <span className="dot" style={{ position: 'static' }}>{ctx.unread}</span>}</button>
             <button onClick={() => ctx.replace({ t: 'ask' })}><span className="e">✨</span><span className="grow">שאל את המאגר</span></button>
+            <button onClick={() => setView('misses')}><span className="e">🔍</span><span className="grow">חסר במאגר (חיפשו ולא מצאו)</span>{ctx.shop.misses > 0 && <span className="muted">{ctx.shop.misses}</span>}</button>
+            <button onClick={() => ctx.replace({ t: 'scan', onPick: (n) => setTimeout(() => ctx.open({ t: 'edit', draft: { type: 'imei', fields: { imei: n } } }), 300) })}><span className="e">📷</span><span className="grow">סריקת IMEI</span></button>
             <button onClick={() => ctx.replace({ t: 'team' })}><span className="e">👥</span><span className="grow">עובדים</span>{ctx.shop.pending > 0 && <span className="dot" style={{ position: 'static' }}>{ctx.shop.pending}</span>}</button>
             <button onClick={() => setView('tags')}><span className="e">🏷️</span><span className="grow">חברות, מכשירים ונושאים</span></button>
             {ctx.isAdmin && <button onClick={() => setView('trash')}><span className="e">🗑️</span><span className="grow">פריטים שנמחקו</span></button>}
@@ -134,6 +165,7 @@ export default function More({ ctx }) {
             <button onClick={exportJSON}><span className="e">💾</span><span className="grow">גיבוי מלא (קובץ)</span></button>
             <a href="/?all"><span className="e">🏪</span><span className="grow">החלפת חנות / חנות חדשה</span></a>
           </div>
+          <PushToggle ctx={ctx} />
           <div style={{ marginTop: 12 }}><InstallButton /></div>
           <div className="card pad" style={{ marginTop: 12 }}>
             <b>💡 טיפ: שמירה ישר מוואטסאפ</b>

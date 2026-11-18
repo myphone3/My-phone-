@@ -72,6 +72,8 @@ function History({ ctx, it, onClose }) {
   );
 }
 
+const fmtFull = (s) => new Date(s).toLocaleString('he-IL', { weekday: 'short', day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
 export default function ItemView({ ctx, id }) {
   const it = ctx.items.find((x) => x.id === id);
   const [hist, setHist] = useState(false);
@@ -120,13 +122,17 @@ export default function ItemView({ ctx, id }) {
         <button className="btn" onClick={share}>📤 שליחה</button>
         <button className="btn" onClick={pin}>{it.pinned ? '📌 ביטול נעיצה' : '📌 נעיצה'}</button>
       </div>
-      <div className="muted small" style={{ marginTop: 14 }}>
-        נוסף ע״י {it.created_by_name || '—'} · {timeAgo(it.created_at)}
-        {it.updated_at !== it.created_at && it.updated_by_name && <> · עודכן ע״י {it.updated_by_name} {timeAgo(it.updated_at)}</>}
-        {it.source === 'whatsapp' && <> · מוואטסאפ</>}
+      <div className="details">
+        <div><span>👤 נוסף ע״י</span><b>{it.created_by_name || '—'}</b></div>
+        <div><span>📅 נוסף ב</span><span>{fmtFull(it.created_at)}</span></div>
+        {it.updated_at !== it.created_at && it.updated_by_name && <>
+          <div><span>✏️ עודכן ע״י</span><b>{it.updated_by_name}</b></div>
+          <div><span>🕘 עודכן ב</span><span>{fmtFull(it.updated_at)}</span></div>
+        </>}
+        <div><span>📥 מקור</span><span>{it.source === 'whatsapp' ? 'ייבוא מוואטסאפ' : it.source === 'photo' ? 'צילום' : it.source === 'share' ? 'שיתוף מוואטסאפ' : 'הוקלד באפליקציה'}</span></div>
       </div>
       <div className="row" style={{ marginTop: 10 }}>
-        <button className="btn sm" onClick={() => setHist((h) => !h)}>🕘 היסטוריה</button>
+        <button className="btn sm" onClick={() => setHist((h) => !h)}>🕘 היסטוריית שינויים</button>
         {ctx.isAdmin && <button className="btn sm danger" disabled={busy} onClick={del}>🗑️ מחיקה</button>}
       </div>
       {hist && <History ctx={ctx} it={it} onClose={() => setHist(false)} />}

@@ -30,3 +30,22 @@ export default function ItemRow({ it, ctx, words, showWho }) {
     </button>
   );
 }
+
+// תצוגת תמונות (רשת)
+export function Gallery({ items, ctx }) {
+  return (
+    <div className="gal">
+      {items.map((it) => {
+        const t = typeOf(it.type);
+        const tg = (it.tag_ids || []).map((id) => ctx.tagsById[id]).filter(Boolean).slice(0, 2);
+        return (
+          <button key={it.id} className="card gal-it" onClick={() => ctx.openItem(it)}>
+            <div className="ph">{it.photos?.[0] ? <img src={it.photos[0]} alt="" loading="lazy" /> : t.e}</div>
+            <div className="tt">{it.pinned && '📌 '}{it.title || t.label}</div>
+            <div className="tg">{tg.map((x) => <span key={x.id} className={'tag-mini k-' + x.kind}>{x.name}</span>)}</div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
