@@ -133,6 +133,7 @@ object Commands {
         "mirror_stop" -> { MirrorServer.stop(); AirPlayServer.stop(); ok() }
         "storage" -> ok(StorageReport.build(context))
         "delete_download" -> if (StorageReport.deleteDownload(params["name"].orEmpty())) ok() else fail("not deleted")
+        "clean_downloads" -> ok(StorageReport.cleanDownloads())
         "uninstall" -> if (StorageReport.uninstall(context, params["pkg"].orEmpty())) ok() else fail("not removed")
         "trim" -> ok(JSONObject().put("ok", true).put("freed", StorageReport.trimCaches(context)))
         "photos" -> {

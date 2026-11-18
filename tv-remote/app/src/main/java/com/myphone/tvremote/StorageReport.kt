@@ -96,6 +96,28 @@ object StorageReport {
         return AdbBridge.shellSync("ls $DOWNLOADS/$quoted 2>/dev/null").isNullOrBlank()
     }
 
+    /** קבצים שאין סיבה לשמור אחרי ההתקנה: קבצי התקנה, ארכיונים ודפי GitHub שנשמרו בטעות. */
+    private val LEFTOVER = Regex("""(?i)(\.(apk|apks|xapk|apkm|zip|html?|crdownload|tmp)$)|github""")
+
+    /**
+     * ניקוי הורדות ישנות בלחיצה אחת: מוחק מתיקיית ההורדות את כל קבצי ההתקנה (APK),
+     * הארכיונים (ZIP) ודפי האינטרנט שנשמרו. תמונות, סרטונים ומסמכים נשארים.
+     * האפליקציות שכבר מותקנות לא נפגעות.
+     */
+    fun cleanDownloads(): JSONObject {
+        val listing = AdbBridge.shellSync("ls -lA $DOWNLOADS 2>/dev/null").orEmpty()
+        val row = Regex("""^-\S*\s+\d+\s+\S+\s+\S+\s+(\d+)\s+(\S+)\s+(\S+)\s+(.+)$""")
+        var count = 0
+        var freed = 0L
+        var failed = 0
+        listing.lines().mapNotNull { row.find(it.trim()) }.forEach {
+            val name = it.groupValues[4]
+            if (!LEFTOVER.containsMatchIn(name)) return@forEach
+            if (deleteDownload(name)) { count++; freed += it.groupValues[1].toLong() } else failed++
+        }
+        return JSONObject().put("ok", true).put("count", count).put("freed", freed).put("failed", failed)
+    }
+
     /** מסיר אפליקציה שהמשתמש התקין (לא אפליקציות מערכת, ולא את השלט עצמו). */
     fun uninstall(context: Context, pkg: String): Boolean {
         if (!Regex("^[A-Za-z0-9_.]+$").matches(pkg) || pkg == context.packageName) return false

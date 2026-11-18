@@ -452,6 +452,7 @@
       <div id="storageBody"><div class="empty">לחצו "בדוק עכשיו" כדי לראות מה תופס מקום בטלוויזיה.</div></div>
       <div class="row-btns" id="storageBtns" hidden>
         <button class="btn-accent" id="startScan" style="grid-column:1/-1;color:#fff">🔍 סריקה: לעבור על הכול אחד-אחד</button>
+        <button id="cleanDownloads" style="grid-column:1/-1">🗑 ניקוי הורדות ישנות (קבצי התקנה)</button>
         <button id="trimCaches">🧹 ניקוי קבצים זמניים</button>
         <button id="copyReport">📋 העתק דוח ל-Claude</button>
       </div>
@@ -1273,6 +1274,29 @@
       if (r.ok) $('checkStorage').click();
     });
   };
+  // ניקוי הורדות ישנות: כל קבצי ההתקנה (APK), ZIP ודפים שנשמרו - בלחיצה אחת (עם אישור)
+  const LEFTOVER = /(\.(apk|apks|xapk|apkm|zip|html?|crdownload|tmp)$)|github/i;
+  $('cleanDownloads').onclick = () => {
+    const btn = $('cleanDownloads');
+    const files = ((lastReport && lastReport.downloads && lastReport.downloads.files) || []).filter((f) => LEFTOVER.test(f.name));
+    if (lastReport && !files.length) return toast('אין קבצי התקנה ישנים בהורדות ✓');
+    if (!btn.classList.contains('armed')) {
+      const total = files.reduce((n, f) => n + f.size, 0);
+      btn.classList.add('armed');
+      btn.textContent = files.length ? `למחוק ${files.length} קבצים (${fmt(total)})? לחצו שוב` : 'בטוח? לחצו שוב';
+      setTimeout(() => { if (btn.classList.contains('armed')) { btn.classList.remove('armed'); btn.textContent = '🗑 ניקוי הורדות ישנות (קבצי התקנה)'; } }, 4000);
+      return;
+    }
+    btn.classList.remove('armed');
+    btn.textContent = '🗑 ניקוי הורדות ישנות (קבצי התקנה)';
+    buzz(); toast('מוחק…');
+    call('clean_downloads', {}, 60000).then((r) => {
+      if (!r.ok) return toast(r.body && r.body.error === 'unknown command' ? 'צריך לעדכן את האפליקציה בטלוויזיה' : 'הניקוי לא הצליח');
+      const b = r.body;
+      toast(b.count ? `נמחקו ${b.count} קבצים, התפנו ${fmt(b.freed)} ✓` : 'אין קבצי התקנה ישנים בהורדות ✓');
+      $('checkStorage').click();
+    });
+  };
   // דוח קצר בטקסט - להדבקה בצ'אט עם Claude
   function reportText(r) {
     const lines = [
@@ -1310,7 +1334,7 @@
 
 
   // ===== סריקה אחד-אחד: מה אפשר למחוק =====
-  const IMPORTANT = /smarttube|teamsmart|gboard|inputmethod|airscreen|netflix|apple|disney|youtube|spotify|kan|keshet|reshet|mako|13|12/i;
+  const IMPORTANT = /smarttube|teamsmart|gboard|inputmethod|netflix|apple|disney|youtube|spotify|kan|keshet|reshet|mako|13|12/i;
   const INSTALLERS = /downloader|esaba|fdroid|f-droid|aptoide|activitylauncher|szalkowski|filecommander|files/i;
   const fmtI = (b) => '\u2066' + fmt(b) + '\u2069';
   const daysAgo = (t) => t ? Math.floor((Date.now() - t) / 86400000) : null;
