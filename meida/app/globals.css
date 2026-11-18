@@ -220,3 +220,9 @@ mark { background: #fde68a; color: inherit; border-radius: 3px; padding: 0 1px; 
 .bottom-bar { position: fixed; bottom: calc(16px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); z-index: 30; display: flex; gap: 8px; }
 .bottom-bar .fab { position: relative; left: auto; bottom: auto; transform: none; }
 .fab.alt { background: #d97706; box-shadow: 0 8px 24px rgba(217,119,6,.35); padding: 0 18px; }
+.alerts { padding: 4px 0; }
+.alert-row { display: flex; gap: 10px; align-items: center; width: 100%; padding: 10px 12px; text-align: start; border-bottom: 1px solid var(--line); }
+.alert-row:last-child { border-bottom: 0; }
+.alert-row img { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; flex: none; }
+.alert-row .e { font-size: 24px; width: 40px; text-align: center; flex: none; }
+.alert-row .txt { display: block; font-weight: 650; font-size: 15px; }

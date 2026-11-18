@@ -7,6 +7,8 @@ import { timeAgo } from '@/lib/kb';
 
 export const ils = (n) => (n === null || n === undefined || n === '' ? '' : `₪${Number(n).toLocaleString('he-IL', { maximumFractionDigits: 2 })}`);
 // בירור שמחכה לי: פתוח, לא שלי, ועוד אין לו תשובה
+// מחכה לתשובה = פתוח ואף אחד עוד לא ענה. ברגע שמישהו עונה — עובר להיסטוריה
+export const waitingOf = (a) => !a.deleted_at && a.status === 'open' && !(a.answers || []).length;
 export const needsAnswer = (a, ctx) => !a.deleted_at && a.status === 'open' && a.asked_by !== ctx.user?.id && !(a.answers || []).length;
 
 function AnswerForm({ a, ctx }) {
@@ -62,7 +64,7 @@ function AskCard({ a, ctx }) {
           </div>
           <div className="post-title">{a.product || 'מה המחיר?'}</div>
           {a.note && <div className="small" style={{ whiteSpace: 'pre-wrap' }}>{a.note}</div>}
-          <div className="post-meta"><span>{mine ? 'אני' : a.asked_by_name} · {timeAgo(a.created_at)}</span></div>
+          <div className="post-meta"><span>שאל: {mine ? 'אני' : a.asked_by_name} · {new Date(a.created_at).toLocaleString('he-IL', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}</span></div>
         </div>
       </div>
       {a.photos?.length > 1 && <div className="photos" style={{ marginTop: 6 }}>{a.photos.slice(1).map((x) => <img key={x} src={x} alt="" style={{ height: 70 }} onClick={() => setPhoto(x)} />)}</div>}
@@ -92,9 +94,9 @@ function AskCard({ a, ctx }) {
 export default function Asks({ ctx }) {
   const [f, setF] = useState('open');
   const list = useMemo(() => ctx.asks.filter((a) => !a.deleted_at)
-    .filter((a) => (f === 'open' ? a.status === 'open' : f === 'answered' ? a.status !== 'open' : f === 'mine' ? a.asked_by === ctx.user?.id : true))
+    .filter((a) => (f === 'open' ? waitingOf(a) : f === 'mine' ? a.asked_by === ctx.user?.id : true))
     .sort((a, b) => needsAnswer(b, ctx) - needsAnswer(a, ctx) || new Date(b.created_at) - new Date(a.created_at)), [ctx.asks, f]); // eslint-disable-line
-  const openN = ctx.asks.filter((a) => !a.deleted_at && a.status === 'open').length;
+  const openN = ctx.asks.filter((a) => !a.deleted_at && waitingOf(a)).length;
   return (
     <Sheet onClose={ctx.close}>
       <div className="sheet-head">
@@ -103,12 +105,12 @@ export default function Asks({ ctx }) {
         <button className="icon-btn" onClick={ctx.close} aria-label="סגירה">✕</button>
       </div>
       <div className="chips" style={{ paddingTop: 0 }}>
-        {[['open', `מחכים${openN ? ' ' + openN : ''}`], ['answered', 'נענו'], ['mine', 'שלי'], ['all', 'הכל']].map(([k, l]) => (
+        {[['open', `⏳ מחכים לתשובה${openN ? ' ' + openN : ''}`], ['all', '🕘 היסטוריה'], ['mine', '🙋 שלי']].map(([k, l]) => (
           <button key={k} className={'chip' + (f === k ? ' on' : '')} onClick={() => setF(k)}>{l}</button>
         ))}
       </div>
       {!list.length && (
-        <div className="empty"><div className="e">💰</div>{f === 'open' ? 'אין בירורים שמחכים' : 'אין כאן כלום'}
+        <div className="empty"><div className="e">💰</div>{f === 'open' ? 'אין בירורים שמחכים לתשובה 👍' : 'אין כאן כלום'}
           <div className="muted small" style={{ marginTop: 6 }}>מצלמים מוצר ושואלים — כל העובדים מקבלים התראה, ומי שיודע עונה.</div>
           <div style={{ marginTop: 12 }}><button className="btn primary" onClick={() => ctx.open({ t: 'ask-new' })}>📷 לשאול מחיר</button></div></div>
       )}
