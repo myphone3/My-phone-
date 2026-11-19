@@ -2,7 +2,8 @@
 import { useEffect, useState } from 'react';
 import Sheet from '@/components/Sheet';
 import { api, errText } from '@/lib/api';
-import { typeOf, FIELDS, ALL_FIELDS, tokens, telHref, wazeHref, mapsHref, urlHref, timeAgo, itemToText, copyText, luhnOk } from '@/lib/kb';
+import { typeOf, FIELDS, ALL_FIELDS, tokens, telHref, wazeHref, mapsHref, urlHref, timeAgo, itemToText, copyText, luhnOk, catOf, coOf, waHref } from '@/lib/kb';
+import CoLogo from '@/components/CoLogo';
 
 export function RichText({ text, ctx }) {
   return (
@@ -82,8 +83,10 @@ export default function ItemView({ ctx, id }) {
   if (!it) return (
     <Sheet onClose={ctx.close}><div className="empty"><div className="e">🗑️</div>הפריט נמחק</div></Sheet>
   );
-  const t = typeOf(it.type);
-  const tags = (it.tag_ids || []).map((x) => ctx.tagsById[x]).filter(Boolean);
+  const t = typeOf(it.type, ctx.shop);
+  const cat = catOf(it, ctx.tagsById);
+  const co = coOf(it, ctx.tagsById);
+  const tags = (it.tag_ids || []).map((x) => ctx.tagsById[x]).filter((x) => x && !x.deleted_at && x !== cat && x !== co);
 
   async function pin() {
     try { await api.pin(ctx.shopId, it.id, !it.pinned); ctx.applyItem({ ...it, pinned: !it.pinned }); ctx.toast(it.pinned ? 'הוסר מהנעוצים' : 'ננעץ בראש המסך'); }
@@ -109,6 +112,8 @@ export default function ItemView({ ctx, id }) {
       </div>
       <div className="chips wrapped" style={{ paddingTop: 0 }}>
         <span className="chip">{t.e} {t.label}</span>
+        {cat && <button className="chip" onClick={() => ctx.open({ t: 'cat', id: cat.id })}>{cat.emoji} {cat.name}</button>}
+        {co && <button className="chip" onClick={() => ctx.open({ t: 'co', id: co.id, cat: cat?.id })}><CoLogo co={co} size={20} /> {co.name}</button>}
         {tags.map((x) => <span key={x.id} className={'chip k-' + x.kind}>{x.emoji && x.kind === 'topic' ? x.emoji + ' ' : ''}{x.name}</span>)}
       </div>
       <div style={{ marginTop: 10 }}>
@@ -119,7 +124,8 @@ export default function ItemView({ ctx, id }) {
       <div className="row wrap-row" style={{ marginTop: 16 }}>
         <button className="btn primary" onClick={() => ctx.open({ t: 'edit', item: it })}>✏️ עריכה</button>
         <button className="btn" onClick={() => copyText(itemToText(it, ctx.tagsById)).then(() => ctx.toast('הכל הועתק'))}>📋 העתק</button>
-        <button className="btn" onClick={share}>📤 שליחה</button>
+        {it.type === 'service' ? <button className="btn" onClick={() => ctx.open({ t: 'cust', id: it.id })}>📤 שליחה ללקוח</button>
+          : <button className="btn" onClick={share}>📤 שליחה</button>}
         <button className="btn" onClick={pin}>{it.pinned ? '📌 ביטול נעיצה' : '📌 נעיצה'}</button>
       </div>
       <div className="details">
@@ -141,6 +147,32 @@ export default function ItemView({ ctx, id }) {
           <img src={photo} alt="" style={{ maxWidth: '100%', maxHeight: '92vh' }} />
         </div>
       )}
+    </Sheet>
+  );
+}
+
+// שליחת נקודת שירות ללקוח: הודעה מסודרת עם כתובת, שעות, טלפון וקישור ניווט
+export function CustomerSend({ ctx, id }) {
+  const it = ctx.items.find((x) => x.id === id);
+  const [phone, setPhone] = useState('');
+  if (!it) return null;
+  const f = it.fields || {};
+  const co = coOf(it, ctx.tagsById);
+  const full = f.address && f.city && !f.address.includes(f.city) ? `${f.address}, ${f.city}` : f.address;
+  const msg = [`📍 ${co ? co.name + ' – ' : ''}${it.title}`, full && `כתובת: ${full}`, f.hours && `שעות: ${f.hours}`, (f.phone || f.phone2) && `טלפון: ${f.phone || f.phone2}`,
+    full && `ניווט ב-Waze: ${wazeHref(full)}`, '', `בברכה, ${ctx.shop.name}${ctx.shop.phone ? ' · ' + ctx.shop.phone : ''}`].filter((x) => x !== undefined && x !== false && x !== null).join('\n');
+  return (
+    <Sheet onClose={ctx.close}>
+      <div className="sheet-head"><h2>📤 שליחה ללקוח</h2><button className="icon-btn" onClick={ctx.close} aria-label="סגירה">✕</button></div>
+      <div className="muted small">הלקוח מקבל הודעה מסודרת עם כל הפרטים וקישור ניווט</div>
+      <label className="lbl">מספר הלקוח (לא חובה)</label>
+      <input className="input ltr" inputMode="tel" placeholder="05X-XXXXXXX" value={phone} onChange={(e) => setPhone(e.target.value)} />
+      <label className="lbl">מה הלקוח יקבל</label>
+      <div className="preview-msg">{msg}</div>
+      <div className="row" style={{ marginTop: 12 }}>
+        <a className="btn primary grow" href={waHref(msg, phone)} target="_blank" rel="noreferrer">💬 שליחה בוואטסאפ</a>
+        <button className="btn grow" onClick={() => copyText(msg).then(() => ctx.toast('הועתק'))}>📋 העתקה</button>
+      </div>
     </Sheet>
   );
 }

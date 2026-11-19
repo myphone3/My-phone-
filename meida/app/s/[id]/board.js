@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import Sheet from '@/components/Sheet';
+import { SeenLine } from '@/components/Seen';
 import { api, errText } from '@/lib/api';
 import { timeAgo } from '@/lib/kb';
 import { RichText } from './item';
@@ -14,34 +15,34 @@ export const POST_KINDS = [
   { k: 'reminder', label: 'תזכורת', e: '⏰' },
 ];
 export const kindOf = (k) => POST_KINDS.find((x) => x.k === k) || POST_KINDS[0];
-
-const dayKey = (iso) => new Date(iso).toDateString();
-function dayLabel(iso) {
-  const d = new Date(iso); const t = new Date();
-  const y = new Date(); y.setDate(t.getDate() - 1);
-  if (d.toDateString() === t.toDateString()) return 'היום';
-  if (d.toDateString() === y.toDateString()) return 'אתמול';
-  return d.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'numeric', year: d.getFullYear() === t.getFullYear() ? undefined : '2-digit' });
-}
 export const fmtDate = (s) => new Date(s.length === 10 ? s + 'T12:00:00' : s).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric', year: '2-digit' });
 export const fmtDateTime = (s) => new Date(s).toLocaleString('he-IL', { day: 'numeric', month: 'numeric', year: '2-digit', hour: '2-digit', minute: '2-digit' });
-const todayStr = () => new Date().toLocaleDateString('en-CA');
-
-export function isUnread(p, ctx) {
-  return !p.deleted_at && p.author_id !== ctx.user?.id && ctx.shop.seen_at && new Date(p.created_at) > new Date(ctx.shop.seen_at);
-}
 
 function PostCard({ p, ctx, fresh }) {
   const k = kindOf(p.kind);
-  const mine = p.author_id === ctx.user?.id;
+  const mine = p.author_id === ctx.me;
   const canEdit = mine || ctx.isAdmin;
-  const expired = p.due && p.due < todayStr();
+  const needAck = p.urgent && !mine && !ctx.iSaw('post', p.id);
+  const replies = ctx.replies.filter((r) => r.post_id === p.id);
+  const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
-  async function toggle() {
+
+  async function ack() {
     setBusy(true);
-    try { const r = await api.postStatus(ctx.shopId, p.id, p.status === 'done' ? 'open' : 'done'); ctx.applyPost(r); }
+    try { await api.markSeen(ctx.shopId, 'post', [p.id]); await ctx.refresh(); ctx.notify({ ack: p.id }); ctx.toast(`אישרת ✓ ${p.author_name} יודע שראית`); }
     catch (e) { ctx.toast(errText(e)); }
     setBusy(false);
+  }
+  async function reply() {
+    if (!text.trim()) return;
+    setBusy(true);
+    try { const r = await api.reply(ctx.shopId, p.id, text.trim()); ctx.apply('replies', r); ctx.notify({ reply: r.id }); setText(''); ctx.toast('התגובה נשלחה ✓'); }
+    catch (e) { ctx.toast(errText(e)); }
+    setBusy(false);
+  }
+  async function delReply(r) {
+    if (!confirm('למחוק את התגובה?')) return;
+    try { await api.deleteReply(ctx.shopId, r.id); ctx.apply('replies', { ...r, deleted_at: new Date().toISOString() }); } catch (e) { ctx.toast(errText(e)); }
   }
   async function del() {
     if (!confirm('למחוק את ההודעה?')) return;
@@ -49,83 +50,79 @@ function PostCard({ p, ctx, fresh }) {
     catch (e) { ctx.toast(errText(e)); }
   }
   return (
-    <div className={'card post k-' + p.kind + (p.status === 'done' ? ' done' : '') + (expired ? ' expired' : '')}>
-      <div className="row" style={{ alignItems: 'flex-start' }}>
-        <div className="grow">
-          <div className="row wrap-row" style={{ gap: 6 }}>
-            <span className={'pk pk-' + p.kind}>{k.e} {k.label}</span>
-            {p.pinned && <span className="small">📌</span>}
-            {fresh && <span className="new-badge">חדש</span>}
-            {p.status === 'done' && <span className="pk pk-done">✓ טופל</span>}
-            {expired && <span className="pk pk-old">פג תוקף</span>}
-          </div>
-          {p.title && <div className="post-title">{p.title}</div>}
+    <div className={'card srow post2' + (p.urgent ? ' urg' : fresh ? ' fresh' : '')}>
+      <div>
+        <div className="row wrap-row" style={{ gap: 6 }}>
+          {p.urgent && <span className="pill p-out">🚨 דחוף</span>}
+          {p.kind !== 'message' && <span className="pill p-gray">{k.e} {k.label}</span>}
+          {p.pinned && <span className="small">📌</span>}
+          {fresh && !p.urgent && <span className="pill p-blue">חדש</span>}
         </div>
+        {p.title && <div className="post-title">{p.title}</div>}
+        {p.body && <RichText text={p.body} ctx={ctx} />}
+        {p.photos?.length > 0 && <div className="photos" style={{ marginTop: 6 }}>{p.photos.map((x) => <a key={x} href={x} target="_blank" rel="noreferrer"><img src={x} alt="" style={{ height: 90 }} /></a>)}</div>}
+        <div className="muted small" style={{ marginTop: 4 }}>{mine ? 'אני' : p.author_name} · {timeAgo(p.created_at)}{p.remind_at ? ` · ⏰ ${fmtDateTime(p.remind_at)}` : ''}</div>
       </div>
-      {p.body && <div style={{ marginTop: 4 }}><RichText text={p.body} ctx={ctx} /></div>}
-      {p.photos?.length > 0 && <div className="photos" style={{ marginTop: 6 }}>{p.photos.map((x) => <a key={x} href={x} target="_blank" rel="noreferrer"><img src={x} alt="" style={{ height: 100 }} /></a>)}</div>}
-      <div className="post-meta">
-        {p.due && <span className={expired ? 'err' : ''} style={{ margin: 0 }}>📅 עד {fmtDate(p.due)}</span>}
-        {p.remind_at && <span>⏰ {fmtDateTime(p.remind_at)}{p.remind_to === 'me' ? ' (רק לי)' : ''}{p.reminded_at ? ' · נשלחה' : ''}</span>}
-        <span>{p.author_name} · {timeAgo(p.created_at)}</span>
-        {p.status === 'done' && p.done_by_name && <span>✓ {p.done_by_name} {timeAgo(p.done_at)}</span>}
-      </div>
-      <div className="row wrap-row" style={{ marginTop: 8 }}>
-        <button className={'btn sm ' + (p.status === 'done' ? '' : 'soft')} disabled={busy} onClick={toggle}>{p.status === 'done' ? '↩ לא טופל' : '✓ טופל'}</button>
-        {canEdit && <button className="btn sm" onClick={() => ctx.open({ t: 'post', post: p })}>✏️ עריכה</button>}
-        {canEdit && <button className="btn sm danger" onClick={del}>🗑️</button>}
+      <SeenLine ctx={ctx} refType="post" row={p} authorId={p.author_id} title={p.title || p.body} />
+      {needAck && <button className="btn ok block" disabled={busy} onClick={ack}>✓ ראיתי — {p.author_name} יידע</button>}
+      {replies.length > 0 && (
+        <div className="replies">
+          {replies.map((r) => (
+            <div key={r.id} className="reply-b">
+              <b>{r.by_id === ctx.me ? 'אני' : r.by_name}:</b> {r.body} <span className="muted small">{timeAgo(r.created_at)}</span>
+              {(r.by_id === ctx.me || ctx.isAdmin) && <button className="x" onClick={() => delReply(r)} aria-label="מחיקה">✕</button>}
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="row">
+        <input className="input sm grow" placeholder="תגובה…" value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') reply(); }} />
+        <button className="btn sm" disabled={busy || !text.trim()} onClick={reply}>שליחה</button>
+        {canEdit && <button className="btn sm" onClick={() => ctx.open({ t: 'post', post: p })} aria-label="עריכה">✏️</button>}
+        {canEdit && <button className="btn sm danger" onClick={del} aria-label="מחיקה">🗑️</button>}
       </div>
     </div>
   );
 }
 
-const FILTERS = [{ k: 'open', label: 'פתוחות' }, { k: 'all', label: 'הכל' }, { k: 'done', label: 'טופלו' }, ...POST_KINDS.map((x) => ({ k: x.k, label: x.e + ' ' + x.label }))];
-
 export default function Board({ ctx }) {
-  const [f, setF] = useState('open');
   const [q, setQ] = useState('');
-  // מה היה "חדש" ברגע הפתיחה — נשאר מסומן עד שסוגרים
-  const [seenAt] = useState(ctx.shop.seen_at);
+  // מה שלא ראיתי ברגע הפתיחה — נשאר מסומן "חדש" עד שסוגרים
+  const [freshIds] = useState(() => new Set(ctx.posts.filter((p) => p.author_id !== ctx.me && !ctx.iSaw('post', p.id)).map((p) => p.id)));
   useEffect(() => {
-    api.seenPosts(ctx.shopId).then(() => ctx.markSeen()).catch(() => {});
-  }, []); // eslint-disable-line
+    // פתיחת המסך = ראיתי (חוץ מהודעה דחופה — שם צריך ללחוץ "ראיתי")
+    ctx.markSeen('post', ctx.posts.filter((p) => !p.deleted_at && !p.urgent), 'author_id');
+    api.seenPosts(ctx.shopId).catch(() => {});
+  }, [ctx.posts.length]); // eslint-disable-line
 
   const list = useMemo(() => {
     const w = q.trim().toLowerCase();
     return ctx.posts.filter((p) => !p.deleted_at)
-      .filter((p) => (f === 'open' ? p.status === 'open' : f === 'done' ? p.status === 'done' : f === 'all' ? true : p.kind === f))
       .filter((p) => !w || `${p.title} ${p.body} ${p.author_name}`.toLowerCase().includes(w))
-      .sort((a, b) => (b.pinned - a.pinned) || new Date(b.created_at) - new Date(a.created_at));
-  }, [ctx.posts, f, q]);
-  const counts = useMemo(() => ({ open: ctx.posts.filter((p) => !p.deleted_at && p.status === 'open').length }), [ctx.posts]);
+      .sort((a, b) => (b.urgent && !ctx.iSaw('post', b.id)) - (a.urgent && !ctx.iSaw('post', a.id)) || (b.pinned - a.pinned) || new Date(b.created_at) - new Date(a.created_at));
+  }, [ctx.posts, q]); // eslint-disable-line
 
-  let lastDay = '';
   return (
     <Sheet onClose={ctx.close}>
       <div className="sheet-head">
-        <h2>📣 הודעות ומשימות</h2>
-        <button className="btn primary sm" onClick={() => ctx.open({ t: 'post' })}>➕ חדשה</button>
+        <h2>הודעות</h2>
+        <button className="btn primary sm" onClick={() => ctx.open({ t: 'post' })}>➕ הודעה חדשה</button>
         <button className="icon-btn" onClick={ctx.close} aria-label="סגירה">✕</button>
       </div>
       <PushToggle ctx={ctx} compact />
-      <div className="search" style={{ marginTop: 8 }}>
-        <span>🔎</span>
-        <input className="input" style={{ height: 42, fontSize: 15 }} placeholder="חיפוש בהודעות" value={q} onChange={(e) => setQ(e.target.value)} />
-      </div>
-      <div className="chips">
-        {FILTERS.map((x) => <button key={x.k} className={'chip' + (f === x.k ? ' on' : '')} onClick={() => setF(x.k)}>{x.label}{x.k === 'open' && counts.open ? <span className="n"> {counts.open}</span> : null}</button>)}
-      </div>
-      {!list.length && (
-        <div className="empty"><div className="e">📭</div>{f === 'open' ? 'אין הודעות פתוחות' : 'אין כאן כלום'}
-          <div style={{ marginTop: 12 }}><button className="btn primary" onClick={() => ctx.open({ t: 'post' })}>➕ הודעה חדשה לכולם</button></div></div>
+      {ctx.posts.length > 4 && (
+        <div className="search" style={{ marginTop: 8 }}>
+          <span>🔎</span>
+          <input className="input" style={{ height: 42, fontSize: 15 }} placeholder="חיפוש בהודעות" value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
       )}
-      {list.map((p) => {
-        const dk = p.pinned ? 'pinned' : dayKey(p.created_at);
-        const head = dk !== lastDay ? <div className="h2" key={'h' + dk}>{p.pinned ? '📌 נעוצות' : dayLabel(p.created_at)}</div> : null;
-        lastDay = dk;
-        const fresh = p.author_id !== ctx.user?.id && seenAt && new Date(p.created_at) > new Date(seenAt);
-        return <div key={p.id}>{head}<PostCard p={p} ctx={ctx} fresh={fresh} /></div>;
-      })}
+      {!list.length && (
+        <div className="empty"><div className="e">📭</div>אין הודעות
+          <div style={{ marginTop: 12 }}><button className="btn primary" onClick={() => ctx.open({ t: 'post' })}>➕ הודעה לכל הצוות</button></div></div>
+      )}
+      <div className="list" style={{ marginTop: 8 }}>
+        {list.map((p) => <PostCard key={p.id} p={p} ctx={ctx} fresh={freshIds.has(p.id)} />)}
+      </div>
     </Sheet>
   );
 }

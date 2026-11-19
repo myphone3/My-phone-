@@ -3,7 +3,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Sheet from '@/components/Sheet';
 import { api, ai, errText } from '@/lib/api';
 import { parseChat, groupMessages, readChatFile } from '@/lib/whatsapp';
-import { resolveSuggested } from '@/lib/tags';
+import { pickSuggested, aiTags } from './editor';
+import { generalCat } from './cat';
 import { typeOf, norm, KINDS } from '@/lib/kb';
 
 const BATCH = 45;
@@ -22,7 +23,7 @@ export default function Importer({ ctx, file }) {
   const [saved, setSaved] = useState(0);
   const stopRef = useRef(false);
   const fileRef = useRef(null);
-  const tagsForAI = useMemo(() => ctx.tags.map((x) => ({ kind: x.kind, name: x.name })), [ctx.tags]);
+  const tagsForAI = useMemo(() => aiTags(ctx), [ctx.tags]); // eslint-disable-line
   const existingTitles = useMemo(() => new Set(ctx.items.map((x) => norm(x.title))), [ctx.items]);
 
   // המשך ייבוא שלא הסתיים
@@ -61,7 +62,9 @@ export default function Importer({ ctx, file }) {
       try {
         const r = await ai({ mode: 'import', shop: ctx.shopId, tags: tagsForAI, messages: batch.map((m) => ({ i: m.i, text: m.text, at: (m.at || '').slice(0, 10) })) });
         const add = r.items.map((s) => {
-          const { ids, fresh } = resolveSuggested(ctx.tags, s);
+          const { cat, co } = pickSuggested(ctx, s);
+          const ids = [cat?.id || generalCat(ctx)?.id, co?.id].filter(Boolean);
+          const fresh = [];
           const dup = existingTitles.has(norm(s.title));
           return { key: crypto.randomUUID(), type: s.type, title: s.title, body: s.body, fields: s.fields, tag_ids: ids, fresh, photos: [], pinned: false, on: !dup, dup, src: s.src };
         });

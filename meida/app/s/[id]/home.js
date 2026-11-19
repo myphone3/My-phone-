@@ -1,194 +1,157 @@
 'use client';
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { TYPES, KINDS, typeOf, queryWords, score, imeiInfo, norm, copyText, timeAgo } from '@/lib/kb';
-import { getList } from '@/lib/cache';
-import ItemRow, { Gallery } from '@/components/ItemRow';
+import { queryWords, score, imeiInfo, norm, copyText, untilLabel, today, ils, stockSt, noteKind, NOTE_ST } from '@/lib/kb';
+import ItemRow from '@/components/ItemRow';
+import CoLogo from '@/components/CoLogo';
 import { api } from '@/lib/api';
-import { kindOf, isUnread } from './board';
-import { needsAnswer, waitingOf, ils } from './asks';
+import { itemsInCat } from './cat';
 
-const TABS = [{ k: 'all', label: 'ראשי' }, ...KINDS.map((x) => ({ k: x.k, label: x.label })), { k: 'type', label: 'סוגים' }];
+// הודעה דחופה שעוד לא אישרתי — פס אדום עד שלוחצים "ראיתי"
+export function UrgentBanner({ ctx }) {
+  const p = ctx.urgentWaiting[0];
+  const [busy, setBusy] = useState(false);
+  if (!p) return null;
+  async function ack() {
+    setBusy(true);
+    try {
+      await api.markSeen(ctx.shopId, 'post', [p.id]);
+      await ctx.refresh();
+      ctx.notify({ ack: p.id });
+      ctx.toast(`אישרת ✓ ${p.author_name} יודע שראית`);
+    } catch { ctx.toast('אין חיבור — נסה שוב'); }
+    setBusy(false);
+  }
+  return (
+    <div className="urgent">
+      <span className="e">🚨</span>
+      <div className="grow" onClick={() => ctx.open({ t: 'board' })}>
+        <b>דחוף מ{p.author_name}{ctx.urgentWaiting.length > 1 ? ` (+${ctx.urgentWaiting.length - 1})` : ''}</b>
+        <div className="s">{p.title || p.body}</div>
+      </div>
+      <button className="btn" disabled={busy} onClick={ack}>✓ ראיתי</button>
+    </div>
+  );
+}
+
+function DealsStrip({ ctx }) {
+  const list = ctx.deals.filter((d) => !d.deleted_at && (!d.until || d.until >= today())).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  const [i, setI] = useState(0);
+  const ref = useRef(null);
+  if (!list.length) return <button className="btn dashed block" style={{ marginBottom: 10 }} onClick={() => ctx.open({ t: 'deals' })}>⭐ הוספת מבצע</button>;
+  const onScroll = (e) => { const el = e.currentTarget; setI(Math.round(Math.abs(el.scrollLeft) / (el.clientWidth + 8))); };
+  return (
+    <>
+      <div className="deals" ref={ref} onScroll={onScroll}>
+        {list.map((d, n) => (
+          <div key={d.id} className="deal">
+            <span className="e">⭐</span>
+            <div className="grow" style={{ minWidth: 0 }}>
+              <div className="lbl">מבצע{list.length > 1 ? ` ${n + 1} מתוך ${list.length}` : ''} · {untilLabel(d.until)}</div>
+              <b>{d.title}</b>
+              {d.details && <div className="s">{d.details}</div>}
+              <div className="by">עודכן ע״י {d.by_name}</div>
+            </div>
+            <button className="ed" onClick={() => ctx.open({ t: 'deals' })}>עריכה</button>
+          </div>
+        ))}
+      </div>
+      {list.length > 1 ? <div className="dots">{list.map((d, n) => <span key={d.id} className={n === i ? 'on' : ''} />)}</div> : <div style={{ height: 10 }} />}
+    </>
+  );
+}
 
 export default function HomeView({ ctx }) {
-  const { shop, tags, tagsById, items, index, open, openItem, isAdmin } = ctx;
+  const { items, index } = ctx;
   const [q, setQ] = useState('');
-  const [tab, setTab] = useState(() => { try { return sessionStorage.getItem('kb_tab') || 'all'; } catch { return 'all'; } });
-  const [sel, setSel] = useState([]); // תגיות נבחרות (כולן חייבות להתאים)
-  const [type, setType] = useState('');
-  const [limit, setLimit] = useState(60);
-  const [photosOnly, setPhotosOnly] = useState(false);
-  const [view, setView] = useState(() => { try { return localStorage.getItem('kb_view') || 'list'; } catch { return 'list'; } });
-  const setViewKeep = (v) => { setView(v); try { localStorage.setItem('kb_view', v); } catch {} };
+  const [limit, setLimit] = useState(40);
   const missed = useRef(new Set());
   const inputRef = useRef(null);
-  useEffect(() => { try { sessionStorage.setItem('kb_tab', tab); } catch {} }, [tab]);
-  useEffect(() => setLimit(60), [q, sel, type, photosOnly]);
+  useEffect(() => setLimit(40), [q]);
+  const qq = q.trim();
+  const imei = imeiInfo(qq);
+  const words = queryWords(qq);
 
-  const live = useMemo(() => tags.filter((t) => !t.deleted_at), [tags]);
-  const counts = useMemo(() => {
-    const c = {};
-    for (const it of items) for (const t of it.tag_ids || []) c[t] = (c[t] || 0) + 1;
-    return c;
-  }, [items]);
-  const typeCounts = useMemo(() => { const c = {}; for (const it of items) c[it.type] = (c[it.type] || 0) + 1; return c; }, [items]);
-
-  const filtering = !!(q.trim() || sel.length || type || photosOnly);
-  const imei = imeiInfo(q);
-
-  const results = useMemo(() => {
-    if (!filtering) return [];
-    const words = queryWords(q);
-    const numQ = q.replace(/\D/g, '');
-    const out = [];
+  const res = useMemo(() => {
+    if (!qq) return null;
+    const w = norm(qq);
+    const digits = qq.replace(/\D/g, '');
+    const numQ = digits;
+    const info = [];
     for (const it of items) {
-      if (type && it.type !== type) continue;
-      if (photosOnly && !it.photos?.length) continue;
-      if (sel.length && !sel.every((t) => it.tag_ids?.includes(t))) continue;
-      let s = 1;
-      if (words.length) {
-        // חיפוש מילה שהיא שם של תגית — גם לפי התגית
-        s = score(index.get(it.id), words, numQ);
-        if (!s) continue;
-      }
-      out.push([s + (it.pinned ? 0.5 : 0), it]);
+      const s = score(index.get(it.id), words, numQ);
+      if (s) info.push([s + (it.pinned ? 0.5 : 0), it]);
     }
-    out.sort((a, b) => b[0] - a[0] || new Date(b[1].updated_at) - new Date(a[1].updated_at));
-    return out.map((x) => x[1]);
-  }, [filtering, q, sel, type, photosOnly, items, index]);
+    info.sort((a, b) => b[0] - a[0] || new Date(b[1].updated_at) - new Date(a[1].updated_at));
+    const products = ctx.products.filter((p) => (digits.length >= 6 && p.barcode && p.barcode.includes(digits)) || (w.length >= 2 && norm(p.name).includes(w))).slice(0, 8);
+    return {
+      info: info.map((x) => x[1]),
+      products,
+      cats: ctx.categories.filter((c) => norm(c.name).includes(w)),
+      cos: ctx.companies.filter((c) => norm(c.name).includes(w)),
+      stock: ctx.stock.filter((x) => x.status !== 'arrived' && norm(x.name).includes(w)).slice(0, 6),
+      notes: ctx.notesOpen.filter((x) => norm(`${x.title} ${x.customer} ${x.phone}`).includes(w)).slice(0, 6),
+    };
+  }, [qq, items, index, ctx.products, ctx.categories, ctx.companies, ctx.stock, ctx.notesOpen]); // eslint-disable-line
+  const none = res && !res.info.length && !res.products.length && !res.cats.length && !res.cos.length && !res.stock.length && !res.notes.length && !imei;
 
-  // חיפוש שלא מצא כלום — נרשם ל"חסר במאגר" (אחרי שהפסיקו להקליד)
+  // חיפוש שלא מצא כלום — נרשם ל"חיפושים שלא נמצאו" (אחרי שהפסיקו להקליד)
   useEffect(() => {
-    const qq = q.trim();
-    if (qq.length < 3 || results.length || imeiInfo(qq)) return;
+    if (qq.length < 3 || !none) return;
     const t = setTimeout(() => { if (!missed.current.has(qq)) { missed.current.add(qq); api.miss(ctx.shopId, qq).catch(() => {}); } }, 2500);
     return () => clearTimeout(t);
-  }, [q, results.length]); // eslint-disable-line
+  }, [qq, none]); // eslint-disable-line
 
-  // תגיות שמופיעות בתוצאות — לצמצום נוסף
-  const related = useMemo(() => {
-    if (!filtering) return [];
-    const c = {};
-    for (const it of results) for (const t of it.tag_ids || []) if (!sel.includes(t)) c[t] = (c[t] || 0) + 1;
-    return Object.entries(c).filter(([t]) => tagsById[t]).sort((a, b) => b[1] - a[1]).slice(0, 14).map(([t, n]) => ({ t: tagsById[t], n }));
-  }, [results, sel, filtering, tagsById]);
+  const coName = (id) => ctx.tagsById[id]?.name;
+  const catCount = (c) => itemsInCat(ctx, c).length;
 
-  // תגיות שהשם שלהן מתאים למה שמקלידים
-  const tagHits = useMemo(() => {
-    const w = norm(q);
-    if (w.length < 2) return [];
-    return live.filter((t) => !sel.includes(t.id) && norm(t.name).includes(w)).slice(0, 6);
-  }, [q, live, sel]);
-
-  const pinned = useMemo(() => items.filter((x) => x.pinned).sort((a, b) => a.title.localeCompare(b.title, 'he')), [items]);
-  const recentIds = getList('recent_' + ctx.shopId);
-  const recentOpened = recentIds.map((id) => items.find((x) => x.id === id)).filter(Boolean).slice(0, 5);
-  const latest = useMemo(() => [...items].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)).slice(0, 8), [items]);
-
-  const pick = (t) => { setSel((s) => (s.includes(t.id) ? s.filter((x) => x !== t.id) : [...s, t.id])); setQ(''); window.scrollTo(0, 0); };
-  const clearAll = () => { setQ(''); setSel([]); setType(''); setPhotosOnly(false); };
-
-  const tile = (t) => (
-    <button key={t.id} className="card tile" onClick={() => pick(t)}>
-      <span className="e">{t.emoji || KINDS.find((k) => k.k === t.kind)?.e}</span>
-      <b>{t.name}</b>
-      <span>{counts[t.id] || 0} פריטים</span>
-    </button>
-  );
-
-  function browse() {
-    if (tab === 'type') return (
-      <div className="grid" style={{ marginTop: 12 }}>
-        {TYPES.map((t) => (
-          <button key={t.k} className="card tile" onClick={() => { setType(t.k); window.scrollTo(0, 0); }}>
-            <span className="e">{t.e}</span><b>{t.label}</b><span>{typeCounts[t.k] || 0} פריטים</span>
-          </button>
-        ))}
-        <button className="card tile" onClick={() => { setPhotosOnly(true); setViewKeep('gallery'); window.scrollTo(0, 0); }}>
-          <span className="e">🖼️</span><b>עם תמונות</b><span>{items.filter((x) => x.photos?.length).length} פריטים</span>
-        </button>
-      </div>
-    );
-    if (tab === 'device') {
-      const devs = live.filter((t) => t.kind === 'device');
-      if (!devs.length) return <div className="empty"><div className="e">📱</div>עוד אין מכשירים. הם נוספים לבד כשמוסיפים מידע על דגם מסוים.</div>;
-      const groups = {};
-      for (const d of devs) (groups[d.parent_id || ''] ||= []).push(d);
-      return Object.entries(groups).sort(([a], [b]) => (a ? 0 : 1) - (b ? 0 : 1)).map(([p, list]) => (
-        <div key={p}>
-          <div className="h2">{p ? tagsById[p]?.name : 'אחר'}</div>
-          <div className="grid">{list.sort((a, b) => (counts[b.id] || 0) - (counts[a.id] || 0)).map(tile)}</div>
-        </div>
-      ));
-    }
-    if (tab === 'company' || tab === 'topic') {
-      const list = live.filter((t) => t.kind === tab).sort((a, b) => (counts[b.id] || 0) - (counts[a.id] || 0) || a.sort - b.sort);
-      return <div className="grid" style={{ marginTop: 12 }}>{list.map(tile)}</div>;
-    }
-    // ראשי
-    const topCompanies = live.filter((t) => t.kind === 'company').sort((a, b) => (counts[b.id] || 0) - (counts[a.id] || 0)).slice(0, 10);
-    const topTopics = live.filter((t) => t.kind === 'topic').sort((a, b) => (counts[b.id] || 0) - (counts[a.id] || 0)).slice(0, 12);
-    return (
-      <>
-        {!items.length && (
-          <div className="card pad" style={{ marginTop: 14 }}>
-            <b>👋 ברוך הבא! איך מתחילים?</b>
-            <div className="muted" style={{ margin: '6px 0 12px' }}>אפשר להוסיף מידע אחד-אחד, או להעביר בבת אחת את כל מה שרשמת בצ'אט בוואטסאפ — והמערכת תסדר הכל לבד לפי חברות, מכשירים ונושאים.</div>
-            <div className="row wrap-row">
-              <button className="btn primary" onClick={() => open({ t: 'import' })}>💬 ייבוא מוואטסאפ</button>
-              <button className="btn" onClick={() => open({ t: 'edit' })}>➕ הוספת מידע</button>
-              {isAdmin && <button className="btn" onClick={() => open({ t: 'team' })}>👥 הזמנת עובדים</button>}
-            </div>
-          </div>
-        )}
-        <Alerts ctx={ctx} />
-        <BoardBanner ctx={ctx} />
-        {pinned.length > 0 && <><div className="h2">📌 נעוצים</div>{pinned.map((it) => <ItemRow key={it.id} it={it} ctx={ctx} />)}</>}
-        {recentOpened.length > 0 && <><div className="h2">🕘 פתחתי לאחרונה</div>{recentOpened.map((it) => <ItemRow key={it.id} it={it} ctx={ctx} />)}</>}
-        <div className="h2">🏢 חברות</div>
-        <div className="chips">{topCompanies.map((t) => <button key={t.id} className="chip k-company" onClick={() => pick(t)}>{t.name} <span className="n">{counts[t.id] || ''}</span></button>)}
-          <button className="chip add" onClick={() => setTab('company')}>הכל ›</button></div>
-        <div className="h2">🗂️ נושאים</div>
-        <div className="chips">{topTopics.map((t) => <button key={t.id} className="chip k-topic" onClick={() => pick(t)}>{t.emoji} {t.name} <span className="n">{counts[t.id] || ''}</span></button>)}
-          <button className="chip add" onClick={() => setTab('topic')}>הכל ›</button></div>
-        {latest.length > 0 && <><div className="h2">✨ עודכן לאחרונה</div>{latest.map((it) => <ItemRow key={it.id} it={it} ctx={ctx} showWho />)}</>}
-      </>
-    );
-  }
-
-  const words = queryWords(q);
-  const waiting = ctx.asks.filter((a) => needsAnswer(a, ctx)).length;
   return (
-    <div className="wrap">
-      <div className="top">
-        <div className="row">
-          {shop.logo_url ? <img className="shop-logo" src={shop.logo_url} alt="" onClick={clearAll} /> : null}
-          <h1 className="title grow" onClick={clearAll}>{shop.logo_url ? '' : '🗂️ '}{shop.name}</h1>
-          <button className="icon-btn" aria-label="שאל" onClick={() => open({ t: 'ask' })}>✨</button>
-          <button className="icon-btn" aria-label="הודעות" onClick={() => open({ t: 'board' })}>📣{ctx.unread > 0 && <span className="dot">{ctx.unread}</span>}</button>
-          {isAdmin && shop.pending > 0 && <button className="icon-btn" aria-label="עובדים" onClick={() => open({ t: 'team' })}>👥<span className="dot">{shop.pending}</span></button>}
-          <button className="icon-btn" aria-label="עוד" onClick={() => open({ t: 'more' })}>☰</button>
-        </div>
-        <div className="search" style={{ marginTop: 10 }}>
-          <span>🔎</span>
-          <input ref={inputRef} className="input" type="search" enterKeyHint="search" placeholder="חיפוש: קוד, IMEI, חברה, נקודת שירות…" value={q} onChange={(e) => setQ(e.target.value)} />
-          {q ? <button onClick={() => { setQ(''); inputRef.current?.focus(); }} aria-label="נקה">✕</button>
-            : <button onClick={() => open({ t: 'scan', onPick: (n) => setQ(n) })} aria-label="סריקת IMEI" style={{ fontSize: 19 }}>📷</button>}
-        </div>
-        {filtering ? (
-          <div className="chips">
-            {type && <button className="chip on" onClick={() => setType('')}>{typeOf(type).e} {typeOf(type).label} ✕</button>}
-            {sel.map((id) => tagsById[id] && <button key={id} className={'chip on k-' + tagsById[id].kind} onClick={() => pick(tagsById[id])}>{tagsById[id].name} ✕</button>)}
-            {tagHits.map((t) => <button key={t.id} className={'chip k-' + t.kind} onClick={() => pick(t)}>+ {t.name}</button>)}
-            {photosOnly && <button className="chip on" onClick={() => setPhotosOnly(false)}>🖼️ עם תמונות ✕</button>}
-            {(sel.length > 0 || type || photosOnly) && <button className="chip add" onClick={clearAll}>נקה הכל</button>}
-          </div>
-        ) : (
-          <div className="tabs">{TABS.map((t) => <button key={t.k} className={'tab' + (tab === t.k ? ' on' : '')} onClick={() => setTab(t.k)}>{t.label}</button>)}</div>
-        )}
+    <>
+      <div className="search">
+        <span>🔎</span>
+        <input ref={inputRef} className="input" type="search" enterKeyHint="search" placeholder="חיפוש או סריקת ברקוד…" value={q} onChange={(e) => setQ(e.target.value)} />
+        {q ? <button onClick={() => { setQ(''); inputRef.current?.focus(); }} aria-label="נקה">✕</button>
+          : <button className="scan-btn" onClick={() => ctx.open({ t: 'barcode', onPick: (n) => setQ(n) })} aria-label="סריקת ברקוד">📷</button>}
       </div>
 
-      {filtering ? (
+      {!res ? (
         <>
+          <UrgentBanner ctx={ctx} />
+          <div style={{ height: 10 }} />
+          <DealsStrip ctx={ctx} />
+          <div className="actions">
+            <button className="act stock" onClick={() => ctx.open({ t: 'report' })}><span className="e">📦</span><span><b>חסר במלאי</b><span className="s">דיווח מהיר</span></span>{ctx.stockOpen.length > 0 && <span className="dot">{ctx.stockOpen.length}</span>}</button>
+            <button className="act" onClick={() => ctx.open({ t: 'ask-new' })}><span className="e">💬</span><span><b>שאלה לצוות</b><span className="s">מחיר, יש לנו?, כללי</span></span>{ctx.asksWaiting.length > 0 && <span className="dot amber">{ctx.asksWaiting.length}</span>}</button>
+            <button className="act" onClick={() => ctx.open({ t: 'note' })}><span className="e">📌</span><span><b>פתק פתוח</b><span className="s">שלא נשכח</span></span>{ctx.notesOpen.length > 0 && <span className="dot violet">{ctx.notesOpen.length}</span>}</button>
+            <button className="act" onClick={() => ctx.open({ t: 'edit' })}><span className="e">➕</span><span><b>הוספת מידע</b><span className="s">לכל קטגוריה</span></span></button>
+          </div>
+          <div className="h2">🗂️ קטגוריות<button className="more" onClick={() => ctx.open({ t: 'settings', view: 'category' })}>עריכה</button></div>
+          {ctx.categories.length ? (
+            <div className="cats">
+              {ctx.categories.map((c) => {
+                const n = catCount(c);
+                return (
+                  <button key={c.id} className="cat" onClick={() => ctx.open({ t: 'cat', id: c.id })}>
+                    <span className="e">{c.emoji || '🗂️'}</span>
+                    <span className="g"><b>{c.name}</b><span className="n">{n ? (n === 1 ? 'פריט אחד' : n + ' פריטים') : 'ריק'}</span></span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : <div className="empty">עוד אין קטגוריות. <button className="btn sm" onClick={() => ctx.open({ t: 'settings', view: 'category' })}>הוספה</button></div>}
+          {!items.length && (
+            <div className="card pad" style={{ marginTop: 14 }}>
+              <b>👋 איך מתחילים?</b>
+              <div className="muted small" style={{ margin: '6px 0 10px' }}>מוסיפים מידע אחד-אחד, או מעבירים בבת אחת את מה שרשמת בצ'אט בוואטסאפ.</div>
+              <div className="row wrap-row">
+                <button className="btn primary sm" onClick={() => ctx.open({ t: 'edit' })}>➕ הוספת מידע</button>
+                <button className="btn sm" onClick={() => ctx.open({ t: 'import' })}>💬 ייבוא מוואטסאפ</button>
+                {ctx.isAdmin && <button className="btn sm" onClick={() => ctx.open({ t: 'team' })}>👥 הזמנת עובדים</button>}
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <div style={{ marginTop: 8 }}>
           {imei && (
             <div className={'notice ' + (imei.ok ? 'ok-box' : 'bad-box')}>
               <div className="row">
@@ -200,106 +163,60 @@ export default function HomeView({ ctx }) {
               </div>
               <div className="row wrap-row" style={{ marginTop: 8 }}>
                 <a className="btn sm" href={'https://www.imei.info/?imei=' + imei.imei} target="_blank" rel="noreferrer">בדיקת דגם ↗</a>
-                <button className="btn sm" onClick={() => open({ t: 'edit', draft: { type: 'imei', fields: { imei: imei.imei } } })}>➕ שמירה במאגר</button>
+                <button className="btn sm" onClick={() => ctx.open({ t: 'edit', draft: { type: 'imei', fields: { imei: imei.imei } } })}>➕ שמירה במאגר</button>
               </div>
             </div>
           )}
-          {related.length > 0 && (
-            <div className="chips" style={{ paddingTop: 0 }}>
-              <span className="muted small" style={{ alignSelf: 'center', flex: 'none' }}>צמצום:</span>
-              {related.map(({ t, n }) => <button key={t.id} className={'chip k-' + t.kind} onClick={() => pick(t)}>{t.name} <span className="n">{n}</span></button>)}
-            </div>
-          )}
-          {results.length > 0 && (
-            <div className="row" style={{ margin: '8px 2px' }}>
-              <div className="muted small grow">{results.length} תוצאות</div>
-              <button className={'view-btn' + (view === 'list' ? ' on' : '')} onClick={() => setViewKeep('list')}>☰ רשימה</button>
-              <button className={'view-btn' + (view === 'gallery' ? ' on' : '')} onClick={() => setViewKeep('gallery')}>🖼️ תמונות</button>
-            </div>
-          )}
-          {view === 'gallery' ? <Gallery items={results.slice(0, limit)} ctx={ctx} />
-            : results.slice(0, limit).map((it) => <ItemRow key={it.id} it={it} ctx={ctx} words={words} />)}
-          {results.length > limit && <button className="btn block" onClick={() => setLimit((l) => l + 100)}>עוד {results.length - limit}…</button>}
-          {!results.length && (
+          {res.products.length > 0 && <>
+            <div className="h2">🏷️ מוצרים</div>
+            <div className="list">{res.products.map((p) => {
+              const s = ctx.stock.find((x) => x.status !== 'arrived' && norm(x.name) === norm(p.name));
+              return (
+                <div key={p.id} className="card srow">
+                  <div className="top2"><span className="e">🏷️</span>
+                    <div className="grow"><b>{p.name}</b><div className="muted small">{[coName(p.company_id), p.barcode].filter(Boolean).join(' · ')}</div></div>
+                    {p.price !== null && p.price !== undefined && <b className="price">{ils(p.price)}</b>}
+                  </div>
+                  <div className="row wrap-row">
+                    {s ? <span className={'pill ' + stockSt(s.status, ctx.shop).cls}>{stockSt(s.status, ctx.shop).label}</span> : null}
+                    <span className="grow" />
+                    <button className="btn sm" onClick={() => ctx.open({ t: 'report', name: p.name, company_id: p.company_id })}>📦 דיווח חסר</button>
+                    <button className="btn sm" onClick={() => ctx.open({ t: 'settings', view: 'products', edit: p })}>✏️</button>
+                  </div>
+                </div>
+              );
+            })}</div>
+          </>}
+          {res.cats.length > 0 && <><div className="h2">קטגוריות</div><div className="cats">{res.cats.map((c) => (
+            <button key={c.id} className="cat" onClick={() => ctx.open({ t: 'cat', id: c.id })}><span className="e">{c.emoji || '🗂️'}</span><span className="g"><b>{c.name}</b><span className="n">{catCount(c) === 1 ? 'פריט אחד' : catCount(c) + ' פריטים'}</span></span></button>
+          ))}</div></>}
+          {res.cos.length > 0 && <><div className="h2">חברות</div><div className="cos">{res.cos.map((c) => (
+            <button key={c.id} className="co" onClick={() => ctx.open({ t: 'co', id: c.id })}><CoLogo co={c} /><b>{c.name}</b></button>
+          ))}</div></>}
+          {res.info.length > 0 && <><div className="h2">📝 מידע ({res.info.length})</div>{res.info.slice(0, limit).map((it) => <ItemRow key={it.id} it={it} ctx={ctx} words={words} />)}</>}
+          {res.info.length > limit && <button className="btn block" onClick={() => setLimit((l) => l + 100)}>עוד {res.info.length - limit}…</button>}
+          {res.notes.length > 0 && <><div className="h2">📌 פתוחים</div><div className="list">{res.notes.map((x) => (
+            <button key={x.id} className="card it" onClick={() => ctx.setTab('notes')}><div className="ic">{noteKind(x.kind).e}</div><div className="grow"><div className="t">{x.title}</div><div className="s">{x.author_name}</div></div><span className={'pill ' + NOTE_ST[x.status].cls}>{NOTE_ST[x.status].label}</span></button>
+          ))}</div></>}
+          {res.stock.length > 0 && <><div className="h2">📦 מלאי</div><div className="list">{res.stock.map((x) => (
+            <button key={x.id} className="card it" onClick={() => ctx.setTab('stock')}><div className="ic">📦</div><div className="grow"><div className="t">{x.name}</div><div className="s">{coName(x.company_id)}</div></div><span className={'pill ' + stockSt(x.status, ctx.shop).cls}>{stockSt(x.status, ctx.shop).label}</span></button>
+          ))}</div></>}
+          {none && (
             <div className="empty">
               <div className="e">🤷</div>
-              <div>לא נמצא{q ? ` "${q}"` : ''}</div>
+              <div>לא נמצא "{qq}"</div>
+              <div className="muted small">החיפוש נרשם, כדי שיוסיפו את המידע</div>
               <div className="row wrap-row" style={{ justifyContent: 'center', marginTop: 14 }}>
-                {q && <button className="btn soft" onClick={() => open({ t: 'ask', q })}>✨ לשאול את המאגר</button>}
-                <button className="btn" onClick={() => open({ t: 'edit', draft: { title: q, tag_ids: sel, type: type || undefined } })}>➕ להוסיף את זה</button>
+                <button className="btn primary" onClick={() => ctx.open({ t: 'ask-new', kind: 'general', text: qq })}>💬 לשאול את הצוות</button>
+                <button className="btn" onClick={() => ctx.open({ t: 'edit', draft: { title: qq } })}>➕ להוסיף כמידע</button>
+                <button className="btn" onClick={() => ctx.open({ t: 'report', name: qq })}>📦 לדווח שחסר</button>
+                {/^\d{8,14}$/.test(qq) && <button className="btn" onClick={() => ctx.open({ t: 'settings', view: 'products', edit: { barcode: qq } })}>🏷️ מוצר חדש עם הברקוד</button>}
+                <button className="btn soft" onClick={() => ctx.open({ t: 'ask', q: qq })}>✨ לשאול את המאגר</button>
               </div>
             </div>
           )}
-        </>
-      ) : browse()}
-
-      <div className="bottom-bar">
-        <button className="fab alt" onClick={() => open({ t: 'asks' })}>💰 בירור מחיר{waiting > 0 && <span className="dot">{waiting}</span>}</button>
-        <button className="fab" onClick={() => open({ t: 'edit', draft: { tag_ids: sel, type: type || undefined } })}>➕ הוספת מידע</button>
-      </div>
-    </div>
-  );
-}
-
-// הודעה קופצת: יש הודעות חדשות מהעובדים
-function BoardBanner({ ctx }) {
-  const fresh = ctx.posts.filter((p) => isUnread(p, ctx)).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  const open = ctx.posts.filter((p) => !p.deleted_at && p.status === 'open');
-  if (fresh.length) {
-    const p = fresh[0];
-    return (
-      <button className="card board-banner" onClick={() => ctx.open({ t: 'board' })}>
-        <span className="e">📣</span>
-        <span className="grow">
-          <b>{fresh.length === 1 ? 'הודעה חדשה' : `${fresh.length} הודעות חדשות`}</b>
-          <div className="small" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{kindOf(p.kind).e} {p.author_name}: {p.title || p.body}</div>
-        </span>
-        <span className="btn sm primary">פתיחה</span>
-      </button>
-    );
-  }
-  if (!open.length) return null;
-  return (
-    <button className="card it" style={{ marginTop: 10, alignItems: 'center' }} onClick={() => ctx.open({ t: 'board' })}>
-      <div className="ic">📣</div>
-      <div className="grow"><div className="t">{open.length} הודעות ומשימות פתוחות</div>
-        <div className="s">{open.slice(0, 2).map((p) => kindOf(p.kind).e + ' ' + (p.title || p.body)).join(' · ')}</div></div>
-    </button>
-  );
-}
-
-// 🔔 התראות אחרונות: מי שואל מחיר (עד שמישהו עונה), ותשובות שקיבלתי ב-24 השעות האחרונות
-function Alerts({ ctx }) {
-  const me = ctx.user?.id;
-  const day = Date.now() - 86400000;
-  const rows = [];
-  for (const a of ctx.asks) {
-    if (a.deleted_at) continue;
-    if (waitingOf(a)) {
-      rows.push({ k: 'w' + a.id, at: a.created_at, a, mine: a.asked_by === me,
-        text: a.asked_by === me ? `שאלת מחיר: ${a.product || 'מוצר'} — מחכה לתשובה` : `${a.asked_by_name} שואל מחיר: ${a.product || 'מה המחיר?'}` });
-    } else if (a.asked_by === me && (a.answers || []).length) {
-      const x = a.answers[a.answers.length - 1];
-      if (new Date(x.created_at) > day) rows.push({ k: 'a' + x.id, at: x.created_at, a, done: true, text: `${x.by_name} ענה ${ils(x.price)} על ${a.product || 'הבירור שלך'}${x.note ? ' — ' + x.note : ''}` });
-    }
-  }
-  if (!rows.length) return null;
-  rows.sort((x, y) => new Date(y.at) - new Date(x.at));
-  return (
-    <>
-      <div className="h2">🔔 התראות אחרונות</div>
-      <div className="card alerts">
-        {rows.slice(0, 6).map((r) => (
-          <button key={r.k} className="alert-row" onClick={() => ctx.open({ t: 'asks' })}>
-            {r.a.photos?.[0] ? <img src={r.a.photos[0]} alt="" /> : <span className="e">{r.done ? '✅' : '💰'}</span>}
-            <span className="grow">
-              <span className="txt">{r.text}</span>
-              <span className="muted small">{timeAgo(r.at)}</span>
-            </span>
-            {!r.done && !r.mine && <span className="btn sm" style={{ background: '#d97706', color: '#fff', borderColor: '#d97706' }}>לענות</span>}
-          </button>
-        ))}
-      </div>
+        </div>
+      )}
     </>
   );
 }

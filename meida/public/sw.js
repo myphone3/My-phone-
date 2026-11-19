@@ -1,6 +1,6 @@
 // התקנה למסך הבית, פתיחה מיידית (גם בלי אינטרנט), ו"שיתוף" מוואטסאפ ישר לאפליקציה.
 // הנתונים עצמם נשמרים בזיכרון של הדף ומתעדכנים מהשרת.
-const APP = 'kb-app-v3';
+const APP = 'kb-app-v4';
 const IMG = 'kb-img-v1';
 const KEEP = [APP, IMG, 'kb-share'];
 
@@ -81,6 +81,8 @@ self.addEventListener('push', (e) => {
   e.waitUntil(self.registration.showNotification(d.title || 'מידע לחנות', {
     body: d.body || '', tag: d.tag, renotify: true, icon: d.icon || '/icon-192.png', badge: '/badge.png',
     dir: 'rtl', lang: 'he', data: { url: d.url || '/' },
+    // הודעה דחופה נשארת על המסך עד שנוגעים בה, ועם רטט חזק
+    requireInteraction: !!d.urgent, vibrate: d.urgent ? [300, 120, 300, 120, 300] : undefined,
   }));
 });
 
