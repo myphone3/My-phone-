@@ -51,7 +51,7 @@ function Employees({ list, by }) {
           </span>
           <span className="bn-sum">
             <b>{by === 'cnt' ? `${num(e.cnt)} יח׳` : ils(e.total)}</b>
-            {e.paid ? <span className="bn-pill">💸 שולם</span> : e.approved ? <span className="bn-pill">✓ אושר</span> : e.cnt ? <span className="bn-pill wait">לא אושר</span> : null}
+            {e.paid ? <span className="bn-pill">💸 שולם</span> : e.approved ? <span className="bn-pill">✓ אושר</span> : e.cnt && e.approved === false ? <span className="bn-pill wait">לא אושר</span> : null}
           </span>
         </button>
         {open === key && (
