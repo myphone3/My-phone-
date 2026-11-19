@@ -7,7 +7,7 @@ import { pickSuggested, aiTags } from './editor';
 import { generalCat } from './cat';
 import { typeOf, norm, KINDS } from '@/lib/kb';
 
-const BATCH = 45;
+const BATCH = 15; // קבוצות קטנות: כל אחת חוזרת מהר יותר, וגם כשה-AI עמוס
 const saveKey = (shop) => 'kb_import_' + shop;
 
 // ייבוא צ'אט וואטסאפ: קוראים את הקובץ, ה-AI הופך הודעות לפריטים מסודרים, העובד עובר ומאשר.
@@ -72,7 +72,7 @@ export default function Importer({ ctx, file }) {
         p += batch.length; setPos(p); fails = 0;
       } catch (e) {
         fails++;
-        if (fails >= 3) { setErr(errText(e) + ' — אפשר להמשיך אחר כך מאותה נקודה'); break; }
+        if (fails >= 4) { setErr('ה-AI עמוס כרגע — מה שכבר סודר נשמר. אפשר ללחוץ להמשיך עוד כמה דקות מאותה נקודה'); break; }
         await new Promise((r) => setTimeout(r, 3000 * fails));
       }
     }

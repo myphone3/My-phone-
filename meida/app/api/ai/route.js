@@ -5,7 +5,7 @@ import { askJSON, hasAI } from '@/lib/ai';
 import { TYPES, ALL_FIELDS } from '@/lib/kb';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 const str = (v, n) => (typeof v === 'string' || typeof v === 'number' ? String(v).trim().slice(0, n) : '');
 

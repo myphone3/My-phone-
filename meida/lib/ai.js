@@ -22,7 +22,7 @@ async function direct(key, prompt, images) {
 
 async function viaStore(prompt, images) {
   const r = await fetch(process.env.STORE_AI_URL, {
-    method: 'POST', signal: AbortSignal.timeout(58000),
+    method: 'POST', signal: AbortSignal.timeout(115000),
     headers: { 'Content-Type': 'application/json', 'x-recipes-secret': process.env.STORE_AI_SECRET },
     body: JSON.stringify({ contents: [{ role: 'user', parts: parts(prompt, images) }], generationConfig: config }),
   });
