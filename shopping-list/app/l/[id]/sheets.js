@@ -3,6 +3,7 @@ import { installSwipeClose } from '@/lib/swipeClose';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { CATEGORIES, CAT_EMOJI } from '@/lib/catalog';
+import ItemPic from '@/components/ItemPic';
 import { parseText, enTermFor, fmtQty, splitSpoken } from '@/lib/parse';
 import { compressImage } from '@/lib/image';
 import { findImages as searchImages } from '@/lib/images';
@@ -136,7 +137,7 @@ export function ItemSheet({ item, me, listId, list, participants, history, onClo
     <Sheet onClose={() => { saveText(); onClose(); }}>
       <div className="row" style={{ marginBottom: 8 }}>
         <div className="thumb" style={{ width: 64, height: 64 }}>
-          {item.photo_url || item.image_url ? <img src={item.photo_url || item.image_url} alt="" referrerPolicy="no-referrer" /> : <span>{item.emoji || CAT_EMOJI[item.category]}</span>}
+          {item.photo_url || item.image_url ? <img src={item.photo_url || item.image_url} alt="" referrerPolicy="no-referrer" /> : <ItemPic name={item.name} emoji={item.emoji || CAT_EMOJI[item.category]} size={52} />}
         </div>
         <input className="input grow" value={name} onChange={(e) => setName(e.target.value)} onBlur={saveText}
           style={{ fontWeight: 800, fontSize: 19 }} />
@@ -354,7 +355,7 @@ export function PasteSheet({ initial, ai, listId, onClose, onAdd }) {
           <div className="card" style={{ padding: '2px 12px' }}>
             {parsed.map((p, k) => (
               <div key={k} className="preview-item">
-                <span style={{ fontSize: 22 }}>{p.emoji}</span>
+                <span style={{ fontSize: 22, display: 'inline-flex' }}><ItemPic name={p.name} emoji={p.emoji} size={28} /></span>
                 <span className="grow"><b>{p.name}</b>{p.note && <span className="muted small"> · {p.note}</span>}</span>
                 {(p.qty !== 1 || p.unit) && <span className="qty">{fmtQty(p.qty)} {p.unit || ''}</span>}
                 <span className="muted small">{aiCats[p.name] && p.category !== 'אחר' && parsedRaw[k]?.category === 'אחר' ? '✨ ' : ''}{p.category}</span>

@@ -56,6 +56,8 @@ textarea.input { height: auto; min-height: 140px; padding: 12px 14px; resize: ve
 .item.found .iname { text-decoration: line-through; }
 .thumb { width: 52px; height: 52px; border-radius: 12px; background: var(--bg); display: grid; place-items: center; font-size: 30px; flex: none; overflow: hidden; }
 .thumb img { width: 100%; height: 100%; object-fit: cover; }
+.pic { display: inline-block; width: 44px; height: 44px; line-height: 0; }
+.pic svg { width: 100%; height: 100%; }
 .iname { font-weight: 700; font-size: 17px; }
 .qty { display: inline-block; min-width: 28px; padding: 1px 8px; border-radius: 8px; background: var(--bg); font-weight: 700; font-size: 14px; margin-inline-start: 6px; }
 .meta { font-size: 13px; color: var(--muted); margin-top: 2px; display: flex; flex-wrap: wrap; gap: 4px 10px; }

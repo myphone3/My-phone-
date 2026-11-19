@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { CAT_EMOJI } from '@/lib/catalog';
+import ItemPic from '@/components/ItemPic';
 import { parseText, fmtQty } from '@/lib/parse';
 import { getMyName, setMyName, rememberList, getPref, setPref, getCachedList, setCachedList, clearCachedList } from '@/lib/local';
 import { catOrderOf, assigneeOf, currentStore, keyOf, shekel, unitPrice } from '@/lib/order';
@@ -501,7 +502,7 @@ function Thumb({ item, onPhoto }) {
   const src = item.photo_url; // ברשימה: רק צילום אמיתי, אחרת ציור
   return (
     <div className="thumb" onClick={(e) => { if (src) { e.stopPropagation(); onPhoto(src); } }}>
-      {src ? <img src={src} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span>{item.emoji || CAT_EMOJI[item.category] || '🛒'}</span>}
+      {src ? <img src={src} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <ItemPic name={item.name} emoji={item.emoji || CAT_EMOJI[item.category] || '🛒'} />}
     </div>
   );
 }
