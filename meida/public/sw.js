@@ -1,6 +1,6 @@
 // התקנה למסך הבית, פתיחה מיידית (גם בלי אינטרנט), ו"שיתוף" מוואטסאפ ישר לאפליקציה.
 // הנתונים עצמם נשמרים בזיכרון של הדף ומתעדכנים מהשרת.
-const APP = 'kb-app-v4';
+const APP = 'kb-app-v5';
 const IMG = 'kb-img-v1';
 const KEEP = [APP, IMG, 'kb-share'];
 
@@ -24,19 +24,24 @@ async function cacheFirst(req, name, fetchReq) {
   return res;
 }
 
-async function staleWhileRevalidate(e) {
+// דף: קודם מהרשת (כדי שהשם, הלוגו והאייקון תמיד יהיו מעודכנים), ואם אין אינטרנט או שזה איטי מדי — מהעותק השמור
+async function networkFirst(e) {
   const url = new URL(e.request.url);
-  const fresh = url.searchParams.has('__fresh');
   url.searchParams.delete('__fresh');
   // אותו דף לכל פרמטר (?add, ?shared…)
   const key = url.origin + url.pathname;
   const cache = await caches.open(APP);
   const net = fetch(e.request).then((res) => { if (res.ok && res.type === 'basic' && !res.redirected) cache.put(key, res.clone()); return res; });
-  if (!fresh) {
+  const slow = new Promise((r) => setTimeout(r, 4000));
+  try {
+    const res = await Promise.race([net, slow]);
+    if (res) return res;
     const hit = await cache.match(key);
     if (hit) { e.waitUntil(net.catch(() => {})); return hit; }
+    return await net;
+  } catch {
+    return (await cache.match(key)) || (await cache.match(url.origin + '/')) || Response.error();
   }
-  try { return await net; } catch { return (await cache.match(key)) || (await cache.match(url.origin + '/')) || Response.error(); }
 }
 
 self.addEventListener('fetch', (e) => {
@@ -53,7 +58,7 @@ self.addEventListener('fetch', (e) => {
         return;
       }
       if (req.mode === 'navigate' && !url.pathname.startsWith('/api') && !url.pathname.startsWith('/auth') && !req.headers.get('RSC')) {
-        e.respondWith(staleWhileRevalidate(e));
+        e.respondWith(networkFirst(e));
         return;
       }
     }
