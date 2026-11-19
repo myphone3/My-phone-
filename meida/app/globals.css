@@ -378,3 +378,28 @@ mark { background: #fde68a; color: inherit; border-radius: 3px; padding: 0 1px; 
 @media (max-width: 380px) { .cos { grid-template-columns: repeat(2, 1fr); } .choices.three { grid-template-columns: 1fr; } }
 .mrow { flex-wrap: wrap; }
 .dom-row { width: 100%; }
+
+/* על מה לקבל התראה */
+.nmode { display: flex; align-items: flex-start; gap: 10px; padding: 10px; border-radius: 12px; border: 1.5px solid var(--line); width: 100%; }
+.nmode.on { border-color: var(--brand); background: var(--brand-soft); }
+.nmode .radio { width: 20px; height: 20px; border-radius: 99px; border: 2px solid var(--muted); flex: none; margin-top: 2px; display: grid; place-items: center; }
+.nmode.on .radio { border-color: var(--brand); }
+.nmode.on .radio::after { content: ""; width: 10px; height: 10px; border-radius: 99px; background: var(--brand); }
+
+/* דוח בונוסים */
+.bn-mon { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; }
+.bn-mon b { font-size: 17px; }
+.bn-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0; }
+.bn-kpi { padding: 10px 6px; text-align: center; }
+.bn-kpi b { display: block; font-size: 19px; font-variant-numeric: tabular-nums; }
+.bn-emp { padding: 10px 12px; margin-bottom: 6px; }
+.bn-emp-h { display: flex; align-items: center; gap: 10px; width: 100%; text-align: start; }
+.bn-sum { text-align: end; font-variant-numeric: tabular-nums; flex: none; }
+.bn-sum b { display: block; font-size: 16px; }
+.bn-pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 99px; background: var(--green-soft); color: var(--green); }
+.bn-pill.wait { background: var(--amber-soft); color: var(--amber); }
+.bn-det { margin-top: 8px; border-top: 1px dashed var(--line); padding-top: 8px; display: grid; gap: 6px; font-size: 14px; }
+.bn-r { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; font-variant-numeric: tabular-nums; align-items: baseline; }
+.bn-r > :nth-child(2) { color: var(--muted); font-size: 13px; }
+.bn-bar { height: 6px; border-radius: 99px; background: var(--brand-soft); margin-top: 4px; overflow: hidden; }
+.bn-bar i { display: block; height: 100%; background: var(--brand); border-radius: 99px; }
