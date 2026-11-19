@@ -1,20 +1,20 @@
 'use client';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Sheet from '@/components/Sheet';
-import { api, errText, uploadPhoto, serverCall } from '@/lib/api';
+import { SeenLine } from '@/components/Seen';
+import { api, errText, uploadPhoto } from '@/lib/api';
 import { shrink } from '@/lib/image';
-import { timeAgo } from '@/lib/kb';
+import { timeAgo, ASK_KINDS, askKind, ils } from '@/lib/kb';
 
-export const ils = (n) => (n === null || n === undefined || n === '' ? '' : `₪${Number(n).toLocaleString('he-IL', { maximumFractionDigits: 2 })}`);
-// בירור שמחכה לי: פתוח, לא שלי, ועוד אין לו תשובה
-// מחכה לתשובה = פתוח ואף אחד עוד לא ענה. ברגע שמישהו עונה — עובר להיסטוריה
+export { ils };
 export const waitingOf = (a) => !a.deleted_at && a.status === 'open' && !(a.answers || []).length;
-export const needsAnswer = (a, ctx) => !a.deleted_at && a.status === 'open' && a.asked_by !== ctx.user?.id && !(a.answers || []).length;
+export const needsAnswer = (a, ctx) => waitingOf(a) && a.asked_by !== ctx.me;
 
 function AnswerForm({ a, ctx }) {
   const [price, setPrice] = useState('');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
+  const isPrice = (a.kind || 'price') === 'price';
   async function send() {
     const p = price.replace(/[^\d.]/g, '');
     if (!p && !note.trim()) return;
@@ -22,7 +22,7 @@ function AnswerForm({ a, ctx }) {
     try {
       const x = await api.answer(ctx.shopId, a.id, p ? Number(p) : null, note.trim());
       ctx.applyAsk({ ...a, status: a.status === 'open' ? 'answered' : a.status, answers: [...(a.answers || []), x] });
-      serverCall('/api/notify', { shop: ctx.shopId, ask: a.id, answer: x.id }).catch(() => {});
+      ctx.notify({ ask: a.id, answer: x.id });
       setPrice(''); setNote(''); ctx.toast('התשובה נשלחה ✓');
     } catch (e) { ctx.toast(errText(e)); }
     setBusy(false);
@@ -30,58 +30,54 @@ function AnswerForm({ a, ctx }) {
   return (
     <div className="answer-form">
       <div className="row">
-        <div className="price-in"><span>₪</span><input className="input" inputMode="decimal" placeholder="סכום" value={price} onChange={(e) => setPrice(e.target.value)} /></div>
-        <input className="input grow" placeholder="הערה (לא חובה): יש במלאי, מחיר לחבר…" value={note} onChange={(e) => setNote(e.target.value)}
+        {isPrice && <div className="price-in"><span>₪</span><input className="input" inputMode="decimal" placeholder="סכום" value={price} onChange={(e) => setPrice(e.target.value)} /></div>}
+        <input className="input grow" placeholder={isPrice ? 'הערה (לא חובה)' : a.kind === 'stock' ? 'יש / אין / איפה…' : 'התשובה…'} value={note} onChange={(e) => setNote(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') send(); }} />
+        <button className="btn primary" disabled={busy || (!price.trim() && !note.trim())} onClick={send}>{busy ? '…' : 'שליחה'}</button>
       </div>
-      <button className="btn primary block" style={{ marginTop: 6 }} disabled={busy || (!price.trim() && !note.trim())} onClick={send}>{busy ? 'שולח…' : 'שליחת מחיר'}</button>
+      {a.kind === 'stock' && (
+        <div className="row" style={{ marginTop: 6 }}>
+          {['יש ✓', 'אין ✗', 'יש במחסן'].map((t) => <button key={t} className="chip" onClick={() => setNote(t)}>{t}</button>)}
+        </div>
+      )}
     </div>
   );
 }
 
 function AskCard({ a, ctx }) {
-  const mine = a.asked_by === ctx.user?.id;
+  const mine = a.asked_by === ctx.me;
   const canEdit = mine || ctx.isAdmin;
-  const [answering, setAnswering] = useState(needsAnswer(a, ctx));
   const [photo, setPhoto] = useState(null);
+  const k = askKind(a.kind);
   async function act(action) {
-    if (action === 'delete' && !confirm('למחוק את הבירור?')) return;
+    if (action === 'delete' && !confirm('למחוק את השאלה?')) return;
     try {
       await api.askSet(ctx.shopId, a.id, action);
       ctx.applyAsk(action === 'delete' ? { ...a, deleted_at: new Date().toISOString() } : { ...a, status: action === 'close' ? 'closed' : 'open' });
     } catch (e) { ctx.toast(errText(e)); }
   }
-  const first = (a.answers || [])[0];
   return (
-    <div className={'card ask' + (a.status === 'closed' ? ' done' : '')}>
-      <div className="row" style={{ alignItems: 'flex-start', gap: 10 }}>
-        {a.photos?.[0] && <img className="ask-ph" src={a.photos[0]} alt="" onClick={() => setPhoto(a.photos[0])} />}
+    <div className={'card srow' + (a.status === 'closed' ? ' done' : '')}>
+      <div className="top2">
+        {a.photos?.[0] ? <img className="ask-ph" src={a.photos[0]} alt="" onClick={() => setPhoto(a.photos[0])} /> : <span className="e">{k.e}</span>}
         <div className="grow">
-          <div className="row wrap-row" style={{ gap: 6 }}>
-            <span className={'pk ' + (a.status === 'open' ? 'pk-stock' : a.status === 'answered' ? 'pk-done' : 'pk-old')}>
-              {a.status === 'open' ? '❓ מחכה למחיר' : a.status === 'answered' ? '✓ נענה' : 'סגור'}
-            </span>
-          </div>
-          <div className="post-title">{a.product || 'מה המחיר?'}</div>
+          <b>{a.product || 'מה המחיר?'}</b>
           {a.note && <div className="small" style={{ whiteSpace: 'pre-wrap' }}>{a.note}</div>}
-          <div className="post-meta"><span>שאל: {mine ? 'אני' : a.asked_by_name} · {new Date(a.created_at).toLocaleString('he-IL', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}</span></div>
+          <div className="muted small">{k.label} · {mine ? 'אני' : a.asked_by_name} · {timeAgo(a.created_at)}</div>
         </div>
+        <span className={'pill ' + (waitingOf(a) ? 'p-low' : a.status === 'closed' ? 'p-gray' : 'p-in')}>{waitingOf(a) ? 'מחכה' : a.status === 'closed' ? 'סגור' : 'נענה'}</span>
       </div>
-      {a.photos?.length > 1 && <div className="photos" style={{ marginTop: 6 }}>{a.photos.slice(1).map((x) => <img key={x} src={x} alt="" style={{ height: 70 }} onClick={() => setPhoto(x)} />)}</div>}
+      <SeenLine ctx={ctx} refType="ask" row={a} authorId={a.asked_by} title={a.product} />
       {(a.answers || []).map((x) => (
-        <div key={x.id} className={'ans' + (x === first ? ' first' : '')}>
-          <div className="ans-price">{x.price !== null && x.price !== undefined ? ils(x.price) : '—'}</div>
-          <div className="grow">
-            {x.note && <div>{x.note}</div>}
-            <div className="muted small">{x.by_id === ctx.user?.id ? 'אני' : x.by_name} · {timeAgo(x.created_at)}{x === first && (a.answers.length > 1) ? ' · ראשון' : ''}</div>
-          </div>
+        <div key={x.id} className="ans-b">
+          {x.price !== null && x.price !== undefined && <b className="price">{ils(x.price)}</b>}
+          <span className="grow">{x.note}</span>
+          <span className="muted small">{x.by_id === ctx.me ? 'אני' : x.by_name} · {timeAgo(x.created_at)}</span>
         </div>
       ))}
-      {a.status !== 'closed' && (answering ? <AnswerForm a={a} ctx={ctx} /> : (
-        <button className="btn sm soft" style={{ marginTop: 8 }} onClick={() => setAnswering(true)}>{(a.answers || []).length ? '+ עוד מחיר / תיקון' : '💰 לענות מחיר'}</button>
-      ))}
+      {a.status !== 'closed' && !mine && <AnswerForm a={a} ctx={ctx} />}
       {canEdit && (
-        <div className="row" style={{ marginTop: 8 }}>
+        <div className="row">
           {a.status !== 'closed' ? <button className="btn sm" onClick={() => act('close')}>✓ סגירה</button> : <button className="btn sm" onClick={() => act('reopen')}>↩ פתיחה מחדש</button>}
           <button className="btn sm danger" onClick={() => act('delete')}>🗑️</button>
         </div>
@@ -91,42 +87,34 @@ function AskCard({ a, ctx }) {
   );
 }
 
-export default function Asks({ ctx }) {
-  const [f, setF] = useState('open');
-  const list = useMemo(() => ctx.asks.filter((a) => !a.deleted_at)
-    .filter((a) => (f === 'open' ? waitingOf(a) : f === 'mine' ? a.asked_by === ctx.user?.id : true))
+export default function AsksTab({ ctx }) {
+  const [f, setF] = useState('all');
+  const list = useMemo(() => ctx.asks.filter((a) => !a.deleted_at && (f === 'all' || (a.kind || 'price') === f))
     .sort((a, b) => needsAnswer(b, ctx) - needsAnswer(a, ctx) || new Date(b.created_at) - new Date(a.created_at)), [ctx.asks, f]); // eslint-disable-line
-  const openN = ctx.asks.filter((a) => !a.deleted_at && waitingOf(a)).length;
+  useEffect(() => { ctx.markSeen('ask', ctx.asks.filter((a) => !a.deleted_at && a.status !== 'closed'), 'asked_by'); }, [ctx.asks.length]); // eslint-disable-line
   return (
-    <Sheet onClose={ctx.close}>
-      <div className="sheet-head">
-        <h2>💰 בירור מחיר</h2>
-        <button className="btn primary sm" onClick={() => ctx.open({ t: 'ask-new' })}>➕ לשאול</button>
-        <button className="icon-btn" onClick={ctx.close} aria-label="סגירה">✕</button>
+    <>
+      <button className="btn primary big block" onClick={() => ctx.open({ t: 'ask-new' })}>➕ שאלה חדשה</button>
+      <div className="seg" style={{ marginTop: 10 }}>
+        <button className={f === 'all' ? 'on' : ''} onClick={() => setF('all')}>הכל</button>
+        {ASK_KINDS.map((k) => <button key={k.k} className={f === k.k ? 'on' : ''} onClick={() => setF(k.k)}>{k.e} {k.label}</button>)}
       </div>
-      <div className="chips" style={{ paddingTop: 0 }}>
-        {[['open', `⏳ מחכים לתשובה${openN ? ' ' + openN : ''}`], ['all', '🕘 היסטוריה'], ['mine', '🙋 שלי']].map(([k, l]) => (
-          <button key={k} className={'chip' + (f === k ? ' on' : '')} onClick={() => setF(k)}>{l}</button>
-        ))}
+      <div className="list" style={{ marginTop: 10 }}>
+        {!list.length && <div className="empty"><div className="e">💬</div>אין שאלות<div className="muted small" style={{ marginTop: 6 }}>שואלים את כל הצוות: כמה זה עולה, יש לנו במלאי, או כל שאלה. כולם מקבלים התראה ומי שיודע עונה.</div></div>}
+        {list.map((a) => <AskCard key={a.id} a={a} ctx={ctx} />)}
       </div>
-      {!list.length && (
-        <div className="empty"><div className="e">💰</div>{f === 'open' ? 'אין בירורים שמחכים לתשובה 👍' : 'אין כאן כלום'}
-          <div className="muted small" style={{ marginTop: 6 }}>מצלמים מוצר ושואלים — כל העובדים מקבלים התראה, ומי שיודע עונה.</div>
-          <div style={{ marginTop: 12 }}><button className="btn primary" onClick={() => ctx.open({ t: 'ask-new' })}>📷 לשאול מחיר</button></div></div>
-      )}
-      {list.map((a) => <AskCard key={a.id} a={a} ctx={ctx} />)}
-    </Sheet>
+    </>
   );
 }
 
-export function AskNew({ ctx }) {
-  const [product, setProduct] = useState('');
+export function AskNew({ ctx, kind: k0, text }) {
+  const [kind, setKind] = useState(k0 || 'price');
+  const [product, setProduct] = useState(text || '');
   const [note, setNote] = useState('');
   const [photos, setPhotos] = useState([]);
   const [busy, setBusy] = useState('');
   const [err, setErr] = useState('');
   const camRef = useRef(null);
-  const galRef = useRef(null);
   async function add(files) {
     setBusy('photo'); setErr('');
     try { const u = []; for (const f of [...files].slice(0, 4)) u.push(await uploadPhoto(await shrink(f))); setPhotos((p) => [...p, ...u]); }
@@ -134,39 +122,37 @@ export function AskNew({ ctx }) {
     setBusy('');
   }
   async function send() {
-    if (!product.trim() && !photos.length) { setErr('צלם את המוצר או כתוב מה זה'); return; }
+    if (!product.trim() && !photos.length) { setErr('כתוב את השאלה או צלם'); return; }
     setBusy('send'); setErr('');
     try {
-      const a = await api.ask(ctx.shopId, { product: product.trim(), note: note.trim(), photos });
+      const a = await api.ask(ctx.shopId, { kind, product: product.trim(), note: note.trim(), photos });
       ctx.applyAsk(a);
-      serverCall('/api/notify', { shop: ctx.shopId, ask: a.id }).catch(() => {});
-      ctx.toast('נשלח לכל העובדים ✓');
+      ctx.notify({ ask: a.id });
+      ctx.toast('נשלח לכל הצוות ✓');
       ctx.close();
+      ctx.setTab('asks');
     } catch (e) { setErr(errText(e)); setBusy(''); }
   }
+  const ph = { price: 'כמה עולה…', stock: 'יש לנו…', general: 'מישהו יודע אם…' }[kind];
   return (
     <Sheet onClose={() => !busy && ctx.close()}>
-      <div className="sheet-head">
-        <h2>💰 מה המחיר?</h2>
-        <button className="btn primary sm" disabled={!!busy} onClick={send}>{busy === 'send' ? 'שולח…' : 'שליחה'}</button>
-        <button className="icon-btn" onClick={ctx.close} aria-label="סגירה">✕</button>
-      </div>
+      <div className="sheet-head"><h2>💬 שאלה לצוות</h2><button className="icon-btn" onClick={ctx.close} aria-label="סגירה">✕</button></div>
+      <label className="lbl" style={{ marginTop: 0 }}>על מה?</label>
+      <div className="choices three">{ASK_KINDS.map((x) => <button key={x.k} className={'choice' + (kind === x.k ? ' on' : '')} onClick={() => setKind(x.k)}>{x.e} {x.label}</button>)}</div>
+      <label className="lbl">השאלה</label>
+      <input className="input" value={product} onChange={(e) => setProduct(e.target.value)} placeholder={ph} autoFocus />
+      <label className="lbl">פרטים (לא חובה)</label>
+      <input className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="למשל: הלקוח מחכה בחנות" />
+      <label className="lbl">צילום (לא חובה)</label>
       <div className="photos">
-        {photos.map((x) => <div className="ph-edit" key={x}><img src={x} alt="" style={{ height: 110 }} /><button onClick={() => setPhotos(photos.filter((y) => y !== x))}>✕</button></div>)}
-        <button className="btn primary" style={{ height: 110, width: 110, flex: 'none', flexDirection: 'column' }} disabled={busy === 'photo'} onClick={() => camRef.current?.click()}>
-          {busy === 'photo' ? <span className="spin sm" /> : <><span style={{ fontSize: 30 }}>📷</span>צילום</>}
-        </button>
-        <button className="btn" style={{ height: 110, width: 80, flex: 'none', flexDirection: 'column' }} disabled={busy === 'photo'} onClick={() => galRef.current?.click()}><span style={{ fontSize: 24 }}>🖼️</span>גלריה</button>
-        <input ref={camRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => { if (e.target.files?.length) add(e.target.files); e.target.value = ''; }} />
-        <input ref={galRef} type="file" accept="image/*" multiple hidden onChange={(e) => { if (e.target.files?.length) add(e.target.files); e.target.value = ''; }} />
+        {photos.map((x) => <div className="ph-edit" key={x}><img src={x} alt="" style={{ height: 80 }} /><button onClick={() => setPhotos(photos.filter((y) => y !== x))}>✕</button></div>)}
+        <button className="btn" style={{ height: 80, width: 80, flex: 'none' }} disabled={busy === 'photo'} onClick={() => camRef.current?.click()}>{busy === 'photo' ? <span className="spin sm" /> : '📷'}</button>
+        <input ref={camRef} type="file" accept="image/*" multiple hidden onChange={(e) => { if (e.target.files?.length) add(e.target.files); e.target.value = ''; }} />
       </div>
-      <label className="lbl">מה המוצר?</label>
-      <input className="input" value={product} onChange={(e) => setProduct(e.target.value)} placeholder="למשל: כיסוי ספר לסמסונג A55" />
-      <label className="lbl">הערה (לא חובה)</label>
-      <textarea className="input" rows={2} style={{ minHeight: 60 }} value={note} onChange={(e) => setNote(e.target.value)} placeholder="למשל: הלקוח מחכה בחנות" />
       {err && <div className="err">{err}</div>}
-      <button className="btn primary block" style={{ marginTop: 14 }} disabled={!!busy} onClick={send}>{busy === 'send' ? 'שולח…' : '📣 שליחה לכל העובדים'}</button>
-      <div className="muted small center" style={{ marginTop: 8 }}>כל העובדים יקבלו התראה. כשמישהו עונה — תקבל התראה עם המחיר.</div>
+      <button className="btn primary block" style={{ marginTop: 14 }} disabled={!!busy} onClick={send}>{busy === 'send' ? 'שולח…' : 'שליחה לכל הצוות'}</button>
+      <div className="muted small center" style={{ marginTop: 6 }}>כולם מקבלים התראה. כשמישהו עונה — תקבל התראה.</div>
     </Sheet>
   );
 }
+

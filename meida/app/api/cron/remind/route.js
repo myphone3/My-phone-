@@ -15,8 +15,8 @@ async function run(req) {
   const dead = [];
   for (const p of data || []) {
     const d = await sendAll(p.targets, {
-      title: `⏰ תזכורת: ${p.title || KIND_LABEL[p.kind] || ''}`.trim(), body: p.body || (p.author_name ? `מ${p.author_name}` : ''),
-      tag: 'remind-' + p.id, url: `/s/${p.shop_id}?board=1`, icon: `/api/icon/${p.shop_id}?s=192`,
+      title: p.label || `⏰ תזכורת: ${p.title || KIND_LABEL[p.kind] || ''}`.trim(), body: p.body || (p.author_name ? `מ${p.author_name}` : ''),
+      tag: (p.kind === 'urgent' ? 'post-' : 'remind-') + p.id, url: p.url || `/s/${p.shop_id}?board=1`, icon: `/api/icon/${p.shop_id}?s=192`, urgent: p.kind === 'urgent',
     });
     sent += p.targets.length - d.length; dead.push(...d);
   }
