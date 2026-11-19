@@ -4,6 +4,7 @@ import Sheet from '@/components/Sheet';
 import CoLogo from '@/components/CoLogo';
 import InstallButton from '@/components/InstallButton';
 import PushToggle from '@/components/PushToggle';
+import Bonus from './bonus';
 import { api, errText, uploadPhoto } from '@/lib/api';
 import { shrink } from '@/lib/image';
 import { signOut, userName } from '@/lib/auth';
@@ -350,6 +351,7 @@ export default function Settings({ ctx, view: view0, edit }) {
   else if (view === 'products') body = <Products ctx={ctx} back={back} edit0={edit} />;
   else if (view === 'misses') body = <Misses ctx={ctx} back={back} />;
   else if (view === 'trash') body = <Trash ctx={ctx} back={back} />;
+  else if (view === 'bonus') body = <Bonus ctx={ctx} back={back} />;
   else body = (
     <>
       <div className="muted small">מחובר בתור {userName(ctx.user)} · {ctx.items.length} פריטי מידע</div>
@@ -372,6 +374,7 @@ export default function Settings({ ctx, view: view0, edit }) {
       <div className="h2">החנות</div>
       <div className="card menu-list">
         <Row e="👥" t="עובדים והזמנה" n={ctx.isAdmin ? ctx.shop.pending : 0} onClick={() => ctx.replace({ t: 'team' })} />
+        {ctx.isAdmin && <Row e="💰" t="בונוסים" s="דוח חודשי מיומן הבונוסים · רק מנהלים" onClick={() => setView('bonus')} />}
         {ctx.isAdmin && <Row e="🗑️" t="מידע שנמחק" onClick={() => setView('trash')} />}
         <Row e="📊" t="ייצוא לאקסל" onClick={exportCSV} />
         <Row e="💾" t="גיבוי מלא (קובץ)" onClick={exportJSON} />

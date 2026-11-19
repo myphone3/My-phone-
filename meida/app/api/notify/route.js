@@ -1,4 +1,5 @@
 // התראות שעובד שולח: הודעה חדשה, שאלה לצוות, תשובה, דיווח מלאי, פתק, תגובה, אישור הודעה דחופה
+// מי שבחר "רק שאלות" (ברירת המחדל) מקבל רק שאלות, תשובות והודעות דחופות
 import { createClient } from '@supabase/supabase-js';
 import { sendAll, KIND_LABEL } from '@/lib/webpush';
 
@@ -64,6 +65,13 @@ export async function POST(req) {
       const s = (load?.seen || []).filter((y) => y.ref === 'post' && y.ref_id === id).pop();
       payload = { title: `✓ ${s?.name || 'עובד'} ראה את ההודעה הדחופה`, body: (p.title || p.body || '').slice(0, 160), tag: 'ack-' + id, url: url('board') };
     }
+  }
+  // מי שבחר "רק שאלות ותשובות" מקבל רק שאלות, תשובות והודעות דחופות
+  const important = ref === 'ask' || (ref === 'post' && payload?.urgent);
+  if (!important && targets?.length) {
+    const q = await sb.rpc('kb_quiet_endpoints', { p_shop: shop });
+    const quiet = new Set(q.data || []);
+    targets = targets.filter((t) => !quiet.has(t.endpoint));
   }
   if (!targets?.length) return Response.json({ sent: 0 });
   payload.icon = `/api/icon/${shop}?s=192`;
