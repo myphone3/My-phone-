@@ -182,7 +182,7 @@ label.f { display: block; font-size: 13px; font-weight: 600; color: var(--muted)
 
 /* ---------- טלוויזיה ---------- */
 html.tv { --bg: #120e0b; --card: #1e1813; --ink: #fff6ec; --muted: #b8a797; --line: #3a2f27; --accent: #f28c4b; --accent-soft: #3c2518; --herb: #8bc37a; --herb-soft: #20301c; --red: #ff6b55;
-  font-size: clamp(14px, 1.25vw, 48px); overflow: hidden; }
+  font-size: clamp(16px, 1.45vw, 56px); overflow: hidden; }
 html.tv body { font-size: 1rem; overflow: hidden; height: 100vh; background: radial-gradient(1200px 700px at 85% -10%, #2a1a10 0%, transparent 60%), radial-gradient(900px 600px at 0% 110%, #1b2615 0%, transparent 55%), var(--bg); cursor: none; }
 html.tv.mouse body { cursor: default; }
 .tvs { position: fixed; top: 0; right: 0; bottom: 0; left: 0; height: 100%; box-sizing: border-box; padding: 3.2vh 3.4vw; display: flex; flex-direction: column; }
@@ -300,11 +300,13 @@ html.tv.mouse body { cursor: default; }
 .tv-music .info .nx { margin-top: .3rem; }
 .tv-prog { position: relative; height: .3rem; background: var(--line); border-radius: .2rem; margin: .6rem 0 1.1rem; }
 .tv-prog i { position: absolute; inset-block: 0; inset-inline-start: 0; background: var(--accent); border-radius: .2rem; transition: width 1s linear; }
-.tv-prog span { position: absolute; top: .45rem; inset-inline-start: 0; font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tv-prog span { position: absolute; top: .45rem; inset-inline-start: 0; direction: ltr; unicode-bidi: isolate; font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .tv-music.hidden { visibility: hidden; pointer-events: none; }
 /* כשמוזיקה מנגנת — שומרים מקום לכרטיס בפינה, כדי שלא יסתיר את המתכון */
 .tvs { --music-h: calc(144px + 1.2rem + 2px + 1rem); }
 .tvs.has-music:not(.on-board) .tv-main { padding-bottom: var(--music-h); }
+.tvs.on-board .tv-music .yt { width: 176px; height: 99px; }
+.tvs.on-board { --music-h: calc(99px + 1.2rem + 2px + 1rem); }
 .tvs.has-music .tv-board .bs { box-sizing: border-box; padding-bottom: var(--music-h); }
 
 .tv-start { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 100; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
@@ -400,20 +402,20 @@ html.tv .yt-blocked { font-size: .85rem; }
 /* ---------- כל המתכון על מסך אחד (קבוע, בלי תזוזה) ---------- */
 .tv-board { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; font-size: calc(1rem * var(--fs, 1)); }
 .tv-board * { animation: none !important; transition: none !important; }
-.tv-board .bh { display: flex; align-items: baseline; gap: 1.6em; border-bottom: .12em solid var(--line); padding-bottom: .5em; margin-bottom: .8em; flex: none; }
-.tv-board h1 { font-size: 2.1em; margin: 0; line-height: 1.15; }
+.tv-board .bh { display: flex; align-items: baseline; gap: 1.6em; border-bottom: .12em solid var(--line); padding-bottom: .35em; margin-bottom: .6em; flex: none; }
+.tv-board h1 { font-size: 1.75em; margin: 0; line-height: 1.15; }
 .tv-board .bm { display: flex; gap: 1.2em; color: var(--muted); font-size: 1.1em; font-weight: 600; }
-.tv-board .bb { flex: 1; min-height: 0; display: flex; gap: 2.2em; }
-.tv-board .bi { width: 27%; flex: none; background: rgba(255, 246, 236, .04); border: 1px solid var(--line); border-radius: 1em; padding: .9em 1.1em; overflow: hidden; }
-.tv-board .bs { flex: 1; min-width: 0; column-gap: 2.2em; column-fill: balance; height: 100%; }
+.tv-board .bb { flex: 1; min-height: 0; display: flex; gap: 1.6em; }
+.tv-board .bi { width: 27%; flex: none; column-gap: 1.4em; background: rgba(255, 246, 236, .04); border: 1px solid var(--line); border-radius: 1em; padding: .7em .9em; overflow: hidden; }
+.tv-board .bs { flex: 1; min-width: 0; column-gap: 1.6em; column-fill: balance; height: 100%; }
 .tv-board .bt { font-weight: 800; font-size: 1.3em; margin-bottom: .4em; color: var(--ink); }
-.tv-board .bgt { color: var(--accent); font-weight: 800; font-size: 1.05em; margin: .7em 0 .25em; break-after: avoid; }
-.tv-board .bit { display: flex; gap: .55em; font-size: 1.12em; line-height: 1.35; padding: .22em 0; }
+.tv-board .bgt { color: var(--accent); font-weight: 800; font-size: 1.05em; margin: .5em 0 .15em; break-after: avoid; }
+.tv-board .bit { display: flex; gap: .55em; font-size: 1.12em; line-height: 1.3; padding: .14em 0; }
 .tv-board .bit .ck { width: 1em; height: 1em; border-radius: .25em; border: .12em solid var(--line); flex: none; margin-top: .2em; font-size: .85em; display: flex; align-items: center; justify-content: center; color: #120e0b; }
 .tv-board .bit.done { color: var(--muted); text-decoration: line-through; }
 .tv-board .bit.done .ck { background: var(--herb); border-color: var(--herb); }
 .tv-board .bsec { break-inside: auto; }
-.tv-board .bst { display: flex; gap: .65em; font-size: 1.15em; line-height: 1.42; padding: .32em .4em; break-inside: avoid; border-radius: .5em; }
+.tv-board .bst { display: flex; gap: .65em; font-size: 1.15em; line-height: 1.32; padding: .2em .4em; break-inside: avoid; border-radius: .5em; }
 .tv-board .bst b { color: var(--accent); min-width: 1.3em; flex: none; font-variant-numeric: tabular-nums; }
 .tv-board .bst.cur { background: var(--accent-soft); outline: .1em solid var(--accent); }
 .tv-board .bst.btip { color: var(--muted); }

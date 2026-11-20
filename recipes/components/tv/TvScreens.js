@@ -4,6 +4,7 @@ import QRCode from 'qrcode';
 import { listenForPair, newPairCode } from '@/lib/cast';
 import { groups, scaleText, flatSteps, detectMinutes, fmtMinutes, fmtClock, ingredientsForStep } from '@/lib/recipe';
 import { remaining } from '@/lib/timers';
+import { fitBoard } from '@/lib/fitBoard';
 import { emojiFor, metaLine } from '@/components/phone/ui';
 
 export function useQr(text, size = 600) {
@@ -363,40 +364,21 @@ export function TvIdle({ data }) {
 export const todayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 // ---- כל המתכון על מסך אחד: בלי תזוזה ובלי גלילה, הגופן מתכווץ עד שהכל נכנס ----
-function useFit(deps) {
-  const box = useRef(null);
-  const [scale, setScale] = useState(1);
-  useEffect(() => {
-    const el = box.current;
-    if (!el) return;
-    let s = 2;
-    const fits = () => el.scrollHeight <= el.clientHeight + 1 && el.scrollWidth <= el.clientWidth + 1
-      && [...el.querySelectorAll('[data-fit]')].every((c) => c.scrollHeight <= c.clientHeight + 1 && c.scrollWidth <= c.clientWidth + 1);
-    const run = () => {
-      s = 2;
-      el.style.setProperty('--fs', s);
-      for (let i = 0; i < 40 && !fits() && s > 0.42; i++) { s = Math.round((s - 0.03) * 100) / 100; el.style.setProperty('--fs', s); }
-      setScale(s);
-    };
-    run();
-    const t = setTimeout(run, 400); // אחרי טעינת תמונות/גופנים
-    window.addEventListener('resize', run);
-    return () => { clearTimeout(t); window.removeEventListener('resize', run); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
-  return { box, scale };
-}
-
 export function TvBoard({ recipe, cast }) {
   const s = cast.state;
   const { servings, factor } = useFactor(recipe, s);
   const ing = groups(recipe.ingredients);
   const steps = groups(recipe.steps);
   const checked = s.checked || {};
-  const total = steps.reduce((a, g) => a + g.items.length, 0);
-  const cols = total > 14 ? 3 : total > 6 ? 2 : 1;
   const cur = s.boardHL ? (s.step ?? -1) : -1;
-  const { box } = useFit([recipe.id, factor, cols, JSON.stringify(checked).length, !!s.music]);
+  const box = useRef(null);
+  useEffect(() => {
+    const run = () => fitBoard(box.current);
+    run();
+    const t = setTimeout(run, 400); // אחרי טעינת גופנים
+    window.addEventListener('resize', run);
+    return () => { clearTimeout(t); window.removeEventListener('resize', run); };
+  }, [recipe.id, factor, JSON.stringify(checked).length, !!s.music, (recipe.tips || []).length]); // eslint-disable-line react-hooks/exhaustive-deps
   let n = 0;
   return (
     <div className="tv-board" ref={box} style={{ '--fs': 1 }}>
@@ -421,7 +403,7 @@ export function TvBoard({ recipe, cast }) {
             </div>
           ))}
         </div>
-        <div className="bs" data-fit="" style={{ columnCount: cols }}>
+        <div className="bs" data-fit="">
           <div className="bt">📝 אופן ההכנה</div>
           {steps.map((g, gi) => (
             <div key={gi} className="bsec">

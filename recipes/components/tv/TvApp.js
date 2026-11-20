@@ -93,6 +93,22 @@ export default function TvApp() {
     return () => clearInterval(iv);
   }, [screen, s.timers?.length, s.saver]);
 
+  // עדכון באתר → הטלוויזיה מתרעננת לבד, רק ברגע שקט (במסך הבית / שומר מסך, בלי טיימרים ובלי מוזיקה שמנגנת בטלוויזיה)
+  const quiet = useRef(false);
+  quiet.current = (screen === 'home' || idle) && !s.timers?.length && !(s.music && s.music.output === 'tv' && s.music.playing !== false);
+  useEffect(() => {
+    const mine = process.env.NEXT_PUBLIC_BUILD;
+    if (!mine) return;
+    let fresh = false;
+    const iv = setInterval(async () => {
+      try {
+        if (!fresh) { const r = await fetch('/api/version', { cache: 'no-store' }); const { build } = await r.json(); fresh = !!build && build !== mine; }
+        if (fresh && quiet.current && Date.now() - lastAct.current > 60000) location.reload();
+      } catch {}
+    }, 5 * 60 * 1000);
+    return () => clearInterval(iv);
+  }, []);
+
   useEffect(() => { if (s.recipeId && data && !recipe) load(); }, [s.recipeId, data, recipe, load]);
   useEffect(() => { const t = setTimeout(() => focusFirst(), 60); return () => clearTimeout(t); }, [screen, s.recipeId, !!data]);
 
