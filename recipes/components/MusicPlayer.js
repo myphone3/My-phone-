@@ -2,7 +2,7 @@
 // נגן יוטיוב שמנגן על המכשיר שנבחר (טלוויזיה או טלפון). יוטיוב לא מאפשר נגן מוסתר,
 // לכן הוא מוצג כחלון וידאו קטן — וכל השאר על המסך נשאר המתכון.
 import { useEffect, useRef, useState } from 'react';
-import { trackKey, trackOf, nextIndex } from '@/lib/music';
+import { trackKey, trackOf, nextIndex, similarTracks } from '@/lib/music';
 
 let apiPromise;
 function loadApi() {
@@ -26,6 +26,7 @@ export default function MusicPlayer({ music, active, update, send, cmdRef, duck,
   mRef.current = music;
   const [ready, setReady] = useState(false);
   const [blocked, setBlocked] = useState(false);
+  const filling = useRef(false);
   const key = active ? trackKey(music) : '';
 
   const report = () => {
@@ -44,6 +45,25 @@ export default function MusicPlayer({ music, active, update, send, cmdRef, duck,
     const p = player.current;
     if (!m || !p) return;
     if (m.listId) { try { dir > 0 ? p.nextVideo() : p.previousVideo(); } catch {} return; }
+    // סוף התור (או שיר יחיד) — ממשיכים לשירים דומים במקום לחזור על אותו שיר
+    const atEnd = dir > 0 && (m.index || 0) >= (m.queue?.length || 0) - 1 && !(m.shuffle && m.queue?.length > 1);
+    if (atEnd && m.repeat !== 'off') {
+      if (filling.current) return;
+      filling.current = true;
+      const cur = trackOf(m);
+      similarTracks(m, cur).then((more) => {
+        filling.current = false;
+        update((s) => {
+          const sm = s.music;
+          if (!sm || sm.listId) return {};
+          if (!more.length) return { music: { ...sm, index: 0, playing: true, rev: (sm.rev || 0) + 1 } };
+          const queue = [...sm.queue, ...more];
+          const drop = Math.max(0, queue.length - 100);
+          return { music: { ...sm, queue: queue.slice(drop), index: Math.max(0, (sm.index || 0) + 1 - drop), playing: true, rev: (sm.rev || 0) + 1 } };
+        });
+      });
+      return;
+    }
     const i = nextIndex(m, dir);
     if (i === null) { update((s) => ({ music: s.music ? { ...s.music, playing: false } : null })); return; }
     update((s) => (s.music ? { music: { ...s.music, index: i, playing: true, rev: (s.music.rev || 0) + 1 } } : {}));

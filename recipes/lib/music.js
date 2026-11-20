@@ -69,3 +69,20 @@ export function musicCmd(cast, cmd, arg) {
   cast.send('musicCmd', { cmd, arg });
   window.dispatchEvent(new CustomEvent('rc-music', { detail: { cmd, arg } }));
 }
+
+// כשהתור נגמר — מביאים עוד שירים דומים (של אותו אמן) כדי שהמוזיקה תמשיך לבד, כמו ביוטיוב
+const norm = (s) => String(s || '').toLowerCase().replace(/\(.*?\)|\[.*?\]|official|video|lyrics|קליפ|רשמי/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+export async function similarTracks(m, cur) {
+  const t = cur || trackOf(m);
+  const q = (t?.author || t?.title || '').trim();
+  if (!q) return [];
+  try {
+    const r = await fetch(`/api/yt-search?q=${encodeURIComponent(q)}&kind=video`);
+    const { results = [] } = await r.json();
+    const ids = new Set((m.queue || []).map((x) => x.videoId));
+    const titles = new Set((m.queue || []).map((x) => norm(x.title)));
+    const fresh = results.filter((x) => x.type === 'video' && x.videoId && !ids.has(x.videoId) && !titles.has(norm(x.title)));
+    for (let i = fresh.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [fresh[i], fresh[j]] = [fresh[j], fresh[i]]; }
+    return fresh.slice(0, 8).map((x) => ({ videoId: x.videoId, title: x.title || '', author: x.author || '', duration: x.duration || '', auto: true }));
+  } catch { return []; }
+}
