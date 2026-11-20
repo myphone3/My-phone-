@@ -396,7 +396,7 @@ export function TvBoard({ recipe, cast }) {
   const total = steps.reduce((a, g) => a + g.items.length, 0);
   const cols = total > 14 ? 3 : total > 6 ? 2 : 1;
   const cur = s.boardHL ? (s.step ?? -1) : -1;
-  const { box } = useFit([recipe.id, factor, cols, JSON.stringify(checked).length]);
+  const { box } = useFit([recipe.id, factor, cols, JSON.stringify(checked).length, !!s.music]);
   let n = 0;
   return (
     <div className="tv-board" ref={box} style={{ '--fs': 1 }}>

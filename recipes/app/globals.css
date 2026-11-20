@@ -302,6 +302,10 @@ html.tv.mouse body { cursor: default; }
 .tv-prog i { position: absolute; inset-block: 0; inset-inline-start: 0; background: var(--accent); border-radius: .2rem; transition: width 1s linear; }
 .tv-prog span { position: absolute; top: .45rem; inset-inline-start: 0; font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .tv-music.hidden { visibility: hidden; pointer-events: none; }
+/* כשמוזיקה מנגנת — שומרים מקום לכרטיס בפינה, כדי שלא יסתיר את המתכון */
+.tvs { --music-h: calc(144px + 1.2rem + 2px + 1rem); }
+.tvs.has-music:not(.on-board) .tv-main { padding-bottom: var(--music-h); }
+.tvs.has-music .tv-board .bs { box-sizing: border-box; padding-bottom: var(--music-h); }
 
 .tv-start { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 100; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .tv-start .logo { font-size: 6rem; }

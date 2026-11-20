@@ -192,7 +192,7 @@ export default function TvApp() {
   const start = () => { setStarted((x) => x + 1); unlockAudio(); poke(); };
 
   return (
-    <div className="tvs" onClick={start}>
+    <div className={'tvs' + (s.music ? ' has-music' + (screen === 'board' ? ' on-board' : '') : '')} onClick={start}>
       <div className="tv-top">
         <span className="brand">🍳 {data?.kitchen?.name || 'מתכונים בגדול'}</span>
         <span style={{ flex: 1 }} />
