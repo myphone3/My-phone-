@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { listenForPair, newPairCode } from '@/lib/cast';
 import { groups, scaleText, flatSteps, detectMinutes, fmtMinutes, fmtClock, ingredientsForStep } from '@/lib/recipe';
-import { remaining } from '@/lib/timers';
+import { remaining, addTimer } from '@/lib/timers';
 import { fitBoard } from '@/lib/fitBoard';
 import { emojiFor, metaLine } from '@/components/phone/ui';
 
@@ -203,60 +203,104 @@ export function TvRecipe({ recipe, cast }) {
 }
 
 // ---- שלב אחרי שלב ----
+// השלב הנוכחי בגדול, מעליו "שלב X מתוך Y" ושורת עיגולים לכל השלבים, בצד רשימת כל השלבים,
+// ולמטה כפתורים אמיתיים — "השלב הבא" מסומן מראש, כך ש-OK בשלט מעביר שלב.
 export function TvCook({ recipe, cast }) {
   const s = cast.state;
   const all = flatSteps(recipe);
   const step = Math.min(s.step || 0, Math.max(0, all.length - 1));
   const cur = all[step];
-  const next = all[step + 1];
+  const last = step === all.length - 1;
   const minutes = cur ? detectMinutes(cur.text) : null;
   const { factor } = useFactor(recipe, s);
   const used = cur ? ingredientsForStep(recipe, cur.text) : [];
-  const usedKeys = new Set(used.map((u) => u.key));
-  const ing = groups(recipe.ingredients);
-  const checked = s.checked || {};
   const len = cur?.text.length || 0;
-  const side = useRef();
+  const list = useRef();
+  const nextBtn = useRef();
+  const txt = useRef();
+
+  // הטקסט של השלב תמיד נכנס כולו: מקטינים את הגופן עד שאין גלישה
+  useEffect(() => {
+    const box = txt.current, p = box?.firstChild;
+    if (!p) return;
+    const fit = () => {
+      p.style.fontSize = '';
+      let fs = parseFloat(getComputedStyle(p).fontSize);
+      for (let i = 0; i < 30 && p.scrollHeight > box.clientHeight && fs > 14; i++) { fs *= 0.94; p.style.fontSize = fs + 'px'; }
+    };
+    fit();
+    const t = setTimeout(fit, 400);
+    window.addEventListener('resize', fit);
+    return () => { clearTimeout(t); window.removeEventListener('resize', fit); };
+  }, [step, recipe.id]);
+  const small = all.length > 12;
 
   useEffect(() => {
-    const el = side.current?.querySelector('.hl');
-    el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    const center = (smooth) => {
+      const el = list.current?.querySelector('.cur');
+      if (el && list.current) list.current.scrollTo({ top: Math.max(0, el.offsetTop - list.current.clientHeight / 3), behavior: smooth ? 'smooth' : 'auto' });
+    };
+    center(true);
+    const onResize = () => center(false);
+    window.addEventListener('resize', onResize);
+    // אם הכפתור שהיה מסומן נעלם (למשל טיימר בשלב בלי זמן) — חוזרים ל"הבא"
+    const a = document.activeElement;
+    if (!a || a === document.body || !a.isConnected) nextBtn.current?.focus({ preventScroll: true });
+    return () => window.removeEventListener('resize', onResize);
   }, [step]);
 
   if (!cur) return <div className="tv-main"><h1>אין שלבים במתכון</h1></div>;
+  const go = (v) => cast.update({ step: Math.max(0, Math.min(all.length - 1, v)) });
+  let lastSec = null;
   return (
     <div className="tv-cook">
-      <div className="stage">
-        <div className="where">
-          <span>{recipe.title}</span>
+      <div className="ch">
+        <div className="no"><b>{step + 1}</b><span>מתוך {all.length}</span></div>
+        <div className="meta">
+          <span className="rt">{recipe.title}</span>
           {cur.section && <span className="sec">{cur.section}</span>}
-          <span style={{ marginInlineStart: 'auto' }}>שלב {step + 1} מתוך {all.length}</span>
         </div>
-        <div className="prog">{all.map((_, i) => <i key={i} className={i < step ? 'past' : i === step ? 'cur' : ''} />)}</div>
-        <div className="big">
-          <p key={step} className={len > 240 ? 'xlong' : len > 140 ? 'long' : ''} style={{ animation: 'up .3s ease-out' }}>{cur.text}</p>
-        </div>
-        {minutes && <div className="stage-timer">⏱️ לחצו OK בשלט להפעלת טיימר ל-{fmtMinutes(minutes)}</div>}
-        {next ? (
-          <div className="next"><span>השלב הבא</span><b>{next.section && next.section !== cur.section ? `${next.section}: ` : ''}{next.text}</b></div>
-        ) : (
-          <div className="next" style={{ color: 'var(--herb)' }}><span>🎉</span><b>זה השלב האחרון — בתיאבון!</b></div>
-        )}
-        <div className="tv-hint"><span><kbd>◀</kbd> הבא</span><span><kbd>▶</kbd> הקודם</span><span><kbd>OK</kbd> טיימר</span><span><kbd>▼</kbd> מצרכים</span><span><kbd>חזור</kbd> למתכון</span></div>
-      </div>
-      <div className="tv-panel">
-        <h2>🧺 מצרכים</h2>
-        <div className="scroll" ref={side}>
-          {ing.map((g, gi) => (
-            <div key={gi}>
-              {g.title && <div className="tv-gt">{g.title}</div>}
-              {g.items.map((item, i) => {
-                const key = `${gi}-${i}`;
-                return <div key={key} className={'tv-ing' + (checked[key] ? ' done' : '') + (usedKeys.has(key) ? ' hl' : '')} style={{ fontSize: '1.1rem' }}><span className="ck">{checked[key] ? '✓' : ''}</span><span>{scaleText(item, factor)}</span></div>;
-              })}
-            </div>
+        <div className={'track' + (small ? ' sm' : '')}>
+          {all.map((_, i) => (
+            <span key={i} className="tk">
+              {i > 0 && <i className={'ln' + (i <= step ? ' past' : '')} />}
+              <span className={'d' + (i < step ? ' past' : i === step ? ' cur' : '')}>{small && i !== step ? '' : i < step ? '✓' : i + 1}</span>
+            </span>
           ))}
         </div>
+      </div>
+      <div className="cm">
+        <div className="now">
+          <div className="txt" ref={txt}><p key={step} className={len > 240 ? 'xlong' : len > 140 ? 'long' : ''}>{cur.text}</p></div>
+          {used.length > 0 && (
+            <div className="uses"><span className="l">בשלב הזה:</span>{used.map((u) => <span key={u.key} className="c">{scaleText(u.item, factor)}</span>)}</div>
+          )}
+        </div>
+        <div className="all">
+          <h2>כל השלבים</h2>
+          <ol ref={list}>
+            {all.map((x, i) => {
+              const head = x.section && x.section !== lastSec ? x.section : null;
+              lastSec = x.section;
+              return [
+                head && <li key={'h' + i} className="sh">{head}</li>,
+                <li key={i} className={i < step ? 'past' : i === step ? 'cur' : i === step + 1 ? 'nx' : ''}>
+                  <span className="n">{i < step ? '✓' : i + 1}</span>
+                  <span className="t">{x.text}{i === step + 1 && <em> · הבא</em>}</span>
+                </li>,
+              ];
+            })}
+          </ol>
+        </div>
+      </div>
+      <div className="cb">
+        <button className={'tv-btn' + (step === 0 ? ' off' : '')} data-nav="" onClick={() => go(step - 1)}>▶ הקודם</button>
+        {minutes && <button className="tv-btn timer" data-nav="" onClick={() => { addTimer(cast.update, `שלב ${step + 1}: ${cur.text.slice(0, 40)}`, minutes); }}>⏱️ טיימר {fmtMinutes(minutes)}</button>}
+        <button className="tv-btn" data-nav="" onClick={() => cast.update({ screen: 'ingredients' })}>🧺 כל המצרכים</button>
+        <button ref={nextBtn} className={'tv-btn next' + (last ? ' done' : '')} data-nav="" data-autofocus=""
+          onClick={() => (last ? cast.update({ screen: 'recipe' }) : go(step + 1))}>
+          {last ? '🎉 סיימנו — בתיאבון!' : 'השלב הבא ◀'} <kbd>OK</kbd>
+        </button>
       </div>
     </div>
   );

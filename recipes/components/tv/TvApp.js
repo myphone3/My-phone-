@@ -4,8 +4,8 @@ import { getKitchen } from '@/lib/api';
 import { useCast } from '@/lib/cast';
 import { getKitchenId, setKitchenId } from '@/lib/local';
 import { KEY, moveFocus, focusFirst } from '@/lib/spatial';
-import { flatSteps, detectMinutes } from '@/lib/recipe';
-import { addTimer, useNow, useAlarms, removeTimer } from '@/lib/timers';
+import { flatSteps } from '@/lib/recipe';
+import { useNow, useAlarms, removeTimer } from '@/lib/timers';
 import { unlockAudio } from '@/lib/sound';
 import { setMusic } from '@/lib/music';
 import { TvPair, TvHome, TvRecipe, TvCook, TvOriginal, TvTimers, TvIngredients, TvChef, TvIdle, TvBoard, TvMulti, Clock } from './TvScreens';
@@ -134,18 +134,11 @@ export default function TvApp() {
     }
     const steps = recipe ? flatSteps(recipe) : [];
     if (screen === 'cook') {
+      // החצים עוברים בין הכפתורים שעל המסך ו-OK לוחץ על המסומן ("השלב הבא" מסומן מראש)
       const step = s.step || 0;
-      if (KEY.isLeft(e)) { if (step < steps.length - 1) cast.update({ step: step + 1 }); e.preventDefault(); return; }
-      if (KEY.isRight(e)) { if (step > 0) cast.update({ step: step - 1 }); e.preventDefault(); return; }
-      if (KEY.isOk(e)) {
-        const m = steps[step] && detectMinutes(steps[step].text);
-        if (m) { addTimer(cast.update, `שלב ${step + 1}: ${steps[step].text.slice(0, 40)}`, m); say('⏱️ טיימר הופעל'); }
-        e.preventDefault();
-        return;
-      }
-      if (KEY.isDown(e)) { cast.update({ screen: 'ingredients' }); e.preventDefault(); return; }
+      const el = document.activeElement;
+      if (KEY.isOk(e) && !el?.hasAttribute?.('data-nav')) { if (step < steps.length - 1) cast.update({ step: step + 1 }); e.preventDefault(); return; }
       if (KEY.isBack(e)) { cast.update({ screen: 'recipe' }); e.preventDefault(); return; }
-      if (KEY.isUp(e)) { e.preventDefault(); return; }
     }
     if (screen === 'original') {
       const page = s.page || 0, n = recipe?.source_images?.length || 0;
@@ -208,9 +201,14 @@ export default function TvApp() {
   const start = () => { setStarted((x) => x + 1); unlockAudio(); poke(); };
 
   return (
-    <div className={'tvs' + (s.music ? ' has-music' + (screen === 'board' ? ' on-board' : '') : '')} onClick={start}>
+    <div className={'tvs' + (s.music ? ' has-music' : '')} onClick={start}>
       <div className="tv-top">
         <span className="brand">🍳 {data?.kitchen?.name || 'מתכונים בגדול'}</span>
+        <span style={{ flex: 1 }} />
+        <div className="tv-isle-row">
+          <TvMusic cast={cast} cmdRef={musicCmd} started={started} duck={alarms.length > 0} remoteInfo={remoteInfo} />
+          <TvTimers timers={s.timers} now={now} />
+        </div>
         <span style={{ flex: 1 }} />
         <span className={'tv-badge' + (phones ? ' on' : '')}><span className="dot" style={{ width: '.6rem', height: '.6rem', borderRadius: '50%', background: 'currentColor' }} />{offline ? '📴 בלי אינטרנט — מתכונים שמורים' : phones ? (phones > 1 ? `${phones} טלפונים מחוברים` : 'הטלפון מחובר') : cast.online ? 'ממתין לטלפון' : 'מתחבר...'}</span>
         <Clock />
@@ -226,8 +224,6 @@ export default function TvApp() {
         {data && screen === 'original' && recipe && <TvOriginal recipe={recipe} cast={cast} />}
       </div>
 
-      <TvTimers timers={s.timers} now={now} />
-      <TvMusic cast={cast} cmdRef={musicCmd} started={started} duck={alarms.length > 0} remoteInfo={remoteInfo} />
       {chef && <TvChef chef={chef} onClose={() => setChef(null)} />}
 
       {doneAlarm && (
