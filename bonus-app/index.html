@@ -279,6 +279,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 .meida-tbl .n { text-align: left; }
 .meida-tbl tr.tot td { font-weight: 800; border-bottom: 0; }
 .meida-warn { background: var(--soft); border-radius: 12px; padding: 8px 10px; font-size: .88rem; margin: 8px 0; }
+.meida-reg { background: var(--soft); border-radius: 14px; padding: 10px 12px; margin: 10px 0; display: grid; gap: 6px; }
 .member-row .who { flex: 1; min-width: 0; }
 .member-row .who b { display: block; }
 .member-row .who small { color: var(--muted); overflow-wrap: anywhere; display: block; text-align: right; }
@@ -691,7 +692,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 
     <div class="subtab" id="sub-share" hidden>
       <section class="card" id="meidaCard" hidden>
-        <div class="card-head"><h2>📤 אפליקציית המידע</h2></div>
+        <div class="card-head"><h2>🔄 אפליקציית המידע</h2></div>
         <div class="hint" id="meidaStatus"></div>
         <button class="btn ghost" type="button" id="meidaShareBtn"></button>
       </section>
@@ -1013,6 +1014,14 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     <div class="sheet-head"><h3 id="meidaTitle">📤 שיתוף לאפליקציית המידע</h3><button class="icon-btn" type="button" data-close>סגירה</button></div>
     <div class="hint" id="meidaSub"></div>
     <div id="meidaBody"></div>
+    <div class="meida-reg" id="meidaReg" hidden>
+      <b>🏪 בונוסים מהקופה</b>
+      <div class="inline">
+        <div class="field"><label class="lbl" for="meidaRegCount">כמה מכשירים נמכרו</label><input id="meidaRegCount" type="number" inputmode="numeric" min="0" step="1" placeholder="0"></div>
+        <div class="field"><label class="lbl" for="meidaRegRate">בונוס לכל מכשיר ₪</label><input id="meidaRegRate" type="number" inputmode="numeric" min="0" step="1"></div>
+      </div>
+      <div class="hint num" id="meidaRegCalc"></div>
+    </div>
     <div class="meida-warn" id="meidaWarn" hidden></div>
     <button class="save" type="button" id="meidaYes">בדקתי, שתף</button>
     <button class="btn ghost wide" type="button" id="meidaNo">לא עכשיו (אזכיר מחר)</button>
@@ -2874,7 +2883,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   // ---------- sheets ----------
   var openSheet = null;
   function show(sheet) { hide(); openSheet = sheet; if (!sheet.classList.contains("full")) $("scrim").hidden = false; sheet.hidden = false; }
-  function hide() { if (openSheet) openSheet.hidden = true; $("scrim").hidden = true; openSheet = null; }
+  function hide() { if (openSheet) openSheet.hidden = true; $("scrim").hidden = true; openSheet = null; if (meidaWait) setTimeout(function () { if (!openSheet) meidaPrompt(); }, 700); }
   $("scrim").addEventListener("click", hide);
   $$("[data-close]").forEach(function (b) { b.addEventListener("click", hide); });
   // swipe a bottom sheet down to close it (like dismissing a story)
@@ -3778,8 +3787,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     box.appendChild(el("div", "hint", "הקטגוריה החזקה החודש: " + catPlural(topCat) + " (" + fmt(byCat[topCat]) + " ₪)"));
   }
 
-  // ---------- share the month to the store info app (meida) ----------
-  // the store info app keeps a monthly bonus report per shop; the manager connects once from there (link with ?meida=<code>)
+  // ---------- sync to the store info app (meida) ----------
+  // the store info app keeps a monthly bonus report per shop; the manager connects once from there (link with ?meida=<code>).
+  // the current month (and last month until it is closed) is sent by itself whenever the app opens or something changes;
+  // at the start of a month the manager adds last month's register sales and approves it, and it becomes final there.
   var MEIDA_URL = "https://iiaxizrezhczgutqijbe.supabase.co", MEIDA_KEY = "sb_publishable_GlpxeLkaiEs9zbILs_oeUg_HU5xMKfu";
   async function meidaRpc(fn, args) {
     var r = await fetch(MEIDA_URL + "/rest/v1/rpc/" + fn, { method: "POST", headers: { "Content-Type": "application/json", apikey: MEIDA_KEY, Authorization: "Bearer " + MEIDA_KEY }, body: JSON.stringify(args) });
@@ -3791,12 +3802,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   var meidaSaved = null;
   function meidaLink() { return meidaSaved && meidaSaved.token ? meidaSaved : null; }
   function canShareMeida() { return !state.team || isManager(); }
+  // months approved as final there (older links kept them in "shared")
+  function meidaFinal(mk) { var l = meidaLink(); return !!(l && ((l.final || {})[mk] || (!l.final && (l.shared || {})[mk]))); }
   function saveMeida(m) {
     meidaSaved = m; lsSet("bt.meida." + accts.active, m);
     var a = activeAcct(); if (!a) return Promise.resolve();
     return sb.from("settings").update({ meida: m }).eq("user_id", a.uid).then(function (r) { if (r.error) toast("החיבור לא נשמר בשרת. בדוק חיבור ונסה שוב."); });
   }
-  var meidaAsked = false, meidaMonth = null, meidaData = null;
+  function finalMap(info) { var f = {}; (info.final || info.months || []).forEach(function (mk) { f[mk] = "1"; }); return f; }
+  var meidaAsked = false, meidaMonth = null, meidaData = null, meidaInfoAt = 0;
   async function meidaCheck() {
     var a0 = activeAcct(); if (!a0) return;
     meidaSaved = lsGet("bt.meida." + a0.uid, null);
@@ -3807,45 +3821,110 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       if (!canShareMeida()) { toast("את החיבור לאפליקציית המידע עושים מהחשבון של מנהל הצוות."); lsDel("bt.meidaPending"); return; }
       try {
         var info = await meidaRpc("kb_bonus_info", { p_token: pend });
-        var shared = {}; (info.months || []).forEach(function (mk) { shared[mk] = "1"; });
-        await saveMeida({ token: pend, shop: info.shop || "", shared: shared });
+        await saveMeida({ token: pend, shop: info.shop || "", final: finalMap(info) });
+        meidaInfoAt = Date.now();
         lsDel("bt.meidaPending");
-        toast("✓ מחובר ל\"" + (info.shop || "אפליקציית המידע") + "\". בראשון לכל חודש אשאל אם לשתף.");
+        toast("✓ מחובר ל\"" + (info.shop || "אפליקציית המידע") + "\". מעכשיו הבונוסים מתעדכנים שם לבד.");
       } catch (e) {
         if (/bad token/.test(e.message)) { lsDel("bt.meidaPending"); toast("קישור החיבור לא בתוקף. פתח אותו שוב מאפליקציית המידע."); }
         return;
       }
     }
-    renderMeidaCard();
     var link = meidaLink();
-    if (!link || !canShareMeida() || meidaAsked || openSheet) return;
+    if (!link || !canShareMeida()) { renderMeidaCard(); return; }
+    // which months are already final there (could be closed from another phone)
+    if (Date.now() - meidaInfoAt > 30 * 60000) {
+      try {
+        var inf = await meidaRpc("kb_bonus_info", { p_token: link.token });
+        meidaInfoAt = Date.now();
+        var f = finalMap(inf);
+        if (JSON.stringify(f) !== JSON.stringify(link.final || null) || (inf.shop && inf.shop !== link.shop)) { await saveMeida(Object.assign({}, link, { final: f, shop: inf.shop || link.shop })); link = meidaLink(); }
+      } catch (e) { if (/bad token/.test(e.message)) { await saveMeida(null); renderMeidaCard(); toast("החיבור לאפליקציית המידע כבר לא בתוקף. חבר שוב משם (עוד ← בונוסים)."); return; } }
+    }
+    renderMeidaCard();
+    scheduleMeidaLive(1500);
+    meidaPrompt();
+  }
+  // start of a month: ask to add the register and close last month (waits until no other window is open)
+  var meidaWait = false;
+  function meidaPrompt() {
+    var link = meidaLink();
+    if (!link || !canShareMeida() || meidaAsked) return;
     var prev = shiftMonth(monthKey(new Date()), -1);
-    if ((link.shared || {})[prev] || lsGet("bt.meidaSnooze", "") === todayStr() + prev) return;
-    meidaAsked = true;
+    if (meidaFinal(prev) || lsGet("bt.meidaSnooze", "") === todayStr() + prev || !monthHasData(prev)) return;
+    if (openSheet) { meidaWait = true; return; }
+    meidaWait = false; meidaAsked = true;
     openMeidaShare(prev);
   }
+  function monthHasData(mk) {
+    if (regOf(mk)) return true;
+    for (var id in state.entries) if (state.entries[id] && state.entries[id].month === mk) return true;
+    return !!state.team; // a team manager may have no bonuses of their own
+  }
+  // ----- automatic update (no question) -----
+  var meidaLiveT = null, meidaLiveSent = {}, meidaLiveBusy = false;
+  function scheduleMeidaLive(ms) {
+    if (!meidaLink() || !canShareMeida()) return;
+    clearTimeout(meidaLiveT);
+    meidaLiveT = setTimeout(meidaLive, ms == null ? 20000 : ms);
+  }
+  async function meidaLive() {
+    var link = meidaLink();
+    if (!link || !canShareMeida() || meidaLiveBusy || navigator.onLine === false) return;
+    meidaLiveBusy = true;
+    try {
+      var cur = monthKey(new Date()), months = [cur], prev = shiftMonth(cur, -1);
+      if (!meidaFinal(prev)) months.push(prev);
+      for (var i = 0; i < months.length; i++) {
+        var mk = months[i], d = await buildMeidaReport(mk), h = JSON.stringify(d);
+        if (meidaLiveSent[mk] === h) continue;
+        if (!d.cnt && !d.total && mk !== cur) continue;
+        var r = await meidaRpc("kb_bonus_live", { p_token: link.token, p_month: mk, p_data: d, p_by: (me() || {}).name || "" });
+        meidaLiveSent[mk] = h;
+        if (r && r.saved === false) { var f = Object.assign({}, link.final || {}); f[mk] = "1"; await saveMeida(Object.assign({}, link, { final: f })); link = meidaLink(); }
+      }
+      lsSet("bt.meidaLiveAt", new Date().toISOString());
+      renderMeidaCard();
+    } catch (e) {
+      if (/bad token/.test(e.message)) { await saveMeida(null); renderMeidaCard(); }
+    } finally { meidaLiveBusy = false; }
+  }
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") scheduleMeidaLive(3000); });
   function renderMeidaCard() {
     var link = meidaLink();
     $("meidaCard").hidden = !(link && canShareMeida());
     if (!link) return;
-    var s = (link.shared || {})[state.month];
-    $("meidaStatus").textContent = "מחובר ל\"" + (link.shop || "אפליקציית המידע") + "\". בראשון לכל חודש תקפוץ שאלה אם לשתף את החודש הקודם." + (s ? " " + monthLabel(state.month) + " כבר שותף." : "");
-    $("meidaShareBtn").textContent = (s ? "שיתוף מחדש של " : "שיתוף של ") + monthLabel(state.month);
+    scheduleMeidaLive();
+    var at = lsGet("bt.meidaLiveAt", ""), fin = meidaFinal(state.month), cur = state.month === monthKey(new Date());
+    $("meidaStatus").textContent = "מחובר ל\"" + (link.shop || "אפליקציית המידע") + "\". הבונוסים מתעדכנים שם לבד" + (at ? " (עדכון אחרון " + timeShort(at) + ")" : "") + ". בתחילת כל חודש תקפוץ בקשה להוסיף את הקופה ולאשר את החודש הקודם." + (fin ? " " + monthLabel(state.month) + " כבר אושר כסופי." : "");
+    $("meidaShareBtn").hidden = cur && !fin;
+    $("meidaShareBtn").textContent = (fin ? "אישור מחדש של " : "סיום ואישור של ") + monthLabel(state.month);
+  }
+  function timeShort(iso) {
+    try { var d = new Date(iso), t = d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" }); return d.toDateString() === new Date().toDateString() ? "היום " + t : d.toLocaleDateString("he-IL") + " " + t; } catch (e) { return ""; }
   }
   $("meidaShareBtn").addEventListener("click", function () { openMeidaShare(state.month); });
   async function buildMeidaReport(mk) {
     var ov, en, solo = !state.team, a0 = activeAcct() || {};
+    var rg = regOf(mk);
     if (solo) {
       var mine = monthEntries(mk).map(function (e) { return Object.assign({ user_id: a0.uid }, e); });
-      var t0 = totals(mine), rg = regOf(mk);
-      if (rg && rg.count) for (var ri = 0; ri < rg.count; ri++) mine.push({ user_id: a0.uid, kind: "__reg", sub: "מכשירים בקופה", amount: ri === 0 ? rg.amount : 0 });
-      ov = { data: [{ user_id: a0.uid, name: (me() || {}).name || acctLabel(a0), email: a0.email || "", cnt: t0.count + (rg ? rg.count : 0), ultra: t0.big, total: t0.all + (rg ? rg.amount : 0), approved: null, paid: false }] };
+      var t0 = totals(mine);
+      ov = { data: [{ user_id: a0.uid, name: (me() || {}).name || acctLabel(a0), email: a0.email || "", cnt: t0.count, ultra: t0.big, total: t0.all, approved: null, paid: false }] };
       en = { data: mine };
     } else {
       ov = await sb.rpc("team_overview", { p_month: mk });
       if (ov.error) throw ov.error;
       en = await selectAll(function () { return sb.from("entries").select("id,user_id,kind,sub,amount,big").eq("month", mk).order("user_id"); });
       if (en.error) throw en.error;
+      ov = { data: (ov.data || []).map(function (m) { return Object.assign({}, m); }) };
+      en = { data: (en.data || []).slice() };
+    }
+    // my own register sales (the store register), counted as bonuses
+    if (rg && rg.count) {
+      for (var ri = 0; ri < rg.count; ri++) en.data.push({ user_id: a0.uid, kind: "__reg", sub: "מכשירים בקופה", amount: ri === 0 ? rg.amount : 0 });
+      var meRow = ov.data.filter(function (m) { return m.user_id === a0.uid; })[0];
+      if (meRow) { meRow.cnt = (Number(meRow.cnt) || 0) + rg.count; meRow.total = (Number(meRow.total) || 0) + rg.amount; }
     }
     var per = {}, all = {}, cats = {};
     (en.data || []).forEach(function (e) {
@@ -3861,20 +3940,16 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       return { name: m.name || (m.email || "").split("@")[0], cnt: m.cnt, ultra: m.ultra, total: m.total, approved: m.approved == null ? null : !!m.approved, paid: !!m.paid, cats: vals(p.cats), types: vals(p.types) };
     }).sort(function (a, b) { return b.total - a.total; });
     var sum = function (k) { return members.reduce(function (s, m) { return s + (Number(m[k]) || 0); }, 0); };
-    return { v: 1, team: state.team ? state.team.name : "", solo: solo, month: mk, total: sum("total"), cnt: sum("cnt"), ultra: sum("ultra"), members: members, types: vals(all), cats: vals(cats) };
+    return { v: 1, team: state.team ? state.team.name : "", solo: solo, month: mk, total: sum("total"), cnt: sum("cnt"), ultra: sum("ultra"), reg_cnt: rg ? rg.count : 0, reg_sum: rg ? rg.amount : 0, members: members, types: vals(all), cats: vals(cats) };
   }
-  async function openMeidaShare(mk) {
-    var link = meidaLink(); if (!link) return;
-    meidaMonth = mk; meidaData = null;
-    $("meidaTitle").textContent = "📤 לשתף את " + monthLabel(mk) + " לאפליקציית המידע?";
-    $("meidaSub").textContent = "נשלח ל\"" + (link.shop || "אפליקציית המידע") + "\". בדוק שהכול תקין:";
-    var body = $("meidaBody"); body.textContent = ""; body.appendChild(el("div", "empty-note", "טוען…"));
-    $("meidaWarn").hidden = true; $("meidaYes").disabled = true;
-    show($("meidaSheet"));
-    try { meidaData = await buildMeidaReport(mk); }
-    catch (e) { body.textContent = ""; body.appendChild(el("div", "empty-note", "לא הצלחתי לטעון את הנתונים. בדוק חיבור לאינטרנט ונסה שוב.")); return; }
-    if (meidaMonth !== mk) return;
-    body.textContent = "";
+  // ----- closing a month: add the register sales and approve -----
+  function paintMeidaReg() {
+    var c = Math.max(0, Math.round(Number($("meidaRegCount").value) || 0)), rate = Math.max(0, Number($("meidaRegRate").value) || 0);
+    $("meidaRegCalc").textContent = c ? fmt(c) + " מכשירים × " + fmt(rate) + " ₪ = " + fmt(c * rate) + " ₪" : "כמה מכשירים נמכרו על שמך בקופה ב" + monthLabel(meidaMonth || state.month) + "? (אם אין, משאירים ריק)";
+  }
+  ["meidaRegCount", "meidaRegRate"].forEach(function (id) { $(id).addEventListener("input", paintMeidaReg); });
+  function paintMeidaTable() {
+    var body = $("meidaBody"); body.textContent = "";
     var t = el("table", "meida-tbl"), hr = el("tr");
     [["עובד", ""], ["כמות", "n"], ["אולטרה", "n"], ["סה״כ", "n"], ["אושר", ""]].forEach(function (h) { hr.appendChild(el("th", h[1], h[0])); });
     var th = el("thead"); th.appendChild(hr); t.appendChild(th);
@@ -3889,23 +3964,52 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     tr.appendChild(el("td", null, "סה״כ")); tr.appendChild(el("td", "n", fmt(meidaData.cnt))); tr.appendChild(el("td", "n", fmt(meidaData.ultra)));
     tr.appendChild(el("td", "n", fmt(meidaData.total) + " ₪")); tr.appendChild(el("td"));
     tb.appendChild(tr); t.appendChild(tb); body.appendChild(t);
+    if (meidaData.reg_cnt) body.appendChild(el("div", "hint num", "כולל " + fmt(meidaData.reg_cnt) + " מכשירים מהקופה (" + fmt(meidaData.reg_sum) + " ₪)."));
+  }
+  async function openMeidaShare(mk) {
+    var link = meidaLink(); if (!link) return;
+    meidaMonth = mk; meidaData = null;
+    var again = meidaFinal(mk);
+    $("meidaTitle").textContent = (again ? "✅ אישור מחדש של " : "✅ סיום ") + monthLabel(mk);
+    $("meidaSub").textContent = "כל החודש הבונוסים עברו ל\"" + (link.shop || "אפליקציית המידע") + "\" לבד. עכשיו מוסיפים את המכירות מהקופה ומאשרים, והחודש נסגר שם כסופי.";
+    var body = $("meidaBody"); body.textContent = ""; body.appendChild(el("div", "empty-note", "טוען…"));
+    var r = (state.settings.register || {})[mk] || {}, locked = !!state.approved[mk];
+    $("meidaRegCount").value = Number(r.count) > 0 ? String(r.count) : "";
+    $("meidaRegRate").value = String(Number(r.rate) > 0 ? r.rate : lastRegRate());
+    $("meidaRegCount").disabled = $("meidaRegRate").disabled = locked;
+    $("meidaReg").hidden = false; paintMeidaReg();
+    $("meidaWarn").hidden = true; $("meidaYes").disabled = true; $("meidaYes").textContent = "הוספתי, אשר ושלח";
+    show($("meidaSheet"));
+    try { meidaData = await buildMeidaReport(mk); }
+    catch (e) { body.textContent = ""; body.appendChild(el("div", "empty-note", "לא הצלחתי לטעון את הנתונים. בדוק חיבור לאינטרנט ונסה שוב.")); return; }
+    if (meidaMonth !== mk) return;
+    paintMeidaTable();
     var waiting = meidaData.members.filter(function (m) { return m.cnt && m.approved === false; }).map(function (m) { return m.name; });
-    if (waiting.length) { $("meidaWarn").textContent = "⚠️ עוד לא אושר: " + waiting.join(", ") + ". אפשר לשתף בכל זאת, או לאשר קודם ולשתף מחדש מהגדרות ← שיתוף."; $("meidaWarn").hidden = false; }
-    if (!meidaData.cnt) { $("meidaWarn").textContent = "אין בונוסים רשומים ב" + monthLabel(mk) + "."; $("meidaWarn").hidden = false; }
+    if (waiting.length) { $("meidaWarn").textContent = "⚠️ עוד לא אושר: " + waiting.join(", ") + ". אפשר לאשר בכל זאת, או לאשר קודם את העובדים ולסגור אחר כך מהגדרות ← שיתוף."; $("meidaWarn").hidden = false; }
+    if (locked) { $("meidaWarn").textContent = "החודש כבר נעול אצלך, אז הקופה נשארת כמו שהיא."; $("meidaWarn").hidden = false; }
     $("meidaYes").disabled = false;
   }
   $("meidaYes").addEventListener("click", async function () {
-    var link = meidaLink(); if (!link || !meidaData) return;
-    var btn = $("meidaYes"); btn.disabled = true; btn.textContent = "שולח…";
+    var link = meidaLink(); if (!link || !meidaMonth) return;
+    var btn = $("meidaYes"), mk = meidaMonth; btn.disabled = true; btn.textContent = "שולח…";
     try {
-      await meidaRpc("kb_bonus_put", { p_token: link.token, p_month: meidaMonth, p_data: meidaData, p_by: (me() || {}).name || "" });
-      var shared = Object.assign({}, link.shared || {}); shared[meidaMonth] = new Date().toISOString();
-      await saveMeida(Object.assign({}, link, { shared: shared }));
-      hide(); toast("✓ " + monthLabel(meidaMonth) + " שותף לאפליקציית המידע");
-      renderMeidaCard();
+      // save the register sales of that month on my settings (like the register card)
+      if (!state.approved[mk]) {
+        var c = Math.max(0, Math.round(Number($("meidaRegCount").value) || 0)), rate = Math.max(0, Number($("meidaRegRate").value) || 0);
+        var reg = Object.assign({}, state.settings.register || {}), old = reg[mk] || {};
+        if (c) reg[mk] = { count: c, rate: rate }; else delete reg[mk];
+        if (Number(old.count || 0) !== c || (c && Number(old.rate) !== rate)) { state.settings.register = reg; persistSettings(); }
+      }
+      meidaData = await buildMeidaReport(mk);
+      await meidaRpc("kb_bonus_put", { p_token: link.token, p_month: mk, p_data: Object.assign({}, meidaData, { status: "final" }), p_by: (me() || {}).name || "" });
+      var fin = Object.assign({}, link.final || {}); fin[mk] = new Date().toISOString();
+      await saveMeida(Object.assign({}, link, { final: fin }));
+      meidaLiveSent[mk] = JSON.stringify(meidaData);
+      hide(); toast("✓ " + monthLabel(mk) + " אושר ונשלח כסופי לאפליקציית המידע");
+      render();
     } catch (e) {
-      toast(/bad token/.test(e.message) ? "החיבור לאפליקציית המידע כבר לא בתוקף. חבר שוב משם (עוד ← בונוסים)." : "השיתוף לא הצליח. בדוק חיבור ונסה שוב.");
-    } finally { btn.disabled = false; btn.textContent = "בדקתי, שתף"; }
+      toast(/bad token/.test(e.message) ? "החיבור לאפליקציית המידע כבר לא בתוקף. חבר שוב משם (עוד ← בונוסים)." : "השליחה לא הצליחה. בדוק חיבור ונסה שוב.");
+    } finally { btn.disabled = false; btn.textContent = "הוספתי, אשר ושלח"; }
   });
   $("meidaNo").addEventListener("click", function () {
     if (meidaMonth === shiftMonth(monthKey(new Date()), -1)) lsSet("bt.meidaSnooze", todayStr() + meidaMonth);
