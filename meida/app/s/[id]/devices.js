@@ -257,7 +257,7 @@ export function DeviceSheet({ ctx, list, id }) {
       {err && <div className="err">{err}</div>}
       <div className="row" style={{ marginTop: 14 }}>
         <button className="btn primary grow" disabled={!!busy} onClick={save}>{busy === 'save' ? 'שומר…' : 'שמירה'}</button>
-        {d.mine && ctx.isAdmin && <button className="btn danger" disabled={!!busy} onClick={remove}>🗑️</button>}
+        {d.mine && <button className="btn danger" disabled={!!busy} onClick={remove}>🗑️</button>}
       </div>
     </Sheet>
   );

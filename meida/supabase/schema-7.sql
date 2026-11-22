@@ -57,12 +57,13 @@ begin
     'photo', x.photo, 'custom', x.custom, 'updated_name', x.updated_name, 'updated_at', x.updated_at);
 end $$;
 
--- מחיקת מכשיר שנוסף ידנית (מנהל)
+-- מחיקת מכשיר שנוסף ידנית (כל עובד; מכשירים מהרשימה המובנית לא נמחקים)
 create or replace function public.kb_dev_delete(p_shop uuid, p_list text, p_dev text)
 returns void language plpgsql security definer set search_path = public as $$
 begin
-  perform kb_need(p_shop, true);
-  update kb_dev set deleted_at = now(), updated_by = auth.uid(), updated_name = kb_me_name() where shop_id = p_shop and list = p_list and dev_id = p_dev;
+  perform kb_need(p_shop);
+  update kb_dev set deleted_at = now(), updated_by = auth.uid(), updated_name = kb_me_name()
+  where shop_id = p_shop and list = p_list and dev_id = p_dev and custom is not null;
 end $$;
 
 -- ===== סרטוני הסברה (דלי נפרד, עד 50MB) =====
