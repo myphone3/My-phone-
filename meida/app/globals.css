@@ -403,3 +403,42 @@ mark { background: #fde68a; color: inherit; border-radius: 3px; padding: 0 1px; 
 .bn-r > :nth-child(2) { color: var(--muted); font-size: 13px; }
 .bn-bar { height: 6px; border-radius: 99px; background: var(--brand-soft); margin-top: 4px; overflow: hidden; }
 .bn-bar i { display: block; height: 100%; background: var(--brand); border-radius: 99px; }
+
+/* ===== מקש לגירסה + גרסאות סמוויקס ===== */
+.p-violet { background: var(--violet-soft); color: var(--violet); }
+.dv-prog { display: flex; align-items: center; gap: 10px; margin: 10px 2px 0; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.dv-bar { flex: 1; height: 6px; background: var(--gray-soft); border-radius: 99px; overflow: hidden; }
+.dv-bar i { display: block; height: 100%; background: var(--green); border-radius: 99px; }
+.dv-pic { width: 56px; height: 56px; border-radius: 12px; background: #fff; object-fit: contain; flex: none; border: 1px solid var(--line); }
+.dv-pic.none { display: grid; place-items: center; font-size: 24px; background: var(--gray-soft); }
+.dv-row { display: flex; align-items: center; gap: 12px; padding: 8px 10px; width: 100%; text-align: start; }
+.dv-row b { font-size: 15px; }
+.dv-note { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dv-key { min-width: 86px; max-width: 46%; height: 40px; border-radius: 10px; border: 1px dashed var(--line); display: flex; align-items: center; justify-content: center;
+  padding: 0 10px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 15px; font-weight: 700; direction: ltr; color: var(--muted); flex: none;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dv-key.has { border-style: solid; border-color: var(--green); background: var(--green-soft); color: var(--green); }
+.dv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.dv-tile { padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+.dv-tile .dv-pic { width: 100%; height: auto; aspect-ratio: 1; }
+.dv-tile .dv-pic.none { font-size: 40px; }
+.dv-tile b { font-size: 14px; line-height: 1.25; }
+.dv-marks { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; min-height: 20px; }
+.dv-old > summary { cursor: pointer; list-style: none; }
+.dv-old > summary::-webkit-details-marker { display: none; }
+.dv-old > summary::after { content: '▾'; }
+.dv-old[open] > summary::after { content: '▴'; }
+.dv-head { display: flex; gap: 12px; align-items: center; }
+.dv-photo { width: 84px; height: 84px; border-radius: 14px; background: var(--gray-soft); border: 1px solid var(--line); overflow: hidden; flex: none; position: relative;
+  display: grid; place-items: center; font-size: 13px; font-weight: 700; color: var(--muted); line-height: 1.3; }
+.dv-photo img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+.dv-busy { position: absolute; inset: 0; background: rgba(0,0,0,.5); color: #fff; display: grid; place-items: center; font-size: 12px; }
+.dv-keyin { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 22px; text-align: center; letter-spacing: .06em; height: 56px; }
+.dv-pad { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 8px; direction: ltr; }
+.dv-pad .btn { padding: 0; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 16px; }
+.dv-video { display: grid; gap: 8px; }
+.dv-video video { width: 100%; max-height: 300px; border-radius: 12px; background: #000; }
+.act.new-dev { border-color: var(--brand); }
+.bn-live { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 10px; font-size: 14px; }
+.bn-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); flex: none; box-shadow: 0 0 0 4px var(--green-soft); }
+.bn-live.final .bn-dot { background: var(--brand); box-shadow: 0 0 0 4px var(--brand-soft); }

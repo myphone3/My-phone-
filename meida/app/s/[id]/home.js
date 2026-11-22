@@ -5,6 +5,7 @@ import ItemRow from '@/components/ItemRow';
 import CoLogo from '@/components/CoLogo';
 import { api } from '@/lib/api';
 import { itemsInCat } from './cat';
+import { devicesOf, searchDevices } from './devices';
 
 // הודעה דחופה שעוד לא אישרתי — פס אדום עד שלוחצים "ראיתי"
 export function UrgentBanner({ ctx }) {
@@ -90,9 +91,10 @@ export default function HomeView({ ctx }) {
       cos: ctx.companies.filter((c) => norm(c.name).includes(w)),
       stock: ctx.stock.filter((x) => x.status !== 'arrived' && norm(x.name).includes(w)).slice(0, 6),
       notes: ctx.notesOpen.filter((x) => norm(`${x.title} ${x.customer} ${x.phone}`).includes(w)).slice(0, 6),
+      devs: searchDevices(ctx, w),
     };
-  }, [qq, items, index, ctx.products, ctx.categories, ctx.companies, ctx.stock, ctx.notesOpen]); // eslint-disable-line
-  const none = res && !res.info.length && !res.products.length && !res.cats.length && !res.cos.length && !res.stock.length && !res.notes.length && !imei;
+  }, [qq, items, index, ctx.products, ctx.categories, ctx.companies, ctx.stock, ctx.notesOpen, ctx.devs]); // eslint-disable-line
+  const none = res && !res.devs.length && !res.info.length && !res.products.length && !res.cats.length && !res.cos.length && !res.stock.length && !res.notes.length && !imei;
 
   // חיפוש שלא מצא כלום — נרשם ל"חיפושים שלא נמצאו" (אחרי שהפסיקו להקליד)
   useEffect(() => {
@@ -102,6 +104,9 @@ export default function HomeView({ ctx }) {
   }, [qq, none]); // eslint-disable-line
 
   const coName = (id) => ctx.tagsById[id]?.name;
+  let keysDone = 0, svDone = 0;
+  for (const r of ctx.devs.values()) { if (r.list === 'keys' && r.key) keysDone++; if (r.list === 'samvix' && (r.body || r.video)) svDone++; }
+  const keysAll = devicesOf(ctx, 'keys').length;
   const catCount = (c) => itemsInCat(ctx, c).length;
 
   return (
@@ -123,6 +128,8 @@ export default function HomeView({ ctx }) {
             <button className="act" onClick={() => ctx.open({ t: 'ask-new' })}><span className="e">💬</span><span><b>שאלה לצוות</b><span className="s">מחיר, יש לנו?, כללי</span></span>{ctx.asksWaiting.length > 0 && <span className="dot amber">{ctx.asksWaiting.length}</span>}</button>
             <button className="act" onClick={() => ctx.open({ t: 'note' })}><span className="e">📌</span><span><b>פתק פתוח</b><span className="s">שלא נשכח</span></span>{ctx.notesOpen.length > 0 && <span className="dot violet">{ctx.notesOpen.length}</span>}</button>
             <button className="act" onClick={() => ctx.open({ t: 'edit' })}><span className="e">➕</span><span><b>הוספת מידע</b><span className="s">לכל קטגוריה</span></span></button>
+            <button className="act" onClick={() => ctx.open({ t: 'keys' })}><span className="e">🔑</span><span><b>מקש לגירסה</b><span className="s">{keysDone ? `${keysDone} מתוך ${keysAll}` : 'כשרים ותומכי כשר'}</span></span></button>
+            <button className="act" onClick={() => ctx.open({ t: 'samvix' })}><span className="e">🎵</span><span><b>גרסאות סמוויקס</b><span className="s">{svDone ? `${svDone} עם הוראות` : 'הוראות וסרטונים'}</span></span></button>
           </div>
           <div className="h2">🗂️ קטגוריות<button className="more" onClick={() => ctx.open({ t: 'settings', view: 'category' })}>עריכה</button></div>
           {ctx.categories.length ? (
@@ -167,6 +174,16 @@ export default function HomeView({ ctx }) {
               </div>
             </div>
           )}
+          {res.devs.length > 0 && <>
+            <div className="h2">🔑 מקשים והוראות</div>
+            <div className="list">{res.devs.map((d) => (
+              <button key={d.list + d.id} className="card dv-row" onClick={() => ctx.open({ t: 'dev', list: d.list, id: d.id })}>
+                {d.pic ? <img className="dv-pic" src={d.pic} alt="" /> : <span className="dv-pic none">{d.list === 'keys' ? '📱' : '🎵'}</span>}
+                <span className="grow" style={{ minWidth: 0 }}><b>{d.name}</b><div className="muted small dv-note">{d.list === 'keys' ? (d.info?.note || 'מקש לגירסה') : [d.info?.body && '📝 הוראות', d.info?.video && '🎬 סרטון'].filter(Boolean).join(' · ') || 'גרסאות סמוויקס · עוד אין הוראות'}</div></span>
+                {d.list === 'keys' && <span className={'dv-key' + (d.info?.key ? ' has' : '')}>{d.info?.key || '+ מקש'}</span>}
+              </button>
+            ))}</div>
+          </>}
           {res.products.length > 0 && <>
             <div className="h2">🏷️ מוצרים</div>
             <div className="list">{res.products.map((p) => {

@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { api, errText } from '@/lib/api';
+import { timeAgo } from '@/lib/kb';
 
 // דוחות בונוסים חודשיים שמגיעים מיומן הבונוסים (רק מנהלים)
 const BONUS_APP = 'https://newphone-bonus.vercel.app';
@@ -25,7 +26,7 @@ function Connect({ ctx, has }) {
       <b>🔗 חיבור ליומן הבונוסים</b>
       <div className="muted small" style={{ marginTop: 4 }}>
         {has ? 'יומן הבונוסים כבר שולח לכאן. אפשר לחבר שוב (למשל מטלפון אחר של המנהל).'
-          : 'לוחצים, נפתח יומן הבונוסים (מחוברים שם כמנהל הצוות), והחיבור נשמר. מאז, בכל ראשון לחודש היומן ישאל אם לשתף את החודש הקודם.'}
+          : 'לוחצים, נפתח יומן הבונוסים (מחוברים שם כמנהל הצוות), והחיבור נשמר. מאז היומן מעדכן כאן לבד, ובתחילת כל חודש מבקש להוסיף את הקופה ולאשר את החודש הקודם.'}
       </div>
       <div className="row wrap-row" style={{ marginTop: 10 }}>
         <button className="btn primary" disabled={busy} onClick={() => go(false)}>{busy ? 'פותח…' : has ? 'חיבור שוב' : 'חבר את יומן הבונוסים'}</button>
@@ -100,7 +101,7 @@ export default function Bonus({ ctx, back }) {
       {head}
       {err && <div className="err">{err}</div>}
       {!r ? (
-        <div className="card pad center"><b>עוד לא הגיע דוח</b><div className="muted small" style={{ marginTop: 4 }}>אחרי החיבור, בראשון לחודש יומן הבונוסים ישאל אם לשתף את החודש הקודם. אחרי האישור הדוח יופיע כאן.</div></div>
+        <div className="card pad center"><b>עוד לא הגיע דוח</b><div className="muted small" style={{ marginTop: 4 }}>אחרי החיבור, הדוח יופיע כאן בפעם הבאה שיומן הבונוסים ייפתח, ויתעדכן לבד.</div></div>
       ) : (
         <>
           <div className="card bn-mon">
@@ -108,6 +109,11 @@ export default function Bonus({ ctx, back }) {
             <span className="center"><b>{monthLabel(r.month)}</b>{d.team && <div className="muted small">{d.team}</div>}</span>
             <button className="icon-btn" disabled={i === 0} onClick={() => setI(i - 1)} aria-label="חודש הבא">‹</button>
           </div>
+          {d.status === 'live' ? (
+            <div className="card bn-live"><span className="bn-dot" /><span className="grow"><b>מתעדכן אוטומטית</b><div className="muted small">עודכן {timeAgo(r.sent_at)} מיומן הבונוסים · עוד לא סופי{r.month < new Date().toISOString().slice(0, 7) ? ' · מחכה לאישור עם הקופה' : ''}</div></span></div>
+          ) : (
+            <div className="card bn-live final"><span className="bn-dot" /><span className="grow"><b>סופי ✓</b><div className="muted small">אושר {when(r.sent_at)}{r.sent_by ? ` ע״י ${r.sent_by}` : ''}{d.reg_cnt ? ` · כולל ${num(d.reg_cnt)} מכשירים מהקופה` : ''}</div></span></div>
+          )}
           <div className="bn-kpis">
             <div className="card bn-kpi"><b>{ils(d.total)}</b><span className="muted small">סה״כ</span></div>
             <div className="card bn-kpi"><b>{num(d.cnt)}</b><span className="muted small">בונוסים</span></div>
@@ -125,7 +131,7 @@ export default function Bonus({ ctx, back }) {
           </div>
           <div className="h2">{by === 'type' ? 'מה הכי נמכר' : by === 'cnt' ? 'לפי כמות בונוסים (לחיצה = פירוט)' : 'עובדים (לחיצה = פירוט)'}</div>
           {by === 'type' ? <Types list={d.types || []} /> : <Employees list={d.members || []} by={by} />}
-          <div className="muted small center" style={{ marginTop: 10 }}>שותף {when(r.sent_at)}{r.sent_by ? ` · ${r.sent_by}` : ''} מיומן הבונוסים</div>
+          <div className="muted small center" style={{ marginTop: 10 }}>{d.status === 'live' ? 'עדכון אחרון' : 'אושר'} {when(r.sent_at)}{r.sent_by ? ` · ${r.sent_by}` : ''} מיומן הבונוסים</div>
         </>
       )}
       <Connect ctx={ctx} has={list.length > 0} />

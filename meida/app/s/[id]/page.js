@@ -24,9 +24,13 @@ import { SeenSheet } from '@/components/Seen';
 import { CustomerSend } from './item';
 import ImeiScan from '@/components/ImeiScan';
 import BarcodeScan from '@/components/BarcodeScan';
+import { KeysPage, SamvixPage, DeviceSheet, AddDeviceSheet, devKey } from './devices';
 
 const LISTS = ['tags', 'items', 'posts', 'asks', 'stock', 'notes', 'deals', 'products', 'replies'];
 const seenKey = (s) => s.ref + ':' + s.ref_id + ':' + s.user_id;
+const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+const devMap = (rows) => new Map((rows || []).map((r) => [devKey(r.list, r.dev_id), r]));
 
 function merge(old, fresh) {
   const map = new Map((old || []).map((x) => [x.id, x]));
@@ -57,6 +61,13 @@ export default function Shop({ params }) {
   const dataRef = useRef(data);
   dataRef.current = data;
   const seenBusy = useRef(new Set());
+  // מקשים / הוראות למכשירים (kb_dev) + דגמים חדשים מהאתר של כשר פון
+  const [devs, setDevs] = useState(() => devMap(typeof window !== 'undefined' ? lsGet('kb_dev_' + id, []) : []));
+  const [sitePhones, setSitePhones] = useState(() => (typeof window !== 'undefined' ? lsGet('kb_site_phones', { list: [] }).list : []));
+  const saveDevs = useCallback((m) => { lsSet('kb_dev_' + id, [...m.values()]); return m; }, [id]);
+  const loadDevs = useCallback(() => api.devList(id).then((rows) => setDevs(saveDevs(devMap(rows)))).catch(() => {}), [id, saveDevs]);
+  const applyDev = useCallback((r) => setDevs((m) => { const n = new Map(m); n.set(devKey(r.list, r.dev_id), r); return saveDevs(n); }), [saveDevs]);
+  const removeDev = useCallback((list, dev) => setDevs((m) => { const n = new Map(m); n.delete(devKey(list, dev)); return saveDevs(n); }), [saveDevs]);
 
   const toast = useCallback((m) => { setToastMsg(m); clearTimeout(toast.t); toast.t = setTimeout(() => setToastMsg(''), 2400); }, []);
   const setTab = useCallback((t) => { setTabState(t); try { sessionStorage.setItem('kb_tab2', t); } catch {} window.scrollTo(0, 0); }, []);
@@ -82,12 +93,17 @@ export default function Shop({ params }) {
     if (!user) return;
     setLastShop(id);
     refresh(!dataRef.current || dataRef.current.v !== 5);
+    loadDevs();
+    const sp = lsGet('kb_site_phones', null);
+    if (!sp || Date.now() - (sp.at || 0) > 12 * 3600000) {
+      fetch('/api/phones').then((r) => (r.ok ? r.json() : null)).then((l) => { if (Array.isArray(l) && l.length) { lsSet('kb_site_phones', { at: Date.now(), list: l }); setSitePhones(l); } }).catch(() => {});
+    }
     const tick = () => { if (document.visibilityState === 'visible') refresh(); };
     const t = setInterval(tick, 15000);
     document.addEventListener('visibilitychange', tick);
     window.addEventListener('online', tick);
     return () => { clearInterval(t); document.removeEventListener('visibilitychange', tick); window.removeEventListener('online', tick); };
-  }, [user, id, refresh]);
+  }, [user, id, refresh, loadDevs]);
 
   // ===== חלונות + כפתור "חזור" של הטלפון =====
   const open = useCallback((w) => { history.pushState({ kb: true }, ''); setStack((s) => [...s, w]); }, []);
@@ -196,6 +212,7 @@ export default function Shop({ params }) {
     isAdmin: data.shop.role === 'owner' || data.shop.role === 'admin',
     open, close, replace, toast, refresh, apply, applyItem, applyTags, removeItem, ensureTags, setShop, setTab, tab,
     applyPost: (p) => apply('posts', p), applyAsk: (a) => apply('asks', a),
+    devs, sitePhones, applyDev, removeDev, loadDevs,
     notify: (body) => serverCall('/api/notify', { shop: id, ...body }).catch(() => {}),
     openItem: (it) => { pushList('recent_' + id, it.id, 15); open({ t: 'item', id: it.id }); },
   };
@@ -246,6 +263,10 @@ export default function Shop({ params }) {
         if (w.t === 'cust') return <CustomerSend key={key} ctx={ctx} id={w.id} />;
         if (w.t === 'scan') return <ImeiScan key={key} ctx={ctx} onPick={w.onPick} />;
         if (w.t === 'barcode') return <BarcodeScan key={key} ctx={ctx} onPick={w.onPick} />;
+        if (w.t === 'keys') return <KeysPage key={key} ctx={ctx} />;
+        if (w.t === 'samvix') return <SamvixPage key={key} ctx={ctx} />;
+        if (w.t === 'dev') return <DeviceSheet key={key + w.id} ctx={ctx} list={w.list} id={w.id} />;
+        if (w.t === 'dev-add') return <AddDeviceSheet key={key} ctx={ctx} list={w.list} kind={w.kind} />;
         return null;
       })}
       {toastMsg && <div className="toast">{toastMsg}</div>}
