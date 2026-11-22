@@ -8,6 +8,7 @@ import { formatDate, formatMoney, orderItems, orderTotals, statusBadge } from '@
 import { StatusTrack } from '@/components/MyOrders';
 import { BUSINESS } from '@/lib/business';
 import Icon from '@/components/Icon';
+import { track } from '@/lib/track';
 
 type Tracked = {
   order_number: string;
@@ -51,6 +52,7 @@ function TrackContent() {
     const row = Array.isArray(data) ? data[0] : null;
     if (!row) return setError('לא מצאנו הזמנה עם המספר והטלפון האלה. כדאי לבדוק שוב את הספרות.');
     setOrder(row as Tracked);
+    track('track_order');
   };
 
   if (order) {

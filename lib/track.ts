@@ -15,7 +15,9 @@ export type TrackType =
   | 'compare'
   | 'favorite'
   | 'quiz_done'
-  | 'whatsapp_click';
+  | 'whatsapp_click'
+  | 'assistant_open'
+  | 'track_order';
 
 const CONSENT_KEY = 'np_consent';
 const SESSION_KEY = 'np_sid';
@@ -23,6 +25,7 @@ const VISITOR_KEY = 'np_vid';
 const TEMP_VISITOR_KEY = 'np_vid_s';
 const SOURCE_KEY = 'np_src';
 const EXCLUDED_KEY = 'np_track_off';
+const GEO_KEY = 'np_geo';
 
 type QueuedEvent = { type: TrackType; path: string; product_id?: string; query?: string; results?: number; value?: number };
 
@@ -167,10 +170,40 @@ export function cartSummary() {
   );
 }
 
+// עיר ואזור (פעם אחת בביקור, מהשרת של האתר). עד שהתשובה מגיעה נשלח בלי עיר
+type Geo = { city?: string; region?: string; country?: string };
+let geo: Geo | null = null;
+let geoLoading = false;
+function loadGeo(): Geo | null {
+  if (geo) return geo;
+  const saved = safe(() => sessionStorage.getItem(GEO_KEY), null);
+  if (saved) {
+    geo = safe<Geo>(() => JSON.parse(saved), {});
+    return geo;
+  }
+  if (!geoLoading) {
+    geoLoading = true;
+    fetch('/api/geo')
+      .then((r) => (r.ok ? r.json() : {}))
+      .then((g: any) => {
+        geo = { city: String(g.city || ''), region: String(g.region || ''), country: String(g.country || '') };
+        safe(() => sessionStorage.setItem(GEO_KEY, JSON.stringify(geo)), undefined);
+      })
+      .catch(() => {
+        geo = {};
+      });
+  }
+  return null;
+}
+
 function info() {
   const src = detectSource();
   const cart = cartSummary();
+  const g: Geo = loadGeo() || {};
   return {
+    city: g.city || '',
+    region: g.region || '',
+    country: g.country || '',
     consent: getConsent() === 'all',
     path: window.location.pathname.slice(0, 300),
     product_id: currentProduct,
@@ -225,6 +258,7 @@ export function flush(keepalive = false) {
 
 export function track(type: TrackType, data: Omit<QueuedEvent, 'type' | 'path'> = {}) {
   if (!tracking()) return;
+  loadGeo(); // מתחילים להביא את העיר כבר עכשיו, כדי שתגיע עם השליחה
   queue.push({ type, path: window.location.pathname.slice(0, 300), ...data });
   if (!timer) timer = setTimeout(() => flush(), 1200);
 }

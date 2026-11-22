@@ -117,6 +117,7 @@ export default function AssistantFloat() {
 
   useEffect(() => {
     if (!open) return;
+    track('assistant_open');
     if (!seen) {
       setSeen(true);
       try {
