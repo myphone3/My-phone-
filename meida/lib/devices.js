@@ -64,7 +64,8 @@ export const PHONES = [
 // [id, שם, kind: phone | watch | player | pods | rec | cam | game, ישן (לא נמכר כבר), תמונה]
 export const SAMVIX = [
   ["sv-ph-j5", "iKosher J5", "phone", 0, "https://il.samvix.com/wp-content/uploads/2021/04/WhatsApp-Image-2021-04-19-at-19.36.00.jpeg"],
-  ["sv-ph-4g", "iKosher 4G (G4)", "phone", 0, ""],
+  ["sv-ph-4g", "iKosher 4G (G4)", "phone", 0, "/devices/ikosher-4g.webp"],
+  ["sv-ph-c4", "iKosher C4", "phone", 0, "/devices/ikosher-c4.webp"],
   ["sv-ph-c3", "iKosher C3", "phone", 0, ""],
   ["sv-ph-mx3", "MX3", "phone", 0, ""],
   ["sv-13306", "iPlatinum Q7", "player", 0, "https://www.samvix.com/wp-content/uploads/2026/11/Q7.png"],
