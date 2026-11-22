@@ -1016,6 +1016,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     <div class="meida-warn" id="meidaWarn" hidden></div>
     <button class="save" type="button" id="meidaYes">בדקתי, שתף</button>
     <button class="btn ghost wide" type="button" id="meidaNo">לא עכשיו (אזכיר מחר)</button>
+    <button class="btn ghost wide" type="button" id="meidaSkip">לא לשתף את החודש הזה (בלי תזכורת)</button>
   </div>
 </div>
 
@@ -3820,7 +3821,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     var link = meidaLink();
     if (!link || !canShareMeida() || meidaAsked || openSheet) return;
     var prev = shiftMonth(monthKey(new Date()), -1);
-    if ((link.shared || {})[prev] || lsGet("bt.meidaSnooze", "") === todayStr() + prev) return;
+    if ((link.shared || {})[prev] || (link.skipped || {})[prev] || lsGet("bt.meidaSnooze", "") === todayStr() + prev) return;
     meidaAsked = true;
     openMeidaShare(prev);
   }
@@ -3828,8 +3829,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     var link = meidaLink();
     $("meidaCard").hidden = !(link && canShareMeida());
     if (!link) return;
-    var s = (link.shared || {})[state.month];
-    $("meidaStatus").textContent = "מחובר ל\"" + (link.shop || "אפליקציית המידע") + "\". בראשון לכל חודש תקפוץ שאלה אם לשתף את החודש הקודם." + (s ? " " + monthLabel(state.month) + " כבר שותף." : "");
+    var s = (link.shared || {})[state.month], sk = !s && (link.skipped || {})[state.month];
+    $("meidaStatus").textContent = "מחובר ל\"" + (link.shop || "אפליקציית המידע") + "\". בראשון לכל חודש תקפוץ שאלה אם לשתף את החודש הקודם." + (s ? " " + monthLabel(state.month) + " כבר שותף." : sk ? " בחרת לא לשתף את " + monthLabel(state.month) + " (אפשר לשתף בכל זאת)." : "");
     $("meidaShareBtn").textContent = (s ? "שיתוף מחדש של " : "שיתוף של ") + monthLabel(state.month);
   }
   $("meidaShareBtn").addEventListener("click", function () { openMeidaShare(state.month); });
@@ -3870,6 +3871,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     $("meidaSub").textContent = "נשלח ל\"" + (link.shop || "אפליקציית המידע") + "\". בדוק שהכול תקין:";
     var body = $("meidaBody"); body.textContent = ""; body.appendChild(el("div", "empty-note", "טוען…"));
     $("meidaWarn").hidden = true; $("meidaYes").disabled = true;
+    $("meidaSkip").hidden = !!((link.shared || {})[mk] || (link.skipped || {})[mk]);
     show($("meidaSheet"));
     try { meidaData = await buildMeidaReport(mk); }
     catch (e) { body.textContent = ""; body.appendChild(el("div", "empty-note", "לא הצלחתי לטעון את הנתונים. בדוק חיבור לאינטרנט ונסה שוב.")); return; }
@@ -3906,6 +3908,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     } catch (e) {
       toast(/bad token/.test(e.message) ? "החיבור לאפליקציית המידע כבר לא בתוקף. חבר שוב משם (עוד ← בונוסים)." : "השיתוף לא הצליח. בדוק חיבור ונסה שוב.");
     } finally { btn.disabled = false; btn.textContent = "בדקתי, שתף"; }
+  });
+  // "don't share this month": remembered on the server like "shared", so the 1st-of-month question stops for that month
+  $("meidaSkip").addEventListener("click", async function () {
+    var link = meidaLink(); if (!link || !meidaMonth) return;
+    var mk = meidaMonth, skipped = Object.assign({}, link.skipped || {}); skipped[mk] = new Date().toISOString();
+    hide();
+    await saveMeida(Object.assign({}, link, { skipped: skipped }));
+    toast(monthLabel(mk) + " לא ישותף, ולא תהיה תזכורת עליו. אפשר לשתף בכל זאת מהגדרות ← שיתוף.");
+    renderMeidaCard();
   });
   $("meidaNo").addEventListener("click", function () {
     if (meidaMonth === shiftMonth(monthKey(new Date()), -1)) lsSet("bt.meidaSnooze", todayStr() + meidaMonth);
