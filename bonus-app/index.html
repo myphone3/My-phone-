@@ -3280,7 +3280,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     if (preSub) { var pc = $$("#subChips .chip").filter(function (x) { return x.textContent.indexOf(preSub) === 0 || (preSub === "אחר" && x.textContent === "אחר"); })[0]; if (pc) pc.click(); }
     updateSave();
     show($("addSheet"));
+    toTop($("addSheet"));
   }
+  // a new add always starts at the top of the list, not where the last one was left
+  function toTop(sheet) { sheet.scrollTop = 0; requestAnimationFrame(function () { sheet.scrollTop = 0; }); }
   function openEdit(id) {
     var e = state.entries[id]; if (!e) return;
     draft = { mode: "edit", id: id, kind: e.kind, sub: null, bonus: "reg", typeUltra: !!e.big };
