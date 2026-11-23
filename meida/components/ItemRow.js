@@ -1,5 +1,5 @@
 'use client';
-import { typeOf, ALL_FIELDS, timeAgo, catOf, coOf } from '@/lib/kb';
+import { typeOf, ALL_FIELDS, timeAgo, catOf, coOf, fileKind } from '@/lib/kb';
 import CoLogo from './CoLogo';
 
 // מסמן את מילות החיפוש בכותרת
@@ -19,14 +19,16 @@ export default function ItemRow({ it, ctx, words, showWho, hideCat }) {
   const cat = catOf(it, ctx.tagsById);
   const sub = ALL_FIELDS.filter((k) => f[k]).slice(0, 2).map((k) => f[k]).join(' · ') || it.body;
   const where = [co?.name, !hideCat && cat?.name].filter(Boolean).join(' · ');
+  const hasFiles = it.files?.length > 0;
   return (
     <button className="card it" onClick={() => ctx.openItem(it)}>
       <div className="ic">{it.photos?.[0] ? <img src={it.photos[0]} alt="" loading="lazy" /> : co ? <CoLogo co={co} size={40} /> : t.e}</div>
       <div className="grow">
         <div className="t">{it.pinned && <span className="pin">📌 </span>}<Hi text={it.title || t.label} words={words} /></div>
         {sub && <div className="s">{sub}</div>}
-        {(where || showWho) && <div className="tg">
+        {(where || showWho || hasFiles) && <div className="tg">
           {where && <span className="muted small">{t.e} {where}</span>}
+          {it.files?.length > 0 && <span className="muted small">📎 {[...new Set(it.files.map((x) => fileKind(x).label))].join(', ')}</span>}
           {showWho && <span className="muted small">{it.updated_by_name} · {timeAgo(it.updated_at)}</span>}
         </div>}
       </div>

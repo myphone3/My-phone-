@@ -1,13 +1,13 @@
 // סוגי מידע, שדות, חיפוש ועזרים
 export const TYPES = [
-  { k: 'note', label: 'מידע כללי', e: '📝', fields: [] },
+  { k: 'note', label: 'מידע כללי', e: '📝', fields: ['model'] },
   { k: 'warranty', label: 'תנאי אחריות', e: '🛡️', fields: [] },
   { k: 'compare', label: 'השוואה / פרטים', e: '📊', fields: ['pc', 'mobile', 'cost'] },
   { k: 'code', label: 'קוד / סיסמה', e: '🔑', fields: ['code', 'user'] },
   { k: 'imei', label: 'IMEI / מכשיר', e: '🔢', fields: ['imei', 'model', 'serial'] },
   { k: 'service', label: 'נקודת שירות', e: '📍', fields: ['address', 'city', 'phone', 'hours'] },
   { k: 'contact', label: 'טלפון / איש קשר', e: '☎️', fields: ['person', 'phone', 'phone2'] },
-  { k: 'howto', label: 'הוראות / איך עושים', e: '📋', fields: [] },
+  { k: 'howto', label: 'הוראות / איך עושים', e: '📋', fields: ['model'] },
   { k: 'price', label: 'מחיר / מבצע', e: '🏷️', fields: ['price', 'until'] },
   { k: 'link', label: 'קישור / אתר', e: '🔗', fields: ['url'] },
 ];
@@ -101,7 +101,7 @@ export const FIELDS = {
   code: { label: 'קוד', copy: true, mono: true },
   user: { label: 'שם משתמש', copy: true },
   imei: { label: 'IMEI', copy: true, mono: true, inputMode: 'numeric' },
-  model: { label: 'דגם' },
+  model: { label: 'דגם / מכשיר' },
   serial: { label: 'מספר סידורי', copy: true, mono: true },
   address: { label: 'כתובת', map: true },
   city: { label: 'עיר' },
@@ -141,7 +141,8 @@ const digits = (s) => String(s || '').replace(/\D/g, '');
 export function indexItem(it, tagsById) {
   const tagNames = (it.tag_ids || []).map((id) => tagsById[id]?.name || '').join(' ');
   const f = Object.values(it.fields || {}).join(' ');
-  const text = norm(`${it.title} ${tagNames} ${f} ${it.body} ${typeOf(it.type).label}`);
+  const files = (it.files || []).map((x) => x.name).join(' ');
+  const text = norm(`${it.title} ${tagNames} ${f} ${it.body} ${files} ${typeOf(it.type).label}`);
   return { text, title: norm(it.title), digits: digits(`${f} ${it.body}`) };
 }
 
@@ -221,6 +222,7 @@ export function itemToText(it, tagsById) {
   const lines = [`${t.e} *${it.title || t.label}*`];
   for (const k of ALL_FIELDS) if (it.fields?.[k]) lines.push(`${FIELDS[k].label}: ${it.fields[k]}`);
   if (it.body) lines.push(it.body);
+  for (const x of it.files || []) lines.push(`${fileKind(x).e} ${x.name || fileKind(x).label}: ${x.kind === 'file' ? downloadHref(x) : x.url}`);
   const tags = (it.tag_ids || []).map((id) => tagsById[id]?.name).filter(Boolean);
   if (tags.length) lines.push('', tags.map((x) => '#' + x.replace(/\s+/g, '_')).join(' '));
   return lines.join('\n');
@@ -252,3 +254,24 @@ export function guessDomain(name) {
   return DOMAINS[n] || DOMAINS[n.split(' ')[0]] || '';
 }
 export const cleanDomain = (d) => String(d || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+
+// ===== קבצים מצורפים =====
+export const isApk = (x) => /\.apk(\?|$)/i.test(x?.url || '') || /android\.package/.test(x?.mime || '');
+export function fileKind(x) {
+  if (x.kind === 'video') return { e: '🎬', label: 'סרטון', cls: 'vid' };
+  if (x.kind === 'link') return { e: '🔗', label: 'קישור', cls: 'lnk' };
+  if (isApk(x)) return { e: '📱', label: 'אפליקציה', cls: 'apk' };
+  if (/pdf/i.test(x.mime || '') || /\.pdf(\?|$)/i.test(x.url)) return { e: '📄', label: 'PDF', cls: 'doc' };
+  if (/^image\//.test(x.mime || '')) return { e: '🖼️', label: 'תמונה', cls: 'doc' };
+  return { e: '📎', label: 'קובץ', cls: 'doc' };
+}
+export const isOwnVideo = (u) => /\/kb-videos\/|\.(mp4|mov|webm|m4v|3gp)(\?|$)/i.test(u || '');
+export const fmtSize = (n) => (!n ? '' : n >= 1048576 ? (n / 1048576).toFixed(n >= 10485760 ? 0 : 1) + 'MB' : Math.max(1, Math.round(n / 1024)) + 'KB');
+// קישור הורדה ששומר את שם הקובץ (Supabase: ?download=שם)
+export function downloadHref(x) {
+  if (!/\/storage\/v1\/object\/public\//.test(x.url)) return x.url;
+  const ext = (x.url.match(/\.([a-z0-9]{1,8})$/i) || [])[1];
+  let name = String(x.name || '').trim() || 'file';
+  if (ext && !name.toLowerCase().endsWith('.' + ext.toLowerCase())) name += '.' + ext;
+  return x.url + '?download=' + encodeURIComponent(name);
+}

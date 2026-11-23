@@ -442,3 +442,26 @@ mark { background: #fde68a; color: inherit; border-radius: 3px; padding: 0 1px; 
 .bn-live { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 10px; font-size: 14px; }
 .bn-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); flex: none; box-shadow: 0 0 0 4px var(--green-soft); }
 .bn-live.final .bn-dot { background: var(--brand); box-shadow: 0 0 0 4px var(--brand-soft); }
+
+/* ===== שדרוג 8: קבצים מצורפים + לפי חברה / דגם ===== */
+.act.wide { grid-column: 1 / -1; }
+.add3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.add3 .btn { height: 62px; flex-direction: column; gap: 2px; font-size: 13px; white-space: normal; text-align: center; line-height: 1.2; padding: 0 6px; }
+.add3 .btn > span:not(.spin) { font-size: 21px; }
+.att { display: flex; align-items: center; gap: 10px; padding: 9px 10px; margin-top: 6px; }
+.att .ic { width: 42px; height: 42px; border-radius: 11px; display: grid; place-items: center; font-size: 21px; flex: none; background: var(--gray-soft); }
+.att .ic.apk { background: var(--green-soft); }
+.att .ic.vid { background: var(--c-device-soft); }
+.att .ic.lnk { background: var(--c-company-soft); }
+.att b { display: block; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.att .muted { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.att-name { width: 100%; border: 0; border-bottom: 1px dashed var(--line); background: none; font-weight: 700; font-size: 15px; padding: 2px 0; outline: none; }
+.att-name:focus { border-bottom-color: var(--brand); }
+.att .rm { width: 32px; height: 32px; color: var(--muted); flex: none; }
+.files-view { margin-top: 12px; display: grid; gap: 10px; }
+.att-block .att { margin-top: 0; }
+.att-video { width: 100%; max-height: 60vh; border-radius: 12px; background: #000; margin-top: 6px; display: block; }
+.seg.scroll { overflow-x: auto; scrollbar-width: none; }
+.seg.scroll::-webkit-scrollbar { display: none; }
+.seg.scroll button { flex: none; padding: 0 12px; }
+.when { font-variant-numeric: tabular-nums; }

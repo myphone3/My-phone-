@@ -70,6 +70,7 @@ export const api = {
   deleteDeal: (shop, id) => rpc('kb_delete_deal', { p_shop: shop, p_id: id }),
   saveProduct: (shop, p) => rpc('kb_save_product', { p_shop: shop, p }),
   deleteProduct: (shop, id) => rpc('kb_delete_product', { p_shop: shop, p_id: id }),
+  asksHistory: (shop) => rpc('kb_asks_history', { p_shop: shop }),
   updateShop: (shop, name, allowJoin, newCode) => rpc('kb_update_shop', { p_shop: shop, p_name: name, p_allow_join: allowJoin, p_new_code: !!newCode }),
 };
 
@@ -101,4 +102,18 @@ export async function uploadPhoto(blob) {
   const { error } = await supabase.storage.from('kb-photos').upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000' });
   if (error) throw error;
   return supabase.storage.from('kb-photos').getPublicUrl(path).data.publicUrl;
+}
+
+// קובץ מצורף (אפליקציה, PDF, סרטון…). סרטונים לדלי kb-videos, כל השאר ל-kb-files. עד 50MB.
+export const MAX_FILE = 50 * 1024 * 1024;
+export async function uploadFile(file, video) {
+  const bucket = video ? 'kb-videos' : 'kb-files';
+  const m = String(file.name || '').match(/\.([A-Za-z0-9]{1,8})$/);
+  const ext = m ? m[1].toLowerCase() : video ? 'mp4' : 'bin';
+  const base = String(file.name || '').replace(/\.[^.]*$/, '').replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50) || 'file';
+  const path = `${crypto.randomUUID()}/${base}.${ext}`;
+  const type = file.type || (ext === 'apk' ? 'application/vnd.android.package-archive' : 'application/octet-stream');
+  const { error } = await supabase.storage.from(bucket).upload(path, file, { contentType: type, cacheControl: '31536000' });
+  if (error) throw error;
+  return { url: supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl, mime: type, size: file.size };
 }

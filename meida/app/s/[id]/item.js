@@ -4,6 +4,7 @@ import Sheet from '@/components/Sheet';
 import { api, errText } from '@/lib/api';
 import { typeOf, FIELDS, ALL_FIELDS, tokens, telHref, wazeHref, mapsHref, urlHref, timeAgo, itemToText, copyText, luhnOk, catOf, coOf, waHref } from '@/lib/kb';
 import CoLogo from '@/components/CoLogo';
+import { FilesView } from '@/components/Files';
 
 export function RichText({ text, ctx }) {
   return (
@@ -44,7 +45,7 @@ function History({ ctx, it, onClose }) {
   const ACT = { create: 'יצר/ה', edit: 'ערך/ה', delete: 'מחק/ה', restore: 'שחזר/ה' };
   async function restore(s) {
     try {
-      const r = await api.saveItem(ctx.shopId, { id: it.id, type: s.type, title: s.title, body: s.body, fields: s.fields, tag_ids: s.tag_ids, photos: s.photos, pinned: s.pinned });
+      const r = await api.saveItem(ctx.shopId, { id: it.id, type: s.type, title: s.title, body: s.body, fields: s.fields, tag_ids: s.tag_ids, photos: s.photos, files: s.files || [], pinned: s.pinned });
       ctx.applyItem(r); ctx.toast('הגרסה שוחזרה'); onClose();
     } catch (e) { setErr(errText(e)); }
   }
@@ -64,6 +65,7 @@ function History({ ctx, it, onClose }) {
               <b>{h.snapshot.title}</b>
               {ALL_FIELDS.filter((k) => h.snapshot.fields?.[k]).map((k) => <div key={k} className="small">{FIELDS[k].label}: {h.snapshot.fields[k]}</div>)}
               <div className="body-text small">{h.snapshot.body}</div>
+              {h.snapshot.files?.length > 0 && <div className="small">📎 {h.snapshot.files.map((x) => x.name).join(', ')}</div>}
               {i > 0 && h.action !== 'delete' && <button className="btn sm soft" style={{ marginTop: 6 }} onClick={() => restore(h.snapshot)}>↩ החזר לגרסה הזו</button>}
             </div>
           )}
@@ -120,6 +122,7 @@ export default function ItemView({ ctx, id }) {
         {ALL_FIELDS.filter((k) => it.fields?.[k]).map((k) => <Field key={k} k={k} v={String(it.fields[k])} ctx={ctx} it={it} />)}
       </div>
       {it.body && <div style={{ marginTop: 10 }}><RichText text={it.body} ctx={ctx} /></div>}
+      <FilesView it={it} ctx={ctx} />
       {it.photos?.length > 0 && <div className="photos" style={{ marginTop: 10 }}>{it.photos.map((p) => <img key={p} src={p} alt="" onClick={() => setPhoto(p)} />)}</div>}
       <div className="row wrap-row" style={{ marginTop: 16 }}>
         <button className="btn primary" onClick={() => ctx.open({ t: 'edit', item: it })}>✏️ עריכה</button>

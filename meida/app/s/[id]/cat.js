@@ -4,6 +4,7 @@ import Page from '@/components/Page';
 import CoLogo from '@/components/CoLogo';
 import ItemRow from '@/components/ItemRow';
 import { RichText } from './item';
+import { FilesView } from '@/components/Files';
 import { typeOf, FIELDS, ALL_FIELDS, catOf, coOf, norm, telHref, wazeHref, copyText, itemToText, queryWords, score } from '@/lib/kb';
 
 export const generalCat = (ctx) => ctx.categories.find((c) => c.name === 'מידע כללי') || ctx.categories[0];
@@ -35,6 +36,7 @@ export function InfoCard({ it, ctx, hl }) {
         <div key={k} className="ln"><span className="k">{FIELDS[k].label}</span><span className={'v' + (FIELDS[k].tel || FIELDS[k].mono ? ' ltr' : '')}>{f[k]}</span></div>
       ))}
       {it.body && <RichText text={it.body} ctx={ctx} />}
+      {it.files?.length > 0 && <FilesView it={it} ctx={ctx} />}
       {it.photos?.length > 0 && <div className="photos">{it.photos.map((p) => <img key={p} src={p} alt="" onClick={() => ctx.openItem(it)} />)}</div>}
       <div className="row wrap-row">
         {f.address && <a className="btn sm" href={wazeHref(full)} target="_blank" rel="noreferrer">🚗 Waze</a>}
@@ -106,6 +108,7 @@ export function CompanyPage({ ctx, coId, catId }) {
         <button className="btn dashed block" onClick={() => ctx.open({ t: 'edit', draft: { tag_ids: [cat?.id, co.id].filter(Boolean), type: cat && /אחריות|תיקונ/.test(cat.name) ? 'service' : undefined } })}>➕ הוספת מידע ל{co.name}</button>
       </div>
       {stock.length > 0 && <><div className="h2">📦 חסר במלאי מ{co.name}</div>{stock.map((x) => <div key={x.id} className="card it" onClick={() => { ctx.close(); ctx.setTab('stock'); }}><div className="ic">📦</div><div className="grow"><div className="t">{x.name}</div></div></div>)}</>}
+      <button className="btn soft block" style={{ marginTop: 14 }} onClick={() => ctx.open({ t: 'finder', co: co.id })}>🏢 כל מה שיש על {co.name} — מקשים, שאלות מחיר, חוסרים…</button>
       {other.length > 0 && <><div className="h2">עוד על {co.name}</div>{other.map((it) => <ItemRow key={it.id} it={it} ctx={ctx} />)}</>}
     </Page>
   );

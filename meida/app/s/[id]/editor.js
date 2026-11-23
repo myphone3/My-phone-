@@ -5,6 +5,7 @@ import CoLogo from '@/components/CoLogo';
 import { api, ai, errText, uploadPhoto } from '@/lib/api';
 import { FIELDS, ALL_FIELDS, typeOf, imeiInfo, similarItems, norm, catOf, coOf } from '@/lib/kb';
 import { generalCat } from './cat';
+import { FilesEdit } from '@/components/Files';
 
 // ה-AI מציע חברות ונושאים בשמות — מתאימים לקטגוריה ולחברה שכבר קיימות (לא יוצרים חברות לבד)
 export function pickSuggested(ctx, s) {
@@ -21,12 +22,12 @@ export function pickSuggested(ctx, s) {
 export const aiTags = (ctx) => [...ctx.categories.map((t) => ({ kind: 'topic', name: t.name })), ...ctx.companies.map((t) => ({ kind: 'company', name: t.name }))];
 import { shrink, toAIImage } from '@/lib/image';
 
-const blank = { type: 'note', title: '', body: '', fields: {}, tag_ids: [], photos: [], pinned: false };
+const blank = { type: 'note', title: '', body: '', fields: {}, tag_ids: [], photos: [], files: [], pinned: false };
 
 // עריכה / הוספה. onDone = מצב טיוטה (ייבוא): מחזירים את הפריט במקום לשמור.
 export default function Editor({ ctx, item, draft, auto, onDone }) {
   const [d, setD] = useState(() => ({ ...blank, ...(item || {}), ...(draft || {}), fields: { ...(item?.fields || {}), ...(draft?.fields || {}) },
-    tag_ids: [...(draft?.tag_ids || item?.tag_ids || [])], type: draft?.type || item?.type || 'note' }));
+    tag_ids: [...(draft?.tag_ids || item?.tag_ids || [])], files: [...(draft?.files || item?.files || [])], type: draft?.type || item?.type || 'note' }));
   const [dupOk, setDupOk] = useState(false);
   const [allFields, setAllFields] = useState(false);
   const [busy, setBusy] = useState('');
@@ -101,7 +102,7 @@ export default function Editor({ ctx, item, draft, auto, onDone }) {
     if (onDone) { onDone({ ...out, fresh: [] }); ctx.close(); return; }
     setBusy('save'); setErr('');
     try {
-      const r = await api.saveItem(ctx.shopId, { id: item?.id, type: out.type, title, body: out.body, fields, tag_ids, photos: out.photos, pinned: out.pinned, source: item ? item.source : d.source || draft?.source });
+      const r = await api.saveItem(ctx.shopId, { id: item?.id, type: out.type, title, body: out.body, fields, tag_ids, photos: out.photos, files: out.files, pinned: out.pinned, source: item ? item.source : d.source || draft?.source });
       ctx.applyItem(r);
       ctx.toast('נשמר ✓');
       if (item) ctx.close(); else ctx.replace({ t: 'item', id: r.id });
@@ -179,6 +180,9 @@ export default function Editor({ ctx, item, draft, auto, onDone }) {
         </button>
         <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => { if (e.target.files?.length) addPhotos(e.target.files); e.target.value = ''; }} />
       </div>
+
+      <label className="lbl">📎 קבצים, סרטונים וקישורים (אפליקציה להתקנה, סרטון הסבר, אתר…)</label>
+      <FilesEdit files={d.files} onChange={(f) => set('files', f)} busy={busy} setBusy={setBusy} />
 
       <button type="button" className="toggle card" style={{ width: '100%', marginTop: 12 }} onClick={() => set('pinned', !d.pinned)}>
         <span className={'check' + (d.pinned ? ' on' : '')}>{d.pinned ? '✓' : ''}</span>

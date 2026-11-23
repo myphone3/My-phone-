@@ -6,25 +6,30 @@ import { getCached, setCached, setLastShop, clearCached, pushList } from '@/lib/
 import { indexItem, live, shopTypes } from '@/lib/kb';
 import { takeShared } from '@/lib/share';
 import { MsgIcon, GearIcon } from '@/components/Icons';
+import dynamic from 'next/dynamic';
 import HomeView from './home';
-import ItemView from './item';
-import Editor from './editor';
-import Importer from './importer';
-import Team from './team';
-import Settings from './more';
-import Ask from './ask';
-import Board from './board';
-import PostEditor from './post';
+import ItemView, { CustomerSend } from './item';
 import AsksTab, { AskNew } from './asks';
 import { CategoryPage, CompanyPage } from './cat';
 import StockTab, { StockReport, Supplier } from './stock';
 import NotesTab, { NoteEditor } from './notes';
-import Deals from './deals';
 import { SeenSheet } from '@/components/Seen';
-import { CustomerSend } from './item';
-import ImeiScan from '@/components/ImeiScan';
-import BarcodeScan from '@/components/BarcodeScan';
 import { KeysPage, SamvixPage, DeviceSheet, AddDeviceSheet, devKey } from './devices';
+
+// מסכים שלא צריך בפתיחה — נטענים אחרי שהאפליקציה כבר על המסך (כדי שהפתיחה תהיה מהירה)
+const lazy = (load) => { const C = dynamic(load, { ssr: false, loading: () => <div className="sheet-bg"><div className="spin" style={{ margin: 'auto' }} /></div> }); C.load = load; return C; };
+const Editor = lazy(() => import('./editor'));
+const Importer = lazy(() => import('./importer'));
+const Team = lazy(() => import('./team'));
+const Settings = lazy(() => import('./more'));
+const Ask = lazy(() => import('./ask'));
+const Board = lazy(() => import('./board'));
+const PostEditor = lazy(() => import('./post'));
+const Deals = lazy(() => import('./deals'));
+const Finder = lazy(() => import('./finder'));
+const ImeiScan = lazy(() => import('@/components/ImeiScan'));
+const BarcodeScan = lazy(() => import('@/components/BarcodeScan'));
+const LAZY = [Editor, Board, Finder, Settings, Ask, PostEditor, Deals, BarcodeScan, ImeiScan, Team, Importer];
 
 const LISTS = ['tags', 'items', 'posts', 'asks', 'stock', 'notes', 'deals', 'products', 'replies'];
 const seenKey = (s) => s.ref + ':' + s.ref_id + ':' + s.user_id;
@@ -104,6 +109,13 @@ export default function Shop({ params }) {
     window.addEventListener('online', tick);
     return () => { clearInterval(t); document.removeEventListener('visibilitychange', tick); window.removeEventListener('online', tick); };
   }, [user, id, refresh, loadDevs]);
+
+  // אחרי שהמסך הראשי כבר מוצג — טוענים ברקע את שאר המסכים, כדי שייפתחו מיד כשלוחצים
+  useEffect(() => {
+    const go = () => LAZY.forEach((C, i) => setTimeout(() => C.load().catch(() => {}), i * 150));
+    const t = 'requestIdleCallback' in window ? requestIdleCallback(go, { timeout: 3000 }) : setTimeout(go, 1500);
+    return () => ('cancelIdleCallback' in window ? cancelIdleCallback(t) : clearTimeout(t));
+  }, []);
 
   // ===== חלונות + כפתור "חזור" של הטלפון =====
   const open = useCallback((w) => { history.pushState({ kb: true }, ''); setStack((s) => [...s, w]); }, []);
@@ -263,6 +275,7 @@ export default function Shop({ params }) {
         if (w.t === 'cust') return <CustomerSend key={key} ctx={ctx} id={w.id} />;
         if (w.t === 'scan') return <ImeiScan key={key} ctx={ctx} onPick={w.onPick} />;
         if (w.t === 'barcode') return <BarcodeScan key={key} ctx={ctx} onPick={w.onPick} />;
+        if (w.t === 'finder') return <Finder key={key} ctx={ctx} coId={w.co} />;
         if (w.t === 'keys') return <KeysPage key={key} ctx={ctx} />;
         if (w.t === 'samvix') return <SamvixPage key={key} ctx={ctx} />;
         if (w.t === 'dev') return <DeviceSheet key={key + w.id} ctx={ctx} list={w.list} id={w.id} />;

@@ -24,7 +24,19 @@ async function cacheFirst(req, name, fetchReq) {
   return res;
 }
 
-// דף: קודם מהרשת (כדי שהשם, הלוגו והאייקון תמיד יהיו מעודכנים), ואם אין אינטרנט או שזה איטי מדי — מהעותק השמור
+// מסך החנות והמסך הראשי: נפתחים מיד מהעותק השמור בטלפון, ומתעדכנים מהשרת ברקע (הגרסה החדשה — בפתיחה הבאה).
+// ככה לא מחכים לשרת בכל פתיחה. בפעם הראשונה (אין עותק) — מהרשת.
+async function instant(e) {
+  const url = new URL(e.request.url);
+  const key = url.origin + url.pathname;
+  const cache = await caches.open(APP);
+  const hit = await cache.match(key);
+  const net = fetch(e.request).then((res) => { if (res.ok && res.type === 'basic' && !res.redirected) cache.put(key, res.clone()); return res; });
+  if (hit) { e.waitUntil(net.catch(() => {})); return hit; }
+  try { return await net; } catch { return (await cache.match(url.origin + '/')) || Response.error(); }
+}
+
+// שאר הדפים: קודם מהרשת, ואם אין אינטרנט או שזה איטי מדי — מהעותק השמור
 async function networkFirst(e) {
   const url = new URL(e.request.url);
   url.searchParams.delete('__fresh');
@@ -58,7 +70,7 @@ self.addEventListener('fetch', (e) => {
         return;
       }
       if (req.mode === 'navigate' && !url.pathname.startsWith('/api') && !url.pathname.startsWith('/auth') && !req.headers.get('RSC')) {
-        e.respondWith(networkFirst(e));
+        e.respondWith(!url.searchParams.has('__fresh') && (url.pathname === '/' || /^\/s\/[0-9a-f-]{36}\/?$/.test(url.pathname)) ? instant(e) : networkFirst(e));
         return;
       }
     }

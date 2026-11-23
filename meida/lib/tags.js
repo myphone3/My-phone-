@@ -1,7 +1,7 @@
 // התאמת שמות תגיות שה-AI הציע לתגיות שכבר קיימות בחנות (כולל עברית/אנגלית)
 import { norm } from './kb';
 
-const ALIAS = {
+export const ALIAS = {
   'סמסונג': 'samsung', 'גלקסי': 'samsung', 'אפל': 'apple', 'אייפון': 'apple', 'iphone': 'apple', 'שיאומי': 'xiaomi', 'רדמי': 'xiaomi', 'redmi': 'xiaomi',
   'גוגל': 'google', 'פיקסל': 'google', 'pixel': 'google', 'מוטורולה': 'motorola', 'נוקיה': 'nokia', 'וואווי': 'huawei', 'הואווי': 'huawei', 'וואן פלוס': 'oneplus',
   'partner': 'פרטנר', 'cellcom': 'סלקום', 'pelephone': 'פלאפון', 'hot mobile': 'הוט מובייל', 'הוט': 'הוט מובייל', 'hot': 'הוט מובייל',

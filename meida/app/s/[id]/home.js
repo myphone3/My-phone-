@@ -1,6 +1,15 @@
 'use client';
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { queryWords, score, imeiInfo, norm, copyText, untilLabel, today, ils, stockSt, noteKind, NOTE_ST } from '@/lib/kb';
+import { queryWords, score, imeiInfo, norm, copyText, untilLabel, today, ils, stockSt, noteKind, NOTE_ST, askKind, fmtWhen } from '@/lib/kb';
+
+// שאלות לצוות: מה שנטען עכשיו + ההיסטוריה המלאה (נשמרת בטלפון אחרי שפותחים "לפי חברה / דגם")
+function asksPool(ctx) {
+  let old = [];
+  try { old = JSON.parse(localStorage.getItem('kb_asks_all_' + ctx.shopId) || '[]'); } catch {}
+  const m = new Map(old.map((a) => [a.id, a]));
+  for (const a of ctx.asks) m.set(a.id, a);
+  return [...m.values()].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+}
 import ItemRow from '@/components/ItemRow';
 import CoLogo from '@/components/CoLogo';
 import { api } from '@/lib/api';
@@ -92,9 +101,10 @@ export default function HomeView({ ctx }) {
       stock: ctx.stock.filter((x) => x.status !== 'arrived' && norm(x.name).includes(w)).slice(0, 6),
       notes: ctx.notesOpen.filter((x) => norm(`${x.title} ${x.customer} ${x.phone}`).includes(w)).slice(0, 6),
       devs: searchDevices(ctx, w),
+      asks: w.length >= 2 ? asksPool(ctx).filter((a) => !a.deleted_at && norm(`${a.product} ${a.note} ${(a.answers || []).map((x) => x.note).join(' ')}`).includes(w)).slice(0, 6) : [],
     };
-  }, [qq, items, index, ctx.products, ctx.categories, ctx.companies, ctx.stock, ctx.notesOpen, ctx.devs]); // eslint-disable-line
-  const none = res && !res.devs.length && !res.info.length && !res.products.length && !res.cats.length && !res.cos.length && !res.stock.length && !res.notes.length && !imei;
+  }, [qq, items, index, ctx.products, ctx.categories, ctx.companies, ctx.stock, ctx.notesOpen, ctx.devs, ctx.asks]); // eslint-disable-line
+  const none = res && !res.devs.length && !res.info.length && !res.products.length && !res.cats.length && !res.cos.length && !res.stock.length && !res.notes.length && !res.asks.length && !imei;
 
   // חיפוש שלא מצא כלום — נרשם ל"חיפושים שלא נמצאו" (אחרי שהפסיקו להקליד)
   useEffect(() => {
@@ -130,6 +140,7 @@ export default function HomeView({ ctx }) {
             <button className="act" onClick={() => ctx.open({ t: 'edit' })}><span className="e">➕</span><span><b>הוספת מידע</b><span className="s">לכל קטגוריה</span></span></button>
             <button className="act" onClick={() => ctx.open({ t: 'keys' })}><span className="e">🔑</span><span><b>מקש לגירסה</b><span className="s">{keysDone ? `${keysDone} מתוך ${keysAll}` : 'כשרים ותומכי כשר'}</span></span></button>
             <button className="act" onClick={() => ctx.open({ t: 'samvix' })}><span className="e">🎵</span><span><b>גרסאות סמוויקס</b><span className="s">{svDone ? `${svDone} עם הוראות` : 'הוראות וסרטונים'}</span></span></button>
+            <button className="act wide" onClick={() => ctx.open({ t: 'finder' })}><span className="e">🏢</span><span><b>לפי חברה / דגם</b><span className="s">כל מה שיש: מידע, קבצים, מקשים, מי שאל מחיר ומתי, חוסרים</span></span></button>
           </div>
           <div className="h2">🗂️ קטגוריות<button className="more" onClick={() => ctx.open({ t: 'settings', view: 'category' })}>עריכה</button></div>
           {ctx.categories.length ? (
@@ -215,6 +226,16 @@ export default function HomeView({ ctx }) {
           {res.notes.length > 0 && <><div className="h2">📌 פתוחים</div><div className="list">{res.notes.map((x) => (
             <button key={x.id} className="card it" onClick={() => ctx.setTab('notes')}><div className="ic">{noteKind(x.kind).e}</div><div className="grow"><div className="t">{x.title}</div><div className="s">{x.author_name}</div></div><span className={'pill ' + NOTE_ST[x.status].cls}>{NOTE_ST[x.status].label}</span></button>
           ))}</div></>}
+          {res.asks.length > 0 && <><div className="h2">💬 שאלו על זה</div><div className="list">{res.asks.map((a) => {
+            const ans = a.answers || [];
+            const p = ans.find((x) => x.price !== null && x.price !== undefined);
+            return (
+              <button key={a.id} className="card it" onClick={() => ctx.setTab('asks')}><div className="ic">{askKind(a.kind).e}</div>
+                <div className="grow"><div className="t">{a.product || askKind(a.kind).label}</div><div className="s">{a.asked_by_name} · {fmtWhen(a.created_at)}{ans.length ? ' · ענה/תה: ' + ans[0].by_name + (ans[0].note ? ' — ' + ans[0].note : '') : ''}</div></div>
+                {p ? <b className="price">{ils(p.price)}</b> : <span className={'pill ' + (ans.length ? 'p-in' : 'p-low')}>{ans.length ? 'נענה' : 'מחכה'}</span>}
+              </button>
+            );
+          })}</div></>}
           {res.stock.length > 0 && <><div className="h2">📦 מלאי</div><div className="list">{res.stock.map((x) => (
             <button key={x.id} className="card it" onClick={() => ctx.setTab('stock')}><div className="ic">📦</div><div className="grow"><div className="t">{x.name}</div><div className="s">{coName(x.company_id)}</div></div><span className={'pill ' + stockSt(x.status, ctx.shop).cls}>{stockSt(x.status, ctx.shop).label}</span></button>
           ))}</div></>}
