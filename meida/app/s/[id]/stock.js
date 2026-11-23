@@ -101,12 +101,28 @@ export default function StockTab({ ctx }) {
 }
 
 // דיווח: איזה מוצר + מה המצב + חברה. כל העובדים מקבלים התראה.
+// בלי place קבוע (קיצור מהבית וכו׳) — בורר מעבדה / חנות בראש החלון.
 export function StockReport(props) {
-  return props.place === 'lab' ? <LabReport ctx={props.ctx} /> : <ShopReport {...props} />;
+  const fixed = props.place === 'lab' || props.place === 'shop';
+  const product = !!(props.name || props.companyId || props.fromNote);
+  const [place, setPlace0] = useState(fixed ? props.place : 'shop');
+  useEffect(() => {
+    if (fixed || product) return;
+    try { const v = localStorage.getItem(PLACE_KEY); if (v === 'shop' || v === 'lab') setPlace0(v); } catch {}
+  }, []); // eslint-disable-line
+  const setPlace = (v) => { setPlace0(v); try { localStorage.setItem(PLACE_KEY, v); } catch {} };
+  const where = fixed ? null : (
+    <div className="where">
+      {[['lab', '🔧 מעבדה'], ['shop', '🏪 חנות']].map(([k, t]) => (
+        <button key={k} className={(place === k ? 'on ' : '') + k} onClick={() => setPlace(k)}>{t}</button>
+      ))}
+    </div>
+  );
+  return place === 'lab' ? <LabReport ctx={props.ctx} where={where} /> : <ShopReport {...props} where={where} />;
 }
 
 // מעבדה: מה חסר (מסך / סוללה…) + לאיזה מכשיר + כמה. בלי תמונות, בלי חברה.
-function LabReport({ ctx }) {
+function LabReport({ ctx, where }) {
   const [part, setPart] = useState('screen');
   const [model, setModel] = useState('');
   const [qty, setQty] = useState(null);
@@ -134,6 +150,7 @@ function LabReport({ ctx }) {
   return (
     <Sheet onClose={() => !busy && ctx.close()}>
       <div className="sheet-head"><h2>🔧 חסר למעבדה</h2><button className="icon-btn" onClick={ctx.close} aria-label="סגירה">✕</button></div>
+      {where}
       <label className="lbl">1 · מה חסר?</label>
       <div className="choices">
         {LAB_PARTS.map((p) => <button key={p.k} className={'choice' + (part === p.k ? ' on' : '')} onClick={() => setPart(p.k)}>{p.e} {p.label}</button>)}
@@ -156,7 +173,7 @@ function LabReport({ ctx }) {
   );
 }
 
-function ShopReport({ ctx, name: name0 = '', companyId, fromNote }) {
+function ShopReport({ ctx, name: name0 = '', companyId, fromNote, where }) {
   const [name, setName] = useState(name0);
   const [qty, setQty] = useState(null);
   const [status, setStatus] = useState('out');
@@ -187,6 +204,7 @@ function ShopReport({ ctx, name: name0 = '', companyId, fromNote }) {
   return (
     <Sheet onClose={() => !busy && ctx.close()}>
       <div className="sheet-head"><h2>📦 חסר במלאי</h2><button className="icon-btn" onClick={ctx.close} aria-label="סגירה">✕</button></div>
+      {where}
       <label className="lbl">1 · איזה מוצר?</label>
       <div className="row">
         <input className="input grow" value={name} onChange={(e) => setName(e.target.value)} placeholder="למשל: מטען 25W" autoFocus={!name0} />
