@@ -7,6 +7,7 @@ const KP = 'https://kosher-phone.com/uploads/';
 
 // [id, שם, חברה, kind: kosher | ready, תמונה]
 export const PHONES = [
+  ["qlx-x40", "ציקלון X40", "קיוליקס", "kosher", ""], // עוד לא באתר — הוסף ידנית (נובמבר 2026)
   ["kp-cmsf27as500ywci0z4vu8zig3", "ציקלון X30", "קיוליקס", "kosher", KP + "1785872178139-zpuu5t.webp"],
   ["kp-cms7alel601nfoz1v4y215s7s", "KING G7", "קינג", "kosher", KP + "1792685031391-3pg0yd.webp"],
   ["kp-cmq6qjimk01a7x3lc4d31298q", "F16", "פירסט פון", "kosher", KP + "1792881118438-4hsmb9.webp"],
@@ -28,6 +29,8 @@ export const PHONES = [
   ["kp-cmoijk30e000i2qg77oov8qh7", "BRS B1", "BRS", "kosher", KP + "1792881150635-ry0r6l.webp"],
   ["kp-cmofibggp000n10i8stojy8wy", "Q8", "קיוליקס", "kosher", KP + "1785854033592-6eq9hh.webp"],
   ["kp-cmoa9m02n0004xql2zjspj92b", "D30", "קיוליקס", "kosher", KP + "1776875025622-9xxt8e.webp"],
+  ["kp-cmwt4zwnf0027m5vk97759h6m", "Nokia 125 (2024)", "נוקיה", "ready", KP + "1795430475107-8y60h0.jpg"],
+  ["kp-cmwt4zvyn001jm5vk7so3on05", "Nokia 108 (2024)", "נוקיה", "ready", KP + "1795430474125-drr6nu.jpg"],
   ["kp-cmwqombd7002g12fk1mm1e9nj", "Nokia 210 (2026)", "נוקיה", "ready", KP + "1795281996209-elvf8i.jpg"],
   ["kp-cmwqomaz7001l12fkjzjabb8o", "Nokia 200 (2026)", "נוקיה", "ready", KP + "1795281994389-nolee1.jpg"],
   ["kp-cmw4v9bsh0epfopto6t7ynyin", "Nokia 235 (2026)", "נוקיה", "ready", KP + "1793962351647-zmqmui.jpg"],
