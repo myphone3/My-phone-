@@ -1123,6 +1123,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   // every phone sold on kosher-phone.com (kosher and kosher-ready; no Hadran, home cordless phones or tablets), with its photo from the site
   // [name, maker, photo, other names it may already be saved under]
   var SITE_IMG = "https://kosher-phone.com/uploads/";
+  // devices that came to the site after the first sync (November 2026); added once to existing lists too
+  var SITE_NEW_2 = ["Nokia 108", "Nokia 125", "Nokia 200-2026", "Nokia 210-2026", "FIG Core שיחות בלבד"];
   var SITE_DEVICES = [
     ["Q3", "QLYX", "1780491236390-lhd1ua.avif", ["qlyx q3", "q3 g4"]],
     ["Q7", "QLYX", "1792881150231-fqrfjg.webp", ["qlyx q7"]],
@@ -1153,7 +1155,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     ["Xiaomi Qin J36", "שיאומי", "1792859943824-hq02we.webp", ["qin j36"]],
     ["Xiaomi Qin 3 Ultra", "שיאומי", "1792767101132-vc9wlo.webp", ["qin 3 ultra", "קין 3 אולטרה"]],
     ["Nokia 105", "נוקיה", "1792871985690-nzxj9x.jpg", ["nokia 105 4g"]],
+    ["Nokia 108", "נוקיה", "1795430474125-drr6nu.jpg", ["nokia 108 4g", "nokia 108 2024"]],
     ["Nokia 110", "נוקיה", "1792872080027-j9od6i.jpg", ["nokia 110 4g"]],
+    ["Nokia 125", "נוקיה", "1795430475107-8y60h0.jpg", ["nokia 125 4g", "nokia 125 2024"]],
+    ["Nokia 200-2026", "נוקיה", "1795281994389-nolee1.jpg", ["nokia 200", "nokia 200 2026"]],
+    ["Nokia 210-2026", "נוקיה", "1795281996209-elvf8i.jpg", ["nokia 210", "nokia 210 2026"]],
     ["Nokia 215-2024", "נוקיה", "1792872090539-b0gqjj.jpg", ["nokia 215", "nokia 215 2024"]],
     ["Nokia 215-2026", "נוקיה", "1792872084331-ozcud8.jpg", ["nokia 215 2026"]],
     ["Nokia 225", "נוקיה", "1792872092142-3jibwu.jpg", ["nokia 225 2020"]],
@@ -1167,6 +1173,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     ["FIG 4", "פיג", "1792881098856-nvevdg.webp", ["fig iv"]],
     ["FIG Bar", "פיג", "1793014602404-ikm4o0.webp", []],
     ["FIG Core", "פיג", "1792881123555-1y8fm8.webp", []],
+    ["FIG Core שיחות בלבד", "פיג", "1784226653946-6rcuhm.jpg", ["fig core calls"]],
     ["FIG Mini II", "פיג", "1792881123319-oy7prz.webp", ["fig mini 2"]],
     ["Galaxy A07 וויז", "סמסונג", "1792881149816-77n24g.webp", ["a07", "samsung a07"]],
     ["TIQ Mini M5S", "טיק", "1792881096831-nm4xh3.webp", ["tiq m5s", "m5s"]],
@@ -1519,6 +1526,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     addModelPack("pack-nokia-1", NOKIA_MODELS, null, "דגמי נוקיה ושיאומי");
     addModelPack("pack-nokia-2", ["Nokia 225-2024"], "Nokia 225", "דגמי נוקיה");
     syncSiteDevices("pack-site-1");
+    syncSiteDevices("pack-site-2", SITE_NEW_2);
     dropSiteDevices("pack-site-drop-1", ["Motorola S3001", "Panasonic KX-TGD310", "TabKosher"]);
     dropSiteDevices("pack-site-drop-2", ["Galaxy Tab A11 הדרן"]);
     dropSiteDevices("pack-site-drop-3", ["Galaxy S25 הדרן"]);
@@ -1578,12 +1586,14 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   function addKosherModels() { addModelPack("pack-kosher-1", KOSHER_MODELS, "כשר", "דגמי מכשירים כשרים"); }
   // one-time: every device on kosher-phone.com. Models already in the list get the site photo and maker
   // (a photo you picked yourself is kept); the missing ones are added after the last device.
-  function syncSiteDevices(packId) {
+  // only: limit the sync to these names (a later sync adds just the new devices, so deleted ones don't come back)
+  function syncSiteDevices(packId, only) {
     if (!activeAcct() || isMember() || state.cfgTarget) return;
     var list = types();
     if (list.some(function (t) { return t.id === packId; })) return;
+    var devs = only ? SITE_DEVICES.filter(function (d) { return only.indexOf(d[0]) >= 0; }) : SITE_DEVICES;
     var keyOf = {};
-    SITE_DEVICES.forEach(function (d, i) { [d[0]].concat(d[3]).forEach(function (k) { keyOf[norm(k)] = i; keyOf[norm(k).replace(/ /g, "")] = i; }); });
+    devs.forEach(function (d, i) { [d[0]].concat(d[3]).forEach(function (k) { keyOf[norm(k)] = i; keyOf[norm(k).replace(/ /g, "")] = i; }); });
     var found = {}, fixed = 0;
     var next = list.map(function (t) {
       t = Object.assign({}, t);
@@ -1591,12 +1601,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
       var n = norm(BRAND_FIX[t.name] || t.name), i = n in keyOf ? keyOf[n] : keyOf[n.replace(/ /g, "")];
       if (i == null || found[i] != null) return t;
       found[i] = 1;
-      var d = SITE_DEVICES[i];
+      var d = devs[i];
       if (!t.img) { t.img = SITE_IMG + d[2]; fixed++; }
       if (!t.brand) t.brand = d[1];
       return t;
     });
-    var base = uid(), add = SITE_DEVICES.filter(function (d, i) { return found[i] == null; }).map(function (d, i) {
+    var base = uid(), add = devs.filter(function (d, i) { return found[i] == null; }).map(function (d, i) {
       return { id: "s-" + base + "-" + i, kind: "device", name: d[0], ultra: false, amount: null, img: SITE_IMG + d[2], brand: d[1] };
     });
     var at = next.length - 1; next.forEach(function (t, i) { if (t.kind === "device") at = i; });
