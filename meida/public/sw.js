@@ -97,7 +97,9 @@ self.addEventListener('push', (e) => {
   try { d = e.data.json(); } catch { d = { title: 'מידע לחנות', body: e.data && e.data.text() }; }
   e.waitUntil(self.registration.showNotification(d.title || 'מידע לחנות', {
     body: d.body || '', tag: d.tag, renotify: true, icon: d.icon || '/icon-192.png', badge: '/badge.png',
-    dir: 'rtl', lang: 'he', data: { url: d.url || '/' },
+    dir: 'rtl', lang: 'he', data: { url: d.url || '/', acts: d.acts || {} },
+    // כפתורים בהתראה (באנדרואיד; באייפון לא מוצגים — לחיצה רגילה פותחת את הפריט)
+    actions: Array.isArray(d.actions) ? d.actions.slice(0, 2) : undefined,
     // הודעה דחופה נשארת על המסך עד שנוגעים בה, ועם רטט חזק
     requireInteraction: !!d.urgent, vibrate: d.urgent ? [300, 120, 300, 120, 300] : undefined,
   }));
@@ -105,7 +107,8 @@ self.addEventListener('push', (e) => {
 
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();
-  const url = (e.notification.data && e.notification.data.url) || '/';
+  const data = e.notification.data || {};
+  const url = (e.action && data.acts && data.acts[e.action]) || data.url || '/';
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
     for (const c of list) { if ('navigate' in c && 'focus' in c) return c.navigate(url).then((w) => (w || c).focus()); }
     return self.clients.openWindow(url);

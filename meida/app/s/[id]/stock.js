@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Sheet from '@/components/Sheet';
 import CoLogo from '@/components/CoLogo';
 import { SeenLine } from '@/components/Seen';
@@ -10,6 +10,8 @@ const OPEN = ['out', 'low'];
 const placeOf = (x) => (x.place === 'lab' ? 'lab' : 'shop');
 const qtyTxt = (x) => (x.qty ? ` — כמות: ${x.qty}` : '');
 const PLACE_KEY = 'kb-stock-place';
+export const FOCUS_KEY = 'kb-stock-focus';
+const dayMs = 86400000;
 
 // כמות — לא חובה. לוחצים "הוספת כמות" ומופיע + / −
 function QtyPicker({ qty, setQty }) {
@@ -38,6 +40,25 @@ export default function StockTab({ ctx }) {
   const cnt = (s) => mine.filter((x) => (s === 'open' ? OPEN.includes(x.status) : x.status === s)).length;
   const openIn = (p) => ctx.stock.filter((x) => placeOf(x) === p && OPEN.includes(x.status)).length;
   useEffect(() => { ctx.markSeen('stock', ctx.stock.filter((x) => x.status !== 'arrived'), 'created_by'); }, [ctx.stock.length]); // eslint-disable-line
+  // נפתח מהתראה: עוברים לפריט ומדגישים אותו
+  const [hl, setHl] = useState('');
+  const stockRef = useRef(ctx.stock); stockRef.current = ctx.stock;
+  useEffect(() => {
+    const go = () => {
+      let id = ''; try { id = sessionStorage.getItem(FOCUS_KEY) || ''; } catch {}
+      const x = id && stockRef.current.find((y) => y.id === id);
+      if (!x) return;
+      try { sessionStorage.removeItem(FOCUS_KEY); } catch {}
+      setPlace0(placeOf(x)); setPart('');
+      setF(OPEN.includes(x.status) ? 'open' : x.status === 'ordered' ? 'ordered' : 'arrived');
+      setHl(id);
+      setTimeout(() => document.getElementById('st-' + id)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 80);
+      setTimeout(() => setHl(''), 4000);
+    };
+    go();
+    window.addEventListener(FOCUS_KEY, go);
+    return () => window.removeEventListener(FOCUS_KEY, go);
+  }, []); // eslint-disable-line
 
   async function set(x, status) {
     try { const r = await api.saveStock(ctx.shopId, { id: x.id, status }); ctx.apply('stock', r); ctx.toast(status === 'arrived' ? 'סומן שהגיע ✓' : 'סומן שהוזמן'); }
@@ -58,6 +79,7 @@ export default function StockTab({ ctx }) {
         <button className="btn primary big" style={{ flex: 2 }} onClick={() => ctx.open({ t: 'report', place })}>➕ {lab ? 'חסר למעבדה' : 'דיווח חוסר'}</button>
         <button className="btn big" style={{ flex: 1 }} onClick={() => ctx.open({ t: 'supplier', place })}>📤 לספק</button>
       </div>
+      <button className="btn sm block" style={{ marginTop: 8 }} onClick={() => ctx.open({ t: 'month' })}>📊 סיכום חודשי</button>
       {lab && (
         <div className="chips" style={{ paddingBottom: 0 }}>
           <button className={'chip' + (!part ? ' on' : '')} onClick={() => setPart('')}>הכל</button>
@@ -75,12 +97,12 @@ export default function StockTab({ ctx }) {
           const st = stockSt(x.status, ctx.shop);
           const co = ctx.tagsById[x.company_id];
           return (
-            <div key={x.id} className="card srow">
+            <div key={x.id} id={'st-' + x.id} className={'card srow' + (hl === x.id ? ' hl' : '')}>
               <div className="top2">
                 {placeOf(x) === 'lab' ? <span className="e">{labPart(x.part).e}</span> : co ? <CoLogo co={co} size={32} /> : <span className="e">📦</span>}
                 <div className="grow">
                   <b>{x.name}</b>{x.qty ? <span className="qty">{x.qty} יח׳</span> : null}
-                  <div className="muted small">{[co?.name, `${x.created_by_name}, ${timeAgo(x.created_at)}`, x.note, x.status_by_name && x.status_by_name !== x.created_by_name && `${st.label}: ${x.status_by_name}`].filter(Boolean).join(' · ')}</div>
+                  <div className="muted small">{[co?.name, `${x.created_by_name}, ${timeAgo(x.created_at)}`, x.note, x.status === 'arrived' && x.supplier && `הגיע מ: ${x.supplier}`, x.status_by_name && x.status_by_name !== x.created_by_name && `${st.label}: ${x.status_by_name}`].filter(Boolean).join(' · ')}</div>
                 </div>
                 <span className={'pill ' + st.cls}>{st.label}</span>
               </div>
@@ -88,7 +110,7 @@ export default function StockTab({ ctx }) {
               {x.status !== 'arrived' ? (
                 <div className="row" style={{ gap: 8 }}>
                   {x.status !== 'ordered' && <button className="btn blue grow" onClick={() => set(x, 'ordered')}>🔵 {stockSt('ordered', ctx.shop).label === 'הוזמן' ? 'הזמנתי' : stockSt('ordered', ctx.shop).label}</button>}
-                  <button className="btn ok grow" onClick={() => set(x, 'arrived')}>✓ {stockSt('arrived', ctx.shop).label} למלאי</button>
+                  <button className="btn ok grow" onClick={() => ctx.open({ t: 'arrive', id: x.id })}>✓ {stockSt('arrived', ctx.shop).label} למלאי</button>
                   {(x.created_by === ctx.me || ctx.isAdmin) && <button className="btn" onClick={() => del(x)} aria-label="מחיקה">🗑️</button>}
                 </div>
               ) : <div className="row"><button className="btn sm" onClick={() => set(x, 'out')}>↩ שוב חסר</button></div>}
@@ -118,11 +140,174 @@ export function StockReport(props) {
       ))}
     </div>
   );
-  return place === 'lab' ? <LabReport ctx={props.ctx} where={where} /> : <ShopReport {...props} where={where} />;
+  const again = product ? null : <AgainChips ctx={props.ctx} place={place} />;
+  return place === 'lab' ? <LabReport ctx={props.ctx} where={where} again={again} /> : <ShopReport {...props} where={where} again={again} />;
+}
+
+// "היה חסר לאחרונה": מה שהגיע ב-30 הימים האחרונים ולא חסר עכשיו — לחיצה אחת מחזירה לרשימה
+function AgainChips({ ctx, place }) {
+  const [busy, setBusy] = useState('');
+  const list = useMemo(() => {
+    const open = new Set(ctx.stock.filter((x) => placeOf(x) === place && x.status !== 'arrived' && !x.deleted_at).map((x) => norm(x.name)));
+    const seen = new Set(); const out = [];
+    for (const x of [...ctx.stock].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))) {
+      const k = norm(x.name);
+      if (placeOf(x) !== place || x.status !== 'arrived' || x.deleted_at || open.has(k) || seen.has(k)) continue;
+      seen.add(k); out.push(x);
+      if (out.length >= 6) break;
+    }
+    return out;
+  }, [ctx.stock, place]);
+  if (!list.length) return null;
+  async function again(x) {
+    if (busy) return;
+    setBusy(x.id);
+    try {
+      const r = await api.saveStock(ctx.shopId, { name: x.name, place: placeOf(x), part: x.part, company_id: x.company_id || '', status: 'out' });
+      ctx.apply('stock', r);
+      ctx.notify({ stock: r.id });
+      ctx.toast(`✓ ${x.name} — חזר לחסר`);
+      ctx.close();
+    } catch (e) { ctx.toast(errText(e)); setBusy(''); }
+  }
+  return (
+    <div className="again-box">
+      <b>↩ היה חסר לאחרונה</b>
+      <div className="small">לחיצה אחת — וזה חוזר לרשימת החוסרים</div>
+      <div className="chips wrapped" style={{ paddingTop: 4 }}>
+        {list.map((x) => <button key={x.id} className="chip again" disabled={!!busy} onClick={() => again(x)}>{placeOf(x) === 'lab' ? labPart(x.part).e : '📦'} {busy === x.id ? 'שולח…' : x.name}</button>)}
+      </div>
+    </div>
+  );
+}
+
+// "הגיע" — עם ספק (לא חובה). הספקים נשמרים לבד.
+let suppliersCache = null;
+export function ArriveSheet({ ctx, id, already }) {
+  const x = ctx.stock.find((y) => y.id === id);
+  const [list, setList] = useState(suppliersCache || []);
+  const [pick, setPick] = useState(x?.supplier || '');
+  const [adding, setAdding] = useState(false);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    api.stockSuppliers(ctx.shopId).then((l) => { suppliersCache = l || []; setList(suppliersCache); }).catch(() => {});
+  }, []); // eslint-disable-line
+  if (!x) return null;
+  const all = [...new Set([...list, ...(pick ? [pick] : [])])];
+  async function save(supplier) {
+    setBusy(true);
+    try {
+      const r = await api.saveStock(ctx.shopId, { id: x.id, status: 'arrived', supplier: supplier.trim() });
+      ctx.apply('stock', r);
+      if (supplier.trim() && !list.includes(supplier.trim())) suppliersCache = [supplier.trim(), ...list];
+      ctx.toast(supplier.trim() ? `סומן שהגיע מ${supplier.trim()} ✓` : 'סומן שהגיע ✓');
+      ctx.close();
+    } catch (e) { ctx.toast(errText(e)); setBusy(false); }
+  }
+  return (
+    <Sheet onClose={() => !busy && ctx.close()}>
+      <div className="sheet-head"><h2>✓ {already ? 'סומן שהגיע' : 'הגיע'}: {x.name}</h2><button className="icon-btn" onClick={ctx.close} aria-label="סגירה">✕</button></div>
+      <label className="lbl">מאיזה ספק הגיע? (לא חובה)</label>
+      <div className="chips wrapped" style={{ paddingTop: 0 }}>
+        {all.map((n) => <button key={n} className={'chip big' + (pick === n ? ' on' : '')} onClick={() => setPick(pick === n ? '' : n)}>{n}</button>)}
+        {!adding && <button className="chip big add" onClick={() => setAdding(true)}>+ ספק חדש</button>}
+      </div>
+      {adding && <input className="input" style={{ marginTop: 8 }} autoFocus value={pick} onChange={(e) => setPick(e.target.value)} placeholder="שם הספק" maxLength={80} />}
+      <div className="muted small" style={{ marginTop: 8 }}>הספקים נשמרים לבד — בפעם הבאה הם כבר מופיעים כאן.</div>
+      <div className="row" style={{ gap: 8, marginTop: 14 }}>
+        <button className="btn primary big" style={{ flex: 2 }} disabled={busy} onClick={() => save(pick)}>{busy ? 'שומר…' : 'שמירה'}</button>
+        <button className="btn big" style={{ flex: 1 }} disabled={busy} onClick={() => (already && !x.supplier ? ctx.close() : save(''))}>בלי ספק</button>
+      </div>
+    </Sheet>
+  );
+}
+
+// סיכום חודשי: כמה חסר, מה הכי הרבה, ולפי ספק — כמה הגיע ותוך כמה ימים
+const MONTHS = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'];
+export function MonthSheet({ ctx }) {
+  const [off, setOff] = useState(0);
+  const [rows, setRows] = useState(null);
+  const [err, setErr] = useState('');
+  const now = new Date();
+  const from = new Date(now.getFullYear(), now.getMonth() + off, 1);
+  const to = new Date(now.getFullYear(), now.getMonth() + off + 1, 1);
+  const req = useRef(0);
+  useEffect(() => {
+    const n = ++req.current; setRows(null); setErr('');
+    api.stockRange(ctx.shopId, from.toISOString(), to.toISOString())
+      .then((r) => { if (n === req.current) setRows(r || []); })
+      .catch((e) => { if (n === req.current) setErr(errText(e)); });
+  }, [off]); // eslint-disable-line
+  const s = useMemo(() => {
+    if (!rows) return null;
+    const inM = (d) => d && new Date(d) >= from && new Date(d) < to;
+    const rep = rows.filter((x) => inM(x.created_at));
+    const top = {};
+    for (const x of rep) { const k = placeOf(x) + '|' + norm(x.name); (top[k] ||= { x, n: 0 }).n++; }
+    const tops = Object.values(top).sort((a, b) => b.n - a.n).slice(0, 6);
+    const sup = {};
+    for (const x of rows.filter((y) => y.status === 'arrived' && inM(y.arrived_at))) {
+      const k = x.supplier || '';
+      const g = (sup[k] ||= { name: k, n: 0, days: 0, dn: 0 });
+      g.n++;
+      const d = (new Date(x.arrived_at) - new Date(x.created_at)) / dayMs;
+      if (d >= 0) { g.days += d; g.dn++; }
+    }
+    const sups = Object.values(sup).sort((a, b) => (a.name ? 0 : 1) - (b.name ? 0 : 1) || b.n - a.n);
+    return {
+      total: rep.length, lab: rep.filter((x) => placeOf(x) === 'lab').length, shop: rep.filter((x) => placeOf(x) === 'shop').length,
+      tops, max: tops[0]?.n || 1, sups, waiting: rep.filter((x) => x.status !== 'arrived').length,
+    };
+  }, [rows]); // eslint-disable-line
+  const avg = (g) => { if (!g.dn) return ''; const d = Math.round(g.days / g.dn); return d < 1 ? ' · באותו יום' : d === 1 ? ' · ממוצע יום' : ` · ממוצע ${d} ימים`; };
+  return (
+    <Sheet onClose={ctx.close}>
+      <div className="sheet-head">
+        <button className="icon-btn" onClick={() => setOff(off - 1)} aria-label="חודש קודם">›</button>
+        <h2 className="center">📊 {MONTHS[from.getMonth()]} {from.getFullYear()}</h2>
+        <button className="icon-btn" disabled={off >= 0} onClick={() => setOff(off + 1)} aria-label="חודש הבא">‹</button>
+        <button className="icon-btn" onClick={ctx.close} aria-label="סגירה">✕</button>
+      </div>
+      {err && <div className="err">{err}</div>}
+      {!s && !err && <div className="empty">טוען…</div>}
+      {s && (
+        <>
+          <div className="m-stats">
+            <div className="card"><b>{s.total}</b><span>דיווחי חוסר</span></div>
+            <div className="card lab"><b>{s.lab}</b><span>🔧 מעבדה</span></div>
+            <div className="card shop"><b>{s.shop}</b><span>🏪 חנות</span></div>
+          </div>
+          {!s.total && !s.sups.length && <div className="empty"><div className="e">📭</div>לא היו דיווחים בחודש הזה</div>}
+          {s.tops.length > 0 && (
+            <div className="card pad" style={{ marginTop: 10 }}>
+              <div className="m-h">הכי הרבה חסר</div>
+              {s.tops.map(({ x, n }) => (
+                <div key={x.id} className="m-row">
+                  <span className="m-name">{placeOf(x) === 'lab' ? labPart(x.part).e : '📦'} {x.name}</span>
+                  <div className="grow"><div className="m-bar" style={{ width: Math.round((n / s.max) * 100) + '%' }} /></div>
+                  <b className="m-n">{n}</b>
+                </div>
+              ))}
+              {s.tops[0].n > 1 && <div className="muted small" style={{ marginTop: 10 }}>💡 מה שחוזר הרבה — כדאי להחזיק במלאי מראש</div>}
+            </div>
+          )}
+          {s.sups.length > 0 && (
+            <div className="card pad" style={{ marginTop: 10 }}>
+              <div className="m-h">מה הגיע — לפי ספק</div>
+              {s.sups.map((g) => (
+                <div key={g.name || '-'} className="m-row"><b className="grow">{g.name || 'בלי ספק'}</b><span className="muted">{g.n} הגיעו{avg(g)}</span></div>
+              ))}
+            </div>
+          )}
+          {s.waiting > 0 && <div className="card pad row" style={{ marginTop: 10 }}><span className="grow">⏳ דווחו החודש ועדיין לא הגיעו</span><b style={{ color: 'var(--amber)' }}>{s.waiting}</b></div>}
+        </>
+      )}
+    </Sheet>
+  );
 }
 
 // מעבדה: מה חסר (מסך / סוללה…) + לאיזה מכשיר + כמה. בלי תמונות, בלי חברה.
-function LabReport({ ctx, where }) {
+function LabReport({ ctx, where, again }) {
   const [part, setPart] = useState('screen');
   const [model, setModel] = useState('');
   const [qty, setQty] = useState(null);
@@ -151,6 +336,7 @@ function LabReport({ ctx, where }) {
     <Sheet onClose={() => !busy && ctx.close()}>
       <div className="sheet-head"><h2>🔧 חסר למעבדה</h2><button className="icon-btn" onClick={ctx.close} aria-label="סגירה">✕</button></div>
       {where}
+      {again}
       <label className="lbl">1 · מה חסר?</label>
       <div className="choices">
         {LAB_PARTS.map((p) => <button key={p.k} className={'choice' + (part === p.k ? ' on' : '')} onClick={() => setPart(p.k)}>{p.e} {p.label}</button>)}
@@ -173,7 +359,7 @@ function LabReport({ ctx, where }) {
   );
 }
 
-function ShopReport({ ctx, name: name0 = '', companyId, fromNote, where }) {
+function ShopReport({ ctx, name: name0 = '', companyId, fromNote, where, again }) {
   const [name, setName] = useState(name0);
   const [qty, setQty] = useState(null);
   const [status, setStatus] = useState('out');
@@ -205,6 +391,7 @@ function ShopReport({ ctx, name: name0 = '', companyId, fromNote, where }) {
     <Sheet onClose={() => !busy && ctx.close()}>
       <div className="sheet-head"><h2>📦 חסר במלאי</h2><button className="icon-btn" onClick={ctx.close} aria-label="סגירה">✕</button></div>
       {where}
+      {again}
       <label className="lbl">1 · איזה מוצר?</label>
       <div className="row">
         <input className="input grow" value={name} onChange={(e) => setName(e.target.value)} placeholder="למשל: מטען 25W" autoFocus={!name0} />

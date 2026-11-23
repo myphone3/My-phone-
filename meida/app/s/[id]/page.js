@@ -11,7 +11,7 @@ import HomeView from './home';
 import ItemView, { CustomerSend } from './item';
 import AsksTab, { AskNew } from './asks';
 import { CategoryPage, CompanyPage } from './cat';
-import StockTab, { StockReport, Supplier } from './stock';
+import StockTab, { StockReport, Supplier, ArriveSheet, MonthSheet, FOCUS_KEY } from './stock';
 import NotesTab, { NoteEditor } from './notes';
 import { SeenSheet } from '@/components/Seen';
 import { KeysPage, SamvixPage, DeviceSheet, AddDeviceSheet, devKey } from './devices';
@@ -144,7 +144,19 @@ export default function Shop({ params }) {
     else if (sp.has('board')) open({ t: 'board' });
     else if (sp.has('asks')) setTab('asks');
     else if (sp.has('notes')) setTab('notes');
-    else if (sp.has('stock')) setTab('stock');
+    else if (sp.has('stock')) {
+      // מהתראת מלאי: "✓ הגיע" מסמן מיד (ואפשר להוסיף ספק), לחיצה רגילה מדגישה את הפריט
+      const arrived = sp.get('arrived'), focus = sp.get('focus');
+      const focusOn = (fid) => { try { sessionStorage.setItem(FOCUS_KEY, fid); } catch {} setTimeout(() => window.dispatchEvent(new Event(FOCUS_KEY)), 50); };
+      setTab('stock');
+      if (focus) focusOn(focus);
+      if (arrived && /^[0-9a-f-]{36}$/.test(arrived)) {
+        api.saveStock(id, { id: arrived, status: 'arrived' })
+          .then((r) => { apply('stock', r); focusOn(arrived); setTimeout(() => refresh(), 2500); // אם הטעינה הראשונה חזרה אחרי השמירה
+            toast('סומן שהגיע ✓'); open({ t: 'arrive', id: arrived, already: true }); })
+          .catch((e) => toast(errText(e)));
+      }
+    }
   }, [!!data?.shop]); // eslint-disable-line
 
   const tagsById = useMemo(() => Object.fromEntries((data?.tags || []).map((t) => [t.id, t])), [data?.tags]);
@@ -268,6 +280,8 @@ export default function Shop({ params }) {
         if (w.t === 'cat') return <CategoryPage key={key} ctx={ctx} catId={w.id} />;
         if (w.t === 'co') return <CompanyPage key={key} ctx={ctx} coId={w.id} catId={w.cat} />;
         if (w.t === 'report') return <StockReport key={key} ctx={ctx} place={w.place} name={w.name} companyId={w.company_id} fromNote={w.fromNote} />;
+        if (w.t === 'arrive') return <ArriveSheet key={key} ctx={ctx} id={w.id} already={w.already} />;
+        if (w.t === 'month') return <MonthSheet key={key} ctx={ctx} />;
         if (w.t === 'supplier') return <Supplier key={key} ctx={ctx} place={w.place} />;
         if (w.t === 'note') return <NoteEditor key={key} ctx={ctx} note={w.note} />;
         if (w.t === 'deals') return <Deals key={key} ctx={ctx} />;
