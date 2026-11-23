@@ -11,6 +11,19 @@ const placeOf = (x) => (x.place === 'lab' ? 'lab' : 'shop');
 const qtyTxt = (x) => (x.qty ? ` — כמות: ${x.qty}` : '');
 const PLACE_KEY = 'kb-stock-place';
 
+// כמות — לא חובה. לוחצים "הוספת כמות" ומופיע + / −
+function QtyPicker({ qty, setQty }) {
+  if (!qty) return <button className="btn dashed" onClick={() => setQty(1)}>➕ הוספת כמות</button>;
+  return (
+    <div className="stepper">
+      <button className="btn" onClick={() => setQty(Math.max(1, qty - 1))} aria-label="פחות">−</button>
+      <b>{qty}</b>
+      <button className="btn" onClick={() => setQty(Math.min(999, qty + 1))} aria-label="יותר">+</button>
+      <button className="btn sm" style={{ marginInlineStart: 6 }} onClick={() => setQty(null)}>בלי כמות</button>
+    </div>
+  );
+}
+
 export default function StockTab({ ctx }) {
   const [f, setF] = useState('open');
   const [place, setPlace0] = useState('lab');
@@ -96,7 +109,7 @@ export function StockReport(props) {
 function LabReport({ ctx }) {
   const [part, setPart] = useState('screen');
   const [model, setModel] = useState('');
-  const [qty, setQty] = useState(1);
+  const [qty, setQty] = useState(null);
   const [status, setStatus] = useState('out');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
@@ -111,7 +124,7 @@ function LabReport({ ctx }) {
     if (!m) { setErr(P.pre ? 'לאיזה מכשיר?' : 'מה בדיוק חסר?'); return; }
     setBusy(true); setErr('');
     try {
-      const r = await api.saveStock(ctx.shopId, { name: P.pre ? `${P.label} ${m}` : m, place: 'lab', part, qty, status, note: note.trim() });
+      const r = await api.saveStock(ctx.shopId, { name: P.pre ? `${P.label} ${m}` : m, place: 'lab', part, qty: qty || null, status, note: note.trim() });
       ctx.apply('stock', r);
       ctx.notify({ stock: r.id });
       ctx.toast('דווח ✓ כולם קיבלו התראה');
@@ -128,12 +141,8 @@ function LabReport({ ctx }) {
       <label className="lbl">2 · {P.pre ? 'לאיזה מכשיר?' : 'מה בדיוק?'}</label>
       <input className="input" value={model} onChange={(e) => setModel(e.target.value)} placeholder={P.pre ? 'למשל: Galaxy A14 / iPhone 11 / Nokia 105' : part === 'tool' ? 'למשל: דבק B-7000' : 'למשל: רמקול Galaxy A14'} />
       {sugg.length > 0 && <div className="chips wrapped">{sugg.map((n) => <button key={n} className="chip" onClick={() => setModel(n)}>{n}</button>)}</div>}
-      <label className="lbl">3 · כמה?</label>
-      <div className="stepper">
-        <button className="btn" onClick={() => setQty(Math.max(1, qty - 1))} aria-label="פחות">−</button>
-        <b>{qty}</b>
-        <button className="btn" onClick={() => setQty(Math.min(999, qty + 1))} aria-label="יותר">+</button>
-      </div>
+      <label className="lbl">כמות (לא חובה)</label>
+      <QtyPicker qty={qty} setQty={setQty} />
       <label className="lbl">מה המצב?</label>
       <div className="choices">
         {STOCK_ST.filter((s) => s.k !== 'arrived').map((s0) => { const s = stockSt(s0.k, ctx.shop); return <button key={s.k} className={'choice' + (status === s.k ? ' on' : '')} onClick={() => setStatus(s.k)}>{s.e} {s.label}</button>; })}
@@ -149,6 +158,7 @@ function LabReport({ ctx }) {
 
 function ShopReport({ ctx, name: name0 = '', companyId, fromNote }) {
   const [name, setName] = useState(name0);
+  const [qty, setQty] = useState(null);
   const [status, setStatus] = useState('out');
   const [co, setCo] = useState(companyId || '');
   const [note, setNote] = useState('');
@@ -166,7 +176,7 @@ function ShopReport({ ctx, name: name0 = '', companyId, fromNote }) {
     if (!name.trim()) { setErr('איזה מוצר חסר?'); return; }
     setBusy(true); setErr('');
     try {
-      const r = await api.saveStock(ctx.shopId, { name: name.trim(), status, company_id: co, note: note.trim() });
+      const r = await api.saveStock(ctx.shopId, { name: name.trim(), status, company_id: co, qty: qty || null, note: note.trim() });
       ctx.apply('stock', r);
       ctx.notify({ stock: r.id });
       if (fromNote) { try { ctx.apply('notes', await api.noteSet(ctx.shopId, fromNote, 'done')); } catch {} }
@@ -192,6 +202,8 @@ function ShopReport({ ctx, name: name0 = '', companyId, fromNote }) {
         {ctx.companies.map((c) => <button key={c.id} className={'chip' + (co === c.id ? ' on' : '')} onClick={() => setCo(co === c.id ? '' : c.id)}><CoLogo co={c} size={20} /> {c.name}</button>)}
         <button className="chip add" onClick={() => ctx.open({ t: 'settings', view: 'company' })}>+ חברה חדשה</button>
       </div>
+      <label className="lbl">כמות (לא חובה)</label>
+      <QtyPicker qty={qty} setQty={setQty} />
       <label className="lbl">הערה (לא חובה)</label>
       <input className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="למשל: נשארו 2" />
       {err && <div className="err">{err}</div>}

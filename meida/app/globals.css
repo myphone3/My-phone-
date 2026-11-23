@@ -476,3 +476,4 @@ mark { background: #fde68a; color: inherit; border-radius: 3px; padding: 0 1px; 
 .stepper { display: flex; align-items: center; gap: 6px; }
 .stepper .btn { width: 50px; padding: 0; font-size: 22px; font-weight: 800; }
 .stepper b { min-width: 44px; text-align: center; font-size: 20px; font-variant-numeric: tabular-nums; }
+.stepper .btn.sm { width: auto; padding: 0 12px; font-size: 14px; font-weight: 650; color: var(--muted); }
