@@ -39,7 +39,9 @@
   }
 }
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; touch-action: manipulation; }
+/* tapping a button fast (like + for quantity) must not zoom the screen in; pinch to zoom still works */
+body, button, a, input, select, textarea, label, .chip { touch-action: manipulation; }
 body {
   margin: 0; background: var(--bg); color: var(--ink);
   font-family: var(--font-body); font-size: 16px; line-height: 1.45;
