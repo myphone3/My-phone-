@@ -267,8 +267,8 @@ export default function Shop({ params }) {
         if (w.t === 'post') return <PostEditor key={key} ctx={ctx} post={w.post} />;
         if (w.t === 'cat') return <CategoryPage key={key} ctx={ctx} catId={w.id} />;
         if (w.t === 'co') return <CompanyPage key={key} ctx={ctx} coId={w.id} catId={w.cat} />;
-        if (w.t === 'report') return <StockReport key={key} ctx={ctx} name={w.name} companyId={w.company_id} fromNote={w.fromNote} />;
-        if (w.t === 'supplier') return <Supplier key={key} ctx={ctx} />;
+        if (w.t === 'report') return <StockReport key={key} ctx={ctx} place={w.place} name={w.name} companyId={w.company_id} fromNote={w.fromNote} />;
+        if (w.t === 'supplier') return <Supplier key={key} ctx={ctx} place={w.place} />;
         if (w.t === 'note') return <NoteEditor key={key} ctx={ctx} note={w.note} />;
         if (w.t === 'deals') return <Deals key={key} ctx={ctx} />;
         if (w.t === 'seen') return <SeenSheet key={key} ctx={ctx} refType={w.ref} row={w.row} authorId={w.authorId} title={w.title} />;

@@ -31,6 +31,15 @@ export const STOCK_ST = [
   { k: 'ordered', label: 'הוזמן', e: '🔵', cls: 'p-ord' },
   { k: 'arrived', label: 'הגיע', e: '🟢', cls: 'p-in' },
 ];
+// מלאי מעבדה: סוגי חלקים. pre = נכנס לשם ("מסך Galaxy A14")
+export const LAB_PARTS = [
+  { k: 'screen', e: '📱', label: 'מסך', many: 'מסכים', pre: true },
+  { k: 'battery', e: '🔋', label: 'סוללה', many: 'סוללות', pre: true },
+  { k: 'port', e: '🔌', label: 'שקע טעינה', many: 'שקעים', pre: true },
+  { k: 'part', e: '⚙️', label: 'חלק אחר', many: 'חלקים' },
+  { k: 'tool', e: '🧰', label: 'כלי / חומר', many: 'כלים וחומרים' },
+];
+export const labPart = (k) => LAB_PARTS.find((x) => x.k === k) || LAB_PARTS[3];
 export const stockSt = (k, shop) => {
   const s = STOCK_ST.find((x) => x.k === k) || STOCK_ST[0];
   const o = shop?.settings?.status?.[s.k];

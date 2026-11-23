@@ -465,3 +465,14 @@ mark { background: #fde68a; color: inherit; border-radius: 3px; padding: 0 1px; 
 .seg.scroll::-webkit-scrollbar { display: none; }
 .seg.scroll button { flex: none; padding: 0 12px; }
 .when { font-variant-numeric: tabular-nums; }
+
+/* מלאי: בורר מעבדה / חנות, כמות */
+.where { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--gray-soft); padding: 5px; border-radius: 15px; margin-bottom: 10px; }
+.where button { height: 48px; border-radius: 11px; font-weight: 800; font-size: 16px; color: var(--muted); display: flex; align-items: center; justify-content: center; gap: 6px; }
+.where button.on { background: var(--card); color: var(--ink); box-shadow: var(--shadow); }
+.where button.on.lab { color: var(--violet); }
+.where .n { background: var(--red); color: #fff; border-radius: 99px; font-size: 12px; min-width: 20px; height: 20px; display: inline-grid; place-items: center; padding: 0 6px; }
+.qty { display: inline-block; margin-inline-start: 8px; font-size: 13px; padding: 1px 8px; border-radius: 99px; background: var(--violet-soft); color: var(--violet); font-weight: 800; font-variant-numeric: tabular-nums; }
+.stepper { display: flex; align-items: center; gap: 6px; }
+.stepper .btn { width: 50px; padding: 0; font-size: 22px; font-weight: 800; }
+.stepper b { min-width: 44px; text-align: center; font-size: 20px; font-variant-numeric: tabular-nums; }

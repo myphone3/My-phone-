@@ -51,7 +51,7 @@ export async function POST(req) {
     if (ref === 'stock') {
       const x = (load?.stock || []).find((y) => y.id === id);
       if (!x) return Response.json({ sent: 0 });
-      payload = { title: `📦 ${ST[x.status] || 'חסר'}: ${x.name}`, body: `דיווח של ${x.status_by_name || x.created_by_name || 'עובד'}${x.note ? ' · ' + x.note : ''}`, tag: 'stock-' + x.id, url: url('stock') };
+      payload = { title: `${x.place === 'lab' ? '🔧 מעבדה' : '📦'} ${ST[x.status] || 'חסר'}: ${x.name}${x.qty ? ` — כמות: ${x.qty}` : ''}`, body: `דיווח של ${x.status_by_name || x.created_by_name || 'עובד'}${x.note ? ' · ' + x.note : ''}`, tag: 'stock-' + x.id, url: url('stock') };
     } else if (ref === 'note') {
       const x = (load?.notes || []).find((y) => y.id === id);
       if (!x) return Response.json({ sent: 0 });
