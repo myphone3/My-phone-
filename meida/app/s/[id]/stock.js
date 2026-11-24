@@ -427,7 +427,8 @@ export function Supplier({ ctx, place = 'shop' }) {
   else for (const x of open) (groups[x.company_id || ''] ||= []).push(x);
   const keys = lab ? Object.keys(groups) : Object.keys(groups).sort((a, b) => (a ? 0 : 1) - (b ? 0 : 1));
   const all = keys.flatMap((k) => groups[k]);
-  const text = (list) => `שלום, אנחנו צריכים${lab ? ' למעבדה' : ''}:\n${list.map((x) => `• ${x.name}${qtyTxt(x)}${x.note ? ` (${x.note})` : ''}`).join('\n')}\nתודה, ${ctx.shop.name}`;
+  // רק הרשימה עצמה — בלי שלום ותודה (את השאר בעל החנות כותב בעצמו)
+  const text = (list) => list.map((x) => `• ${x.name}${qtyTxt(x)}${x.note ? ` (${x.note})` : ''}`).join('\n');
   async function ordered(list) {
     try { const r = await api.stockStatus(ctx.shopId, list.map((x) => x.id), 'ordered'); ctx.apply('stock', r); ctx.toast('סומן כהוזמן ✓'); }
     catch (e) { ctx.toast(errText(e)); }
