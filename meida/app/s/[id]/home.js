@@ -72,6 +72,7 @@ function DealsStrip({ ctx }) {
 
 export default function HomeView({ ctx }) {
   const { items, index } = ctx;
+  const supNeed = (ctx.supplies || []).filter((x) => x.status !== 'ok').length;
   const [q, setQ] = useState('');
   const [limit, setLimit] = useState(40);
   const missed = useRef(new Set());
@@ -135,11 +136,12 @@ export default function HomeView({ ctx }) {
           <DealsStrip ctx={ctx} />
           <div className="actions">
             <button className="act stock" onClick={() => ctx.open({ t: 'report' })}><span className="e">📦</span><span><b>חסר במלאי</b><span className="s">דיווח מהיר</span></span>{ctx.stockOpen.length > 0 && <span className="dot">{ctx.stockOpen.length}</span>}</button>
+            <button className="act" onClick={() => ctx.setTab('supplies')}><span className="e">🧻</span><span><b>מצרכי חנות</b><span className="s">{supNeed ? `${supNeed} צריך לקנות` : 'טישו, שתייה, כוסות'}</span></span>{supNeed > 0 && <span className="dot">{supNeed}</span>}</button>
             <button className="act" onClick={() => ctx.open({ t: 'ask-new' })}><span className="e">💬</span><span><b>שאלה לצוות</b><span className="s">מחיר, יש לנו?, כללי</span></span>{ctx.asksWaiting.length > 0 && <span className="dot amber">{ctx.asksWaiting.length}</span>}</button>
             <button className="act" onClick={() => ctx.open({ t: 'note' })}><span className="e">📌</span><span><b>פתק פתוח</b><span className="s">שלא נשכח</span></span>{ctx.notesOpen.length > 0 && <span className="dot violet">{ctx.notesOpen.length}</span>}</button>
             <button className="act" onClick={() => ctx.open({ t: 'edit' })}><span className="e">➕</span><span><b>הוספת מידע</b><span className="s">לכל קטגוריה</span></span></button>
             <button className="act" onClick={() => ctx.open({ t: 'keys' })}><span className="e">🔑</span><span><b>מקש לגירסה</b><span className="s">{keysDone ? `${keysDone} מתוך ${keysAll}` : 'כשרים ותומכי כשר'}</span></span></button>
-            <button className="act" onClick={() => ctx.open({ t: 'samvix' })}><span className="e">🎵</span><span><b>גרסאות סמוויקס</b><span className="s">{svDone ? `${svDone} עם הוראות` : 'הוראות וסרטונים'}</span></span></button>
+            <button className="act wide" onClick={() => ctx.open({ t: 'samvix' })}><span className="e">🎵</span><span><b>גרסאות סמוויקס</b><span className="s">{svDone ? `${svDone} עם הוראות` : 'הוראות וסרטונים'}</span></span></button>
             <button className="act wide" onClick={() => ctx.open({ t: 'finder' })}><span className="e">🏢</span><span><b>לפי חברה / דגם</b><span className="s">כל מה שיש: מידע, קבצים, מקשים, מי שאל מחיר ומתי, חוסרים</span></span></button>
           </div>
           <div className="h2">🗂️ קטגוריות<button className="more" onClick={() => ctx.open({ t: 'settings', view: 'category' })}>עריכה</button></div>
