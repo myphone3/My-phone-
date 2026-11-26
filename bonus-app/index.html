@@ -115,6 +115,8 @@ details.fold > summary::-webkit-details-marker { display: none; }
 details.fold > summary::after { content: "›"; font-size: 26px; line-height: 1; color: var(--muted); transform: rotate(-90deg); transition: transform .15s; flex-shrink: 0; }
 details.fold[open] > summary::after { transform: rotate(90deg); }
 details.fold > summary h2 { margin: 0; }
+details.fold > summary .fold-t { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; flex: 1; }
+details.fold > summary .cat-head { flex: 1; min-width: 0; }
 details.fold > summary .profile-row { min-width: 0; }
 details.fold .fold-body { display: flex; flex-direction: column; gap: 10px; padding: 0 16px 14px; }
 @media (prefers-reduced-motion: reduce) { details.fold > summary::after { transition: none; } }
@@ -666,22 +668,26 @@ details.fold .fold-body { display: flex; flex-direction: column; gap: 10px; padd
 
     <div class="subtab" id="sub-types" hidden>
       <div class="readonly-note" id="typesNote" hidden></div>
-      <section class="card" id="cfgTargetCard" hidden>
-        <div class="card-head"><h2>הבונוסים של מי?</h2></div>
+      <details class="card fold" id="cfgTargetCard" hidden>
+        <summary><h2>הבונוסים של מי?</h2></summary>
+        <div class="fold-body">
         <div class="chips" id="cfgTargets"></div>
         <div class="hint" id="cfgTargetNote"></div>
         <button class="btn primary" type="button" id="cfgCustomize" hidden>הגדרת בונוסים אישיים לעובד הזה</button>
         <button class="btn ghost" type="button" id="cfgReset" hidden>החזרה לבונוסים של הצוות</button>
-      </section>
-      <section class="card" id="basePrices">
-        <div class="card-head"><h2>מחירי בסיס</h2></div>
+        </div>
+      </details>
+      <details class="card fold" id="basePrices">
+        <summary><h2>מחירי בסיס</h2></summary>
+        <div class="fold-body">
         <div class="inline">
           <div class="field"><label class="lbl" for="sReg">בונוס רגיל (₪)</label><input id="sReg" type="number" min="0" inputmode="numeric"></div>
           <div class="field"><label class="lbl" for="sBig">בונוס אולטרה (₪)</label><input id="sBig" type="number" min="0" inputmode="numeric"></div>
         </div>
         <button class="btn primary" type="button" id="saveAmounts">שמירת המחירים</button>
         <div class="hint">סוג שמסומן „רגיל” או „אולטרה” מקבל את המחיר מכאן. סוג עם „מחיר מיוחד” שומר על המחיר שלו.</div>
-      </section>
+        </div>
+      </details>
       <section class="card" id="otherCard" hidden>
         <label class="toggle-row"><span><b>לאפשר „אחר”</b><br><span class="hint">העובדים יוכלו לרשום בונוס שלא מופיע ברשימה</span></span><input type="checkbox" id="allowOther"></label>
       </section>
@@ -692,37 +698,46 @@ details.fold .fold-body { display: flex; flex-direction: column; gap: 10px; padd
     </div>
 
     <div class="subtab" id="sub-team" hidden>
-      <section class="card" id="teamNotReady" hidden>
-        <div class="card-head"><h2>צוות</h2></div>
+      <details class="card fold" id="teamNotReady" hidden>
+        <summary><h2>צוות</h2></summary>
+        <div class="fold-body">
         <div class="hint">האפשרות הזו תיפתח אחרי עדכון בסיס הנתונים.</div>
-      </section>
+        </div>
+      </details>
       <div class="subtab" id="teamNone" hidden>
-        <section class="card">
-          <div class="card-head"><h2>יצירת צוות</h2></div>
+        <details class="card fold">
+          <summary><h2>יצירת צוות</h2></summary>
+          <div class="fold-body">
           <div class="hint">אחרי שתיצור צוות תקבל קוד לעובדים, ותוכל לראות את הבונוסים של כולם ולקבוע להם סוגים ומחירים.</div>
           <div class="field"><label class="lbl" for="newTeamName">שם הצוות או החנות</label><input id="newTeamName" type="text" placeholder="למשל: New Phone סניף מרכז"></div>
           <button class="btn primary" type="button" id="createTeam">יצירת צוות</button>
-        </section>
+          </div>
+        </details>
         <div class="err" id="teamErr" hidden></div>
       </div>
-      <section class="card" id="teamIn" hidden>
-        <div class="card-head"><h2 id="teamInName"></h2><span class="pill" id="teamRole"></span></div>
+      <details class="card fold" id="teamIn" hidden>
+        <summary><span class="fold-t"><h2 id="teamInName"></h2><span class="pill" id="teamRole"></span></span></summary>
+        <div class="fold-body">
         <div class="hint" id="teamInNote"></div>
         <button class="btn ghost" type="button" id="goTeamTab" hidden>לניהול העובדים</button>
         <button class="btn danger" type="button" id="leaveTeam"></button>
         <div class="btns" id="leaveConfirm" hidden><button class="btn danger" type="button" id="leaveYes">כן</button><button class="btn ghost" type="button" id="leaveNo">ביטול</button></div>
         <div class="err" id="leaveErr" hidden></div>
-      </section>
+        </div>
+      </details>
     </div>
 
     <div class="subtab" id="sub-share" hidden>
-      <section class="card" id="meidaCard" hidden>
-        <div class="card-head"><h2>🔄 אפליקציית המידע</h2></div>
+      <details class="card fold" id="meidaCard" hidden>
+        <summary><h2>🔄 אפליקציית המידע</h2></summary>
+        <div class="fold-body">
         <div class="hint" id="meidaStatus"></div>
         <button class="btn ghost" type="button" id="meidaShareBtn"></button>
-      </section>
-      <section class="card">
-        <div class="card-head"><h2>איזו תקופה לשתף</h2></div>
+        </div>
+      </details>
+      <details class="card fold">
+        <summary><h2>איזו תקופה לשתף</h2></summary>
+        <div class="fold-body">
         <div class="chips" id="periodChips">
           <button class="chip" type="button" data-period="this">החודש</button>
           <button class="chip" type="button" data-period="last">חודש שעבר</button>
@@ -730,9 +745,11 @@ details.fold .fold-body { display: flex; flex-direction: column; gap: 10px; padd
         </div>
         <div class="month-checks" id="monthChecks" hidden></div>
         <div class="hint num" id="periodNote"></div>
-      </section>
-      <section class="card">
-        <div class="card-head"><h2>למי לשלוח</h2></div>
+        </div>
+      </details>
+      <details class="card fold">
+        <summary><h2>למי לשלוח</h2></summary>
+        <div class="fold-body">
         <div class="chips" id="recipChips"></div>
         <div class="field" id="otherNumBox" hidden><label class="lbl" for="otherNum">מספר טלפון</label><input id="otherNum" type="tel" inputmode="tel" dir="ltr" placeholder="050-1234567"></div>
         <a class="btn wa wide" id="waLink" href="https://wa.me/" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#wa-icon"/></svg><span id="waLabel">שליחה בוואטסאפ</span></a>
@@ -742,13 +759,17 @@ details.fold .fold-body { display: flex; flex-direction: column; gap: 10px; padd
           <button class="btn xl" type="button" id="xlBtn">קובץ אקסל</button>
         </div>
         <div class="hint">קובץ האקסל נפתח בתפריט השיתוף: וואטסאפ, מייל, קבצים או גוגל דרייב.</div>
-      </section>
-      <section class="card">
-        <div class="card-head"><h2>תצוגה מקדימה</h2></div>
+        </div>
+      </details>
+      <details class="card fold">
+        <summary><h2>תצוגה מקדימה</h2></summary>
+        <div class="fold-body">
         <textarea class="share-text" id="shareText" readonly aria-label="טקסט ההודעה"></textarea>
-      </section>
-      <section class="card">
-        <div class="card-head"><h2>מספרים שמורים</h2></div>
+        </div>
+      </details>
+      <details class="card fold">
+        <summary><h2>מספרים שמורים</h2></summary>
+        <div class="fold-body">
         <div id="contactList"></div>
         <div class="inline">
           <div class="field"><label class="lbl" for="cName">שם</label><input id="cName" type="text" placeholder="למשל: הבוס"></div>
@@ -757,24 +778,30 @@ details.fold .fold-body { display: flex; flex-direction: column; gap: 10px; padd
         <label class="hint"><input type="checkbox" id="cBoss"> זה הבוס (ייבחר אוטומטית)</label>
         <button class="btn primary" type="button" id="cAdd">שמירת המספר</button>
         <div class="err" id="cErr" hidden></div>
-      </section>
+        </div>
+      </details>
     </div>
 
     <div class="subtab" id="sub-backup" hidden>
-      <section class="card">
-        <div class="card-head"><h2>גיבוי אוטומטי</h2></div>
+      <details class="card fold">
+        <summary><h2>גיבוי אוטומטי</h2></summary>
+        <div class="fold-body">
         <div class="hint" id="backupNote">כל רישום נשמר אוטומטית בחשבון שלך בשרת. בטלפון חדש מתחברים לאותו חשבון והכל חוזר.</div>
-      </section>
-      <section class="card">
-        <div class="card-head"><h2>ייצוא</h2></div>
+        </div>
+      </details>
+      <details class="card fold">
+        <summary><h2>ייצוא</h2></summary>
+        <div class="fold-body">
         <div class="btns">
           <button class="btn ghost" type="button" id="exportFile">שמירת קובץ גיבוי</button>
           <button class="btn ghost" type="button" id="exportBtn">העתקת גיבוי כטקסט</button>
           <button class="btn xl" type="button" id="xlAll">אקסל של כל הנתונים</button>
         </div>
-      </section>
-      <section class="card">
-        <div class="card-head"><h2>ייבוא</h2></div>
+        </div>
+      </details>
+      <details class="card fold">
+        <summary><h2>ייבוא</h2></summary>
+        <div class="fold-body">
         <label class="btn ghost">בחירת קובץ גיבוי<input id="importFile" type="file" accept=".json,application/json,text/plain" hidden></label>
         <div class="field">
           <label class="lbl" for="importText">או הדבקת טקסט גיבוי</label>
@@ -783,7 +810,8 @@ details.fold .fold-body { display: flex; flex-direction: column; gap: 10px; padd
         <button class="btn primary" type="button" id="importBtn">ייבוא לחשבון הזה</button>
         <div class="err" id="importErr" hidden></div>
         <div class="hint">רישומים שכבר קיימים לא ייובאו פעמיים.</div>
-      </section>
+        </div>
+      </details>
     </div>
   </section>
 </div>
@@ -2383,14 +2411,16 @@ details.fold .fold-body { display: flex; flex-direction: column; gap: 10px; padd
     if (document.activeElement !== $("sBig")) $("sBig").value = E.big;
     var box = $("typeCards"); box.textContent = "";
     catsC(E).forEach(function (c) {
-      var card = el("section", "card");
-      var head = el("div", "card-head");
-      var h = el("div", "cat-head"); var ic = el("span", "cat-ic"); ic.appendChild(icon(c.icon)); h.appendChild(ic); h.appendChild(el("h2", null, c.plural || c.name));
-      head.appendChild(h);
-      if (editable) { var eb = el("button", "mini-btn", "עריכת קטגוריה"); eb.type = "button"; eb.addEventListener("click", function () { openCat(c.id); }); head.appendChild(eb); }
-      card.appendChild(head);
-      var rows = el("div", "rows");
       var list = typesOfC(E, c.id);
+      var fold = el("details", "card fold"); fold.open = !!openCats[c.id];
+      fold.addEventListener("toggle", function () { if (fold.open) openCats[c.id] = 1; else delete openCats[c.id]; });
+      var head = el("summary");
+      var h = el("div", "cat-head"); var ic = el("span", "cat-ic"); ic.appendChild(icon(c.icon)); h.appendChild(ic); h.appendChild(el("h2", null, c.plural || c.name)); h.appendChild(el("span", "hint num", "(" + list.length + ")"));
+      head.appendChild(h);
+      fold.appendChild(head);
+      var card = el("div", "fold-body"); fold.appendChild(card);
+      if (editable) { var eb = el("button", "mini-btn", "עריכת קטגוריה"); eb.type = "button"; eb.style.alignSelf = "flex-start"; eb.addEventListener("click", function () { openCat(c.id); }); card.appendChild(eb); }
+      var rows = el("div", "rows");
       if (!list.length) rows.appendChild(el("div", "empty-note", "אין סוגים בקטגוריה הזו."));
       list.forEach(function (t) {
         var row = el("div", "type-row");
@@ -2407,9 +2437,10 @@ details.fold .fold-body { display: flex; flex-direction: column; gap: 10px; padd
       });
       card.appendChild(rows);
       if (editable) { var ab = el("button", "add-type", "+ סוג חדש ב" + (c.plural || c.name)); ab.type = "button"; ab.addEventListener("click", function () { openType(c.id, null); }); card.appendChild(ab); }
-      box.appendChild(card);
+      box.appendChild(fold);
     });
   }
+  var openCats = {};
   $("allowOther").addEventListener("change", function () { saveConfig({ allow_other: $("allowOther").checked }); toast($("allowOther").checked ? "„אחר” מופעל" : "„אחר” כבוי"); });
   var editType = null;
   function setTypeTier(tier) {
