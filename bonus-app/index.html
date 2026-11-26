@@ -108,6 +108,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 .mini b { display: block; font-family: var(--font-display); font-size: 1.6rem; color: var(--hero-gold); line-height: 1.15; }
 .mini small { font-size: .8rem; opacity: .9; }
 
+/* which day new entries go to (to fill in a forgotten day) */
+.card.day-pick { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; }
+.day-pick .lbl { margin: 0; }
+.dchip { border: 1.5px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 14px; font-weight: 600; position: relative; }
+.dchip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.dchip input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
+.day-warn { display: flex; align-items: center; gap: 10px; background: var(--gold-soft); border: 1.5px solid var(--gold); color: var(--ink); border-radius: 14px; padding: 10px 12px; font-weight: 600; }
+.day-warn span { flex: 1; min-width: 0; }
+
 /* add keys */
 .adds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .add { background: var(--surface); border: 1.5px solid var(--line); border-radius: 18px; padding: 20px 6px 16px; display: flex; flex-direction: column; align-items: center; gap: 6px; font-weight: 700; font-size: 1.05rem; transition: transform .08s; }
@@ -436,6 +445,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
   <section class="tab" id="tab-add" aria-label="הוספת בונוס">
     <div class="banner" id="msgBanner" hidden><b>📣 הודעה מהמנהל</b><div class="msg" id="msgText"></div><div class="hint" id="msgDate"></div><div class="btns"><button class="mini-btn" type="button" id="msgDismiss">הבנתי</button></div></div>
     <div class="banner" id="remindBanner" hidden><b id="remindTitle"></b><div class="hint" id="remindText"></div><div class="btns"><button class="mini-btn" type="button" id="remindGo" hidden>מעבר לאישור</button></div></div>
+    <section class="card day-pick" role="group" aria-label="לאיזה יום מוסיפים">
+      <span class="lbl">מוסיף ל:</span>
+      <button class="dchip" type="button" id="dayToday">היום</button>
+      <button class="dchip" type="button" id="dayYest">אתמול</button>
+      <label class="dchip" id="dayPickWrap">📅 <span id="dayPickTxt">תאריך אחר</span><input type="date" id="dayPick" aria-label="בחירת תאריך"></label>
+    </section>
+    <div class="day-warn" id="dayWarn" role="status" hidden><span id="dayWarnTxt"></span><button class="mini-btn" type="button" id="dayBack">חזרה להיום</button></div>
     <section class="card" aria-label="חיפוש מהיר">
       <div class="field search"><input id="qsBox" type="search" placeholder="🔍 מה עשית? למשל: מסך, פרטנר, אייפון" aria-label="חיפוש בונוס" autocomplete="off"></div>
       <div class="qs-results" id="qsResults" hidden></div>
@@ -1836,11 +1852,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 
     renderAddKeys();
     renderBanners();
-    var today = todayStr();
+    renderDayPick();
+    var today = workDay(), isToday = today === todayStr();
     var todays = entriesWhere(function (e) { return e.date === today; }).sort(function (a, b) { return b.ts - a.ts; });
     var tt = totals(todays);
+    $("hToday").textContent = isToday ? "נוספו היום" : "נרשמו ל" + dayName(today);
     $("sToday").textContent = todays.length ? countLine(tt) + " · " + fmt(tt.all) + " ₪" : "";
-    renderLog($("todayList"), todays, false, "עוד לא נוסף כלום היום. לחץ על אחד הכפתורים למעלה.");
+    renderLog($("todayList"), todays, false, isToday ? "עוד לא נוסף כלום היום. לחץ על אחד הכפתורים למעלה." : "עוד לא נרשם כלום ליום הזה. לחץ על אחד הכפתורים למעלה.");
     $("lockNote").hidden = !state.approved[state.month];
     var g = myGoal(), curTot = monthTotal(monthKey(new Date()));
     $("goalCard").hidden = !g;
@@ -3269,6 +3287,27 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     else if (!draft.tierManual) setBonus("reg");
     if (t.id === "other") $("subOther").focus();
   }
+  // the day new entries go to: today, or a day that was forgotten. Not saved, so a fresh open is always today.
+  var pickedDay = null;
+  var DAY_NAMES = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
+  function workDay() { var t = todayStr(); return pickedDay && pickedDay < t ? pickedDay : t; }
+  function yesterdayStr() { var d = new Date(); d.setDate(d.getDate() - 1); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function dayName(k) { var p = k.split("-"); return (k === yesterdayStr() ? "אתמול, " : "") + "יום " + DAY_NAMES[new Date(+p[0], +p[1] - 1, +p[2]).getDay()] + " " + dmy(k); }
+  function setWorkDay(k) { pickedDay = k && k < todayStr() ? k : null; render(); }
+  function renderDayPick() {
+    var t = todayStr(), d = workDay(), y = yesterdayStr(), other = d !== t && d !== y;
+    $("dayToday").setAttribute("aria-pressed", String(d === t));
+    $("dayYest").setAttribute("aria-pressed", String(d === y));
+    $("dayPickWrap").setAttribute("aria-pressed", String(other));
+    $("dayPickTxt").textContent = other ? dmy(d) : "תאריך אחר";
+    $("dayPick").max = t; $("dayPick").value = d;
+    $("dayWarn").hidden = d === t;
+    $("dayWarnTxt").textContent = state.approved[d.slice(0, 7)] ? "🔒 המנהל כבר אישר את " + monthLabel(d.slice(0, 7)) + ". אי אפשר להוסיף בו." : "⚠️ מה שתוסיף עכשיו יירשם ל" + dayName(d);
+  }
+  $("dayToday").addEventListener("click", function () { setWorkDay(null); });
+  $("dayYest").addEventListener("click", function () { setWorkDay(yesterdayStr()); });
+  $("dayBack").addEventListener("click", function () { setWorkDay(null); });
+  $("dayPick").addEventListener("change", function () { setWorkDay(this.value); });
   function openAdd(kind, preSub) {
     if (!activeAcct()) { openLogin("first"); return; }
     draft = { mode: "add", id: null, kind: kind, sub: null, bonus: "reg", typeUltra: false };
@@ -3276,7 +3315,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     $("kindBox").hidden = true; $("qtyBox").hidden = false; $("entryDelete").hidden = true;
     $("customAmt").value = "";
     $("addQty").value = 1; $("addNote").value = "";
-    var t0 = todayStr(); $("addDate").value = t0; $("addDate").max = t0;
+    $("addDate").value = workDay(); $("addDate").max = todayStr();
     setBonus("reg");
     fillKind(kind, null);
     if (preSub) { var pc = $$("#subChips .chip").filter(function (x) { return x.textContent.indexOf(preSub) === 0 || (preSub === "אחר" && x.textContent === "אחר"); })[0]; if (pc) pc.click(); }
@@ -3331,7 +3370,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     }
     putEntries(rows);
     hide();
-    toast("נוסף: " + (qty > 1 ? qty + " × " : "") + catName(kind) + " · " + sub + " (+" + fmt(amount * qty) + " ₪)", function () { removeEntries(ids); });
+    toast("נוסף: " + (qty > 1 ? qty + " × " : "") + catName(kind) + " · " + sub + " (+" + fmt(amount * qty) + " ₪)" + (date !== todayStr() ? " · נרשם ל" + dayName(date) : ""), function () { removeEntries(ids); });
   });
   $("entryDelete").addEventListener("click", function () { var id = draft.id; hide(); deleteWithUndo(id); });
 
