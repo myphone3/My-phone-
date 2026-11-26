@@ -3,8 +3,8 @@ import './globals.css';
 export const metadata = {
   title: 'קופת המעבדה',
   description: 'הכנסות, הוצאות ומלאי של המעבדה',
-  manifest: '/manifest.json?v=1',
-  icons: { icon: [{ url: '/icon-192.png?v=1', sizes: '192x192', type: 'image/png' }], apple: '/apple-touch-icon.png?v=1' },
+  manifest: '/manifest.json?v=2',
+  icons: { icon: [{ url: '/icon-192.png?v=2', sizes: '192x192', type: 'image/png' }], apple: '/apple-touch-icon.png?v=2' },
   appleWebApp: { capable: true, title: 'קופה', statusBarStyle: 'default' },
 };
 
