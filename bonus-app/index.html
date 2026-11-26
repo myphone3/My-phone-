@@ -108,6 +108,16 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
 .mini b { display: block; font-family: var(--font-display); font-size: 1.6rem; color: var(--hero-gold); line-height: 1.15; }
 .mini small { font-size: .8rem; opacity: .9; }
 
+/* settings cards fold to a title row; tap to open */
+details.card.fold { display: block; padding: 0; }
+details.fold > summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 14px 16px; min-height: 52px; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::after { content: "›"; font-size: 26px; line-height: 1; color: var(--muted); transform: rotate(-90deg); transition: transform .15s; flex-shrink: 0; }
+details.fold[open] > summary::after { transform: rotate(90deg); }
+details.fold > summary h2 { margin: 0; }
+details.fold > summary .profile-row { min-width: 0; }
+details.fold .fold-body { display: flex; flex-direction: column; gap: 10px; padding: 0 16px 14px; }
+@media (prefers-reduced-motion: reduce) { details.fold > summary::after { transition: none; } }
 /* add keys */
 .adds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .add { background: var(--surface); border: 1.5px solid var(--line); border-radius: 18px; padding: 20px 6px 16px; display: flex; flex-direction: column; align-items: center; gap: 6px; font-weight: 700; font-size: 1.05rem; transition: transform .08s; }
@@ -610,11 +620,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
     </div>
 
     <div class="subtab" id="sub-profile">
-      <section class="card">
-        <div class="profile-row">
-          <span class="avatar lg" id="setAvatar" aria-hidden="true"></span>
-          <div class="who"><b id="setWho"></b><small id="setEmail"></small></div>
-        </div>
+      <details class="card fold">
+        <summary><span class="profile-row"><span class="avatar" id="setAvatar" aria-hidden="true"></span><span class="who"><b id="setWho"></b><small id="setEmail"></small></span></span></summary>
+        <div class="fold-body">
         <div class="btns">
           <label class="btn ghost">החלפת תמונה<input id="avatarFile" type="file" accept="image/*" hidden></label>
           <button class="btn ghost" type="button" id="avatarRemove">הסרת תמונה</button>
@@ -623,28 +631,37 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:foc
         <div class="field"><label class="lbl" for="sMyPhone">הטלפון שלי</label><input id="sMyPhone" type="tel" inputmode="tel" dir="ltr" autocomplete="tel"></div>
         <div class="err" id="profErr" hidden></div>
         <button class="btn primary" type="button" id="saveProfile">שמירה</button>
-      </section>
-      <section class="card">
-        <div class="card-head"><h2>🔑 שינוי סיסמה</h2></div>
+        </div>
+      </details>
+      <details class="card fold">
+        <summary><h2>🔑 שינוי סיסמה</h2></summary>
+        <div class="fold-body">
         <div class="field"><label class="lbl" for="newPass" id="newPassLbl">סיסמה חדשה (לפחות 6 תווים)</label><input id="newPass" type="password" dir="ltr" autocomplete="new-password"></div>
         <button class="btn ghost" type="button" id="changePass">שמירת הסיסמה החדשה</button>
         <div class="err" id="passErr" hidden></div>
-      </section>
-      <section class="card">
-        <div class="card-head"><h2>🔔 התראות לטלפון</h2></div>
+        </div>
+      </details>
+      <details class="card fold">
+        <summary><h2>🔔 התראות לטלפון</h2></summary>
+        <div class="fold-body">
         <div class="hint" id="pushNote"></div>
         <div class="btns"><button class="btn primary" type="button" id="pushOn">הפעלת התראות</button><button class="btn ghost" type="button" id="pushTest" hidden>שליחת התראת ניסיון</button><button class="btn ghost" type="button" id="pushOff" hidden>כיבוי</button></div>
-      </section>
-      <section class="card">
-        <div class="card-head"><h2>🔒 נעילת האפליקציה</h2></div>
+        </div>
+      </details>
+      <details class="card fold">
+        <summary><h2>🔒 נעילת האפליקציה</h2></summary>
+        <div class="fold-body">
         <div class="hint" id="lockNoteP"></div>
         <div class="btns"><button class="btn primary" type="button" id="pinSet">קביעת קוד</button><button class="btn ghost" type="button" id="bioSet" hidden>הוספת Face ID / טביעת אצבע</button><button class="btn ghost" type="button" id="pinOff" hidden>ביטול הנעילה</button></div>
-      </section>
-      <section class="card">
-        <div class="card-head"><h2>חשבונות</h2></div>
+        </div>
+      </details>
+      <details class="card fold">
+        <summary><h2>👥 חשבונות</h2></summary>
+        <div class="fold-body">
         <div class="hint">אפשר לשמור כמה חשבונות באותו טלפון ולעבור ביניהם בלחיצה על העיגול למעלה.</div>
         <button class="btn ghost wide" type="button" id="openAccts">חשבונות, סיסמה והתנתקות</button>
-      </section>
+        </div>
+      </details>
     </div>
 
     <div class="subtab" id="sub-types" hidden>
