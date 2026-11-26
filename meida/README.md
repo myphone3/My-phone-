@@ -34,6 +34,9 @@
 - **AI:** `/api/ai` (בודק שהמשתמש חבר בחנות) → השרת של החנות `STORE_AI_URL` עם `STORE_AI_SECRET` (= אותו ערך כמו `WARRANTY_AI_SECRET` בחנות),
   או `GEMINI_API_KEY` ישירות בפרויקט.
 
+## מצרכי חנות (שדרוג 11) — `supabase/schema-11.sql` (הורץ)
+לשונית "🧻 מצרכים": טישו, שתייה, כוסות וכו׳ — נפרד מהמלאי (`kb_supplies`). יש / עומד להיגמר / נגמר, תמונה לכל מוצר, רשימת קנייה לוואטסאפ, התראה לצוות. תצוגה: רשימה / קוביות קטנות / גדולות.
+
 ## משתני סביבה
 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `STORE_AI_URL`, `STORE_AI_SECRET` (או `GEMINI_API_KEY`).
 

@@ -14,6 +14,7 @@ import { CategoryPage, CompanyPage } from './cat';
 import StockTab, { StockReport, Supplier, ArriveSheet, MonthSheet, FOCUS_KEY } from './stock';
 import NotesTab, { NoteEditor } from './notes';
 import { SeenSheet } from '@/components/Seen';
+import SuppliesTab, { SupplySheet, SupplyEdit, SupplyCart } from './supplies';
 import { KeysPage, SamvixPage, DeviceSheet, AddDeviceSheet, devKey } from './devices';
 
 // מסכים שלא צריך בפתיחה — נטענים אחרי שהאפליקציה כבר על המסך (כדי שהפתיחה תהיה מהירה)
@@ -51,6 +52,7 @@ function mergeSeen(old, fresh) {
 const TABS = [
   { k: 'home', e: '🏠', label: 'ראשי' },
   { k: 'stock', e: '📦', label: 'מלאי' },
+  { k: 'supplies', e: '🧻', label: 'מצרכים' },
   { k: 'notes', e: '📌', label: 'פתוחים' },
   { k: 'asks', e: '💬', label: 'שאלות' },
 ];
@@ -73,6 +75,13 @@ export default function Shop({ params }) {
   const loadDevs = useCallback(() => api.devList(id).then((rows) => setDevs(saveDevs(devMap(rows)))).catch(() => {}), [id, saveDevs]);
   const applyDev = useCallback((r) => setDevs((m) => { const n = new Map(m); n.set(devKey(r.list, r.dev_id), r); return saveDevs(n); }), [saveDevs]);
   const removeDev = useCallback((list, dev) => setDevs((m) => { const n = new Map(m); n.delete(devKey(list, dev)); return saveDevs(n); }), [saveDevs]);
+
+  // מצרכי חנות (נפרד מהמלאי): נשמר בטלפון, מתעדכן מהשרת
+  const [supplies, setSupplies0] = useState(() => (typeof window !== 'undefined' ? lsGet('kb_sup_' + id, null) : null));
+  const setSupplies = useCallback((f) => setSupplies0((old) => { const n = typeof f === 'function' ? f(old || []) : f; lsSet('kb_sup_' + id, n); return n; }), [id]);
+  const loadSupplies = useCallback(() => api.supplies(id).then((rows) => setSupplies(rows || [])).catch(() => {}), [id, setSupplies]);
+  const applySupply = useCallback((r) => setSupplies((l) => (l.some((x) => x.id === r.id) ? l.map((x) => (x.id === r.id ? r : x)) : [...l, r])), [setSupplies]);
+  const removeSupply = useCallback((sid) => setSupplies((l) => l.filter((x) => x.id !== sid)), [setSupplies]);
 
   const toast = useCallback((m) => { setToastMsg(m); clearTimeout(toast.t); toast.t = setTimeout(() => setToastMsg(''), 2400); }, []);
   const setTab = useCallback((t) => { setTabState(t); try { sessionStorage.setItem('kb_tab2', t); } catch {} window.scrollTo(0, 0); }, []);
@@ -99,16 +108,17 @@ export default function Shop({ params }) {
     setLastShop(id);
     refresh(!dataRef.current || dataRef.current.v !== 5);
     loadDevs();
+    loadSupplies();
     const sp = lsGet('kb_site_phones', null);
     if (!sp || Date.now() - (sp.at || 0) > 12 * 3600000) {
       fetch('/api/phones').then((r) => (r.ok ? r.json() : null)).then((l) => { if (Array.isArray(l) && l.length) { lsSet('kb_site_phones', { at: Date.now(), list: l }); setSitePhones(l); } }).catch(() => {});
     }
-    const tick = () => { if (document.visibilityState === 'visible') refresh(); };
+    const tick = () => { if (document.visibilityState === 'visible') { refresh(); loadSupplies(); } };
     const t = setInterval(tick, 15000);
     document.addEventListener('visibilitychange', tick);
     window.addEventListener('online', tick);
     return () => { clearInterval(t); document.removeEventListener('visibilitychange', tick); window.removeEventListener('online', tick); };
-  }, [user, id, refresh, loadDevs]);
+  }, [user, id, refresh, loadDevs, loadSupplies]);
 
   // אחרי שהמסך הראשי כבר מוצג — טוענים ברקע את שאר המסכים, כדי שייפתחו מיד כשלוחצים
   useEffect(() => {
@@ -144,6 +154,7 @@ export default function Shop({ params }) {
     else if (sp.has('board')) open({ t: 'board' });
     else if (sp.has('asks')) setTab('asks');
     else if (sp.has('notes')) setTab('notes');
+    else if (sp.has('supplies')) setTab('supplies');
     else if (sp.has('stock')) {
       // מהתראת מלאי: "✓ הגיע" מסמן מיד (ואפשר להוסיף ספק), לחיצה רגילה מדגישה את הפריט
       const arrived = sp.get('arrived'), focus = sp.get('focus');
@@ -236,12 +247,13 @@ export default function Shop({ params }) {
     isAdmin: data.shop.role === 'owner' || data.shop.role === 'admin',
     open, close, replace, toast, refresh, apply, applyItem, applyTags, removeItem, ensureTags, setShop, setTab, tab,
     applyPost: (p) => apply('posts', p), applyAsk: (a) => apply('asks', a),
+    supplies, loadSupplies, applySupply, removeSupply,
     devs, sitePhones, applyDev, removeDev, loadDevs,
     notify: (body) => serverCall('/api/notify', { shop: id, ...body }).catch(() => {}),
     openItem: (it) => { pushList('recent_' + id, it.id, 15); open({ t: 'item', id: it.id }); },
   };
 
-  const badge = { stock: stockOpen.length, notes: notesOpen.length, asks: asksWaiting.length };
+  const badge = { supplies: (supplies || []).filter((x) => x.status !== 'ok').length, stock: stockOpen.length, notes: notesOpen.length, asks: asksWaiting.length };
   return (
     <>
       <div className="wrap">
@@ -254,7 +266,7 @@ export default function Shop({ params }) {
             <button className="icon-btn line" aria-label="הגדרות" onClick={() => open({ t: 'settings' })}><GearIcon />{ctx.isAdmin && data.shop.pending > 0 && <span className="dot">{data.shop.pending}</span>}</button>
           </div>
         </div>
-        {tab === 'stock' ? <StockTab ctx={ctx} /> : tab === 'notes' ? <NotesTab ctx={ctx} /> : tab === 'asks' ? <AsksTab ctx={ctx} /> : <HomeView ctx={ctx} />}
+        {tab === 'stock' ? <StockTab ctx={ctx} /> : tab === 'supplies' ? <SuppliesTab ctx={ctx} /> : tab === 'notes' ? <NotesTab ctx={ctx} /> : tab === 'asks' ? <AsksTab ctx={ctx} /> : <HomeView ctx={ctx} />}
       </div>
       <nav className="nav">
         <div className="nav-in">
@@ -283,6 +295,9 @@ export default function Shop({ params }) {
         if (w.t === 'arrive') return <ArriveSheet key={key} ctx={ctx} id={w.id} already={w.already} />;
         if (w.t === 'month') return <MonthSheet key={key} ctx={ctx} />;
         if (w.t === 'supplier') return <Supplier key={key} ctx={ctx} place={w.place} />;
+        if (w.t === 'supply') return <SupplySheet key={key} ctx={ctx} id={w.id} />;
+        if (w.t === 'supply-edit') return <SupplyEdit key={key} ctx={ctx} id={w.id} cat={w.cat} />;
+        if (w.t === 'supply-cart') return <SupplyCart key={key} ctx={ctx} />;
         if (w.t === 'note') return <NoteEditor key={key} ctx={ctx} note={w.note} />;
         if (w.t === 'deals') return <Deals key={key} ctx={ctx} />;
         if (w.t === 'seen') return <SeenSheet key={key} ctx={ctx} refType={w.ref} row={w.row} authorId={w.authorId} title={w.title} />;

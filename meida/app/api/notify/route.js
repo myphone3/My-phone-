@@ -14,11 +14,29 @@ export async function POST(req) {
   const token = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
   const b = await req.json().catch(() => ({}));
   const { shop } = b;
-  const ref = ['post', 'ask', 'stock', 'note', 'reply', 'ack'].find((k) => UUID.test(b[k] || ''));
+  const ref = ['post', 'ask', 'stock', 'note', 'reply', 'ack', 'supply'].find((k) => UUID.test(b[k] || ''));
   if (!token || !UUID.test(shop || '') || !ref) return Response.json({ error: 'bad' }, { status: 400 });
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: 'Bearer ' + token } }, auth: { persistSession: false },
   });
+  if (ref === 'supply') {
+    // מצרכי חנות (טישו, שתייה...) — נפרד מהמלאי
+    const r = await sb.rpc('kb_supply_targets', { p_shop: shop, p_id: b.supply });
+    if (r.error) return Response.json({ error: 'denied' }, { status: 403 });
+    let targets = r.data;
+    if (!targets?.length) return Response.json({ sent: 0 });
+    const q = await sb.rpc('kb_quiet_endpoints', { p_shop: shop });
+    const quiet = new Set(q.data || []);
+    targets = targets.filter((t) => !quiet.has(t.endpoint));
+    if (!targets.length) return Response.json({ sent: 0 });
+    const { data: list } = await sb.rpc('kb_supplies', { p_shop: shop });
+    const x = (list || []).find((y) => y.id === b.supply);
+    if (!x) return Response.json({ sent: 0 });
+    const payload = { title: `🧻 ${x.status === 'out' ? 'נגמר' : 'עומד להיגמר'}: ${x.name}`, body: `${x.status_by_name || 'עובד'} · צריך לקנות`, tag: 'supply-' + x.id, url: `/s/${shop}?supplies=1`, icon: `/api/icon/${shop}?s=192` };
+    const dead = await sendAll(targets, payload);
+    if (dead.length) await sb.rpc('kb_push_drop', { p_endpoints: dead });
+    return Response.json({ sent: targets.length - dead.length });
+  }
   const { data: load } = await sb.rpc('kb_load', { p_shop: shop, p_since: new Date(Date.now() - 5 * 60000).toISOString() });
   const id = b[ref];
   let targets, payload;
